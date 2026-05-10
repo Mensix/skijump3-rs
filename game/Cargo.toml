@@ -1,0 +1,8 @@
+[package]
+name = "game"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+engine = { path = "../engine" }
+sdl2 = { workspace = true }

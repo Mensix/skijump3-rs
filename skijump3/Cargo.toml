@@ -1,0 +1,7 @@
+[package]
+name = "skijump3"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+game = { path = "../game" }

@@ -1,7 +1,12 @@
-[package]
-name = "skijump3-rs"
-version = "0.1.0"
-edition = "2024"
+[workspace]
+resolver = "2"
+members = ["engine", "game", "skijump3"]
 
-[dependencies]
-sdl2 = "0.38.0"
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["Ski Jump 3 Team"]
+license = "MIT"
+
+[workspace.dependencies]
+sdl2 = "0.38"
