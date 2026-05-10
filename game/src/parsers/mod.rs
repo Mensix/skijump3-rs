@@ -1,3 +1,5 @@
+use std::fmt;
+
 pub mod pcx;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -6,8 +8,8 @@ pub struct ParseError {
     pub byte_offset: Option<usize>,
 }
 
-impl std::fmt::Display for ParseError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::Display for ParseError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.byte_offset {
             Some(offset) => write!(f, "{} at byte {}", self.message, offset),
             None => write!(f, "{}", self.message),
