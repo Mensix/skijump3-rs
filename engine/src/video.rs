@@ -2,11 +2,8 @@ use sdl2::pixels::PixelFormatEnum;
 use sdl2::render::TextureAccess;
 use std::time::{Duration, Instant};
 
+use crate::consts::{HEIGHT, TARGET_FPS, WIDTH};
 use crate::palette::Palette;
-
-const WIDTH: u32 = 320;
-const HEIGHT: u32 = 200;
-const SCALE: u32 = 2;
 
 pub struct Renderer {
     _sdl: sdl2::Sdl,
@@ -26,7 +23,7 @@ impl Renderer {
         let video = sdl.video().map_err(|e| e.to_string())?;
 
         let window = video
-            .window("Ski Jump International v3", WIDTH * SCALE, HEIGHT * SCALE)
+            .window("Ski Jump International v3", WIDTH * 2, HEIGHT * 2)
             .position_centered()
             .build()
             .map_err(|e| e.to_string())?;
@@ -79,7 +76,7 @@ impl Renderer {
 
     pub fn wait_frame(&mut self) {
         let elapsed = self.last_tick.elapsed();
-        let frame_time = Duration::from_secs_f64(1.0 / 70.0);
+        let frame_time = Duration::from_secs_f64(1.0 / TARGET_FPS as f64);
         if elapsed < frame_time {
             std::thread::sleep(frame_time - elapsed);
         }
