@@ -33,6 +33,7 @@ impl Renderer {
 
         let mut canvas = window
             .into_canvas()
+            .present_vsync()
             .build()
             .map_err(|e| e.to_string())?;
 
@@ -86,8 +87,14 @@ impl Renderer {
     }
 
     pub fn blit(&mut self, pixels: &[u8]) {
-        let count = pixels.len().min(self.indexed_pixels.len());
-        self.indexed_pixels[..count].copy_from_slice(&pixels[..count]);
+        assert_eq!(
+            pixels.len(),
+            self.indexed_pixels.len(),
+            "blit: expected {} pixels, got {}",
+            self.indexed_pixels.len(),
+            pixels.len()
+        );
+        self.indexed_pixels.copy_from_slice(pixels);
     }
 
     pub fn present(&mut self) -> Result<(), String> {
