@@ -100,9 +100,9 @@ impl Renderer {
             let clamped_idx = idx.min(255);
             let [r, g, b] = self.palette.color(clamped_idx);
             let pos = i * 3;
-            self.rgb_pixels[pos] = ((b as u32) * 255 / 63) as u8;
+            self.rgb_pixels[pos] = ((r as u32) * 255 / 63) as u8;
             self.rgb_pixels[pos + 1] = ((g as u32) * 255 / 63) as u8;
-            self.rgb_pixels[pos + 2] = ((r as u32) * 255 / 63) as u8;
+            self.rgb_pixels[pos + 2] = ((b as u32) * 255 / 63) as u8;
         }
 
         let tc = self.canvas.texture_creator();
