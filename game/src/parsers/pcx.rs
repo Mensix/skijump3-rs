@@ -26,7 +26,7 @@ impl PcxParser {
                 if i >= data.len() {
                     break;
                 }
-                let count = (b1 - 192 + 1) as usize;
+                let count = (b1 - 192) as usize;
                 let b2 = data[i];
                 i += 1;
 
