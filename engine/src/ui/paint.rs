@@ -13,10 +13,10 @@ impl<'a> PaintCtx<'a> {
     }
 
     pub fn fill_rect(&mut self, x: i32, y: i32, w: i32, h: i32, color: u8) {
-        let x = x.max(0) as i32;
-        let y = y.max(0) as i32;
-        let w = w.min(self.width as i32 - x).max(0) as i32;
-        let h = h.min(self.height as i32 - y).max(0) as i32;
+        let x = x.max(0);
+        let y = y.max(0);
+        let w = w.min(self.width as i32 - x).max(0);
+        let h = h.min(self.height as i32 - y).max(0);
         if w <= 0 || h <= 0 {
             return;
         }
@@ -32,17 +32,5 @@ impl<'a> PaintCtx<'a> {
         }
         let idx = (y as usize) * (self.width as usize) + (x as usize);
         self.pixels[idx] = color;
-    }
-
-    pub fn blit(&mut self, src: &[u8], src_w: u32, dst_x: i32, dst_y: i32) {
-        for i in 0..src.len() {
-            let rel_x = (i as u32) % src_w.max(1);
-            let rel_y = (i as u32) / src_w.max(1);
-            self.set_pixel(dst_x + rel_x as i32, dst_y + rel_y as i32, src[i]);
-        }
-    }
-
-    pub fn draw_glyph(&mut self, _sprite_idx: u8, x: i32, y: i32, _color: u8, _scale: i32) {
-        let _ = (x, y);
     }
 }

@@ -1,7 +1,7 @@
 use crate::ui::paint::PaintCtx;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct WidgetId(u32);
+pub struct WidgetId(pub u32);
 
 impl WidgetId {
     pub const INVALID: Self = Self(u32::MAX);

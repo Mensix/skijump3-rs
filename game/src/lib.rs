@@ -6,12 +6,13 @@ pub mod loaders;
 pub fn run() -> Result<(), String> {
     let mut renderer = engine::video::Renderer::new()?;
 
-    let main_menu = loaders::main_menu::MainMenu::load()?;
-    renderer.set_palette(main_menu.palette);
+    let assets = loaders::main_menu::MainMenuAssets::load()?;
+    let (pixels, palette) = assets.compose();
+    renderer.set_palette(palette);
 
     while renderer.running() {
         renderer.poll_input();
-        renderer.blit(&main_menu.pixels);
+        renderer.blit(&pixels);
         renderer.present()?;
         renderer.wait_frame();
     }
