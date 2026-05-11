@@ -15,6 +15,7 @@ pub struct Renderer {
     last_tick: Instant,
     running: bool,
     event_pump: sdl2::EventPump,
+    last_key: Option<sdl2::keyboard::Keycode>,
 }
 
 impl Renderer {
@@ -48,6 +49,7 @@ impl Renderer {
             last_tick: Instant::now(),
             running: true,
             event_pump,
+            last_key: None,
         })
     }
 
@@ -62,16 +64,23 @@ impl Renderer {
     pub fn poll_input(&mut self) {
         use sdl2::event::Event;
         use sdl2::keyboard::Keycode;
+        self.last_key = None;
         for event in self.event_pump.poll_iter() {
             match event {
                 Event::Quit { .. } => self.running = false,
-                Event::KeyDown {
-                    keycode: Some(Keycode::Escape),
-                    ..
-                } => self.running = false,
+                Event::KeyDown { keycode: Some(k), .. } => {
+                    self.last_key = Some(k);
+                    if k == Keycode::Escape {
+                        self.running = false;
+                    }
+                }
                 _ => {}
             }
         }
+    }
+
+    pub fn last_key(&self) -> Option<sdl2::keyboard::Keycode> {
+        self.last_key
     }
 
     pub fn wait_frame(&mut self) {
