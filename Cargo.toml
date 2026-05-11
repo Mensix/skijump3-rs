@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["engine", "game", "skijump3"]
+members = ["engine", "game"]
 
 [workspace.package]
 version = "0.1.0"
@@ -10,3 +10,16 @@ license = "MIT"
 
 [workspace.dependencies]
 sdl2 = "0.38"
+
+[package]
+name = "skijump3"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "skijump3"
+path = "src/main.rs"
+
+[dependencies]
+engine = { path = "engine" }
+game = { path = "game" }
