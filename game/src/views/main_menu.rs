@@ -1,11 +1,9 @@
-use engine::ui::{
-    Element, Event, Key, View, RouteTarget, Font, Cmd,
-    paint::PaintCtx,
-};
+use engine::ui;
+use engine::ui::{Cmd, Element, Event, Key, View, RouteTarget};
 use std::sync::Arc;
 
 pub struct MainMenuView {
-    pub selected: usize,
+    selected: usize,
     items: Arc<Vec<(String, RouteTarget)>>,
 }
 
@@ -24,7 +22,7 @@ impl MainMenuView {
                 ("PROFILES".to_string(), RouteTarget::Play(1)),
                 ("SETTINGS".to_string(), RouteTarget::Play(1)),
                 ("HILL RECORDS".to_string(), RouteTarget::Play(1)),
-                ("EXIT".to_string(), RouteTarget::MainMenu),
+                ("EXIT".to_string(), RouteTarget::Quit),
             ]),
         }
     }
@@ -36,18 +34,20 @@ impl MainMenuView {
 
 impl View for MainMenuView {
     fn elements(&self) -> Vec<Element> {
-        let mut els = vec![];
-
+        let mut els = ui![];
         for (i, (label, route)) in self.items.iter().enumerate() {
-            els.push(Element::Button {
-                text: label.clone(),
-                x: 20,
-                y: 30 + (i as i32) * 12,
-                selected: i == self.selected,
-                cmd: Cmd::Navigate(route.clone()),
-            });
+            let cmd = match route {
+                RouteTarget::Quit => Cmd::Quit,
+                _ => Cmd::Navigate(route.clone()),
+            };
+            els.push(ui::Element::button(
+                label.clone(),
+                20,
+                30 + (i as i32) * 12,
+                i == self.selected,
+                cmd,
+            ));
         }
-
         els
     }
 
@@ -64,15 +64,11 @@ impl View for MainMenuView {
                 None
             }
             Event::Keyboard(Key::Enter) | Event::Keyboard(Key::Char(' ')) => {
-                let target = self.items[self.selected].1.clone();
-                match self.items[self.selected].0.as_str() {
-                    "EXIT" => {
-                        std::process::exit(0);
-                    }
-                    _ => Some(target),
+                match self.items[self.selected].1 {
+                    RouteTarget::Quit => std::process::exit(0),
+                    _ => Some(self.items[self.selected].1.clone()),
                 }
             }
-            Event::Keyboard(Key::Escape) => None,
             Event::Keyboard(Key::Char(c)) => {
                 if let Some(idx) = c.to_digit(10) {
                     let idx = idx as usize - 1;
@@ -82,23 +78,12 @@ impl View for MainMenuView {
                 }
                 None
             }
+            Event::Keyboard(Key::Escape) => None,
             _ => None,
         }
     }
 
     fn route(&self) -> Option<RouteTarget> {
         Some(RouteTarget::MainMenu)
-    }
-
-    fn paint(&self, ctx: &mut PaintCtx, _sprites: &[Vec<u8>], font: &Font) {
-        for (i, (label, _)) in self.items.iter().enumerate() {
-            let y = 30 + (i as i32) * 12;
-
-            if i == self.selected {
-                ctx.fill_rect(10, y - 1, 150, 10, 246);
-            }
-
-            font.blit_string(ctx.pixels, ctx.width, label, 20, y);
-        }
     }
 }

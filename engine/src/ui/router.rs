@@ -1,6 +1,4 @@
-use crate::ui::cmd::RouteTarget;
-use crate::ui::paint::PaintCtx;
-use crate::ui::Font;
+use crate::ui::element::RouteTarget;
 
 #[derive(Clone, Debug)]
 pub enum Event {
@@ -24,7 +22,6 @@ pub trait View: Send + Sync {
     fn elements(&self) -> Vec<crate::ui::Element>;
     fn handle_event(&mut self, event: Event) -> Option<RouteTarget>;
     fn route(&self) -> Option<RouteTarget>;
-    fn paint(&self, ctx: &mut PaintCtx, sprites: &[Vec<u8>], font: &Font);
 }
 
 pub struct Router {
@@ -67,10 +64,6 @@ impl Router {
         if let Some(target) = self.current.handle_event(event) {
             self.navigate(target);
         }
-    }
-
-    pub fn paint(&self, ctx: &mut PaintCtx, sprites: &[Vec<u8>], font: &Font) {
-        self.current.paint(ctx, sprites, font);
     }
 
     pub fn current_route(&self) -> Option<RouteTarget> {
