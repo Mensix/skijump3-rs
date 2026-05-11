@@ -1,24 +1,15 @@
+use crate::ui::cmd::RouteTarget;
 use crate::ui::paint::PaintCtx;
-use std::any::Any;
+use crate::ui::Font;
 
-pub trait Route: 'static + Send + Sync {
-    fn name(&self) -> &str;
-    fn eq(&self, other: &dyn Route) -> bool;
-}
-
-pub trait View: Send + Sync {
-    fn paint(&self, ctx: &mut PaintCtx);
-    fn handle_event(&mut self, event: Event);
-    fn as_any(&self) -> &dyn Any;
-    fn as_any_mut(&mut self) -> &mut dyn Any;
-}
-
+#[derive(Clone, Debug)]
 pub enum Event {
     Keyboard(Key),
     Click { x: i32, y: i32 },
     Timer(u32),
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Key {
     Up,
     Down,
@@ -29,25 +20,38 @@ pub enum Key {
     Char(char),
 }
 
-pub struct Router<R: Route> {
-    current: Box<dyn View>,
-    routes: Vec<(Box<dyn Fn(&R) -> Box<dyn View>>, R)>,
+pub trait View: Send + Sync {
+    fn elements(&self) -> Vec<crate::ui::Element>;
+    fn handle_event(&mut self, event: Event) -> Option<RouteTarget>;
+    fn route(&self) -> Option<RouteTarget>;
+    fn paint(&self, ctx: &mut PaintCtx, sprites: &[Vec<u8>], font: &Font);
 }
 
-impl<R: Route + Clone + 'static> Router<R> {
-    pub fn new(initial: Box<dyn View>, routes: Vec<(Box<dyn Fn(&R) -> Box<dyn View>>, R)>) -> Self {
-        Self { current: initial, routes }
+pub struct Router {
+    current: Box<dyn View>,
+    current_route: Option<RouteTarget>,
+    history: Vec<RouteTarget>,
+    routes: Vec<(RouteTarget, Box<dyn Fn() -> Box<dyn View> + Send + Sync>)>,
+}
+
+impl Router {
+    pub fn new(route: RouteTarget, initial: Box<dyn View>, routes: Vec<(RouteTarget, Box<dyn Fn() -> Box<dyn View> + Send + Sync>)>) -> Self {
+        Self { current: initial, current_route: Some(route), history: Vec::new(), routes }
     }
 
-    pub fn navigate(&mut self, route: R)
-    where
-        R: Clone,
-    {
-        for (builder, r) in &self.routes {
-            if route.eq(r) {
-                self.current = builder(&route);
-                return;
+    pub fn navigate(&mut self, target: RouteTarget) {
+        if let Some(idx) = self.routes.iter().position(|(t, _)| *t == target) {
+            if let Some(prev) = self.current_route {
+                self.history.push(prev);
             }
+            self.current_route = Some(target);
+            self.current = (self.routes[idx].1)();
+        }
+    }
+
+    pub fn back(&mut self) {
+        if let Some(prev) = self.history.pop() {
+            self.navigate(prev);
         }
     }
 
@@ -56,14 +60,20 @@ impl<R: Route + Clone + 'static> Router<R> {
     }
 
     pub fn current_view_mut(&mut self) -> &mut dyn View {
-        self.current.as_mut()
+        &mut *self.current
     }
 
     pub fn handle_event(&mut self, event: Event) {
-        self.current.handle_event(event);
+        if let Some(target) = self.current.handle_event(event) {
+            self.navigate(target);
+        }
     }
 
-    pub fn paint(&self, ctx: &mut PaintCtx) {
-        self.current.paint(ctx);
+    pub fn paint(&self, ctx: &mut PaintCtx, sprites: &[Vec<u8>], font: &Font) {
+        self.current.paint(ctx, sprites, font);
+    }
+
+    pub fn current_route(&self) -> Option<RouteTarget> {
+        self.current_route
     }
 }

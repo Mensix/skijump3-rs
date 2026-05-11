@@ -1,6 +1,3 @@
-use crate::ui::paint::PaintCtx;
-use crate::ui::widget::{Widget, Props, WidgetId};
-
 #[derive(Clone)]
 struct Glyph {
     data: Vec<u8>,
@@ -75,30 +72,5 @@ impl Font {
 impl Default for Font {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-pub struct TextProps {
-    pub content: String,
-    pub x: i32,
-    pub y: i32,
-}
-
-impl Props for TextProps {}
-
-pub struct Text {
-    pub props: TextProps,
-    pub font: Font,
-}
-
-impl Text {
-    pub fn new(content: &str, x: i32, y: i32, font: Font) -> Self {
-        Self { props: TextProps { content: content.to_string(), x, y }, font }
-    }
-}
-
-impl Widget for Text {
-    fn paint(&self, ctx: &mut PaintCtx, _id: WidgetId) {
-        self.font.blit_string(ctx.pixels, ctx.width, &self.props.content, self.props.x, self.props.y);
     }
 }
