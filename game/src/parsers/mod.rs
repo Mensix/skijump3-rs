@@ -1,6 +1,7 @@
 use std::fmt;
 
 pub mod anim;
+pub mod langbase;
 pub mod pcx;
 
 #[derive(Debug, Clone, PartialEq, Eq)]

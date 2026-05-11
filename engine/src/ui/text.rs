@@ -31,6 +31,30 @@ impl Glyph {
             }
         }
     }
+
+    fn blit_color(&self, pixels: &mut [u8], screen_w: u32, dst_x: i32, dst_y: i32, color: u8) {
+        let start_x = dst_x - self.center_x as i32;
+        let start_y = dst_y - self.center_y as i32;
+        for yy in 0..self.height as i32 {
+            for xx in 0..self.width as i32 {
+                let src_idx = (yy * self.width as i32 + xx) as usize;
+                if src_idx >= self.data.len() {
+                    continue;
+                }
+                let pixel = self.data[src_idx];
+                if pixel == 0 {
+                    continue;
+                }
+                let px = start_x + xx;
+                let py = start_y + yy;
+                if px < 0 || py < 0 || px >= (screen_w as i32) || py >= 200 {
+                    continue;
+                }
+                let idx = (py as usize) * (screen_w as usize) + (px as usize);
+                pixels[idx] = color;
+            }
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -50,11 +74,19 @@ impl Font {
     }
 
     pub fn blit_string(&self, pixels: &mut [u8], screen_w: u32, text: &str, x: i32, y: i32) {
+        self.blit_string_color(pixels, screen_w, text, x, y, 0);
+    }
+
+    pub fn blit_string_color(&self, pixels: &mut [u8], screen_w: u32, text: &str, x: i32, y: i32, color: u8) {
         let mut px = x;
         for byte in text.bytes().map(|b| b.to_ascii_uppercase()) {
             let idx = Self::char_to_index(byte);
             if let Some(ref g) = self.glyphs[idx] {
-                g.blit_to(pixels, screen_w, px, y);
+                if color != 0 {
+                    g.blit_color(pixels, screen_w, px, y, color);
+                } else {
+                    g.blit_to(pixels, screen_w, px, y);
+                }
                 px += g.width as i32;
             }
         }

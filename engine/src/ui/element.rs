@@ -13,6 +13,7 @@ pub enum RouteTarget {
     Quit,
     MainMenu,
     OptionsMenu,
+    Profiles,
     Play(u8),
     Results { score: u32, hill: u8 },
 }
@@ -57,8 +58,8 @@ impl Element {
                     ctx.pixels[dst_row..dst_row + dst_w as usize].copy_from_slice(src);
                 }
             }
-            Element::Text { text, x, y, .. } => {
-                font.blit_string(ctx.pixels, ctx.width, text, *x, *y);
+            Element::Text { text, x, y, color } => {
+                font.blit_string_color(ctx.pixels, ctx.width, text, *x, *y, *color);
             }
             Element::Fillbox { x, y, w, h, color } => {
                 ctx.fill_rect(*x, *y, *w, *h, *color);

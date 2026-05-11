@@ -1,84 +1,58 @@
-use engine::ui;
-use engine::ui::{Cmd, Element, Event, Key, View, RouteTarget};
-use std::sync::Arc;
+use engine::ui::{Element, Event, View, RouteTarget};
+use crate::parsers::langbase::LangBase;
+use crate::components::menu::{Menu, MenuItem};
 
 pub struct MainMenuView {
-    selected: usize,
-    items: Arc<Vec<(String, RouteTarget)>>,
+    menu: Menu,
+    langbase: LangBase,
+    version: String,
 }
 
 impl MainMenuView {
-    pub fn new() -> Self {
-        Self {
-            selected: 0,
-            items: Arc::new(vec![
-                ("SJ3 WORLD CUP".to_string(), RouteTarget::Play(1)),
-                ("TEAM CUP".to_string(), RouteTarget::Play(1)),
-                ("FOUR HILLS TOUR".to_string(), RouteTarget::Play(1)),
-                ("KING OF THE HILL".to_string(), RouteTarget::Play(1)),
-                ("PRACTISE".to_string(), RouteTarget::Play(1)),
-                ("CUSTOM WORLD CUP".to_string(), RouteTarget::Play(1)),
-                ("REPLAYS".to_string(), RouteTarget::Play(1)),
-                ("PROFILES".to_string(), RouteTarget::Play(1)),
-                ("SETTINGS".to_string(), RouteTarget::Play(1)),
-                ("HILL RECORDS".to_string(), RouteTarget::Play(1)),
-                ("EXIT".to_string(), RouteTarget::Quit),
-            ]),
-        }
-    }
-
-    pub fn with_items(items: Vec<(String, RouteTarget)>) -> Self {
-        Self { selected: 0, items: Arc::new(items) }
+    pub fn new(langbase: LangBase, version: String) -> Self {
+        Self { menu: Menu::new(), langbase, version }
     }
 }
 
 impl View for MainMenuView {
     fn elements(&self) -> Vec<Element> {
-        let mut els = ui![];
-        for (i, (label, route)) in self.items.iter().enumerate() {
-            let cmd = match route {
-                RouteTarget::Quit => Cmd::Quit,
-                _ => Cmd::Navigate(route.clone()),
-            };
-            els.push(ui::Element::button(
-                label.clone(),
-                20,
-                30 + (i as i32) * 12,
-                i == self.selected,
-                cmd,
-            ));
-        }
+        let mut els = vec![];
+
+        // from MainMenuText(0): header lstr(17) at (11,80) fontcolor(246)
+        els.push(Element::text_color(self.langbase.lstr(17), 11, 80, 246));
+
+        // items from the Menu component
+        let items = [
+            MenuItem { num: 1, label: 20 },
+            MenuItem { num: 2, label: 21 },
+            MenuItem { num: 3, label: 22 },
+            MenuItem { num: 4, label: 23 },
+            MenuItem { num: 5, label: 24 },
+            MenuItem { num: 6, label: 25 },
+            MenuItem { num: 0, label: 26 },
+        ];
+        els.extend(self.menu.elements(11, 98, 108, 12, &items, &self.langbase, 240, 240));
+
+        // from drawmainmenu: lstr(34) at (170,51) fontcolor(240)
+        els.push(Element::text_color(self.langbase.lstr(34), 170, 51, 240));
+
+        // from MainMenuText(0): right side text
+        els.push(Element::text_color("SKI JUMP", 308, 6, 240));
+        els.push(Element::text_color("SKI JUMP INTERNATIONAL", 308, 18, 240));
+        els.push(Element::text_color(format!("v{}", self.version), 245, 30, 240));
+
         els
     }
 
     fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {
-        match event {
-            Event::Keyboard(Key::Up) => {
-                self.selected = self.selected.saturating_sub(1);
-                None
-            }
-            Event::Keyboard(Key::Down) => {
-                if self.selected < self.items.len() - 1 {
-                    self.selected += 1;
-                }
-                None
-            }
-            Event::Keyboard(Key::Enter) | Event::Keyboard(Key::Char(' ')) => {
-                match self.items[self.selected].1 {
-                    RouteTarget::Quit => std::process::exit(0),
-                    _ => Some(self.items[self.selected].1.clone()),
-                }
-            }
-            Event::Keyboard(Key::Char(c)) => {
-                if let Some(idx) = c.to_digit(10) {
-                    let idx = idx as usize - 1;
-                    if idx < self.items.len() {
-                        self.selected = idx;
-                    }
-                }
-                None
-            }
-            Event::Keyboard(Key::Escape) => None,
+        match self.menu.handle_event(&event, 6) {
+            Some(0) => Some(RouteTarget::Quit),
+            Some(1) => Some(RouteTarget::Play(1)),
+            Some(2) => Some(RouteTarget::Profiles),
+            Some(3) => Some(RouteTarget::OptionsMenu),
+            Some(4) => Some(RouteTarget::Play(1)),
+            Some(5) => Some(RouteTarget::Play(1)),
+            Some(6) => Some(RouteTarget::Play(1)),
             _ => None,
         }
     }
