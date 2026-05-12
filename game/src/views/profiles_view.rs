@@ -570,7 +570,7 @@ impl ProfilesView {
         self.mode = Mode::TextInput {
             profile,
             field,
-            input: TextInput::new(x, y, max_width, old, 245, FONT_DEFAULT, font),
+            input: TextInput::new(x, y, max_width, old, 245, FONT_NEW, font),
         };
     }
 

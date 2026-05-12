@@ -47,16 +47,16 @@ impl Component for TextInput {
 
     fn elements(&self) -> Vec<Element> {
         let timer = self.cursor_timer.get();
-        self.cursor_timer.set(if timer >= 8 { 0 } else { timer + 1 });
-        let cursor_visible = timer <= 4;
+        let next = if timer >= 20 { 0 } else { timer + 1 };
+        self.cursor_timer.set(next);
 
         let cx = self.x + self.font.string_width(&self.buf) as i32;
         let mut els = vec![
             Element::fillbox(self.x - 2, self.y - 2, self.max_width + 4, 10, self.bg),
             Element::text_color(&self.buf, self.x, self.y, self.fg),
         ];
-        if cursor_visible {
-            els.push(Element::fillbox(cx, self.y + 6, 5, 1, self.fg));
+        if timer <= 10 {
+            els.push(Element::fillbox(cx, self.y + 6, 5, 1, 240));
         }
         els
     }
