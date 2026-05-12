@@ -131,7 +131,7 @@ impl Font {
             b'!' => Some(42),
             b'*' => Some(43),
             b'-' => Some(44),
-            b',' => Some(45),
+            b',' => Some(46),
             b'(' => Some(47),
             b')' => Some(48),
             b'\xB5' => Some(49),  // µ
