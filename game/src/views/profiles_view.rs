@@ -818,7 +818,7 @@ impl View<RouteTarget> for ProfilesView {
             EditEnter(usize, usize),
             TextCommit(usize, TextField, String),
             TextCancel(usize, TextField),
-            ColorCommit,
+            ColorCommit(usize, ColorField),
             ColorCancel(usize, ColorField),
             ReplaceCommit(usize, usize),
             ReplaceCancel(usize),
@@ -879,7 +879,7 @@ impl View<RouteTarget> for ProfilesView {
                                 }
                             }
                             drop(store);
-                            Pending::ColorCommit
+                            Pending::ColorCommit(*profile, *field)
                         }
                         ValueSelectorAction::Cancel => Pending::ColorCancel(*profile, *field),
                     });
@@ -925,7 +925,15 @@ impl View<RouteTarget> for ProfilesView {
                     },
                 };
             }
-            Some(Pending::ColorCommit) => {}
+            Some(Pending::ColorCommit(profile, field)) => {
+                self.mode = Mode::Edit {
+                    profile,
+                    selected: match field {
+                        ColorField::Suit => 2,
+                        ColorField::Ski => 3,
+                    },
+                };
+            }
             Some(Pending::ColorCancel(profile, field)) => {
                 self.mode = Mode::Edit {
                     profile,

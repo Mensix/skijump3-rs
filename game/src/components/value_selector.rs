@@ -183,10 +183,10 @@ impl ValueSelector {
             }
         }
         els.push(Element::box_(
-            self.x + 9,
-            self.y + self.value as i32 * 8,
-            24,
-            8,
+            self.x + 3,
+            self.y + 2 + self.value as i32 * 8,
+            25,
+            9,
             self.fg,
         ));
         els
