@@ -1,6 +1,6 @@
-use std::sync::Arc;
 use engine::ui::Element;
 use crate::parsers::langbase::LangBase;
+use engine::consts::{WIDTH, HEIGHT};
 
 const FONT_DEFAULT: u8 = 240;
 
@@ -13,17 +13,19 @@ pub fn header_elements(text: &str, x: i32, y: i32, color: u8, bg: u8) -> Vec<Ele
 
 #[derive(Clone)]
 pub struct MainLayout {
-    pub langbase: Arc<LangBase>,
+    pub langbase: std::sync::Arc<LangBase>,
     version: String,
+    background: Vec<u8>,
 }
 
 impl MainLayout {
-    pub fn new(langbase: Arc<LangBase>, version: String) -> Self {
-        Self { langbase, version }
+    pub fn new(langbase: std::sync::Arc<LangBase>, version: String, background: Vec<u8>) -> Self {
+        Self { langbase, version, background }
     }
 
     pub fn wrap(&self, content: Vec<Element>) -> Vec<Element> {
         let mut els = vec![
+            Element::image(self.background.clone(), WIDTH, HEIGHT),
             Element::text_color(self.langbase.lstr(34), 170, 51, FONT_DEFAULT),
         ];
         els.extend(content);

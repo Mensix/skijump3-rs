@@ -64,7 +64,6 @@ pub struct Game {
     font: Font,
     router: Router<RouteTarget>,
     sprites: Vec<SpriteData>,
-    background_pixels: Vec<u8>,
     framebuffer: Vec<u8>,
     palette: Palette,
 }
@@ -81,7 +80,7 @@ impl Game {
         apply_standard_ui_palette(&mut palette);
         renderer.set_palette(palette.clone());
 
-        let router = Self::create_router(Arc::clone(&langbase));
+        let router = Self::create_router(Arc::clone(&langbase), pixels.clone());
 
         Ok(Self {
             _sdl: sdl,
@@ -90,7 +89,6 @@ impl Game {
             font,
             router,
             sprites,
-            background_pixels: pixels,
             framebuffer,
             palette,
         })
@@ -116,8 +114,8 @@ impl Game {
         Ok((decoded.pixels, decoded.palette, sprites, langbase))
     }
 
-    fn create_router(langbase: Arc<LangBase>) -> Router<RouteTarget> {
-        let layout = MainLayout::new(Arc::clone(&langbase), VERSION.to_string());
+    fn create_router(langbase: Arc<LangBase>, background: Vec<u8>) -> Router<RouteTarget> {
+        let layout = MainLayout::new(Arc::clone(&langbase), VERSION.to_string(), background);
         let languages = langbase.languages.clone();
         Router::new(
             // initial view: language selection; then MainMenu
@@ -166,7 +164,7 @@ impl Game {
     }
 
     fn render_frame(&mut self) -> Result<(), String> {
-        self.framebuffer.copy_from_slice(&self.background_pixels);
+        self.framebuffer.fill(0);
         let mut ctx = engine::ui::PaintCtx::new(&mut self.framebuffer, &self.palette, WIDTH, HEIGHT);
         let elements = self.router.current_view().elements();
         for el in &elements {
