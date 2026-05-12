@@ -8,7 +8,7 @@ const TILE_H: u32 = 13;
 
 pub enum Element {
     Image(Vec<u8>, u32, u32),
-    Text { text: String, x: i32, y: i32, color: u8, right: bool },
+    Text { text: String, x: i32, y: i32, color: u8, right: bool, center: bool },
     Sprite(u16, i32, i32),
     Fillbox { x: i32, y: i32, w: i32, h: i32, color: u8 },
     FillArea { thing: u8 },
@@ -29,8 +29,15 @@ impl Element {
                     ctx.pixels[dst_row..dst_row + dst_w as usize].copy_from_slice(src);
                 }
             }
-            Element::Text { text, x, y, color, right } => {
-                let fx = if *right { x - font.string_width(text) as i32 } else { *x };
+            Element::Text { text, x, y, color, right, center } => {
+                let text_w = font.string_width(text) as i32;
+                let fx = if *center {
+                    x - text_w / 2
+                } else if *right {
+                    x - text_w
+                } else {
+                    *x
+                };
                 font.blit_string_color(ctx.pixels, ctx.width, text, fx, *y, *color);
             }
             Element::Fillbox { x, y, w, h, color } => {
@@ -77,15 +84,19 @@ impl Element {
     }
 
     pub fn text(text: impl Into<String>, x: i32, y: i32) -> Self {
-        Self::Text { text: text.into(), x, y, color: 15, right: false }
+        Self::Text { text: text.into(), x, y, color: 15, right: false, center: false }
     }
 
     pub fn text_color(text: impl Into<String>, x: i32, y: i32, color: u8) -> Self {
-        Self::Text { text: text.into(), x, y, color, right: false }
+        Self::Text { text: text.into(), x, y, color, right: false, center: false }
     }
 
     pub fn text_color_right(text: impl Into<String>, x: i32, y: i32, color: u8) -> Self {
-        Self::Text { text: text.into(), x, y, color, right: true }
+        Self::Text { text: text.into(), x, y, color, right: true, center: false }
+    }
+
+    pub fn text_color_center(text: impl Into<String>, x: i32, y: i32, color: u8) -> Self {
+        Self::Text { text: text.into(), x, y, color, right: false, center: true }
     }
 
     pub fn sprite(idx: u16, x: i32, y: i32) -> Self {

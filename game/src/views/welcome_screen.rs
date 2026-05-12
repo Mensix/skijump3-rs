@@ -61,7 +61,7 @@ impl View<RouteTarget> for WelcomeScreenView {
         // language names centred at x=155, y=temp*8+55
         for (i, name) in self.languages.iter().enumerate() {
             let iy = ((i + 1) * 8 + 55) as i32;
-            els.push(Element::text_color(name, 155, iy, FONT_GOLD));
+            els.push(Element::text_color_center(name, 155, iy, FONT_GOLD));
         }
 
         // highlight box from Menu component (labels disabled)
