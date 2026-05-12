@@ -102,18 +102,18 @@ impl View<RouteTarget> for ProfilesView {
                     if !labels[i].is_empty() {
                         els.push(Element::text_color(labels[i], 166, y, FONT_HEADER));
                     }
-                    // value in color 246 at colx+4+fontlen(label) approx
-                    // items 16-18 (indices 15-17): value below label at colx+4
                     let val: &str = match i {
                         0 => &p.name,
                         7 | 8 => "",
                         _ => "-",
                     };
                     if !val.is_empty() {
+                        // Pascal: x = colx + 4 + fontlen(label) for items 1-15
+                        // items 16-18: x = colx + 4, y = gety + 8
                         let (vx, vy) = if i >= 15 {
                             (170, y + 8)
                         } else {
-                            (246, y)
+                            (166 + 4 + (labels[i].len() as i32) * 7, y)
                         };
                         els.push(Element::text_color(val, vx, vy, 246));
                     }
