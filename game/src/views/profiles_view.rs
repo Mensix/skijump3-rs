@@ -282,9 +282,9 @@ impl ProfilesView {
             "Reset Jumper",
             "Exit",
             "Total Jumps:",
-            "WC:",
+            "World Cup Completed:",
             "Legs Won:",
-            "WC Won:",
+            "World Cups Won:",
             "Best:",
             "Best 4H:",
             "Longest WC:",
@@ -319,7 +319,7 @@ impl ProfilesView {
                 continue;
             }
             if !label.is_empty() {
-                let lc = if edit_phase && temp == 10 {
+                let lc = if edit_phase && temp >= 10 {
                     FONT_HELP
                 } else {
                     label_color
