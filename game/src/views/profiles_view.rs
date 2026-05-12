@@ -104,7 +104,7 @@ impl View<RouteTarget> for ProfilesView {
                     }
                     let val: &str = match i {
                         0 => &p.name,
-                        1 => "-",           // Real name (not in struct yet)
+                        1 => "",           // Real name (empty by default)
                         2 | 3 => "",        // Suit/Ski Color: no value in Pascal
                         4 => "-",           // Replace
                         5 => "None",        // Coach style
@@ -135,11 +135,12 @@ impl View<RouteTarget> for ProfilesView {
             }
         }
 
-        // highlight box: regular items use position formula, Back position uses text y - 3
+        // highlight box: regular items at yy=10+(idx-1)*8
+        // Back position: Pascal exit slot at index entries+2 → yy=10+(entries+1)*8
         let (by, box_h) = if self.selected <= entries {
             (10 + ((self.selected - 1) * 8) as i32, 9)
         } else {
-            (Self::y_for(back_temp) - 3, 9)
+            (10 + (entries as i32) * 8 + 8, 9)
         };
         els.push(Element::box_(34, by, 123, box_h, 240));
 
