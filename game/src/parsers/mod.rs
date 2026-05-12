@@ -1,9 +1,11 @@
 use std::fmt;
 
 pub mod anim;
+pub mod hills;
 pub mod langbase;
 pub mod names;
 pub mod pcx;
+pub mod records;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ParseError {

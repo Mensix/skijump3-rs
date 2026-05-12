@@ -1,4 +1,5 @@
 use crate::data::profile::ProfileStore;
+use crate::data::records::{HillCatalog, RecordStore};
 use crate::parsers::langbase::LangBase;
 use engine::ui::Font;
 use std::cell::RefCell;
@@ -9,14 +10,21 @@ pub struct Resources {
     pub font: Font,
     pub langbase: Rc<LangBase>,
     pub player_names: Vec<String>,
+    pub hills: HillCatalog,
 }
 
 impl Resources {
-    pub fn new(font: Font, langbase: Rc<LangBase>, player_names: Vec<String>) -> Self {
+    pub fn new(
+        font: Font,
+        langbase: Rc<LangBase>,
+        player_names: Vec<String>,
+        hills: HillCatalog,
+    ) -> Self {
         Self {
             font,
             langbase,
             player_names,
+            hills,
         }
     }
 }
@@ -26,18 +34,20 @@ pub type ResourcesRef = Rc<Resources>;
 #[derive(Debug, Clone)]
 pub struct Store {
     pub profiles: ProfileStore,
+    pub records: RecordStore,
 }
 
 impl Default for Store {
     fn default() -> Self {
-        Self::new()
+        Self::new(RecordStore::default())
     }
 }
 
 impl Store {
-    pub fn new() -> Self {
+    pub fn new(records: RecordStore) -> Self {
         Self {
             profiles: ProfileStore::new(),
+            records,
         }
     }
 }

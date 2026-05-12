@@ -21,19 +21,23 @@ use engine::ui::Router;
 use loaders::assets::AssetStore;
 use parsers::{
     anim::AnimParser,
+    hills::HillBaseParser,
     langbase::{LangBase, LangBaseParser},
     names::NamesParser,
     pcx::PcxParser,
+    records::RecordsParser,
     AssetParser,
 };
 use route::RouteTarget;
 use std::cell::RefCell;
 use std::rc::Rc;
-use views::{JumpMenuView, MainMenuView, ProfilesView};
+use views::{HallOfFameView, HillRecordsView, JumpMenuView, MainMenuView, ProfilesView};
 
 const MAIN_PCX: &str = "MAIN.PCX";
 const ANIM_SKI: &str = "ANIM.SKI";
 const LANGBASE_SKI: &str = "LANGBASE.SKI";
+const HILLBASE_SKI: &str = "HILLBASE.SKI";
+const HISCORE_SKI: &str = "HISCORE.SKI";
 const NAMES_FILES: &[&str] = &["NAMES0.SKI", "NAMES1.SKI", "NAMES2.SKI"];
 const VERSION: &str = "3.12";
 const UI_PALETTE_BASE: usize = 216;
@@ -142,8 +146,11 @@ impl Game {
         renderer.set_palette(base_palette.clone());
 
         let player_names = load_player_names();
-        let resources: ResourcesRef = Rc::new(Resources::new(font.clone(), langbase, player_names));
-        let store: StoreRef = Rc::new(RefCell::new(Store::new()));
+        let hills = Self::load_hills()?;
+        let records = Self::load_records()?;
+        let resources: ResourcesRef =
+            Rc::new(Resources::new(font.clone(), langbase, player_names, hills));
+        let store: StoreRef = Rc::new(RefCell::new(Store::new(records)));
         let router = Self::create_router(resources, pixels, store);
 
         Ok(Self {
@@ -179,6 +186,16 @@ impl Game {
         Ok((decoded.pixels, decoded.palette, sprites, langbase))
     }
 
+    fn load_hills() -> Result<crate::data::records::HillCatalog, String> {
+        let data = AssetStore::read(HILLBASE_SKI).map_err(|e| e.to_string())?;
+        HillBaseParser::parse(&data).map_err(|e| e.to_string())
+    }
+
+    fn load_records() -> Result<crate::data::records::RecordStore, String> {
+        let data = AssetStore::read(HISCORE_SKI).map_err(|e| e.to_string())?;
+        RecordsParser::parse(&data).map_err(|e| e.to_string())
+    }
+
     fn create_router(
         resources: ResourcesRef,
         background: Vec<u8>,
@@ -202,9 +219,19 @@ impl Game {
                     Box::new(move || Box::new(JumpMenuView::new(l.clone())))
                 }),
                 (RouteTarget::ProfilesList, {
+                    let r = resources.clone();
+                    let s = store.clone();
+                    Box::new(move || Box::new(ProfilesView::new(r.clone(), s.clone())))
+                }),
+                (RouteTarget::HallOfFame, {
+                    let r = resources.clone();
+                    let s = store.clone();
+                    Box::new(move || Box::new(HallOfFameView::new(r.clone(), s.clone())))
+                }),
+                (RouteTarget::HillRecords, {
                     let r = resources;
                     let s = store;
-                    Box::new(move || Box::new(ProfilesView::new(r.clone(), s.clone())))
+                    Box::new(move || Box::new(HillRecordsView::new(r.clone(), s.clone())))
                 }),
                 (RouteTarget::OptionsMenu, {
                     let l = layout.clone();
