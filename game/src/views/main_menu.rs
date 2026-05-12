@@ -46,7 +46,7 @@ impl View<RouteTarget> for MainMenuView {
         els.push(Element::text_color(self.langbase.lstr(34), 170, 51, FONT_DEFAULT));
 
         els.push(Element::text_color_right("SKI JUMP", 308, 6, FONT_DEFAULT));
-        els.push(Element::text_color_right("SKI JUMP INTERNATIONAL", 308, 18, FONT_DEFAULT));
+        els.push(Element::text_color_right("INTERNATIONAL", 308, 18, FONT_DEFAULT));
         els.push(Element::text_color(format!("v{}", self.version), 245, 30, FONT_DEFAULT));
 
         els
