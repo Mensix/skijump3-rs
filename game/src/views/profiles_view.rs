@@ -84,6 +84,21 @@ impl View<RouteTarget> for ProfilesView {
         let back_temp = if has_slot { np + 3 } else { np + 2 };
         els.push(Element::text_color("Back to Main Menu", 40, Self::y_for(back_temp), FONT_BACK));
 
+        // help text at bottom-left (Pascal writeprofile lines 1477-1491)
+        if np < 16 && self.selected <= np {
+            els.push(Element::fillbox(1, 175, 158, 25, BG_LEFT));
+            els.push(Element::FillArea { thing: 63 });
+            let is_active = true; // simplified: no order tracking yet
+            let (enter_text, del_text) = if is_active {
+                ("ENTER edits jumper,", "DEL removes from order)")
+            } else {
+                ("ENTER signs up,", "DEL deletes jumper)")
+            };
+            els.push(Element::text_color("(Use arrows,", 8, 175, 241));
+            els.push(Element::text_color(enter_text, 11, 183, 241));
+            els.push(Element::text_color(del_text, 11, 191, 241));
+        }
+
         // right pane: writeprofile labels and values
         if self.selected <= np {
             if let Some(p) = store.profiles.profiles.get(self.selected) {
