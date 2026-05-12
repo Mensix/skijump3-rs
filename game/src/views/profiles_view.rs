@@ -5,6 +5,7 @@ use crate::data::profile::{Profile, NUM_SKIS, NUM_SUITS};
 use crate::palette_consts::*;
 use crate::route::RouteTarget;
 use crate::store::StoreRef;
+use crate::utils::{replace_display_name, truncate_to_fit};
 use engine::palette::Palette;
 use engine::ui::{Component, Element, Event, Key, View};
 use std::rc::Rc;
@@ -368,18 +369,9 @@ impl ProfilesView {
                                 170 + store.font.string_width(&format!("#{}", profile.replace))
                                     as i32,
                             )
-                            .max(0) as usize;
+                            .max(0);
                         let name = &store.player_names[profile.replace - 1];
-                        let truncated = store.font.string_width(name) as usize;
-                        if truncated > max_w {
-                            let mut n = name.clone();
-                            while store.font.string_width(&n) as usize > max_w && n.len() > 1 {
-                                n.pop();
-                            }
-                            n
-                        } else {
-                            name.clone()
-                        }
+                        truncate_to_fit(name, &store.font, max_w)
                     } else {
                         format!("#{}", profile.replace)
                     }
@@ -563,21 +555,12 @@ impl ProfilesView {
                     .min(REPLACE_MAX);
                 let x = self.store.borrow().font.string_width("Replace:") as i32 + 170;
                 let display = if value > 0 {
-                    let store = self.store.borrow();
-                    if value <= store.player_names.len() {
-                        let name = &store.player_names[value - 1];
-                        let max_w = (316i32.saturating_sub(
-                            x + store.font.string_width(&format!("#{}", value)) as i32 + 4,
-                        ))
-                        .max(0) as usize;
-                        let mut n = name.clone();
-                        while store.font.string_width(&n) as usize > max_w && n.len() > 1 {
-                            n.pop();
-                        }
-                        n
-                    } else {
-                        String::new()
-                    }
+                    replace_display_name(
+                        value,
+                        &self.store.borrow().player_names,
+                        &self.store.borrow().font,
+                        x,
+                    )
                 } else {
                     String::new()
                 };
@@ -747,15 +730,7 @@ impl View<RouteTarget> for ProfilesView {
                 if value > 0 {
                     let store = self.store.borrow();
                     if value <= store.player_names.len() {
-                        let name = &store.player_names[value - 1];
-                        let max_w = (316i32.saturating_sub(
-                            x + store.font.string_width(&format!("#{}", value)) as i32 + 4,
-                        ))
-                        .max(0) as usize;
-                        let mut n = name.clone();
-                        while store.font.string_width(&n) as usize > max_w && n.len() > 1 {
-                            n.pop();
-                        }
+                        let n = replace_display_name(value, &store.player_names, &store.font, x);
                         els.push(Element::text_color(n, x, 44, FONT_DEFAULT));
                         els.push(Element::text_color_right(
                             format!("#{}", value),

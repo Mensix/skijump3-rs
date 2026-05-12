@@ -7,6 +7,7 @@ pub mod palette_consts;
 pub mod parsers;
 pub mod route;
 pub mod store;
+pub mod utils;
 pub mod views;
 
 use crate::components::layout::MainLayout;
