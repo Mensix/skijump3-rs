@@ -65,8 +65,4 @@ impl View<RouteTarget> for MainMenuView {
             _ => None,
         }
     }
-
-    fn route(&self) -> Option<RouteTarget> {
-        Some(RouteTarget::MainMenu)
-    }
 }

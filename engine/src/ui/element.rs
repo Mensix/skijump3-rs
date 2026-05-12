@@ -5,7 +5,7 @@ use crate::sprite::SpriteData;
 pub enum Element {
     Image(Vec<u8>, u32, u32),
     Text { text: String, x: i32, y: i32, color: u8, right: bool },
-    Sprite(u8, i32, i32),
+    Sprite(u16, i32, i32),
     Fillbox { x: i32, y: i32, w: i32, h: i32, color: u8 },
     Box { x: i32, y: i32, w: i32, h: i32, color: u8 },
     Container(Vec<Element>),
@@ -62,7 +62,7 @@ impl Element {
         Self::Text { text: text.into(), x, y, color, right: true }
     }
 
-    pub fn sprite(idx: u8, x: i32, y: i32) -> Self {
+    pub fn sprite(idx: u16, x: i32, y: i32) -> Self {
         Self::Sprite(idx, x, y)
     }
 

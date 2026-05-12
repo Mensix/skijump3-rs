@@ -19,7 +19,6 @@ pub enum Key {
 pub trait View<T: Clone + PartialEq + 'static> {
     fn elements(&self) -> Vec<Element>;
     fn handle_event(&mut self, event: Event) -> Option<T>;
-    fn route(&self) -> Option<T>;
 }
 
 pub struct Router<T: Clone + PartialEq + 'static> {

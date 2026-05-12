@@ -7,7 +7,7 @@ pub mod route;
 pub mod views;
 
 use std::sync::Arc;
-use engine::ui::{Router, Event, Key};
+use engine::ui::Router;
 use engine::input::Input;
 use engine::sprite::SpriteData;
 use engine::consts::{WIDTH, HEIGHT, FONT_GLYPH_COUNT};
@@ -140,26 +140,9 @@ impl Game {
     }
 
     fn handle_input(&mut self) {
-        self.input.poll();
-        let Some(key) = self.input.last_key() else { return };
-        let event = match key {
-            sdl2::keyboard::Keycode::Up => Event::Keyboard(Key::Up),
-            sdl2::keyboard::Keycode::Down => Event::Keyboard(Key::Down),
-            sdl2::keyboard::Keycode::Return => Event::Keyboard(Key::Enter),
-            sdl2::keyboard::Keycode::Escape => Event::Keyboard(Key::Escape),
-            sdl2::keyboard::Keycode::Num0 => Event::Keyboard(Key::Char('0')),
-            sdl2::keyboard::Keycode::Num1 => Event::Keyboard(Key::Char('1')),
-            sdl2::keyboard::Keycode::Num2 => Event::Keyboard(Key::Char('2')),
-            sdl2::keyboard::Keycode::Num3 => Event::Keyboard(Key::Char('3')),
-            sdl2::keyboard::Keycode::Num4 => Event::Keyboard(Key::Char('4')),
-            sdl2::keyboard::Keycode::Num5 => Event::Keyboard(Key::Char('5')),
-            sdl2::keyboard::Keycode::Num6 => Event::Keyboard(Key::Char('6')),
-            sdl2::keyboard::Keycode::Num7 => Event::Keyboard(Key::Char('7')),
-            sdl2::keyboard::Keycode::Num8 => Event::Keyboard(Key::Char('8')),
-            sdl2::keyboard::Keycode::Num9 => Event::Keyboard(Key::Char('9')),
-            _ => return,
-        };
-        self.router.handle_event(&event);
+        for event in self.input.drain_events() {
+            self.router.handle_event(&event);
+        }
     }
 
     fn render_frame(&mut self) -> Result<(), String> {
