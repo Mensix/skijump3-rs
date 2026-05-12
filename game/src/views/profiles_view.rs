@@ -23,7 +23,7 @@ impl ProfilesView {
         Self { store, selected: 1, editing: false, edit_buf: String::new() }
     }
 
-    fn y_for(&self, temp: usize) -> i32 {
+    fn y_for(temp: usize) -> i32 {
         (temp * 8 + 4) as i32
     }
 }
@@ -41,9 +41,10 @@ impl View<RouteTarget> for ProfilesView {
         let store = self.store.borrow();
         let np = store.profiles.num_profiles();
         let has_slot = store.profiles.has_slot();
+        let entries = if has_slot { np + 1 } else { np };
 
         for i in 1..=np {
-            let y = self.y_for(i);
+            let y = Self::y_for(i);
             els.push(Element::fillbox(10, y - 1, 21, 8, BG_ORDER));
             let is_selected = self.selected == i && self.editing;
             if let Some(p) = store.profiles.profiles.get(i) {
@@ -58,21 +59,26 @@ impl View<RouteTarget> for ProfilesView {
         }
 
         if has_slot {
-            let y = self.y_for(np + 1);
+            let y = Self::y_for(np + 1);
             els.push(Element::text_color("*Create New Jumper*", 40, y, FONT_NEW));
         }
 
-        let idx = if has_slot { np + 3 } else { np + 2 };
-        els.push(Element::text_color("Back to Main Menu", 40, self.y_for(idx), FONT_BACK));
+        // inc(temp,2), then "Back to Main Menu"
+        let back_temp = if has_slot { np + 3 } else { np + 2 };
+        els.push(Element::text_color("Back to Main Menu", 40, Self::y_for(back_temp), FONT_BACK));
 
-        let by = 10 + ((self.selected - 1) * 8) as i32;
-        els.push(Element::box_(34, by, 123, 9, 240));
+        // highlight box: regular items use position formula, Back position uses text y - 3
+        let (by, box_h) = if self.selected <= entries {
+            (10 + ((self.selected - 1) * 8) as i32, 9)
+        } else {
+            (Self::y_for(back_temp) - 3, 9)
+        };
+        els.push(Element::box_(34, by, 123, box_h, 240));
 
         els
     }
 
     fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {
-        // editing mode: only accept edit keys, cancel on Up/Down
         if self.editing {
             return match event {
                 Event::Keyboard(Key::Enter) => {
@@ -106,7 +112,6 @@ impl View<RouteTarget> for ProfilesView {
             };
         }
 
-        // normal navigation mode
         let (_np, entries, has_slot) = {
             let store = self.store.borrow();
             let np = store.profiles.num_profiles();
@@ -114,7 +119,7 @@ impl View<RouteTarget> for ProfilesView {
             let entries = if has_slot { np + 1 } else { np };
             (np, entries, has_slot)
         };
-        // Back is visual-only, not a selectable item (Pascal MakeMenu items=entries)
+        let total = entries + 1; // Back is the exit slot
 
         match event {
             Event::Keyboard(Key::Up) if self.selected > 1 => {
@@ -122,10 +127,10 @@ impl View<RouteTarget> for ProfilesView {
                 None
             }
             Event::Keyboard(Key::Up) => {
-                self.selected = entries;
+                self.selected = total;
                 None
             }
-            Event::Keyboard(Key::Down) if self.selected < entries => {
+            Event::Keyboard(Key::Down) if self.selected < total => {
                 self.selected += 1;
                 None
             }
