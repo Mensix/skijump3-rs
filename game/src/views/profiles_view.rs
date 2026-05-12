@@ -32,20 +32,16 @@ impl View<RouteTarget> for ProfilesView {
     fn elements(&self) -> Vec<Element> {
         let mut els = vec![];
 
-        // black canvas + two panels
         els.push(Element::fillbox(0, 0, 320, 200, 0));
         els.push(Element::fillbox(0, 0, 159, 200, BG_LEFT));
         els.push(Element::fillbox(160, 0, 160, 200, BG_RIGHT));
         els.push(Element::FillArea { thing: 63 });
-
-        // "Jumpers:" at (40,3) fontcolor(241)
         els.push(Element::text_color("Jumpers:", 40, 3, FONT_HEADER));
 
         let store = self.store.borrow();
         let np = store.profiles.num_profiles();
         let has_slot = store.profiles.has_slot();
 
-        // profile names with order number boxes
         for i in 1..=np {
             let y = self.y_for(i);
             els.push(Element::fillbox(10, y - 1, 21, 8, BG_ORDER));
@@ -61,17 +57,14 @@ impl View<RouteTarget> for ProfilesView {
             }
         }
 
-        // "*Create New Jumper*" if room
         if has_slot {
             let y = self.y_for(np + 1);
             els.push(Element::text_color("*Create New Jumper*", 40, y, FONT_NEW));
         }
 
-        // "Back to Main Menu" — inc(temp,2) after last entry
         let idx = if has_slot { np + 3 } else { np + 2 };
         els.push(Element::text_color("Back to Main Menu", 40, self.y_for(idx), FONT_BACK));
 
-        // highlight box
         let by = 10 + ((self.selected - 1) * 8) as i32;
         els.push(Element::box_(34, by, 123, 9, 240));
 
@@ -79,15 +72,7 @@ impl View<RouteTarget> for ProfilesView {
     }
 
     fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {
-        let (np, entries, has_slot) = {
-            let store = self.store.borrow();
-            let np = store.profiles.num_profiles();
-            let has_slot = store.profiles.has_slot();
-            let entries = if has_slot { np + 1 } else { np };
-            (np, entries, has_slot)
-        };
-        let total = entries + 1;
-
+        // editing mode: only accept edit keys, cancel on Up/Down
         if self.editing {
             return match event {
                 Event::Keyboard(Key::Enter) => {
@@ -102,10 +87,11 @@ impl View<RouteTarget> for ProfilesView {
                     None
                 }
                 Event::Keyboard(Key::Escape) => {
-                    // if newly created with empty name, remove it
-                    if self.edit_buf.is_empty() && self.selected > np.saturating_sub(1) {
-                        // don't delete — just leave as unnamed
-                    }
+                    self.editing = false;
+                    self.edit_buf.clear();
+                    None
+                }
+                Event::Keyboard(Key::Up) | Event::Keyboard(Key::Down) => {
                     self.editing = false;
                     self.edit_buf.clear();
                     None
@@ -119,6 +105,16 @@ impl View<RouteTarget> for ProfilesView {
                 _ => None,
             };
         }
+
+        // normal navigation mode
+        let (_np, entries, has_slot) = {
+            let store = self.store.borrow();
+            let np = store.profiles.num_profiles();
+            let has_slot = store.profiles.has_slot();
+            let entries = if has_slot { np + 1 } else { np };
+            (np, entries, has_slot)
+        };
+        let total = entries + 1;
 
         match event {
             Event::Keyboard(Key::Up) if self.selected > 1 => {
@@ -140,19 +136,15 @@ impl View<RouteTarget> for ProfilesView {
             Event::Keyboard(Key::Enter) | Event::Keyboard(Key::Char(' ')) => {
                 if self.selected <= entries {
                     if self.selected == entries && has_slot {
-                        // Create new jumper: DefaultProfile + inc(numprofiles)
                         let mut store = self.store.borrow_mut();
                         let new_idx = store.profiles.num_profiles() + 1;
                         let mut p = Profile::default();
-                        // count conflicts like Pascal: try "SKI JUMPER", then "SKI JUMPER 2", etc.
                         p.name = "SKI JUMPER".to_string();
                         let mut counter: usize = 2;
                         loop {
                             let conflict = store.profiles.profiles.iter().skip(1)
                                 .any(|x| x.name == p.name);
-                            if !conflict {
-                                break;
-                            }
+                            if !conflict { break; }
                             p.name = format!("SKI JUMPER {}", counter);
                             counter += 1;
                             if counter > 200 { break; }
@@ -166,7 +158,6 @@ impl View<RouteTarget> for ProfilesView {
                         self.editing = true;
                         None
                     } else {
-                        // Edit existing jumper
                         self.edit_buf = self.store.borrow().profiles.profiles
                             .get(self.selected).map(|p| p.name.clone()).unwrap_or_default();
                         self.editing = true;
