@@ -15,7 +15,7 @@ use engine::sprite::SpriteData;
 use engine::consts::{WIDTH, HEIGHT, FONT_GLYPH_COUNT};
 use loaders::assets::AssetStore;
 use parsers::{AssetParser, anim::AnimParser, langbase::{LangBase, LangBaseParser}, pcx::PcxParser};
-use views::{MainMenuView, JumpMenuView, ProfilesView, ProfileEditor};
+use views::{MainMenuView, JumpMenuView, ProfilesView};
 use crate::components::layout::MainLayout;
 use crate::store::{Store, StoreRef};
 use engine::ui::Font;
@@ -135,10 +135,6 @@ impl Game {
                 (RouteTarget::ProfilesList, {
                     let s = store.clone();
                     Box::new(move || Box::new(ProfilesView::new(s.clone())))
-                }),
-                (RouteTarget::ProfileEditor, {
-                    let s = store.clone();
-                    Box::new(move || Box::new(ProfileEditor::new(s.clone())))
                 }),
                 (RouteTarget::OptionsMenu, {
                     let l = layout.clone();

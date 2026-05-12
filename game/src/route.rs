@@ -5,5 +5,4 @@ pub enum RouteTarget {
     JumpMenu,
     OptionsMenu,
     ProfilesList,
-    ProfileEditor,
 }
