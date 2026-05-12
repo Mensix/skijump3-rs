@@ -104,8 +104,22 @@ impl View<RouteTarget> for ProfilesView {
                     }
                     let val: &str = match i {
                         0 => &p.name,
-                        7 | 8 => "",
-                        _ => "-",
+                        1 => "-",           // Real name (not in struct yet)
+                        2 | 3 => "",        // Suit/Ski Color: no value in Pascal
+                        4 => "-",           // Replace
+                        5 => "None",        // Coach style
+                        6 => "Never",       // Skip quali
+                        7 | 8 => "",        // Reset/Exit: hidden in phase=0
+                        9 => "0",           // Total Jumps
+                        10 => "0",          // WC
+                        11 => "0",          // Legs Won
+                        12 => "0",          // WC Won
+                        13 => "-",          // Best result
+                        14 => "-",          // Best 4H result
+                        15 => "-",          // Longest WC
+                        16 => "-",          // Longest
+                        17 => "-",          // KOTH level
+                        _ => "",
                     };
                     if !val.is_empty() {
                         // Pascal: x = colx + 4 + fontlen(label) for items 1-15
