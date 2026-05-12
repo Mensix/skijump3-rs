@@ -646,7 +646,6 @@ impl View<RouteTarget> for ProfilesView {
     fn elements(&self) -> Vec<Element> {
         let mut els = Vec::new();
         self.draw_screen_base(&mut els);
-        self.draw_list(&mut els);
 
         if let Some(profile) = self.active_profile() {
             let edit_phase = !matches!(self.mode, Mode::List | Mode::Question { .. });
@@ -658,6 +657,8 @@ impl View<RouteTarget> for ProfilesView {
             self.draw_empty_edit(&mut els);
             self.draw_help(&mut els, None);
         }
+
+        self.draw_list(&mut els);
 
         match &self.mode {
             Mode::TextInput { input, .. } => els.extend(input.elements()),
