@@ -1,3 +1,4 @@
+use crate::palette::Palette;
 use crate::ui::Element;
 
 #[derive(Clone, Debug)]
@@ -25,6 +26,7 @@ pub enum Key {
 pub trait View<T: Clone + PartialEq + 'static> {
     fn elements(&self) -> Vec<Element>;
     fn handle_event(&mut self, event: Event) -> Option<T>;
+    fn apply_palette(&self, _palette: &mut Palette) {}
 }
 
 pub struct Router<T: Clone + PartialEq + 'static> {
@@ -80,5 +82,9 @@ impl<T: Clone + PartialEq + 'static> Router<T> {
 
     pub fn current_route(&self) -> Option<&T> {
         self.current_route.as_ref()
+    }
+
+    pub fn apply_palette(&self, palette: &mut Palette) {
+        self.current.apply_palette(palette);
     }
 }

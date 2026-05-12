@@ -8,6 +8,7 @@ pub struct Store {
     pub profiles: ProfileStore,
     pub font: Font,
     pub langbase: Rc<LangBase>,
+    pub player_names: Vec<String>,
 }
 
 impl Store {
@@ -16,6 +17,7 @@ impl Store {
             profiles: ProfileStore::new(),
             font,
             langbase,
+            player_names: Vec::new(),
         }
     }
 }

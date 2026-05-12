@@ -1,4 +1,6 @@
+use crate::parsers::langbase::LangBase;
 use engine::ui::{Component, Element, Event, Key};
+use std::rc::Rc;
 
 pub enum ConfirmAction {
     Yes,
@@ -7,11 +9,21 @@ pub enum ConfirmAction {
 
 pub struct ConfirmDialog {
     message: String,
+    langbase: Rc<LangBase>,
 }
 
 impl ConfirmDialog {
-    pub fn new(message: String) -> Self {
-        Self { message }
+    pub fn new(message: String, langbase: Rc<LangBase>) -> Self {
+        Self { message, langbase }
+    }
+
+    fn lstr(&self, index: usize, fallback: &str) -> String {
+        let v = self.langbase.lstr(index);
+        if v == "?" {
+            fallback.to_string()
+        } else {
+            v.to_string()
+        }
     }
 }
 
@@ -24,7 +36,7 @@ impl Component for ConfirmDialog {
             Element::fillbox(60, 80, 201, 51, 244),
             Element::FillArea { thing: 63 },
             Element::text_color(&self.message, 70, 90, 246),
-            Element::text_color("Are you sure?", 70, 110, 246),
+            Element::text_color(self.lstr(193, "Are you sure?"), 70, 110, 246),
             Element::text_color("(Y/N)", 165, 110, 241),
         ]
     }

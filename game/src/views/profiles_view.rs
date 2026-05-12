@@ -5,7 +5,9 @@ use crate::data::profile::{Profile, NUM_SKIS, NUM_SUITS};
 use crate::palette_consts::*;
 use crate::route::RouteTarget;
 use crate::store::StoreRef;
+use engine::palette::Palette;
 use engine::ui::{Component, Element, Event, Key, View};
+use std::rc::Rc;
 
 const EDIT_MENU_ITEMS: usize = 8;
 const REPLACE_MAX: usize = 65;
@@ -58,14 +60,17 @@ pub struct ProfilesView {
     store: StoreRef,
     selected: usize,
     mode: Mode,
+    langbase: Rc<crate::parsers::langbase::LangBase>,
 }
 
 impl ProfilesView {
     pub fn new(store: StoreRef) -> Self {
+        let langbase = store.borrow().langbase.clone();
         Self {
             store,
             selected: 0,
             mode: Mode::List,
+            langbase,
         }
     }
 
@@ -92,12 +97,23 @@ impl ProfilesView {
     }
 
     fn lstr(&self, index: usize, fallback: &str) -> String {
-        let store = self.store.borrow();
-        let value = store.langbase.lstr(index);
-        if value == "?" {
+        let v = self.langbase.lstr(index);
+        if v == "?" {
             fallback.to_string()
         } else {
-            value.to_string()
+            v.to_string()
+        }
+    }
+
+    fn replace_name(&self, value: usize) -> String {
+        if value == 0 {
+            return self.lstr(9, "None");
+        }
+        let store = self.store.borrow();
+        if value <= store.player_names.len() {
+            format!("#{} {}", value, store.player_names[value - 1])
+        } else {
+            format!("#{}", value)
         }
     }
 
@@ -212,29 +228,34 @@ impl ProfilesView {
 
         if let Some(profile) = profile {
             let in_order = store.profiles.order_pos(profile).is_some();
-            els.push(Element::text_color("(Use arrows,", 8, 175, FONT_HELP));
+            els.push(Element::text_color(
+                &self.lstr(322, "(Use arrows,"),
+                8,
+                175,
+                FONT_HELP,
+            ));
             if in_order {
                 els.push(Element::text_color(
-                    "ENTER edits jumper,",
+                    &self.lstr(323, "ENTER edits jumper,"),
                     11,
                     183,
                     FONT_HELP,
                 ));
                 els.push(Element::text_color(
-                    "DEL removes from order)",
+                    &self.lstr(324, "DEL removes from order)"),
                     11,
                     191,
                     FONT_HELP,
                 ));
             } else {
                 els.push(Element::text_color(
-                    "ENTER adds jumper,",
+                    &self.lstr(325, "ENTER adds jumper,"),
                     11,
                     183,
                     FONT_HELP,
                 ));
                 els.push(Element::text_color(
-                    "DEL deletes jumper)",
+                    &self.lstr(326, "DEL deletes jumper)"),
                     11,
                     191,
                     FONT_HELP,
@@ -248,27 +269,15 @@ impl ProfilesView {
         els.push(Element::FillArea { thing: 63 });
     }
 
-    fn draw_suit_ski(&self, els: &mut Vec<Element>, profile: &Profile) {
+    fn draw_suit_ski(&self, els: &mut Vec<Element>, _profile: &Profile) {
         let labels = self.profile_labels();
         let suit_w = self.store.borrow().font.string_width(labels[2]) as i32;
         let ski_w = self.store.borrow().font.string_width(labels[3]) as i32;
         let x = 178 + suit_w.max(ski_w);
         let xl = (x + 18).min(318);
 
-        els.push(Element::fillbox(
-            x,
-            28,
-            xl - x + 1,
-            5,
-            216 + (profile.suit_color as u8 * 5),
-        ));
-        els.push(Element::box_(
-            x,
-            28,
-            xl - x + 1,
-            5,
-            218 + (profile.suit_color as u8 * 5),
-        ));
+        els.push(Element::fillbox(x, 28, xl - x + 1, 5, 216));
+        els.push(Element::box_(x, 28, xl - x + 1, 5, 218));
         els.push(Element::fillbox(x + 1, 37, xl - x - 1, 3, 231));
     }
 
@@ -347,9 +356,9 @@ impl ProfilesView {
 
         if let Some(selected) = self.menu_selected() {
             els.push(Element::box_(
-                168,
+                162,
                 10 + (selected as i32 * 8),
-                154,
+                155,
                 9,
                 FONT_DEFAULT,
             ));
@@ -471,7 +480,10 @@ impl ProfilesView {
                 .clone();
             self.mode = Mode::Question {
                 action: QuestionAction::DeleteProfile(self.selected),
-                dialog: ConfirmDialog::new(format!("Delete: {}", name)),
+                dialog: ConfirmDialog::new(
+                    format!("{}: {}", self.lstr(328, "Delete"), name),
+                    Rc::clone(&self.langbase),
+                ),
             };
         }
     }
@@ -531,6 +543,7 @@ impl ProfilesView {
                     .replace
                     .min(REPLACE_MAX);
                 let x = self.store.borrow().font.string_width("Replace:") as i32 + 170;
+                let display = self.replace_name(value);
                 self.mode = Mode::ReplaceSelect {
                     profile,
                     selector: ValueSelector::numeric(
@@ -541,6 +554,7 @@ impl ProfilesView {
                         value,
                         245,
                         FONT_DEFAULT,
+                        display,
                     ),
                 };
             }
@@ -557,7 +571,10 @@ impl ProfilesView {
             7 => {
                 self.mode = Mode::Question {
                     action: QuestionAction::ResetProfile(profile),
-                    dialog: ConfirmDialog::new(self.lstr(329, "Reset jumper?")),
+                    dialog: ConfirmDialog::new(
+                        self.lstr(329, "Reset jumper?"),
+                        Rc::clone(&self.langbase),
+                    ),
                 };
             }
             _ => {}
@@ -714,7 +731,7 @@ impl View<RouteTarget> for ProfilesView {
             EditEnter(usize, usize),
             TextCommit(usize, TextField, String),
             TextCancel(usize, TextField),
-            ColorCommit(usize, ColorField, usize),
+            ColorCommit,
             ColorCancel(usize, ColorField),
             ReplaceCommit(usize, usize),
             ReplaceCancel(usize),
@@ -761,7 +778,17 @@ impl View<RouteTarget> for ProfilesView {
                 if let Some(action) = selector.handle_event(&event) {
                     pending = Some(match action {
                         ValueSelectorAction::Commit(value) => {
-                            Pending::ColorCommit(*profile, *field, value)
+                            let mut store = self.store.borrow_mut();
+                            match field {
+                                ColorField::Suit => {
+                                    store.profiles.profiles[*profile].suit_color = value
+                                }
+                                ColorField::Ski => {
+                                    store.profiles.profiles[*profile].ski_color = value
+                                }
+                            }
+                            drop(store);
+                            Pending::ColorCommit
                         }
                         ValueSelectorAction::Cancel => Pending::ColorCancel(*profile, *field),
                     });
@@ -769,12 +796,15 @@ impl View<RouteTarget> for ProfilesView {
             }
             Mode::ReplaceSelect { profile, selector } => {
                 if let Some(action) = selector.handle_event(&event) {
-                    pending = Some(match action {
+                    match action {
                         ValueSelectorAction::Commit(value) => {
-                            Pending::ReplaceCommit(*profile, value)
+                            self.store.borrow_mut().profiles.profiles[*profile].replace = value;
+                            pending = Some(Pending::ReplaceCommit(*profile, value));
                         }
-                        ValueSelectorAction::Cancel => Pending::ReplaceCancel(*profile),
-                    });
+                        ValueSelectorAction::Cancel => {
+                            pending = Some(Pending::ReplaceCancel(*profile));
+                        }
+                    }
                 }
             }
             Mode::Question { action, dialog } => {
@@ -804,21 +834,7 @@ impl View<RouteTarget> for ProfilesView {
                     },
                 };
             }
-            Some(Pending::ColorCommit(profile, field, value)) => {
-                let mut store = self.store.borrow_mut();
-                match field {
-                    ColorField::Suit => store.profiles.profiles[profile].suit_color = value,
-                    ColorField::Ski => store.profiles.profiles[profile].ski_color = value,
-                }
-                drop(store);
-                self.mode = Mode::Edit {
-                    profile,
-                    selected: match field {
-                        ColorField::Suit => 2,
-                        ColorField::Ski => 3,
-                    },
-                };
-            }
+            Some(Pending::ColorCommit) => {}
             Some(Pending::ColorCancel(profile, field)) => {
                 self.mode = Mode::Edit {
                     profile,
@@ -828,8 +844,7 @@ impl View<RouteTarget> for ProfilesView {
                     },
                 };
             }
-            Some(Pending::ReplaceCommit(profile, value)) => {
-                self.store.borrow_mut().profiles.profiles[profile].replace = value;
+            Some(Pending::ReplaceCommit(profile, _value)) => {
                 self.mode = Mode::Edit {
                     profile,
                     selected: 4,
@@ -854,5 +869,29 @@ impl View<RouteTarget> for ProfilesView {
             None => {}
         }
         None
+    }
+
+    fn apply_palette(&self, palette: &mut Palette) {
+        if let Some(profile) = self.active_profile() {
+            let store = self.store.borrow();
+            if let Some(p) = store.profiles.profiles.get(profile) {
+                apply_suit_palette(palette, p.suit_color);
+                apply_ski_palette(palette, p.ski_color);
+            }
+        }
+        if let Mode::ColorSelect { field, .. } = &self.mode {
+            match field {
+                ColorField::Suit => {
+                    for i in 0..NUM_SUITS {
+                        apply_suit_palette_at(palette, i, (i + 1) * 5);
+                    }
+                }
+                ColorField::Ski => {
+                    for i in 0..NUM_SKIS {
+                        apply_ski_palette_at(palette, i, (i + 1) * 5);
+                    }
+                }
+            }
+        }
     }
 }

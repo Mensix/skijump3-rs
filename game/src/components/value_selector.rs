@@ -22,6 +22,7 @@ pub struct ValueSelector {
     border: u8,
     fg: u8,
     suit_boxes: bool,
+    display: String,
 }
 
 impl ValueSelector {
@@ -45,10 +46,20 @@ impl ValueSelector {
             border,
             fg: 240,
             suit_boxes,
+            display: String::new(),
         }
     }
 
-    pub fn numeric(x: i32, y: i32, width: i32, max: usize, value: usize, bg: u8, fg: u8) -> Self {
+    pub fn numeric(
+        x: i32,
+        y: i32,
+        width: i32,
+        max: usize,
+        value: usize,
+        bg: u8,
+        fg: u8,
+        display: String,
+    ) -> Self {
         Self {
             x,
             y,
@@ -60,11 +71,16 @@ impl ValueSelector {
             border: fg,
             fg,
             suit_boxes: false,
+            display,
         }
     }
 
     pub fn value(&self) -> usize {
         self.value
+    }
+
+    pub fn set_display(&mut self, text: &str) {
+        self.display = text.to_string();
     }
 }
 
@@ -157,8 +173,10 @@ impl ValueSelector {
     fn numeric_elements(&self) -> Vec<Element> {
         let text = if self.value == 0 {
             "None".to_string()
-        } else {
+        } else if self.display.is_empty() {
             format!("Player #{}", self.value)
+        } else {
+            self.display.clone()
         };
         vec![
             Element::fillbox(self.x - 2, self.y - 1, self.width, 8, self.bg),

@@ -21,6 +21,7 @@ use loaders::assets::AssetStore;
 use parsers::{
     anim::AnimParser,
     langbase::{LangBase, LangBaseParser},
+    names::NamesParser,
     pcx::PcxParser,
     AssetParser,
 };
@@ -31,6 +32,7 @@ use views::{JumpMenuView, MainMenuView, ProfilesView};
 const MAIN_PCX: &str = "MAIN.PCX";
 const ANIM_SKI: &str = "ANIM.SKI";
 const LANGBASE_SKI: &str = "LANGBASE.SKI";
+const NAMES_FILES: &[&str] = &["NAMES0.SKI", "NAMES1.SKI", "NAMES2.SKI"];
 const VERSION: &str = "3.12";
 const UI_PALETTE_BASE: usize = 216;
 
@@ -81,7 +83,6 @@ fn apply_standard_ui_palette(palette: &mut Palette) {
     for (i, &rgb) in STANDARD_UI_PALETTE.iter().enumerate() {
         palette.set(UI_PALETTE_BASE + i, rgb);
     }
-    // MuutaLogo(0): blue logo colors at 253-254
     palette.set(253, [46, 46, 63]);
     palette.set(254, [32, 32, 63]);
 }
@@ -103,6 +104,18 @@ fn load_font(sprites: &[SpriteData]) -> Font {
     font
 }
 
+fn load_player_names() -> Vec<String> {
+    let mut all_names = Vec::new();
+    for &filename in NAMES_FILES {
+        if let Ok(data) = AssetStore::read(filename) {
+            if let Ok(names) = NamesParser::parse(&data) {
+                all_names.extend(names);
+            }
+        }
+    }
+    all_names
+}
+
 pub struct Game {
     _sdl: sdl2::Sdl,
     renderer: engine::video::Renderer,
@@ -111,7 +124,7 @@ pub struct Game {
     router: Router<RouteTarget>,
     sprites: Vec<SpriteData>,
     framebuffer: Vec<u8>,
-    palette: Palette,
+    base_palette: Palette,
 }
 
 impl Game {
@@ -122,15 +135,17 @@ impl Game {
         let font = load_font(&sprites);
         let framebuffer = vec![0u8; (WIDTH * HEIGHT) as usize];
 
-        let mut palette = pcx_palette;
-        apply_standard_ui_palette(&mut palette);
-        renderer.set_palette(palette.clone());
+        let mut base_palette = pcx_palette;
+        apply_standard_ui_palette(&mut base_palette);
+        renderer.set_palette(base_palette.clone());
 
+        let player_names = load_player_names();
         let store: StoreRef = std::rc::Rc::new(std::cell::RefCell::new(Store::new(
             font.clone(),
             Rc::clone(&langbase),
         )));
-        let router = Self::create_router(Rc::clone(&langbase), pixels.clone(), store);
+        store.borrow_mut().player_names = player_names;
+        let router = Self::create_router(Rc::clone(&langbase), pixels.clone(), store.clone());
 
         Ok(Self {
             _sdl: sdl,
@@ -140,7 +155,7 @@ impl Game {
             router,
             sprites,
             framebuffer,
-            palette,
+            base_palette,
         })
     }
 
@@ -216,9 +231,13 @@ impl Game {
     }
 
     fn render_frame(&mut self) -> Result<(), String> {
+        let mut palette = self.base_palette.clone();
+        self.router.apply_palette(&mut palette);
+        self.renderer.set_palette(palette);
+
         self.framebuffer.fill(0);
         let mut ctx =
-            engine::ui::PaintCtx::new(&mut self.framebuffer, &self.palette, WIDTH, HEIGHT);
+            engine::ui::PaintCtx::new(&mut self.framebuffer, &self.base_palette, WIDTH, HEIGHT);
         let elements = self.router.current_view().elements();
         for el in &elements {
             el.render(&mut ctx, &self.font, &self.sprites);
