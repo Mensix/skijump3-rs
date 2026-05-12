@@ -63,16 +63,12 @@ impl Renderer {
 
     pub fn poll_input(&mut self) {
         use sdl2::event::Event;
-        use sdl2::keyboard::Keycode;
         self.last_key = None;
         for event in self.event_pump.poll_iter() {
             match event {
                 Event::Quit { .. } => self.running = false,
                 Event::KeyDown { keycode: Some(k), .. } => {
                     self.last_key = Some(k);
-                    if k == Keycode::Escape {
-                        self.running = false;
-                    }
                 }
                 _ => {}
             }
