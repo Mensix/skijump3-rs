@@ -23,6 +23,8 @@ pub struct ValueSelector {
     fg: u8,
     suit_boxes: bool,
     display: String,
+    right_text: Option<String>,
+    wrap: bool,
 }
 
 impl ValueSelector {
@@ -47,6 +49,8 @@ impl ValueSelector {
             fg: 240,
             suit_boxes,
             display: String::new(),
+            right_text: None,
+            wrap: true,
         }
     }
 
@@ -72,6 +76,8 @@ impl ValueSelector {
             fg,
             suit_boxes: false,
             display,
+            right_text: None,
+            wrap: true,
         }
     }
 
@@ -81,6 +87,14 @@ impl ValueSelector {
 
     pub fn set_display(&mut self, text: &str) {
         self.display = text.to_string();
+    }
+
+    pub fn set_right_text(&mut self, text: &str) {
+        self.right_text = Some(text.to_string());
+    }
+
+    pub fn set_wrap(&mut self, wrap: bool) {
+        self.wrap = wrap;
     }
 }
 
@@ -97,11 +111,19 @@ impl Component for ValueSelector {
     fn handle_event(&mut self, event: &Event) -> Option<Self::Action> {
         match event {
             Event::Keyboard(Key::Up | Key::Left) => {
-                self.value = self.value.saturating_sub(1);
+                if self.wrap && self.value == 0 {
+                    self.value = self.max;
+                } else {
+                    self.value = self.value.saturating_sub(1);
+                }
                 None
             }
             Event::Keyboard(Key::Down | Key::Right) => {
-                self.value = (self.value + 1).min(self.max);
+                if self.wrap && self.value == self.max {
+                    self.value = 0;
+                } else {
+                    self.value = (self.value + 1).min(self.max);
+                }
                 None
             }
             Event::Keyboard(Key::Home) => {
@@ -178,9 +200,13 @@ impl ValueSelector {
         } else {
             self.display.clone()
         };
-        vec![
+        let mut els = vec![
             Element::fillbox(self.x - 2, self.y - 1, self.width, 8, self.bg),
             Element::text_color(text, self.x, self.y, self.fg),
-        ]
+        ];
+        if let Some(rt) = &self.right_text {
+            els.push(Element::text_color_right(rt, 316, self.y, self.fg));
+        }
+        els
     }
 }

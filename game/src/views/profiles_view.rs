@@ -9,7 +9,7 @@ use engine::palette::Palette;
 use engine::ui::{Component, Element, Event, Key, View};
 use std::rc::Rc;
 
-const EDIT_MENU_ITEMS: usize = 8;
+const EDIT_MENU_ITEMS: usize = 9;
 const REPLACE_MAX: usize = 65;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -105,18 +105,6 @@ impl ProfilesView {
         }
     }
 
-    fn replace_name(&self, value: usize) -> String {
-        if value == 0 {
-            return self.lstr(9, "None");
-        }
-        let store = self.store.borrow();
-        if value <= store.player_names.len() {
-            format!("#{} {}", value, store.player_names[value - 1])
-        } else {
-            format!("#{}", value)
-        }
-    }
-
     fn unique_default_profile(&self) -> Profile {
         let store = self.store.borrow();
         let mut profile = Profile::default();
@@ -187,15 +175,15 @@ impl ProfilesView {
             els.push(Element::text_color(
                 &self.lstr(302, "*Create New Jumper*"),
                 40,
-                Self::y_for(np + 1),
+                Self::y_for(np + 2),
                 FONT_NEW,
             ));
         }
 
         let back_temp = if store.profiles.has_slot() {
-            np + 3
+            np + 4
         } else {
-            np + 2
+            np + 3
         };
         els.push(Element::text_color(
             &self.lstr(33, "Back to Main Menu"),
@@ -290,8 +278,8 @@ impl ProfilesView {
             "Replace:",
             "Coach:",
             "Skip Quali:",
-            "",
-            "",
+            "Reset Jumper",
+            "Exit",
             "Total Jumps:",
             "WC:",
             "Legs Won:",
@@ -330,12 +318,12 @@ impl ProfilesView {
                 continue;
             }
             if !label.is_empty() {
-                els.push(Element::text_color(
-                    *label,
-                    166,
-                    Self::col_y(temp),
-                    label_color,
-                ));
+                let lc = if edit_phase && temp == 10 {
+                    FONT_HELP
+                } else {
+                    label_color
+                };
+                els.push(Element::text_color(*label, 166, Self::col_y(temp), lc));
             }
         }
 
@@ -373,21 +361,48 @@ impl ProfilesView {
                 if profile.replace == 0 {
                     "-".to_string()
                 } else {
-                    format!("#{}", profile.replace)
+                    let store = self.store.borrow();
+                    if profile.replace <= store.player_names.len() {
+                        let max_w = 316i32
+                            .saturating_sub(
+                                170 + store.font.string_width(&format!("#{}", profile.replace))
+                                    as i32,
+                            )
+                            .max(0) as usize;
+                        let name = &store.player_names[profile.replace - 1];
+                        let truncated = store.font.string_width(name) as usize;
+                        if truncated > max_w {
+                            let mut n = name.clone();
+                            while store.font.string_width(&n) as usize > max_w && n.len() > 1 {
+                                n.pop();
+                            }
+                            n
+                        } else {
+                            name.clone()
+                        }
+                    } else {
+                        format!("#{}", profile.replace)
+                    }
                 }
             }
             6 => {
                 if profile.coach_style == 0 {
                     self.lstr(9, "None")
                 } else {
-                    format!("Style {}", profile.coach_style)
+                    self.lstr(
+                        361 + profile.coach_style * 40,
+                        &format!("Style {}", profile.coach_style),
+                    )
                 }
             }
-            7 => match profile.skip_quali {
-                0 => "Never".to_string(),
-                1 => "If possible".to_string(),
-                _ => "Always".to_string(),
-            },
+            7 => self.lstr(
+                231 + profile.skip_quali,
+                match profile.skip_quali {
+                    0 => "Never",
+                    1 => "If possible",
+                    _ => "Always",
+                },
+            ),
             10 => profile.total_jumps.to_string(),
             11 => profile.world_cups.to_string(),
             12 => profile.legs_won.to_string(),
@@ -398,21 +413,24 @@ impl ProfilesView {
                 if profile.best_wc_jump == 0 {
                     "-".to_string()
                 } else {
-                    format!("{} {}", profile.best_wc_jump, profile.best_wc_hill)
+                    format!("{}x {}", profile.best_wc_jump, profile.best_wc_hill)
                 }
             }
             17 => {
                 if profile.best_jump == 0 {
                     "-".to_string()
                 } else {
-                    format!("{} {}", profile.best_jump, profile.best_hill)
+                    format!("{}x {}", profile.best_jump, profile.best_hill)
                 }
             }
             18 => {
                 if profile.koth_level == 0 {
                     "-".to_string()
                 } else {
-                    format!("Level {}", profile.koth_level)
+                    self.lstr(
+                        130 + profile.koth_level,
+                        &format!("Level {}", profile.koth_level),
+                    )
                 }
             }
             _ => String::new(),
@@ -483,6 +501,7 @@ impl ProfilesView {
                 dialog: ConfirmDialog::new(
                     format!("{}: {}", self.lstr(328, "Delete"), name),
                     Rc::clone(&self.langbase),
+                    self.store.borrow().font.clone(),
                 ),
             };
         }
@@ -543,25 +562,53 @@ impl ProfilesView {
                     .replace
                     .min(REPLACE_MAX);
                 let x = self.store.borrow().font.string_width("Replace:") as i32 + 170;
-                let display = self.replace_name(value);
-                self.mode = Mode::ReplaceSelect {
-                    profile,
-                    selector: ValueSelector::numeric(
-                        x,
-                        44,
-                        320 - x,
-                        REPLACE_MAX,
-                        value,
-                        245,
-                        FONT_DEFAULT,
-                        display,
-                    ),
+                let display = if value > 0 {
+                    let store = self.store.borrow();
+                    if value <= store.player_names.len() {
+                        let name = &store.player_names[value - 1];
+                        let max_w = (316i32.saturating_sub(
+                            x + store.font.string_width(&format!("#{}", value)) as i32 + 4,
+                        ))
+                        .max(0) as usize;
+                        let mut n = name.clone();
+                        while store.font.string_width(&n) as usize > max_w && n.len() > 1 {
+                            n.pop();
+                        }
+                        n
+                    } else {
+                        String::new()
+                    }
+                } else {
+                    String::new()
                 };
+                let mut selector = ValueSelector::numeric(
+                    x,
+                    44,
+                    320 - x,
+                    REPLACE_MAX,
+                    value,
+                    245,
+                    FONT_DEFAULT,
+                    display,
+                );
+                if value > 0 {
+                    selector.set_right_text(&format!("#{}", value));
+                }
+                self.mode = Mode::ReplaceSelect { profile, selector };
             }
             5 => {
-                let mut store = self.store.borrow_mut();
-                let profile = &mut store.profiles.profiles[profile];
-                profile.coach_style = (profile.coach_style + 1) % 4;
+                let langbase = self.langbase.clone();
+                let style = {
+                    let mut store = self.store.borrow_mut();
+                    let p = &mut store.profiles.profiles[profile];
+                    p.coach_style += 1;
+                    p.coach_style
+                };
+                let check = langbase.lstr(361 + style * 40);
+                if check == "?" {
+                    let mut store = self.store.borrow_mut();
+                    store.profiles.profiles[profile].coach_style = 0;
+                }
             }
             6 => {
                 let mut store = self.store.borrow_mut();
@@ -574,6 +621,7 @@ impl ProfilesView {
                     dialog: ConfirmDialog::new(
                         self.lstr(329, "Reset jumper?"),
                         Rc::clone(&self.langbase),
+                        self.store.borrow().font.clone(),
                     ),
                 };
             }
@@ -692,7 +740,46 @@ impl View<RouteTarget> for ProfilesView {
         match &self.mode {
             Mode::TextInput { input, .. } => els.extend(input.elements()),
             Mode::ColorSelect { selector, .. } => els.extend(selector.elements()),
-            Mode::ReplaceSelect { selector, .. } => els.extend(selector.elements()),
+            Mode::ReplaceSelect { selector, .. } => {
+                let value = selector.value();
+                let x = self.store.borrow().font.string_width("Replace:") as i32 + 170;
+                els.push(Element::fillbox(x - 2, 43, 320 - x, 8, 245));
+                if value > 0 {
+                    let store = self.store.borrow();
+                    if value <= store.player_names.len() {
+                        let name = &store.player_names[value - 1];
+                        let max_w = (316i32.saturating_sub(
+                            x + store.font.string_width(&format!("#{}", value)) as i32 + 4,
+                        ))
+                        .max(0) as usize;
+                        let mut n = name.clone();
+                        while store.font.string_width(&n) as usize > max_w && n.len() > 1 {
+                            n.pop();
+                        }
+                        els.push(Element::text_color(n, x, 44, FONT_DEFAULT));
+                        els.push(Element::text_color_right(
+                            format!("#{}", value),
+                            316,
+                            44,
+                            FONT_DEFAULT,
+                        ));
+                    } else {
+                        els.push(Element::text_color(
+                            format!("#{}", value),
+                            x,
+                            44,
+                            FONT_DEFAULT,
+                        ));
+                    }
+                } else {
+                    els.push(Element::text_color(
+                        self.lstr(9, "None"),
+                        x,
+                        44,
+                        FONT_DEFAULT,
+                    ));
+                }
+            }
             Mode::Question { dialog, .. } => els.extend(dialog.elements()),
             _ => {}
         }
@@ -751,9 +838,13 @@ impl View<RouteTarget> for ProfilesView {
                 }
                 Event::Keyboard(Key::Down) => *selected = (*selected + 1) % EDIT_MENU_ITEMS,
                 Event::Keyboard(Key::Enter | Key::Char(' ')) => {
-                    pending = Some(Pending::EditEnter(*profile, *selected))
+                    if *selected < 8 {
+                        pending = Some(Pending::EditEnter(*profile, *selected))
+                    } else {
+                        self.mode = Mode::List
+                    }
                 }
-                Event::Keyboard(Key::Escape) => self.mode = Mode::List,
+                Event::Keyboard(Key::Escape) => *selected = EDIT_MENU_ITEMS - 1,
                 _ => {}
             },
             Mode::TextInput {

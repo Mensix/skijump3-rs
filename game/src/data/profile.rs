@@ -29,7 +29,7 @@ impl Default for Profile {
     fn default() -> Self {
         Self {
             name: "SKI JUMPER".to_string(),
-            real_name: "SKI JUMPER".to_string(),
+            real_name: String::new(),
             suit_color: 0,
             ski_color: 0,
             replace: 0,

@@ -59,7 +59,7 @@ impl Component for TextInput {
             }
             Event::Keyboard(Key::Enter) => Some(TextInputAction::Commit(self.buf.clone())),
             Event::Keyboard(Key::Escape) => Some(TextInputAction::Cancel),
-            Event::Keyboard(Key::Char(c)) if (' '..='~').contains(c) => {
+            Event::Keyboard(Key::Char(c)) if *c >= ' ' => {
                 let mut next = self.buf.clone();
                 next.push(*c);
                 if self.font.string_width(&next) as i32 + 7 < self.max_width {
