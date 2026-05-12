@@ -9,8 +9,8 @@ pub struct SpriteData {
 
 impl SpriteData {
     pub fn blit_to(&self, pixels: &mut [u8], screen_w: u32, dst_x: i32, dst_y: i32) {
-        let start_x = dst_x - (self.width as i32 / 2);
-        let start_y = dst_y - (self.height as i32 / 2);
+        let start_x = dst_x - self.center_x as i32;
+        let start_y = dst_y - self.center_y as i32;
         for yy in 0..self.height as i32 {
             for xx in 0..self.width as i32 {
                 let src_idx = (yy * self.width as i32 + xx) as usize;

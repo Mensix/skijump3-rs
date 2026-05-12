@@ -1,16 +1,21 @@
+use std::sync::Arc;
 use engine::ui::{Element, Event, View, Component};
 use crate::parsers::langbase::LangBase;
 use crate::components::menu::{Menu, MenuItem};
 use crate::route::RouteTarget;
 
+const FONT_DEFAULT: u8 = 240;
+const FONT_HEADER: u8 = 246;
+const BG_ERASE: u8 = 8;
+
 pub struct MainMenuView {
     menu: Menu,
-    langbase: LangBase,
+    langbase: Arc<LangBase>,
     version: String,
 }
 
 impl MainMenuView {
-    pub fn new(langbase: LangBase, version: String) -> Self {
+    pub fn new(langbase: Arc<LangBase>, version: String) -> Self {
         let items = vec![
             MenuItem { num: 1, label: 20, y_off: 0 },
             MenuItem { num: 2, label: 21, y_off: 0 },
@@ -21,7 +26,7 @@ impl MainMenuView {
             MenuItem { num: 0, label: 26, y_off: 12 },
         ];
         Self {
-            menu: Menu::new(11, 97, 108, 12, items, &langbase, 240, 240),
+            menu: Menu::new(11, 97, 108, 12, items, &langbase, FONT_DEFAULT, FONT_DEFAULT),
             langbase,
             version,
         }
@@ -32,17 +37,17 @@ impl View<RouteTarget> for MainMenuView {
     fn elements(&self) -> Vec<Element> {
         let mut els = vec![];
 
-        els.push(Element::fillbox(11, 80, 100, 6, 8));
+        els.push(Element::fillbox(11, 80, 100, 6, BG_ERASE));
 
-        els.push(Element::text_color(self.langbase.lstr(17), 11, 80, 246));
+        els.push(Element::text_color(self.langbase.lstr(17), 11, 80, FONT_HEADER));
 
         els.extend(self.menu.elements());
 
-        els.push(Element::text_color(self.langbase.lstr(34), 170, 51, 240));
+        els.push(Element::text_color(self.langbase.lstr(34), 170, 51, FONT_DEFAULT));
 
-        els.push(Element::text_color_right("SKI JUMP", 308, 6, 240));
-        els.push(Element::text_color_right("SKI JUMP INTERNATIONAL", 308, 18, 240));
-        els.push(Element::text_color_right(format!("v{}", self.version), 245, 30, 240));
+        els.push(Element::text_color_right("SKI JUMP", 308, 6, FONT_DEFAULT));
+        els.push(Element::text_color_right("SKI JUMP INTERNATIONAL", 308, 18, FONT_DEFAULT));
+        els.push(Element::text_color_right(format!("v{}", self.version), 245, 30, FONT_DEFAULT));
 
         els
     }

@@ -100,7 +100,7 @@ pub fn run() -> Result<(), String> {
                 sdl2::keyboard::Keycode::Num9 => Event::Keyboard(Key::Char('9')),
                 _ => continue,
             };
-            router.handle_event(&event);
+            router.handle_event(event);
         }
 
         let mut pixels = decoded.pixels.clone();

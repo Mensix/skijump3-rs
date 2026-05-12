@@ -51,8 +51,7 @@ impl Glyph {
                     continue;
                 }
                 let idx = (py as usize) * (screen_w as usize) + (px as usize);
-                // Pascal fontcolor: replace non-0/non-242 with col, keep 242 as shadow
-                pixels[idx] = if pixel == 242 { 242 } else { color };
+                pixels[idx] = if pixel == crate::consts::SHADOW_PIXEL { crate::consts::SHADOW_PIXEL } else { color };
             }
         }
     }

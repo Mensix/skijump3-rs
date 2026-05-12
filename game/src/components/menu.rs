@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use engine::ui::{Element, Event, Key, Component};
 use crate::parsers::langbase::LangBase;
 
@@ -15,7 +16,7 @@ pub struct Menu {
     item_w: i32,
     item_h: i32,
     items: Vec<MenuItem>,
-    langbase: LangBase,
+    langbase: Arc<LangBase>,
     fontcolor: u8,
     boxcolor: u8,
 }
@@ -23,7 +24,7 @@ pub struct Menu {
 impl Menu {
     pub fn new(
         x: i32, y: i32, item_w: i32, item_h: i32,
-        items: Vec<MenuItem>, langbase: &LangBase,
+        items: Vec<MenuItem>, langbase: &Arc<LangBase>,
         fontcolor: u8, boxcolor: u8,
     ) -> Self {
         let navigable = items.len();
@@ -32,7 +33,7 @@ impl Menu {
             navigable,
             x, y, item_w, item_h,
             items,
-            langbase: langbase.clone(),
+            langbase: Arc::clone(langbase),
             fontcolor, boxcolor,
         }
     }

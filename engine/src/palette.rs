@@ -43,10 +43,6 @@ impl Palette {
         self.colors[index] = rgb;
     }
 
-    pub fn get(&self, index: usize) -> Color {
-        Color(self.colors[index])
-    }
-
     pub fn color(&self, index: usize) -> [u8; 3] {
         self.colors[index]
     }
