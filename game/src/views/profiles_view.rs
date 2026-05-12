@@ -90,11 +90,11 @@ impl View<RouteTarget> for ProfilesView {
             els.push(Element::FillArea { thing: 63 });
             let is_active = true; // simplified: no order tracking yet
             let (enter_text, del_text) = if is_active {
-                ("ENTER edits jumper,", "DEL removes from order)")
+                ("ENTER edits jumper", "DEL removes from order")
             } else {
-                ("ENTER signs up,", "DEL deletes jumper)")
+                ("ENTER signs up", "DEL deletes jumper")
             };
-            els.push(Element::text_color("(Use arrows,", 8, 175, 241));
+            els.push(Element::text_color("(Use arrows", 8, 175, 241));
             els.push(Element::text_color(enter_text, 11, 183, 241));
             els.push(Element::text_color(del_text, 11, 191, 241));
         }
