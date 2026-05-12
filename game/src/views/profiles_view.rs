@@ -508,6 +508,7 @@ impl ProfilesView {
                 if value > 0 {
                     selector.set_right_text(&format!("#{}", value));
                 }
+                selector.set_wrap(false);
                 self.mode = Mode::ReplaceSelect { profile, selector };
             }
             5 => {

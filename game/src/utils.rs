@@ -19,6 +19,37 @@ pub fn truncate_to_fit(s: &str, font: &Font, max_width: i32) -> String {
     n
 }
 
+pub fn shorten_name(s: &str, font: &Font, max_width: i32) -> String {
+    if max_width <= 0 {
+        return String::new();
+    }
+    if font.string_width(s) as i32 <= max_width {
+        return s.to_string();
+    }
+    let bytes = s.as_bytes();
+    for i in 1..s.len().saturating_sub(1) {
+        if bytes[i] == b' ' && i + 1 < s.len() && bytes[i + 1] != b' ' {
+            let abbr = format!("{}.{}", &s[..1], &s[i..]);
+            if font.string_width(&abbr) as i32 <= max_width {
+                return abbr;
+            }
+        }
+    }
+    let mut len = s.len();
+    loop {
+        let mut n = s[..len].to_string();
+        n.push('.');
+        if font.string_width(&n) as i32 <= max_width {
+            return n;
+        }
+        if len <= 1 {
+            break;
+        }
+        len -= 1;
+    }
+    s[..1].to_string()
+}
+
 pub fn replace_label_x(label_width: i32) -> i32 {
     LABEL_OFFSET + label_width
 }
@@ -39,7 +70,7 @@ pub fn replace_display_name(value: usize, player_names: &[String], font: &Font, 
     }
     let name = &player_names[value - 1];
     let max_w = replace_max_width(value, font, x);
-    truncate_to_fit(name, font, max_w)
+    shorten_name(name, font, max_w)
 }
 
 fn lang_str(langbase: &LangBase, index: usize, fallback: &str) -> String {
@@ -65,13 +96,10 @@ pub fn format_profile_value(
             if profile.replace == 0 {
                 "-".to_string()
             } else if profile.replace <= player_names.len() {
-                let max_w = RIGHT_EDGE
-                    .saturating_sub(
-                        LABEL_OFFSET + font.string_width(&format!("#{}", profile.replace)) as i32,
-                    )
-                    .max(0);
+                let x = LABEL_OFFSET + font.string_width("Replace:") as i32;
+                let max_w = RIGHT_EDGE.saturating_sub(x).max(0);
                 let name = &player_names[profile.replace - 1];
-                truncate_to_fit(name, font, max_w)
+                shorten_name(name, font, max_w)
             } else {
                 format!("#{}", profile.replace)
             }
