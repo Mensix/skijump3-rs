@@ -1,9 +1,9 @@
-use engine::ui::{Element, Event, View, Component};
-use crate::parsers::langbase::LangBase;
-use std::rc::Rc;
 use crate::components::menu::{Menu, MenuItem};
-use crate::route::RouteTarget;
 use crate::palette_consts::*;
+use crate::parsers::langbase::LangBase;
+use crate::route::RouteTarget;
+use engine::ui::{Component, Element, Event, View};
+use std::rc::Rc;
 
 const LOGO_SPRITE: u16 = 60;
 
@@ -17,14 +17,27 @@ impl WelcomeScreenView {
         let count = languages.len();
         let mut items = Vec::with_capacity(count);
         for (i, _) in languages.iter().enumerate() {
-            items.push(MenuItem { num: (i + 1) as u8, label: 0, y_off: 0 });
+            items.push(MenuItem {
+                num: (i + 1) as u8,
+                label: 0,
+                y_off: 0,
+            });
         }
         // phase=3: navigable = count-1, exit slot wraps to last language
         let navigable = if count > 1 { count - 1 } else { 1 };
         Self {
-            menu: Menu::new(112, 64, 100, 8, items, &langbase, FONT_DEFAULT, FONT_DEFAULT)
-                .with_navigable(navigable)
-                .with_labels(false),
+            menu: Menu::new(
+                112,
+                64,
+                100,
+                8,
+                items,
+                &langbase,
+                FONT_DEFAULT,
+                FONT_DEFAULT,
+            )
+            .with_navigable(navigable)
+            .with_labels(false),
             languages,
         }
     }
@@ -49,11 +62,26 @@ impl View<RouteTarget> for WelcomeScreenView {
         // welcome text, ewritefont (right-aligned) at x=240
         els.push(Element::text_color_right("WELCOME!", 240, 6, FONT_DEFAULT));
         els.push(Element::text_color_right("TERVETULOA!", 240, 16, FONT_GOLD));
-        els.push(Element::text_color_right("WILLKOMMEN!", 240, 26, FONT_GREET));
-        els.push(Element::text_color_right("VALKOMMEN!", 240, 36, FONT_DEFAULT));
+        els.push(Element::text_color_right(
+            "WILLKOMMEN!",
+            240,
+            26,
+            FONT_GREET,
+        ));
+        els.push(Element::text_color_right(
+            "VALKOMMEN!",
+            240,
+            36,
+            FONT_DEFAULT,
+        ));
 
         // instruction
-        els.push(Element::text_color("PLEASE CHOOSE A LANGUAGE:", 100, 50, FONT_DEFAULT));
+        els.push(Element::text_color(
+            "PLEASE CHOOSE A LANGUAGE:",
+            100,
+            50,
+            FONT_DEFAULT,
+        ));
 
         // language names centred at x=155, y=temp*8+55
         for (i, name) in self.languages.iter().enumerate() {

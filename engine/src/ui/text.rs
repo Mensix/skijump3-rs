@@ -23,7 +23,8 @@ impl Glyph {
                 }
                 let px = start_x + xx;
                 let py = start_y + yy;
-                if px < 0 || py < 0 || px >= (screen_w as i32) || py >= crate::consts::HEIGHT as i32 {
+                if px < 0 || py < 0 || px >= (screen_w as i32) || py >= crate::consts::HEIGHT as i32
+                {
                     continue;
                 }
                 let idx = (py as usize) * (screen_w as usize) + (px as usize);
@@ -47,11 +48,16 @@ impl Glyph {
                 }
                 let px = start_x + xx;
                 let py = start_y + yy;
-                if px < 0 || py < 0 || px >= (screen_w as i32) || py >= crate::consts::HEIGHT as i32 {
+                if px < 0 || py < 0 || px >= (screen_w as i32) || py >= crate::consts::HEIGHT as i32
+                {
                     continue;
                 }
                 let idx = (py as usize) * (screen_w as usize) + (px as usize);
-                pixels[idx] = if pixel == crate::consts::SHADOW_PIXEL { crate::consts::SHADOW_PIXEL } else { color };
+                pixels[idx] = if pixel == crate::consts::SHADOW_PIXEL {
+                    crate::consts::SHADOW_PIXEL
+                } else {
+                    color
+                };
             }
         }
     }
@@ -64,12 +70,28 @@ pub struct Font {
 
 impl Font {
     pub fn new() -> Self {
-        Self { glyphs: (0..67).map(|_| None).collect() }
+        Self {
+            glyphs: (0..67).map(|_| None).collect(),
+        }
     }
 
-    pub fn set_glyph(&mut self, index: usize, data: Vec<u8>, width: u16, height: u16, center_x: i8, center_y: i8) {
+    pub fn set_glyph(
+        &mut self,
+        index: usize,
+        data: Vec<u8>,
+        width: u16,
+        height: u16,
+        center_x: i8,
+        center_y: i8,
+    ) {
         if index < self.glyphs.len() {
-            self.glyphs[index] = Some(Glyph { data, width, height, center_x: center_x as i16, center_y: center_y as i16 });
+            self.glyphs[index] = Some(Glyph {
+                data,
+                width,
+                height,
+                center_x: center_x as i16,
+                center_y: center_y as i16,
+            });
         }
     }
 
@@ -95,7 +117,15 @@ impl Font {
         w
     }
 
-    pub fn blit_string_color(&self, pixels: &mut [u8], screen_w: u32, text: &str, x: i32, y: i32, color: u8) {
+    pub fn blit_string_color(
+        &self,
+        pixels: &mut [u8],
+        screen_w: u32,
+        text: &str,
+        x: i32,
+        y: i32,
+        color: u8,
+    ) {
         let mut px = x;
         for byte in text.bytes().map(|b| b.to_ascii_uppercase()) {
             match byte {
@@ -134,13 +164,13 @@ impl Font {
             b',' => Some(46),
             b'(' => Some(47),
             b')' => Some(48),
-            b'\xB5' => Some(49),  // µ
+            b'\xB5' => Some(49), // µ
             b'"' => Some(50),
             b'\'' => Some(51),
             b'#' => Some(52),
             b'\xD8' | b'\xF8' => Some(53), // Ø
             b'\xDD' | b'\xFD' => Some(54), // Ý
-            b'\xDF' => Some(55), // ß
+            b'\xDF' => Some(55),           // ß
             b'/' => Some(56),
             b'\xC6' | b'\xE6' => Some(57), // Æ
             b'%' => Some(58),

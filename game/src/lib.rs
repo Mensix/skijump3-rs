@@ -1,27 +1,32 @@
 pub extern crate engine;
 
-pub mod parsers;
-pub mod loaders;
 pub mod components;
 pub mod data;
+pub mod loaders;
 pub mod palette_consts;
+pub mod parsers;
 pub mod route;
 pub mod store;
 pub mod views;
 
-use std::rc::Rc;
-use engine::ui::Router;
-use engine::input::Input;
-use engine::sprite::SpriteData;
-use engine::consts::{WIDTH, HEIGHT, FONT_GLYPH_COUNT};
-use loaders::assets::AssetStore;
-use parsers::{AssetParser, anim::AnimParser, langbase::{LangBase, LangBaseParser}, pcx::PcxParser};
-use views::{MainMenuView, JumpMenuView, ProfilesView};
 use crate::components::layout::MainLayout;
 use crate::store::{Store, StoreRef};
-use engine::ui::Font;
+use engine::consts::{FONT_GLYPH_COUNT, HEIGHT, WIDTH};
+use engine::input::Input;
 use engine::palette::Palette;
+use engine::sprite::SpriteData;
+use engine::ui::Font;
+use engine::ui::Router;
+use loaders::assets::AssetStore;
+use parsers::{
+    anim::AnimParser,
+    langbase::{LangBase, LangBaseParser},
+    pcx::PcxParser,
+    AssetParser,
+};
 use route::RouteTarget;
+use std::rc::Rc;
+use views::{JumpMenuView, MainMenuView, ProfilesView};
 
 const MAIN_PCX: &str = "MAIN.PCX";
 const ANIM_SKI: &str = "ANIM.SKI";
@@ -30,16 +35,46 @@ const VERSION: &str = "3.12";
 const UI_PALETTE_BASE: usize = 216;
 
 const STANDARD_UI_PALETTE: [[u8; 3]; 40] = [
-    [53, 17, 53], [63,  0,  0], [43, 12, 43], [63,  0,  0],
-    [49, 45,  0], [34, 31,  0], [63,  0,  0], [56, 54, 54],
-    [63, 63, 21], [54, 52, 10], [42, 42, 42], [42, 20, 10],
-    [21, 21, 21], [57, 45, 38], [63,  0,  0], [63, 63, 32],
-    [40, 40, 41], [48, 48, 49], [55, 55, 56], [63, 63, 63],
-    [56, 13, 13], [13, 53, 13], [23, 23, 63], [63, 23, 23],
-    [63, 63, 63], [44, 44, 44], [ 0,  0,  0], [18, 13, 34],
-    [34, 13, 18], [20, 20, 20], [63, 57,  9], [ 9, 57, 63],
-    [23, 16, 43], [43, 16, 23], [26, 26, 26], [52, 47,  0],
-    [ 0, 47, 52], [51, 51, 51], [38, 38, 38], [63, 63, 63],
+    [53, 17, 53],
+    [63, 0, 0],
+    [43, 12, 43],
+    [63, 0, 0],
+    [49, 45, 0],
+    [34, 31, 0],
+    [63, 0, 0],
+    [56, 54, 54],
+    [63, 63, 21],
+    [54, 52, 10],
+    [42, 42, 42],
+    [42, 20, 10],
+    [21, 21, 21],
+    [57, 45, 38],
+    [63, 0, 0],
+    [63, 63, 32],
+    [40, 40, 41],
+    [48, 48, 49],
+    [55, 55, 56],
+    [63, 63, 63],
+    [56, 13, 13],
+    [13, 53, 13],
+    [23, 23, 63],
+    [63, 23, 23],
+    [63, 63, 63],
+    [44, 44, 44],
+    [0, 0, 0],
+    [18, 13, 34],
+    [34, 13, 18],
+    [20, 20, 20],
+    [63, 57, 9],
+    [9, 57, 63],
+    [23, 16, 43],
+    [43, 16, 23],
+    [26, 26, 26],
+    [52, 47, 0],
+    [0, 47, 52],
+    [51, 51, 51],
+    [38, 38, 38],
+    [63, 63, 63],
 ];
 
 fn apply_standard_ui_palette(palette: &mut Palette) {
@@ -55,7 +90,14 @@ fn load_font(sprites: &[SpriteData]) -> Font {
     let mut font = Font::new();
     for (i, sprite) in sprites.iter().enumerate() {
         if i < FONT_GLYPH_COUNT {
-            font.set_glyph(i, sprite.data.clone(), sprite.width, sprite.height, sprite.center_x, sprite.center_y);
+            font.set_glyph(
+                i,
+                sprite.data.clone(),
+                sprite.width,
+                sprite.height,
+                sprite.center_x,
+                sprite.center_y,
+            );
         }
     }
     font
@@ -84,7 +126,10 @@ impl Game {
         apply_standard_ui_palette(&mut palette);
         renderer.set_palette(palette.clone());
 
-        let store: StoreRef = std::rc::Rc::new(std::cell::RefCell::new(Store::new(font.clone())));
+        let store: StoreRef = std::rc::Rc::new(std::cell::RefCell::new(Store::new(
+            font.clone(),
+            Rc::clone(&langbase),
+        )));
         let router = Self::create_router(Rc::clone(&langbase), pixels.clone(), store);
 
         Ok(Self {
@@ -119,7 +164,11 @@ impl Game {
         Ok((decoded.pixels, decoded.palette, sprites, langbase))
     }
 
-    fn create_router(langbase: Rc<LangBase>, background: Vec<u8>, store: StoreRef) -> Router<RouteTarget> {
+    fn create_router(
+        langbase: Rc<LangBase>,
+        background: Vec<u8>,
+        store: StoreRef,
+    ) -> Router<RouteTarget> {
         let layout = MainLayout::new(Rc::clone(&langbase), VERSION.to_string(), background);
         Router::new(
             RouteTarget::ProfilesList,
@@ -168,7 +217,8 @@ impl Game {
 
     fn render_frame(&mut self) -> Result<(), String> {
         self.framebuffer.fill(0);
-        let mut ctx = engine::ui::PaintCtx::new(&mut self.framebuffer, &self.palette, WIDTH, HEIGHT);
+        let mut ctx =
+            engine::ui::PaintCtx::new(&mut self.framebuffer, &self.palette, WIDTH, HEIGHT);
         let elements = self.router.current_view().elements();
         for el in &elements {
             el.render(&mut ctx, &self.font, &self.sprites);

@@ -8,7 +8,10 @@ impl AssetParser<Vec<SpriteData>> for AnimParser {
         let mut sprites = Vec::new();
 
         if data.len() < 2 {
-            return Err(ParseError { message: "ANIM file too short".to_string(), byte_offset: None });
+            return Err(ParseError {
+                message: "ANIM file too short".to_string(),
+                byte_offset: None,
+            });
         }
 
         let mut pos = 0;
@@ -50,7 +53,13 @@ impl AssetParser<Vec<SpriteData>> for AnimParser {
             let center_y = data[pos + 1] as i8;
             pos += 2;
 
-            sprites.push(SpriteData { data: pixel_data, width: x, height: y, center_x, center_y });
+            sprites.push(SpriteData {
+                data: pixel_data,
+                width: x,
+                height: y,
+                center_x,
+                center_y,
+            });
         }
 
         let temp_count = sprites.len();

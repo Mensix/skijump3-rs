@@ -11,8 +11,14 @@ pub enum Key {
     Down,
     Left,
     Right,
+    Home,
+    End,
+    PageUp,
+    PageDown,
     Enter,
     Escape,
+    Backspace,
+    Delete,
     Char(char),
 }
 
@@ -34,7 +40,12 @@ impl<T: Clone + PartialEq + 'static> Router<T> {
         initial: Box<dyn View<T>>,
         routes: Vec<(T, Box<dyn Fn() -> Box<dyn View<T>>>)>,
     ) -> Self {
-        Self { current: initial, current_route: Some(route), history: Vec::new(), routes }
+        Self {
+            current: initial,
+            current_route: Some(route),
+            history: Vec::new(),
+            routes,
+        }
     }
 
     pub fn navigate(&mut self, target: T) {

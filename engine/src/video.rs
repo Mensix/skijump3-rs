@@ -29,7 +29,9 @@ impl Renderer {
             .build()
             .map_err(|e| e.to_string())?;
 
-        canvas.set_logical_size(WIDTH, HEIGHT).map_err(|e| e.to_string())?;
+        canvas
+            .set_logical_size(WIDTH, HEIGHT)
+            .map_err(|e| e.to_string())?;
 
         Ok(Self {
             canvas,
@@ -71,7 +73,12 @@ impl Renderer {
 
         let tc = self.canvas.texture_creator();
         let mut texture = tc
-            .create_texture(PixelFormatEnum::RGB24, TextureAccess::Streaming, WIDTH, HEIGHT)
+            .create_texture(
+                PixelFormatEnum::RGB24,
+                TextureAccess::Streaming,
+                WIDTH,
+                HEIGHT,
+            )
             .map_err(|e| e.to_string())?;
 
         texture
@@ -79,7 +86,9 @@ impl Renderer {
             .map_err(|e| e.to_string())?;
 
         self.canvas.clear();
-        self.canvas.copy(&texture, None, None).map_err(|e| e.to_string())?;
+        self.canvas
+            .copy(&texture, None, None)
+            .map_err(|e| e.to_string())?;
         self.canvas.present();
         Ok(())
     }

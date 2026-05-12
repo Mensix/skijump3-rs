@@ -1,16 +1,37 @@
+use crate::sprite::SpriteData;
 use crate::ui::paint::PaintCtx;
 use crate::ui::Font;
-use crate::sprite::SpriteData;
 
-use crate::consts::{FILL_RANGE_MAX, FILL_BRIGHTEN, PATTERN_SPRITE, SHADOW_PIXEL, TILE_W, TILE_H};
+use crate::consts::{FILL_BRIGHTEN, FILL_RANGE_MAX, PATTERN_SPRITE, SHADOW_PIXEL, TILE_H, TILE_W};
 
 pub enum Element {
     Image(Vec<u8>, u32, u32),
-    Text { text: String, x: i32, y: i32, color: u8, right: bool, center: bool },
+    Text {
+        text: String,
+        x: i32,
+        y: i32,
+        color: u8,
+        right: bool,
+        center: bool,
+    },
     Sprite(u16, i32, i32),
-    Fillbox { x: i32, y: i32, w: i32, h: i32, color: u8 },
-    FillArea { thing: u8 },
-    Box { x: i32, y: i32, w: i32, h: i32, color: u8 },
+    Fillbox {
+        x: i32,
+        y: i32,
+        w: i32,
+        h: i32,
+        color: u8,
+    },
+    FillArea {
+        thing: u8,
+    },
+    Box {
+        x: i32,
+        y: i32,
+        w: i32,
+        h: i32,
+        color: u8,
+    },
     Container(Vec<Element>),
 }
 
@@ -27,7 +48,14 @@ impl Element {
                     ctx.pixels[dst_row..dst_row + dst_w as usize].copy_from_slice(src);
                 }
             }
-            Element::Text { text, x, y, color, right, center } => {
+            Element::Text {
+                text,
+                x,
+                y,
+                color,
+                right,
+                center,
+            } => {
                 let text_w = font.string_width(text) as i32;
                 let fx = if *center {
                     x - text_w / 2
@@ -42,7 +70,9 @@ impl Element {
                 ctx.fill_rect(*x, *y, *w, *h, *color);
             }
             Element::FillArea { thing } => {
-                let Some(ref pattern) = sprites.get(PATTERN_SPRITE) else { return };
+                let Some(ref pattern) = sprites.get(PATTERN_SPRITE) else {
+                    return;
+                };
                 for py in 0..ctx.height {
                     for px in 0..ctx.width {
                         let cur = ctx.pixels[(py as usize) * (ctx.width as usize) + (px as usize)];
@@ -82,19 +112,47 @@ impl Element {
     }
 
     pub fn text(text: impl Into<String>, x: i32, y: i32) -> Self {
-        Self::Text { text: text.into(), x, y, color: 15, right: false, center: false }
+        Self::Text {
+            text: text.into(),
+            x,
+            y,
+            color: 15,
+            right: false,
+            center: false,
+        }
     }
 
     pub fn text_color(text: impl Into<String>, x: i32, y: i32, color: u8) -> Self {
-        Self::Text { text: text.into(), x, y, color, right: false, center: false }
+        Self::Text {
+            text: text.into(),
+            x,
+            y,
+            color,
+            right: false,
+            center: false,
+        }
     }
 
     pub fn text_color_right(text: impl Into<String>, x: i32, y: i32, color: u8) -> Self {
-        Self::Text { text: text.into(), x, y, color, right: true, center: false }
+        Self::Text {
+            text: text.into(),
+            x,
+            y,
+            color,
+            right: true,
+            center: false,
+        }
     }
 
     pub fn text_color_center(text: impl Into<String>, x: i32, y: i32, color: u8) -> Self {
-        Self::Text { text: text.into(), x, y, color, right: false, center: true }
+        Self::Text {
+            text: text.into(),
+            x,
+            y,
+            color,
+            right: false,
+            center: true,
+        }
     }
 
     pub fn sprite(idx: u16, x: i32, y: i32) -> Self {

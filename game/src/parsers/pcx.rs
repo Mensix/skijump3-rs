@@ -1,5 +1,5 @@
-use engine::palette::Palette;
 use crate::parsers::{AssetParser, ParseError};
+use engine::palette::Palette;
 
 const PCX_HEADER_SIZE: usize = 128;
 
@@ -65,13 +65,17 @@ impl AssetParser<DecodedPcx> for PcxParser {
         let pixels = Self::rle_decode(image_data, total_pixels);
 
         let palette_data = &data[data.len() - 768..];
-        let palette = Palette::from_pcx_bytes(palette_data)
-            .map_err(|_| ParseError {
-                message: "Failed to parse PCX palette".to_string(),
-                byte_offset: Some(data.len() - 768),
-            })?;
+        let palette = Palette::from_pcx_bytes(palette_data).map_err(|_| ParseError {
+            message: "Failed to parse PCX palette".to_string(),
+            byte_offset: Some(data.len() - 768),
+        })?;
 
-        Ok(DecodedPcx { pixels, palette, width, height })
+        Ok(DecodedPcx {
+            pixels,
+            palette,
+            width,
+            height,
+        })
     }
 
     fn validate(data: &[u8]) -> bool {

@@ -1,6 +1,6 @@
-use std::rc::Rc;
-use engine::ui::{Element, Event, Key, Component};
 use crate::parsers::langbase::LangBase;
+use engine::ui::{Component, Element, Event, Key};
+use std::rc::Rc;
 
 pub struct MenuItem {
     pub num: u8,
@@ -24,18 +24,27 @@ pub struct Menu {
 
 impl Menu {
     pub fn new(
-        x: i32, y: i32, item_w: i32, item_h: i32,
-        items: Vec<MenuItem>, langbase: &Rc<LangBase>,
-        fontcolor: u8, boxcolor: u8,
+        x: i32,
+        y: i32,
+        item_w: i32,
+        item_h: i32,
+        items: Vec<MenuItem>,
+        langbase: &Rc<LangBase>,
+        fontcolor: u8,
+        boxcolor: u8,
     ) -> Self {
         let navigable = items.len();
         Self {
             selected: 0,
             navigable,
-            x, y, item_w, item_h,
+            x,
+            y,
+            item_w,
+            item_h,
             items,
             langbase: Rc::clone(langbase),
-            fontcolor, boxcolor,
+            fontcolor,
+            boxcolor,
             show_labels: true,
         }
     }
@@ -60,6 +69,8 @@ impl Menu {
 }
 
 impl Component for Menu {
+    type Action = usize;
+
     fn elements(&self) -> Vec<Element> {
         let mut els = Vec::with_capacity(self.items.len() + 1);
 
@@ -68,7 +79,9 @@ impl Component for Menu {
                 let iy = self.y + 1 + (i as i32) * self.item_h + item.y_off;
                 els.push(Element::text_color(
                     format!("{} - {}", item.num, self.langbase.lstr(item.label)),
-                    self.x, iy, self.fontcolor,
+                    self.x,
+                    iy,
+                    self.fontcolor,
                 ));
             }
         }
@@ -76,7 +89,13 @@ impl Component for Menu {
         let bx = self.x - 6;
         let idx = self.selected.min(self.items.len() - 1);
         let by = self.y - 3 + (idx as i32) * self.item_h + self.items[idx].y_off;
-        els.push(Element::box_(bx, by, self.item_w + 1, self.item_h + 1, self.boxcolor));
+        els.push(Element::box_(
+            bx,
+            by,
+            self.item_w + 1,
+            self.item_h + 1,
+            self.boxcolor,
+        ));
 
         els
     }

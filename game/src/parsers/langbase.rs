@@ -19,8 +19,15 @@ impl LangBase {
 }
 
 fn trim_ascii(bytes: &[u8]) -> &[u8] {
-    let start = bytes.iter().position(|&b| b != b' ' && b != b'\r').unwrap_or(bytes.len());
-    let end = bytes.iter().rposition(|&b| b != b' ' && b != b'\r').map(|p| p + 1).unwrap_or(0);
+    let start = bytes
+        .iter()
+        .position(|&b| b != b' ' && b != b'\r')
+        .unwrap_or(bytes.len());
+    let end = bytes
+        .iter()
+        .rposition(|&b| b != b' ' && b != b'\r')
+        .map(|p| p + 1)
+        .unwrap_or(0);
     &bytes[start..end]
 }
 

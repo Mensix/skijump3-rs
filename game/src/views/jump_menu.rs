@@ -1,8 +1,8 @@
-use engine::ui::{Element, Event, View, Component};
 use crate::components::layout::{self, MainLayout};
 use crate::components::menu::{Menu, MenuItem};
-use crate::route::RouteTarget;
 use crate::palette_consts::*;
+use crate::route::RouteTarget;
+use engine::ui::{Component, Element, Event, View};
 
 pub struct JumpMenuView {
     menu: Menu,
@@ -12,16 +12,53 @@ pub struct JumpMenuView {
 impl JumpMenuView {
     pub fn new(layout: MainLayout) -> Self {
         let items = vec![
-            MenuItem { num: 1, label: 27, y_off: 0 },
-            MenuItem { num: 2, label: 28, y_off: 0 },
-            MenuItem { num: 3, label: 29, y_off: 0 },
-            MenuItem { num: 4, label: 30, y_off: 0 },
-            MenuItem { num: 5, label: 31, y_off: 0 },
-            MenuItem { num: 6, label: 32, y_off: 0 },
-            MenuItem { num: 0, label: 33, y_off: 12 },
+            MenuItem {
+                num: 1,
+                label: 27,
+                y_off: 0,
+            },
+            MenuItem {
+                num: 2,
+                label: 28,
+                y_off: 0,
+            },
+            MenuItem {
+                num: 3,
+                label: 29,
+                y_off: 0,
+            },
+            MenuItem {
+                num: 4,
+                label: 30,
+                y_off: 0,
+            },
+            MenuItem {
+                num: 5,
+                label: 31,
+                y_off: 0,
+            },
+            MenuItem {
+                num: 6,
+                label: 32,
+                y_off: 0,
+            },
+            MenuItem {
+                num: 0,
+                label: 33,
+                y_off: 12,
+            },
         ];
         Self {
-            menu: Menu::new(11, 97, 108, 12, items, &layout.langbase, FONT_DEFAULT, FONT_DEFAULT),
+            menu: Menu::new(
+                11,
+                97,
+                108,
+                12,
+                items,
+                &layout.langbase,
+                FONT_DEFAULT,
+                FONT_DEFAULT,
+            ),
             layout,
         }
     }
@@ -32,7 +69,13 @@ impl View<RouteTarget> for JumpMenuView {
         let mut content = vec![];
 
         content.push(Element::fillbox(1, 94, 116, 106, BG_LIST));
-        content.extend(layout::header_elements(self.layout.langbase.lstr(18), 11, 80, FONT_HEADER, BG_ERASE));
+        content.extend(layout::header_elements(
+            self.layout.langbase.lstr(18),
+            11,
+            80,
+            FONT_HEADER,
+            BG_ERASE,
+        ));
         content.extend(self.menu.elements());
 
         self.layout.wrap(content)

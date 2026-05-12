@@ -1,8 +1,8 @@
-use std::rc::Rc;
-use engine::ui::Element;
-use crate::parsers::langbase::LangBase;
-use engine::consts::{WIDTH, HEIGHT};
 use crate::palette_consts::*;
+use crate::parsers::langbase::LangBase;
+use engine::consts::{HEIGHT, WIDTH};
+use engine::ui::Element;
+use std::rc::Rc;
 
 pub fn header_elements(text: &str, x: i32, y: i32, color: u8, bg: u8) -> Vec<Element> {
     vec![
@@ -20,7 +20,11 @@ pub struct MainLayout {
 
 impl MainLayout {
     pub fn new(langbase: Rc<LangBase>, version: String, background: Vec<u8>) -> Self {
-        Self { langbase, version, background }
+        Self {
+            langbase,
+            version,
+            background,
+        }
     }
 
     pub fn wrap(&self, content: Vec<Element>) -> Vec<Element> {
@@ -30,8 +34,18 @@ impl MainLayout {
         ];
         els.extend(content);
         els.push(Element::text_color_right("SKI JUMP", 308, 6, FONT_DEFAULT));
-        els.push(Element::text_color_right("INTERNATIONAL", 308, 18, FONT_DEFAULT));
-        els.push(Element::text_color(format!("v{}", self.version), 245, 30, FONT_DEFAULT));
+        els.push(Element::text_color_right(
+            "INTERNATIONAL",
+            308,
+            18,
+            FONT_DEFAULT,
+        ));
+        els.push(Element::text_color(
+            format!("v{}", self.version),
+            245,
+            30,
+            FONT_DEFAULT,
+        ));
         els
     }
 }

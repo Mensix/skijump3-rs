@@ -7,9 +7,15 @@ impl Color {
     pub fn new(r: u8, g: u8, b: u8) -> Self {
         Self([r, g, b])
     }
-    pub fn r(&self) -> u8 { self.0[0] }
-    pub fn g(&self) -> u8 { self.0[1] }
-    pub fn b(&self) -> u8 { self.0[2] }
+    pub fn r(&self) -> u8 {
+        self.0[0]
+    }
+    pub fn g(&self) -> u8 {
+        self.0[1]
+    }
+    pub fn b(&self) -> u8 {
+        self.0[2]
+    }
 }
 
 impl From<[u8; 3]> for Color {
@@ -25,7 +31,9 @@ pub struct Palette {
 
 impl Palette {
     pub fn new() -> Self {
-        Self { colors: [[0; 3]; 256] }
+        Self {
+            colors: [[0; 3]; 256],
+        }
     }
 
     pub fn from_pcx_bytes(data: &[u8]) -> Result<Self, PaletteError> {
