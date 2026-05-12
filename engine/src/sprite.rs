@@ -17,11 +17,15 @@ impl SpriteData {
             for xx in 0..self.width as i32 {
                 let src_idx = (yy * self.width as i32 + xx) as usize;
                 if src_idx < self.data.len() {
+                    let pixel = self.data[src_idx];
+                    if pixel == 0 {
+                        continue;
+                    }
                     let px = start_x + xx;
                     let py = start_y + yy;
                     if px >= 0 && py >= 0 && (px as u32) < screen_w && py < HEIGHT as i32 {
                         let idx = (py as usize) * (screen_w as usize) + (px as usize);
-                        pixels[idx] = self.data[src_idx];
+                        pixels[idx] = pixel;
                     }
                 }
             }

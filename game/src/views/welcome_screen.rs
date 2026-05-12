@@ -36,14 +36,18 @@ impl View<RouteTarget> for WelcomeScreenView {
     fn elements(&self) -> Vec<Element> {
         let mut els = vec![];
 
-        // NewScreen(6,0): coloured panels + dither texture
-        els.push(Element::fillbox(0, 0, 50, 200, 245));
-        els.push(Element::fillbox(52, 0, 267, 200, 243));
-        els.push(Element::fillbox(269, 0, 319, 200, 245));
+        // initial black fill, then NewScreen(6,0) panels with 1px black gaps
+        // FillBox(0,0,319,199,0) → full screen black
+        // FillBox(0,0,50,199,245) → width 51, FillBox(52,0,267,199,243) → width 216
+        // FillBox(269,0,319,199,245) → width 51, gaps at cols 51 and 268
+        els.push(Element::fillbox(0, 0, 320, 200, 0));
+        els.push(Element::fillbox(0, 0, 51, 200, 245));
+        els.push(Element::fillbox(52, 0, 216, 200, 243));
+        els.push(Element::fillbox(269, 0, 51, 200, 245));
         els.push(Element::FillArea { thing: 63 });
 
-        // logo sprite 61 at (80,6)
-        els.push(Element::sprite(61, 80, 6));
+        // logo sprite: Pascal Anim[61] → 0-indexed 60
+        els.push(Element::sprite(60, 80, 6));
 
         // welcome text, ewritefont (right-aligned) at x=240
         els.push(Element::text_color_right("WELCOME!", 240, 6, FONT_DEFAULT));
