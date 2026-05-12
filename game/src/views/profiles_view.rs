@@ -114,7 +114,7 @@ impl View<RouteTarget> for ProfilesView {
             let entries = if has_slot { np + 1 } else { np };
             (np, entries, has_slot)
         };
-        let total = entries + 1;
+        // Back is visual-only, not a selectable item (Pascal MakeMenu items=entries)
 
         match event {
             Event::Keyboard(Key::Up) if self.selected > 1 => {
@@ -122,10 +122,10 @@ impl View<RouteTarget> for ProfilesView {
                 None
             }
             Event::Keyboard(Key::Up) => {
-                self.selected = total;
+                self.selected = entries;
                 None
             }
-            Event::Keyboard(Key::Down) if self.selected < total => {
+            Event::Keyboard(Key::Down) if self.selected < entries => {
                 self.selected += 1;
                 None
             }
