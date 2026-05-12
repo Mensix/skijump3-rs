@@ -117,7 +117,6 @@ impl ProfilesView {
             .any(|p| p.name == profile.name)
         {
             profile.name = format!("SKI JUMPER {}", counter);
-            profile.real_name = profile.name.clone();
             counter += 1;
         }
         profile
@@ -193,17 +192,19 @@ impl ProfilesView {
             FONT_BACK,
         ));
 
-        let entries = if store.profiles.has_slot() {
-            np + 1
-        } else {
-            np
-        };
-        let box_y = if self.selected < entries {
-            10 + (self.selected as i32) * 8
-        } else {
-            10 + (entries as i32 + 1) * 8
-        };
-        els.push(Element::box_(34, box_y, 123, 9, FONT_DEFAULT));
+        if matches!(self.mode, Mode::List) {
+            let entries = if store.profiles.has_slot() {
+                np + 1
+            } else {
+                np
+            };
+            let box_y = if self.selected < entries {
+                10 + (self.selected as i32) * 8
+            } else {
+                10 + (entries as i32 + 1) * 8
+            };
+            els.push(Element::box_(34, box_y, 123, 9, FONT_DEFAULT));
+        }
     }
 
     fn draw_help(&self, els: &mut Vec<Element>, profile: Option<usize>) {
@@ -630,8 +631,7 @@ impl ProfilesView {
             QuestionAction::ResetProfile(profile) => {
                 let name = self.store.borrow().profiles.profiles[profile].name.clone();
                 let mut reset = Profile::default();
-                reset.name = name.clone();
-                reset.real_name = name;
+                reset.name = name;
                 self.store.borrow_mut().profiles.profiles[profile] = reset;
                 self.mode = Mode::Edit {
                     profile,
