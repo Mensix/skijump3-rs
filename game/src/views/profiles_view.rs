@@ -176,15 +176,15 @@ impl ProfilesView {
             els.push(Element::text_color(
                 &self.lstr(302, "*Create New Jumper*"),
                 40,
-                Self::y_for(np + 2),
+                Self::y_for(np + 1),
                 FONT_NEW,
             ));
         }
 
         let back_temp = if store.profiles.has_slot() {
-            np + 4
-        } else {
             np + 3
+        } else {
+            np + 2
         };
         els.push(Element::text_color(
             &self.lstr(33, "Back to Main Menu"),
@@ -259,9 +259,11 @@ impl ProfilesView {
     }
 
     fn draw_suit_ski(&self, els: &mut Vec<Element>, _profile: &Profile) {
-        let labels = self.profile_labels();
-        let suit_w = self.store.borrow().font.string_width(labels[2]) as i32;
-        let ski_w = self.store.borrow().font.string_width(labels[3]) as i32;
+        let suit_label = self.profile_label(3);
+        let ski_label = self.profile_label(4);
+        let font = &self.store.borrow().font;
+        let suit_w = font.string_width(&suit_label) as i32;
+        let ski_w = font.string_width(&ski_label) as i32;
         let x = 178 + suit_w.max(ski_w);
         let xl = (x + 18).min(318);
 
@@ -270,27 +272,31 @@ impl ProfilesView {
         els.push(Element::fillbox(x + 1, 37, xl - x - 1, 3, 231));
     }
 
-    fn profile_labels(&self) -> [&'static str; 18] {
-        [
-            "Name:",
-            "Real name:",
-            "Suit Color:",
-            "Ski Color:",
-            "Replace:",
-            "Coach:",
-            "Skip Quali:",
-            "Reset Jumper",
-            "Exit",
-            "Total Jumps:",
-            "World Cup Completed:",
-            "Legs Won:",
-            "World Cups Won:",
-            "Best:",
-            "Best 4H:",
-            "Longest WC:",
-            "Longest:",
-            "KOTH:",
-        ]
+    fn profile_label(&self, temp: usize) -> String {
+        self.lstr(
+            303 + temp,
+            match temp {
+                1 => "Name:",
+                2 => "Real name:",
+                3 => "Suit Color:",
+                4 => "Ski Color:",
+                5 => "Replace:",
+                6 => "Coach:",
+                7 => "Skip Quali:",
+                8 => "Reset Jumper",
+                9 => "Exit",
+                10 => "Total Jumps:",
+                11 => "World Cup Completed:",
+                12 => "Legs Won:",
+                13 => "World Cups Won:",
+                14 => "Best:",
+                15 => "Best 4H:",
+                16 => "Longest WC:",
+                17 => "Longest:",
+                18 => "KOTH:",
+                _ => "",
+            },
+        )
     }
 
     fn draw_profile(&self, els: &mut Vec<Element>, profile_index: usize, edit_phase: bool) {
@@ -300,7 +306,6 @@ impl ProfilesView {
         let Some(profile) = store.profiles.profiles.get(profile_index).cloned() else {
             return;
         };
-        let labels = self.profile_labels();
         let label_color = if edit_phase { FONT_DEFAULT } else { FONT_HELP };
         let value_color = FONT_NEW;
 
@@ -313,28 +318,27 @@ impl ProfilesView {
         let store = self.store.borrow();
         let profile = &store.profiles.profiles[profile_index];
 
-        for (i, label) in labels.iter().enumerate() {
-            let temp = i + 1;
+        for temp in 1..=18 {
             if !edit_phase && temp > 7 && temp < 10 {
                 continue;
             }
+            let label = self.profile_label(temp);
             if !label.is_empty() {
                 let lc = if edit_phase && temp >= 10 {
                     FONT_HELP
                 } else {
                     label_color
                 };
-                els.push(Element::text_color(*label, 166, Self::col_y(temp), lc));
+                els.push(Element::text_color(label, 166, Self::col_y(temp), lc));
             }
         }
 
-        for (i, label) in labels.iter().enumerate() {
-            let temp = i + 1;
+        for temp in 1..=18 {
             let y = Self::col_y(temp);
             let x = if temp > 15 {
                 170
             } else {
-                170 + store.font.string_width(label) as i32
+                170 + store.font.string_width(&self.profile_label(temp)) as i32
             };
             let y = if temp > 15 { y + 8 } else { y };
             let value = format_profile_value(
@@ -436,12 +440,12 @@ impl ProfilesView {
             1 => self.start_text_input(profile, TextField::RealName),
             2 => {
                 let value = self.store.borrow().profiles.profiles[profile].suit_color;
-                let labels = self.profile_labels();
                 let font = &self.store.borrow().font;
                 let x = (172
                     + font
-                        .string_width(labels[2])
-                        .max(font.string_width(labels[3])) as i32)
+                        .string_width(&self.profile_label(3))
+                        .max(font.string_width(&self.profile_label(4)))
+                        as i32)
                     .min(288);
                 self.mode = Mode::ColorSelect {
                     profile,
@@ -459,12 +463,12 @@ impl ProfilesView {
             }
             3 => {
                 let value = self.store.borrow().profiles.profiles[profile].ski_color;
-                let labels = self.profile_labels();
                 let font = &self.store.borrow().font;
                 let x = (172
                     + font
-                        .string_width(labels[2])
-                        .max(font.string_width(labels[3])) as i32)
+                        .string_width(&self.profile_label(3))
+                        .max(font.string_width(&self.profile_label(4)))
+                        as i32)
                     .min(288);
                 self.mode = Mode::ColorSelect {
                     profile,
@@ -547,17 +551,20 @@ impl ProfilesView {
     fn start_text_input(&mut self, profile: usize, field: TextField) {
         let store = self.store.borrow();
         let profile_data = &store.profiles.profiles[profile];
-        let labels = self.profile_labels();
-        let (old, label) = match field {
-            TextField::Name => (profile_data.name.clone(), labels[0]),
-            TextField::RealName => (profile_data.real_name.clone(), labels[1]),
+        let label = match field {
+            TextField::Name => self.profile_label(1),
+            TextField::RealName => self.profile_label(2),
         };
-        let x = 170 + store.font.string_width(label) as i32;
+        let old = match field {
+            TextField::Name => profile_data.name.clone(),
+            TextField::RealName => profile_data.real_name.clone(),
+        };
+        let x = 170 + store.font.string_width(&label) as i32;
         let y = match field {
             TextField::Name => 12,
             TextField::RealName => 20,
         };
-        let max_width = 314 - 170 - store.font.string_width(label) as i32;
+        let max_width = 314 - 170 - store.font.string_width(&label) as i32;
         let font = store.font.clone();
         drop(store);
         self.mode = Mode::TextInput {
