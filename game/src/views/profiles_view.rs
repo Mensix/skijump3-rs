@@ -26,6 +26,14 @@ impl ProfilesView {
     fn y_for(temp: usize) -> i32 {
         (temp * 8 + 4) as i32
     }
+
+    fn col_y(temp: usize) -> i32 {
+        match temp {
+            0..=9 => (temp * 8 + 4) as i32,
+            10..=15 => (temp * 8 + 10) as i32,
+            _ => (temp * 16 - 118) as i32,
+        }
+    }
 }
 
 impl View<RouteTarget> for ProfilesView {
@@ -66,6 +74,52 @@ impl View<RouteTarget> for ProfilesView {
         // inc(temp,2), then "Back to Main Menu"
         let back_temp = if has_slot { np + 3 } else { np + 2 };
         els.push(Element::text_color("Back to Main Menu", 40, Self::y_for(back_temp), FONT_BACK));
+
+        // right pane: writeprofile(index,0,temp) for selected profile
+        if self.selected <= np {
+            if let Some(p) = store.profiles.profiles.get(self.selected) {
+                // emptyedit: fillbox + fillarea on right panel
+                els.push(Element::fillbox(166, 4, 154, 195, BG_RIGHT));
+                els.push(Element::FillArea { thing: 63 });
+
+                // drawsuitski stub: suit/ski color boxes
+                let sx = 178;
+                els.push(Element::fillbox(sx, 28, 19, 5, 216));
+                els.push(Element::box_(sx, 28, 19, 5, 218));
+                els.push(Element::fillbox(sx + 1, 37, 17, 3, 231));
+
+                // 18 field labels (color 241 for phase=0 view mode)
+                let labels: [&str; 18] = [
+                    "Name:", "Real name:", "Suit Color:", "Ski Color:",
+                    "Replace:", "Coach:", "Skip Quali:", "",
+                    "", "Total Jumps:", "WC:", "Legs Won:",
+                    "WC Won:", "Best:", "Best 4H:", "Longest WC:",
+                    "Longest:", "KOTH:",
+                ];
+
+                for i in 0..18 {
+                    let y = Self::col_y(i + 1);
+                    if !labels[i].is_empty() {
+                        els.push(Element::text_color(labels[i], 166, y, FONT_HEADER));
+                    }
+                    // value in color 246 at colx+4+fontlen(label) approx
+                    // items 16-18 (indices 15-17): value below label at colx+4
+                    let val: &str = match i {
+                        0 => &p.name,
+                        7 | 8 => "",
+                        _ => "-",
+                    };
+                    if !val.is_empty() {
+                        let (vx, vy) = if i >= 15 {
+                            (170, y + 8)
+                        } else {
+                            (246, y)
+                        };
+                        els.push(Element::text_color(val, vx, vy, 246));
+                    }
+                }
+            }
+        }
 
         // highlight box: regular items use position formula, Back position uses text y - 3
         let (by, box_h) = if self.selected <= entries {
