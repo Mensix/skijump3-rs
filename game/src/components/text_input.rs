@@ -1,4 +1,5 @@
 use engine::ui::{Component, Element, Event, Font, Key};
+use std::cell::Cell;
 
 pub enum TextInputAction {
     Commit(String),
@@ -14,6 +15,7 @@ pub struct TextInput {
     font: Font,
     old: String,
     buf: String,
+    cursor_timer: Cell<u8>,
 }
 
 impl TextInput {
@@ -27,11 +29,16 @@ impl TextInput {
             font,
             old: old.clone(),
             buf: old,
+            cursor_timer: Cell::new(0),
         }
     }
 
     pub fn old(&self) -> &str {
         &self.old
+    }
+
+    fn reset_cursor(&self) {
+        self.cursor_timer.set(0);
     }
 }
 
@@ -39,15 +46,24 @@ impl Component for TextInput {
     type Action = TextInputAction;
 
     fn elements(&self) -> Vec<Element> {
+        let timer = self.cursor_timer.get();
+        self.cursor_timer
+            .set(if timer >= 20 { 0 } else { timer + 1 });
+        let cursor_visible = timer <= 10;
+
         let cx = self.x + self.font.string_width(&self.buf) as i32;
-        vec![
+        let mut els = vec![
             Element::fillbox(self.x - 2, self.y - 2, self.max_width + 4, 10, self.bg),
             Element::text_color(&self.buf, self.x, self.y, self.fg),
-            Element::fillbox(cx, self.y + 6, 5, 1, self.fg),
-        ]
+        ];
+        if cursor_visible {
+            els.push(Element::fillbox(cx, self.y + 6, 5, 1, self.fg));
+        }
+        els
     }
 
     fn handle_event(&mut self, event: &Event) -> Option<Self::Action> {
+        self.reset_cursor();
         match event {
             Event::Keyboard(Key::Backspace) => {
                 self.buf.pop();
