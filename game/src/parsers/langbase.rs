@@ -5,6 +5,7 @@ const NUM_STR: usize = 599;
 #[derive(Clone)]
 pub struct LangBase {
     strings: Vec<String>,
+    pub languages: Vec<String>,
 }
 
 impl LangBase {
@@ -32,12 +33,34 @@ fn decode_val(bytes: &[u8]) -> String {
     String::from_utf8_lossy(bytes).to_string()
 }
 
+fn parse_language_names(data: &[u8]) -> Vec<String> {
+    let mut names = Vec::new();
+    let mut expect_name = false;
+    for line in data.split(|&b| b == b'\n') {
+        let trimmed = trim_ascii(line);
+        if trimmed.is_empty() {
+            expect_name = false;
+            continue;
+        }
+        if trimmed[0] == b'*' {
+            expect_name = true;
+            continue;
+        }
+        if expect_name {
+            names.push(decode_val(trimmed));
+            expect_name = false;
+        }
+    }
+    names
+}
+
 pub struct LangBaseParser;
 
 impl AssetParser<LangBase> for LangBaseParser {
     fn parse(data: &[u8]) -> Result<LangBase, ParseError> {
-        let mut strings: Vec<String> = (0..=NUM_STR).map(|_| "?".to_string()).collect();
+        let languages = parse_language_names(data);
 
+        let mut strings: Vec<String> = (0..=NUM_STR).map(|_| "?".to_string()).collect();
         let mut in_english = false;
 
         for line in data.split(|&b| b == b'\n') {
@@ -72,7 +95,7 @@ impl AssetParser<LangBase> for LangBaseParser {
             }
         }
 
-        Ok(LangBase { strings })
+        Ok(LangBase { strings, languages })
     }
 
     fn validate(data: &[u8]) -> bool {

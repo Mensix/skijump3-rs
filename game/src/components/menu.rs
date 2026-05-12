@@ -19,6 +19,7 @@ pub struct Menu {
     langbase: Arc<LangBase>,
     fontcolor: u8,
     boxcolor: u8,
+    show_labels: bool,
 }
 
 impl Menu {
@@ -35,11 +36,17 @@ impl Menu {
             items,
             langbase: Arc::clone(langbase),
             fontcolor, boxcolor,
+            show_labels: true,
         }
     }
 
     pub fn with_navigable(mut self, n: usize) -> Self {
         self.navigable = n;
+        self
+    }
+
+    pub fn with_labels(mut self, show: bool) -> Self {
+        self.show_labels = show;
         self
     }
 
@@ -60,12 +67,14 @@ impl Component for Menu {
     fn elements(&self) -> Vec<Element> {
         let mut els = Vec::with_capacity(self.items.len() + 1);
 
-        for (i, item) in self.items.iter().enumerate() {
-            let iy = self.y + 1 + (i as i32) * self.item_h + item.y_off;
-            els.push(Element::text_color(
-                format!("{} - {}", item.num, self.langbase.lstr(item.label)),
-                self.x, iy, self.fontcolor,
-            ));
+        if self.show_labels {
+            for (i, item) in self.items.iter().enumerate() {
+                let iy = self.y + 1 + (i as i32) * self.item_h + item.y_off;
+                els.push(Element::text_color(
+                    format!("{} - {}", item.num, self.langbase.lstr(item.label)),
+                    self.x, iy, self.fontcolor,
+                ));
+            }
         }
 
         let bx = self.x - 6;

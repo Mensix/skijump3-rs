@@ -13,7 +13,7 @@ use engine::sprite::SpriteData;
 use engine::consts::{WIDTH, HEIGHT, FONT_GLYPH_COUNT};
 use loaders::assets::AssetStore;
 use parsers::{AssetParser, anim::AnimParser, langbase::{LangBase, LangBaseParser}, pcx::PcxParser};
-use views::{MainMenuView, JumpMenuView};
+use views::{MainMenuView, JumpMenuView, WelcomeScreenView};
 use crate::components::layout::MainLayout;
 use engine::ui::Font;
 use engine::palette::Palette;
@@ -104,10 +104,12 @@ impl Game {
     }
 
     fn create_router(langbase: Arc<LangBase>) -> Router<RouteTarget> {
-        let layout = MainLayout::new(langbase, VERSION.to_string());
+        let layout = MainLayout::new(Arc::clone(&langbase), VERSION.to_string());
+        let languages = langbase.languages.clone();
         Router::new(
+            // initial view: language selection; then MainMenu
             RouteTarget::MainMenu,
-            Box::new(MainMenuView::new(layout.clone())),
+            Box::new(WelcomeScreenView::new(languages, Arc::clone(&langbase))),
             vec![
                 (RouteTarget::MainMenu, {
                     let l = layout.clone();
