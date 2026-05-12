@@ -5,7 +5,7 @@ use crate::data::profile::{Profile, NUM_SKIS, NUM_SUITS};
 use crate::palette_consts::*;
 use crate::route::RouteTarget;
 use crate::store::StoreRef;
-use crate::utils::{replace_display_name, truncate_to_fit};
+use crate::utils::{format_profile_value, replace_display_name};
 use engine::palette::Palette;
 use engine::ui::{Component, Element, Event, Key, View};
 use std::rc::Rc;
@@ -337,7 +337,13 @@ impl ProfilesView {
                 170 + store.font.string_width(label) as i32
             };
             let y = if temp > 15 { y + 8 } else { y };
-            let value = self.profile_value(profile, temp);
+            let value = format_profile_value(
+                profile,
+                temp,
+                &store.font,
+                &store.player_names,
+                &self.langbase,
+            );
             if !value.is_empty() {
                 els.push(Element::text_color(value, x, y, value_color));
             }
@@ -351,81 +357,6 @@ impl ProfilesView {
                 9,
                 FONT_DEFAULT,
             ));
-        }
-    }
-
-    fn profile_value(&self, profile: &Profile, temp: usize) -> String {
-        match temp {
-            1 => profile.name.clone(),
-            2 => profile.real_name.clone(),
-            5 => {
-                if profile.replace == 0 {
-                    "-".to_string()
-                } else {
-                    let store = self.store.borrow();
-                    if profile.replace <= store.player_names.len() {
-                        let max_w = 316i32
-                            .saturating_sub(
-                                170 + store.font.string_width(&format!("#{}", profile.replace))
-                                    as i32,
-                            )
-                            .max(0);
-                        let name = &store.player_names[profile.replace - 1];
-                        truncate_to_fit(name, &store.font, max_w)
-                    } else {
-                        format!("#{}", profile.replace)
-                    }
-                }
-            }
-            6 => {
-                if profile.coach_style == 0 {
-                    self.lstr(9, "None")
-                } else {
-                    self.lstr(
-                        361 + profile.coach_style * 40,
-                        &format!("Style {}", profile.coach_style),
-                    )
-                }
-            }
-            7 => self.lstr(
-                231 + profile.skip_quali,
-                match profile.skip_quali {
-                    0 => "Never",
-                    1 => "If possible",
-                    _ => "Always",
-                },
-            ),
-            10 => profile.total_jumps.to_string(),
-            11 => profile.world_cups.to_string(),
-            12 => profile.legs_won.to_string(),
-            13 => profile.world_cups_won.to_string(),
-            14 => profile.best_result.clone(),
-            15 => profile.best_4h_result.clone(),
-            16 => {
-                if profile.best_wc_jump == 0 {
-                    "-".to_string()
-                } else {
-                    format!("{}x {}", profile.best_wc_jump, profile.best_wc_hill)
-                }
-            }
-            17 => {
-                if profile.best_jump == 0 {
-                    "-".to_string()
-                } else {
-                    format!("{}x {}", profile.best_jump, profile.best_hill)
-                }
-            }
-            18 => {
-                if profile.koth_level == 0 {
-                    "-".to_string()
-                } else {
-                    self.lstr(
-                        130 + profile.koth_level,
-                        &format!("Level {}", profile.koth_level),
-                    )
-                }
-            }
-            _ => String::new(),
         }
     }
 
