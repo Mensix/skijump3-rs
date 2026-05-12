@@ -45,6 +45,7 @@ impl Component for ConfirmDialog {
 
         let str2 = self.lstr(193, "Are you sure?");
         let hint_x = 70 + self.font.string_width(&str2) as i32 + 4;
+        let cursor_x = hint_x + 25;
         let mut els = vec![
             Element::fillbox(59, 79, 203, 53, 242),
             Element::fillbox(60, 80, 201, 51, 244),
@@ -52,9 +53,10 @@ impl Component for ConfirmDialog {
             Element::text_color(&self.message, 70, 90, 246),
             Element::text_color(str2, 70, 110, 246),
             Element::text_color("(Y/N)", hint_x, 110, 241),
+            Element::fillbox(cursor_x - 2, 108, 9, 11, 243),
         ];
         if timer <= 10 {
-            els.push(Element::fillbox(hint_x, 116, 5, 1, 240));
+            els.push(Element::fillbox(cursor_x, 116, 5, 1, 240));
         }
         els
     }
