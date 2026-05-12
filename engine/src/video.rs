@@ -6,21 +6,15 @@ use crate::consts::{HEIGHT, TARGET_FPS, WIDTH};
 use crate::palette::Palette;
 
 pub struct Renderer {
-    _sdl: sdl2::Sdl,
-    _video: sdl2::VideoSubsystem,
     canvas: sdl2::render::WindowCanvas,
     indexed_pixels: Vec<u8>,
     rgb_pixels: Vec<u8>,
     palette: Palette,
     last_tick: Instant,
-    running: bool,
-    event_pump: sdl2::EventPump,
-    last_key: Option<sdl2::keyboard::Keycode>,
 }
 
 impl Renderer {
-    pub fn new() -> Result<Self, String> {
-        let sdl = sdl2::init().map_err(|e| e.to_string())?;
+    pub fn new(sdl: &sdl2::Sdl) -> Result<Self, String> {
         let video = sdl.video().map_err(|e| e.to_string())?;
 
         let window = video
@@ -37,46 +31,17 @@ impl Renderer {
 
         canvas.set_logical_size(WIDTH, HEIGHT).map_err(|e| e.to_string())?;
 
-        let event_pump = sdl.event_pump().map_err(|e| e.to_string())?;
-
         Ok(Self {
-            _sdl: sdl,
-            _video: video,
             canvas,
             indexed_pixels: vec![0u8; (WIDTH * HEIGHT) as usize],
             rgb_pixels: vec![0u8; (WIDTH * HEIGHT * 3) as usize],
             palette: Palette::new(),
             last_tick: Instant::now(),
-            running: true,
-            event_pump,
-            last_key: None,
         })
     }
 
     pub fn set_palette(&mut self, palette: Palette) {
         self.palette = palette;
-    }
-
-    pub fn running(&self) -> bool {
-        self.running
-    }
-
-    pub fn poll_input(&mut self) {
-        use sdl2::event::Event;
-        self.last_key = None;
-        for event in self.event_pump.poll_iter() {
-            match event {
-                Event::Quit { .. } => self.running = false,
-                Event::KeyDown { keycode: Some(k), .. } => {
-                    self.last_key = Some(k);
-                }
-                _ => {}
-            }
-        }
-    }
-
-    pub fn last_key(&self) -> Option<sdl2::keyboard::Keycode> {
-        self.last_key
     }
 
     pub fn wait_frame(&mut self) {
@@ -89,13 +54,7 @@ impl Renderer {
     }
 
     pub fn blit(&mut self, pixels: &[u8]) {
-        assert_eq!(
-            pixels.len(),
-            self.indexed_pixels.len(),
-            "blit: expected {} pixels, got {}",
-            self.indexed_pixels.len(),
-            pixels.len()
-        );
+        assert_eq!(pixels.len(), self.indexed_pixels.len());
         self.indexed_pixels.copy_from_slice(pixels);
     }
 

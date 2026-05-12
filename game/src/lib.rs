@@ -6,18 +6,23 @@ pub mod components;
 pub mod route;
 pub mod views;
 
+use std::sync::Arc;
 use engine::ui::{Router, Event, Key};
+use engine::input::Input;
 use engine::sprite::SpriteData;
+use engine::consts::{WIDTH, HEIGHT, FONT_GLYPH_COUNT};
 use loaders::assets::AssetStore;
-use parsers::{AssetParser, anim::AnimParser, langbase::LangBaseParser, pcx::PcxParser};
+use parsers::{AssetParser, anim::AnimParser, langbase::{LangBase, LangBaseParser}, pcx::PcxParser};
 use views::MainMenuView;
 use engine::ui::Font;
+use engine::palette::Palette;
 use route::RouteTarget;
 
 const MAIN_PCX: &str = "MAIN.PCX";
 const ANIM_SKI: &str = "ANIM.SKI";
 const LANGBASE_SKI: &str = "LANGBASE.SKI";
 const VERSION: &str = "3.12";
+const UI_PALETTE_BASE: usize = 216;
 
 const STANDARD_UI_PALETTE: [[u8; 3]; 36] = [
     [53, 17, 53], [63,  0,  0], [43, 12, 43], [63,  0,  0],
@@ -31,95 +36,155 @@ const STANDARD_UI_PALETTE: [[u8; 3]; 36] = [
     [23, 16, 43], [43, 16, 23], [26, 26, 26], [52, 47,  0],
 ];
 
-fn apply_standard_ui_palette(palette: &mut engine::palette::Palette) {
+fn apply_standard_ui_palette(palette: &mut Palette) {
     for (i, &rgb) in STANDARD_UI_PALETTE.iter().enumerate() {
-        palette.set(216 + i, rgb);
+        palette.set(UI_PALETTE_BASE + i, rgb);
     }
 }
 
-pub fn run() -> Result<(), String> {
-    let mut renderer = engine::video::Renderer::new()?;
-
-    let pcx_data = AssetStore::read(MAIN_PCX).map_err(|e| e.to_string())?;
-    let decoded = PcxParser::parse(&pcx_data).map_err(|e| e.to_string())?;
-
-    let anim_data = AssetStore::read(ANIM_SKI).map_err(|e| e.to_string())?;
-    let sprites: Vec<SpriteData> = AnimParser::parse(&anim_data).map_err(|e| e.to_string())?;
-
-    let langbase_data = AssetStore::read(LANGBASE_SKI).map_err(|e| e.to_string())?;
-    let langbase = LangBaseParser::parse(&langbase_data).map_err(|e| e.to_string())?;
-
+fn load_font(sprites: &[SpriteData]) -> Font {
     let mut font = Font::new();
     for (i, sprite) in sprites.iter().enumerate() {
-        if i < 67 {
+        if i < FONT_GLYPH_COUNT {
             font.set_glyph(i, sprite.data.clone(), sprite.width, sprite.height, sprite.center_x, sprite.center_y);
         }
     }
+    font
+}
 
-    let mut palette = decoded.palette.clone();
-    apply_standard_ui_palette(&mut palette);
-    renderer.set_palette(palette);
+pub struct Game {
+    _sdl: sdl2::Sdl,
+    renderer: engine::video::Renderer,
+    input: Input,
+    font: Font,
+    router: Router<RouteTarget>,
+    sprites: Vec<SpriteData>,
+    background_pixels: Vec<u8>,
+    framebuffer: Vec<u8>,
+    palette: Palette,
+}
 
-    let lb_main = langbase.clone();
-    let lb_play1 = langbase.clone();
-    let lb_play2 = langbase.clone();
-    let lb_quit = langbase.clone();
+impl Game {
+    pub fn new() -> Result<Self, String> {
+        let sdl = sdl2::init().map_err(|e| e.to_string())?;
+        let mut renderer = engine::video::Renderer::new(&sdl)?;
+        let input = Input::new(&sdl)?;
 
-    let mut router: Router<RouteTarget> = Router::new(
-        RouteTarget::MainMenu,
-        Box::new(MainMenuView::new(langbase, VERSION.to_string())),
-        vec![
-            (RouteTarget::MainMenu, Box::new(move || Box::new(MainMenuView::new(lb_main.clone(), VERSION.to_string())))),
-            (RouteTarget::Play(1), Box::new(move || Box::new(MainMenuView::new(lb_play1.clone(), VERSION.to_string())))),
-            (RouteTarget::Play(2), Box::new(move || Box::new(MainMenuView::new(lb_play2.clone(), VERSION.to_string())))),
-            (RouteTarget::Quit, Box::new(move || Box::new(MainMenuView::new(lb_quit.clone(), VERSION.to_string())))),
-        ],
-    );
+        let pcx_data = AssetStore::read(MAIN_PCX).map_err(|e| e.to_string())?;
+        let decoded = PcxParser::parse(&pcx_data).map_err(|e| e.to_string())?;
 
-    while renderer.running() {
-        if router.current_route() == Some(&RouteTarget::Quit) {
-            break;
-        }
-        renderer.poll_input();
+        let anim_data = AssetStore::read(ANIM_SKI).map_err(|e| e.to_string())?;
+        let sprites: Vec<SpriteData> = AnimParser::parse(&anim_data).map_err(|e| e.to_string())?;
 
-        if let Some(key) = renderer.last_key() {
-            let event = match key {
-                sdl2::keyboard::Keycode::Up => Event::Keyboard(Key::Up),
-                sdl2::keyboard::Keycode::Down => Event::Keyboard(Key::Down),
-                sdl2::keyboard::Keycode::Return => Event::Keyboard(Key::Enter),
-                sdl2::keyboard::Keycode::Escape => Event::Keyboard(Key::Escape),
-                sdl2::keyboard::Keycode::Num0 => Event::Keyboard(Key::Char('0')),
-                sdl2::keyboard::Keycode::Num1 => Event::Keyboard(Key::Char('1')),
-                sdl2::keyboard::Keycode::Num2 => Event::Keyboard(Key::Char('2')),
-                sdl2::keyboard::Keycode::Num3 => Event::Keyboard(Key::Char('3')),
-                sdl2::keyboard::Keycode::Num4 => Event::Keyboard(Key::Char('4')),
-                sdl2::keyboard::Keycode::Num5 => Event::Keyboard(Key::Char('5')),
-                sdl2::keyboard::Keycode::Num6 => Event::Keyboard(Key::Char('6')),
-                sdl2::keyboard::Keycode::Num7 => Event::Keyboard(Key::Char('7')),
-                sdl2::keyboard::Keycode::Num8 => Event::Keyboard(Key::Char('8')),
-                sdl2::keyboard::Keycode::Num9 => Event::Keyboard(Key::Char('9')),
-                _ => continue,
-            };
-            router.handle_event(event);
-        }
+        let langbase_data = AssetStore::read(LANGBASE_SKI).map_err(|e| e.to_string())?;
+        let langbase = Arc::new(LangBaseParser::parse(&langbase_data).map_err(|e| e.to_string())?);
 
-        let mut pixels = decoded.pixels.clone();
-        {
-            let mut ctx = engine::ui::PaintCtx::new(
-                &mut pixels,
-                &decoded.palette,
-                320,
-                200,
-            );
-            let elements = router.current_view().elements();
-            for el in &elements {
-                el.render(&mut ctx, &font, &sprites);
-            }
-        }
-        renderer.blit(&pixels);
-        renderer.present()?;
-        renderer.wait_frame();
+        let font = load_font(&sprites);
+        let bufsize = (WIDTH * HEIGHT) as usize;
+        let framebuffer = vec![0u8; bufsize];
+
+        let mut palette = decoded.palette.clone();
+        apply_standard_ui_palette(&mut palette);
+        renderer.set_palette(palette.clone());
+
+        let router = Self::create_router(Arc::clone(&langbase));
+
+        Ok(Self {
+            _sdl: sdl,
+            renderer,
+            input,
+            font,
+            router,
+            sprites,
+            background_pixels: decoded.pixels,
+            framebuffer,
+            palette,
+        })
     }
 
-    Ok(())
+    fn create_router(langbase: Arc<LangBase>) -> Router<RouteTarget> {
+        let initial_lb = Arc::clone(&langbase);
+        Router::new(
+            RouteTarget::MainMenu,
+            Box::new(MainMenuView::new(initial_lb, VERSION.to_string())),
+            vec![
+                (RouteTarget::MainMenu, {
+                    let lb = Arc::clone(&langbase);
+                    Box::new(move || Box::new(MainMenuView::new(Arc::clone(&lb), VERSION.to_string())))
+                }),
+                (RouteTarget::Play(1), {
+                    let lb = Arc::clone(&langbase);
+                    Box::new(move || Box::new(MainMenuView::new(Arc::clone(&lb), VERSION.to_string())))
+                }),
+                (RouteTarget::Play(2), {
+                    let lb = Arc::clone(&langbase);
+                    Box::new(move || Box::new(MainMenuView::new(Arc::clone(&lb), VERSION.to_string())))
+                }),
+                (RouteTarget::Quit, {
+                    let lb = Arc::clone(&langbase);
+                    Box::new(move || Box::new(MainMenuView::new(Arc::clone(&lb), VERSION.to_string())))
+                }),
+            ],
+        )
+    }
+
+    pub fn run(&mut self) -> Result<(), String> {
+        while self.input.running() {
+            if self.router.current_route() == Some(&RouteTarget::Quit) {
+                break;
+            }
+            self.handle_input();
+            self.render_frame()?;
+        }
+        Ok(())
+    }
+
+    fn handle_input(&mut self) {
+        self.input.poll();
+        let Some(key) = self.input.last_key() else { return };
+        let event = match key {
+            sdl2::keyboard::Keycode::Up => Event::Keyboard(Key::Up),
+            sdl2::keyboard::Keycode::Down => Event::Keyboard(Key::Down),
+            sdl2::keyboard::Keycode::Return => Event::Keyboard(Key::Enter),
+            sdl2::keyboard::Keycode::Escape => Event::Keyboard(Key::Escape),
+            sdl2::keyboard::Keycode::Num0 => Event::Keyboard(Key::Char('0')),
+            sdl2::keyboard::Keycode::Num1 => Event::Keyboard(Key::Char('1')),
+            sdl2::keyboard::Keycode::Num2 => Event::Keyboard(Key::Char('2')),
+            sdl2::keyboard::Keycode::Num3 => Event::Keyboard(Key::Char('3')),
+            sdl2::keyboard::Keycode::Num4 => Event::Keyboard(Key::Char('4')),
+            sdl2::keyboard::Keycode::Num5 => Event::Keyboard(Key::Char('5')),
+            sdl2::keyboard::Keycode::Num6 => Event::Keyboard(Key::Char('6')),
+            sdl2::keyboard::Keycode::Num7 => Event::Keyboard(Key::Char('7')),
+            sdl2::keyboard::Keycode::Num8 => Event::Keyboard(Key::Char('8')),
+            sdl2::keyboard::Keycode::Num9 => Event::Keyboard(Key::Char('9')),
+            _ => return,
+        };
+        self.router.handle_event(&event);
+    }
+
+    fn render_frame(&mut self) -> Result<(), String> {
+        self.framebuffer.copy_from_slice(&self.background_pixels);
+        let mut ctx = engine::ui::PaintCtx::new(&mut self.framebuffer, &self.palette, WIDTH, HEIGHT);
+        let elements = self.router.current_view().elements();
+        for el in &elements {
+            el.render(&mut ctx, &self.font, &self.sprites);
+        }
+        self.renderer.blit(&self.framebuffer);
+        self.renderer.present()?;
+        self.renderer.wait_frame();
+        Ok(())
+    }
+}
+
+pub fn run() {
+    let mut game = match Game::new() {
+        Ok(g) => g,
+        Err(e) => {
+            eprintln!("{}", e);
+            std::process::exit(1);
+        }
+    };
+    if let Err(e) = game.run() {
+        eprintln!("{}", e);
+    }
 }
