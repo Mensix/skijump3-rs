@@ -83,7 +83,7 @@ impl Game {
         apply_standard_ui_palette(&mut palette);
         renderer.set_palette(palette.clone());
 
-        let store: StoreRef = std::rc::Rc::new(std::cell::RefCell::new(Store::new()));
+        let store: StoreRef = std::rc::Rc::new(std::cell::RefCell::new(Store::new(font.clone())));
         let router = Self::create_router(Arc::clone(&langbase), pixels.clone(), store);
 
         Ok(Self {

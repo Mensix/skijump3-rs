@@ -40,10 +40,19 @@ impl View<RouteTarget> for ProfilesView {
     fn elements(&self) -> Vec<Element> {
         let mut els = vec![];
 
+        // full-screen background
         els.push(Element::fillbox(0, 0, 320, 200, 0));
         els.push(Element::fillbox(0, 0, 159, 200, BG_LEFT));
         els.push(Element::fillbox(160, 0, 160, 200, BG_RIGHT));
         els.push(Element::FillArea { thing: 63 });
+
+        // right pane emptyedit (scoped FillArea — must come before left panel items)
+        if self.selected <= { let s = self.store.borrow(); s.profiles.num_profiles() } {
+            els.push(Element::fillbox(166, 4, 154, 195, BG_RIGHT));
+            els.push(Element::FillArea { thing: 63 });
+        }
+
+        // left panel content — drawn AFTER FillArea so doorder boxes stay at 243
         els.push(Element::text_color("Jumpers:", 40, 3, FONT_HEADER));
 
         let store = self.store.borrow();
@@ -53,6 +62,7 @@ impl View<RouteTarget> for ProfilesView {
 
         for i in 1..=np {
             let y = Self::y_for(i);
+            // doorder fillbox — shown AFTER all FillAreas, stays dark (243)
             els.push(Element::fillbox(10, y - 1, 21, 8, BG_ORDER));
             let is_selected = self.selected == i && self.editing;
             if let Some(p) = store.profiles.profiles.get(i) {
@@ -71,24 +81,17 @@ impl View<RouteTarget> for ProfilesView {
             els.push(Element::text_color("*Create New Jumper*", 40, y, FONT_NEW));
         }
 
-        // inc(temp,2), then "Back to Main Menu"
         let back_temp = if has_slot { np + 3 } else { np + 2 };
         els.push(Element::text_color("Back to Main Menu", 40, Self::y_for(back_temp), FONT_BACK));
 
-        // right pane: writeprofile(index,0,temp) for selected profile
+        // right pane: writeprofile labels and values
         if self.selected <= np {
             if let Some(p) = store.profiles.profiles.get(self.selected) {
-                // emptyedit: fillbox + fillarea on right panel
-                els.push(Element::fillbox(166, 4, 154, 195, BG_RIGHT));
-                els.push(Element::FillArea { thing: 63 });
-
-                // drawsuitski stub: suit/ski color boxes
                 let sx = 178;
                 els.push(Element::fillbox(sx, 28, 19, 5, 216));
                 els.push(Element::box_(sx, 28, 19, 5, 218));
                 els.push(Element::fillbox(sx + 1, 37, 17, 3, 231));
 
-                // 18 field labels (color 241 for phase=0 view mode)
                 let labels: [&str; 18] = [
                     "Name:", "Real name:", "Suit Color:", "Ski Color:",
                     "Replace:", "Coach:", "Skip Quali:", "",
@@ -104,39 +107,43 @@ impl View<RouteTarget> for ProfilesView {
                     }
                     let val: &str = match i {
                         0 => &p.name,
-                        1 => "",           // Real name (empty by default)
-                        2 | 3 => "",        // Suit/Ski Color: no value in Pascal
-                        4 => "-",           // Replace
-                        5 => "None",        // Coach style
-                        6 => "Never",       // Skip quali
-                        7 | 8 => "",        // Reset/Exit: hidden in phase=0
-                        9 => "0",           // Total Jumps
-                        10 => "0",          // WC
-                        11 => "0",          // Legs Won
-                        12 => "0",          // WC Won
-                        13 => "-",          // Best result
-                        14 => "-",          // Best 4H result
-                        15 => "-",          // Longest WC
-                        16 => "-",          // Longest
-                        17 => "-",          // KOTH level
+                        1 => "",
+                        2 | 3 => "",
+                        4 => "-",
+                        5 => "None",
+                        6 => "Never",
+                        7 | 8 => "",
+                        9 => "0",
+                        10 => "0",
+                        11 => "0",
+                        12 => "0",
+                        13 => "-",
+                        14 => "-",
+                        15 => "-",
+                        16 => "-",
+                        17 => "-",
                         _ => "",
                     };
                     if !val.is_empty() {
-                        // Pascal: x = colx + 4 + fontlen(label) for items 1-15
-                        // items 16-18: x = colx + 4, y = gety + 8
+                        // Pascal 1:1: x = colx + 4 + fontlen(label) for items 1-15
+                        // items 16-18 (i>=15): x = colx + 4, y = gety + 8
                         let (vx, vy) = if i >= 15 {
                             (170, y + 8)
+                        } else if labels[i].is_empty() {
+                            (0, y)
                         } else {
-                            (166 + 4 + (labels[i].len() as i32) * 7, y)
+                            let lw = store.font.string_width(labels[i]) as i32;
+                            (166 + 4 + lw, y)
                         };
-                        els.push(Element::text_color(val, vx, vy, 246));
+                        if vx > 0 {
+                            els.push(Element::text_color(val, vx, vy, 246));
+                        }
                     }
                 }
             }
         }
 
-        // highlight box: regular items at yy=10+(idx-1)*8
-        // Back position: Pascal exit slot at index entries+2 → yy=10+(entries+1)*8
+        // highlight box: after all content
         let (by, box_h) = if self.selected <= entries {
             (10 + ((self.selected - 1) * 8) as i32, 9)
         } else {
@@ -188,7 +195,7 @@ impl View<RouteTarget> for ProfilesView {
             let entries = if has_slot { np + 1 } else { np };
             (np, entries, has_slot)
         };
-        let total = entries + 1; // Back is the exit slot
+        let total = entries + 1;
 
         match event {
             Event::Keyboard(Key::Up) if self.selected > 1 => {
