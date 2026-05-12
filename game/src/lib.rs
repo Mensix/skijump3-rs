@@ -3,7 +3,9 @@ pub extern crate engine;
 pub mod parsers;
 pub mod loaders;
 pub mod components;
+pub mod data;
 pub mod route;
+pub mod store;
 pub mod views;
 
 use std::sync::Arc;
@@ -13,8 +15,9 @@ use engine::sprite::SpriteData;
 use engine::consts::{WIDTH, HEIGHT, FONT_GLYPH_COUNT};
 use loaders::assets::AssetStore;
 use parsers::{AssetParser, anim::AnimParser, langbase::{LangBase, LangBaseParser}, pcx::PcxParser};
-use views::{MainMenuView, JumpMenuView, WelcomeScreenView};
+use views::{MainMenuView, JumpMenuView, ProfilesView, ProfileEditor};
 use crate::components::layout::MainLayout;
+use crate::store::{Store, StoreRef};
 use engine::ui::Font;
 use engine::palette::Palette;
 use route::RouteTarget;
@@ -80,7 +83,8 @@ impl Game {
         apply_standard_ui_palette(&mut palette);
         renderer.set_palette(palette.clone());
 
-        let router = Self::create_router(Arc::clone(&langbase), pixels.clone());
+        let store: StoreRef = std::rc::Rc::new(std::cell::RefCell::new(Store::new()));
+        let router = Self::create_router(Arc::clone(&langbase), pixels.clone(), store);
 
         Ok(Self {
             _sdl: sdl,
@@ -114,13 +118,11 @@ impl Game {
         Ok((decoded.pixels, decoded.palette, sprites, langbase))
     }
 
-    fn create_router(langbase: Arc<LangBase>, background: Vec<u8>) -> Router<RouteTarget> {
+    fn create_router(langbase: Arc<LangBase>, background: Vec<u8>, store: StoreRef) -> Router<RouteTarget> {
         let layout = MainLayout::new(Arc::clone(&langbase), VERSION.to_string(), background);
-        let languages = langbase.languages.clone();
         Router::new(
-            // initial view: language selection; then MainMenu
-            RouteTarget::MainMenu,
-            Box::new(WelcomeScreenView::new(languages, Arc::clone(&langbase))),
+            RouteTarget::ProfilesList,
+            Box::new(ProfilesView::new(store.clone())),
             vec![
                 (RouteTarget::MainMenu, {
                     let l = layout.clone();
@@ -130,9 +132,13 @@ impl Game {
                     let l = layout.clone();
                     Box::new(move || Box::new(JumpMenuView::new(l.clone())))
                 }),
-                (RouteTarget::Profiles, {
-                    let l = layout.clone();
-                    Box::new(move || Box::new(MainMenuView::new(l.clone())))
+                (RouteTarget::ProfilesList, {
+                    let s = store.clone();
+                    Box::new(move || Box::new(ProfilesView::new(s.clone())))
+                }),
+                (RouteTarget::ProfileEditor, {
+                    let s = store.clone();
+                    Box::new(move || Box::new(ProfileEditor::new(s.clone())))
                 }),
                 (RouteTarget::OptionsMenu, {
                     let l = layout.clone();
