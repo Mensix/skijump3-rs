@@ -4,20 +4,32 @@ use engine::ui::Font;
 use std::cell::RefCell;
 use std::rc::Rc;
 
-pub struct Store {
-    pub profiles: ProfileStore,
+pub struct Resources {
     pub font: Font,
     pub langbase: Rc<LangBase>,
     pub player_names: Vec<String>,
 }
 
-impl Store {
-    pub fn new(font: Font, langbase: Rc<LangBase>) -> Self {
+impl Resources {
+    pub fn new(font: Font, langbase: Rc<LangBase>, player_names: Vec<String>) -> Self {
         Self {
-            profiles: ProfileStore::new(),
             font,
             langbase,
-            player_names: Vec::new(),
+            player_names,
+        }
+    }
+}
+
+pub type ResourcesRef = Rc<Resources>;
+
+pub struct Store {
+    pub profiles: ProfileStore,
+}
+
+impl Store {
+    pub fn new() -> Self {
+        Self {
+            profiles: ProfileStore::new(),
         }
     }
 }

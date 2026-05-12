@@ -11,7 +11,7 @@ pub mod utils;
 pub mod views;
 
 use crate::components::layout::MainLayout;
-use crate::store::{Store, StoreRef};
+use crate::store::{Resources, ResourcesRef, Store, StoreRef};
 use engine::consts::{FONT_GLYPH_COUNT, HEIGHT, WIDTH};
 use engine::input::Input;
 use engine::palette::Palette;
@@ -27,6 +27,7 @@ use parsers::{
     AssetParser,
 };
 use route::RouteTarget;
+use std::cell::RefCell;
 use std::rc::Rc;
 use views::{JumpMenuView, MainMenuView, ProfilesView};
 
@@ -141,12 +142,9 @@ impl Game {
         renderer.set_palette(base_palette.clone());
 
         let player_names = load_player_names();
-        let store: StoreRef = std::rc::Rc::new(std::cell::RefCell::new(Store::new(
-            font.clone(),
-            Rc::clone(&langbase),
-        )));
-        store.borrow_mut().player_names = player_names;
-        let router = Self::create_router(Rc::clone(&langbase), pixels.clone(), store.clone());
+        let resources: ResourcesRef = Rc::new(Resources::new(font.clone(), langbase, player_names));
+        let store: StoreRef = Rc::new(RefCell::new(Store::new()));
+        let router = Self::create_router(resources.clone(), pixels.clone(), store.clone());
 
         Ok(Self {
             _sdl: sdl,
@@ -181,14 +179,18 @@ impl Game {
     }
 
     fn create_router(
-        langbase: Rc<LangBase>,
+        resources: ResourcesRef,
         background: Vec<u8>,
         store: StoreRef,
     ) -> Router<RouteTarget> {
-        let layout = MainLayout::new(Rc::clone(&langbase), VERSION.to_string(), background);
+        let layout = MainLayout::new(
+            Rc::clone(&resources.langbase),
+            VERSION.to_string(),
+            background,
+        );
         Router::new(
             RouteTarget::ProfilesList,
-            Box::new(ProfilesView::new(store.clone())),
+            Box::new(ProfilesView::new(resources.clone(), store.clone())),
             vec![
                 (RouteTarget::MainMenu, {
                     let l = layout.clone();
@@ -199,8 +201,9 @@ impl Game {
                     Box::new(move || Box::new(JumpMenuView::new(l.clone())))
                 }),
                 (RouteTarget::ProfilesList, {
+                    let r = resources.clone();
                     let s = store.clone();
-                    Box::new(move || Box::new(ProfilesView::new(s.clone())))
+                    Box::new(move || Box::new(ProfilesView::new(r.clone(), s.clone())))
                 }),
                 (RouteTarget::OptionsMenu, {
                     let l = layout.clone();

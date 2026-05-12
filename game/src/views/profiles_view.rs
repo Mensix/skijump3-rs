@@ -4,7 +4,7 @@ use crate::components::value_selector::{ValueSelector, ValueSelectorAction};
 use crate::data::profile::{Profile, NUM_SKIS, NUM_SUITS};
 use crate::palette_consts::*;
 use crate::route::RouteTarget;
-use crate::store::StoreRef;
+use crate::store::{ResourcesRef, StoreRef};
 use crate::utils::{format_profile_value, replace_display_name};
 use engine::palette::Palette;
 use engine::ui::{Component, Element, Event, Key, View};
@@ -58,20 +58,19 @@ enum Mode {
 }
 
 pub struct ProfilesView {
+    resources: ResourcesRef,
     store: StoreRef,
     selected: usize,
     mode: Mode,
-    langbase: Rc<crate::parsers::langbase::LangBase>,
 }
 
 impl ProfilesView {
-    pub fn new(store: StoreRef) -> Self {
-        let langbase = store.borrow().langbase.clone();
+    pub fn new(resources: ResourcesRef, store: StoreRef) -> Self {
         Self {
+            resources,
             store,
             selected: 0,
             mode: Mode::List,
-            langbase,
         }
     }
 
@@ -98,7 +97,7 @@ impl ProfilesView {
     }
 
     fn lstr(&self, index: usize, fallback: &str) -> String {
-        let v = self.langbase.lstr(index);
+        let v = self.resources.langbase.lstr(index);
         if v == "?" {
             fallback.to_string()
         } else {
@@ -262,9 +261,8 @@ impl ProfilesView {
     fn draw_suit_ski(&self, els: &mut Vec<Element>, _profile: &Profile) {
         let suit_label = self.profile_label(3);
         let ski_label = self.profile_label(4);
-        let font = &self.store.borrow().font;
-        let suit_w = font.string_width(&suit_label) as i32;
-        let ski_w = font.string_width(&ski_label) as i32;
+        let suit_w = self.resources.font.string_width(&suit_label) as i32;
+        let ski_w = self.resources.font.string_width(&ski_label) as i32;
         let x = 178 + suit_w.max(ski_w);
         let xl = (x + 18).min(318);
 
@@ -304,8 +302,9 @@ impl ProfilesView {
         self.draw_empty_edit(els);
 
         let store = self.store.borrow();
-        let Some(profile) = store.profiles.profiles.get(profile_index).cloned() else {
-            return;
+        let profile = match store.profiles.profiles.get(profile_index) {
+            Some(p) => p,
+            None => return,
         };
         let label_color = if edit_phase { FONT_DEFAULT } else { FONT_HELP };
         let value_color = FONT_NEW;
@@ -314,10 +313,7 @@ impl ProfilesView {
             els.push(Element::fillbox(175, 85, 131, 1, FONT_HELP));
         }
 
-        drop(store);
-        self.draw_suit_ski(els, &profile);
-        let store = self.store.borrow();
-        let profile = &store.profiles.profiles[profile_index];
+        self.draw_suit_ski(els, profile);
 
         for temp in 1..=18 {
             if !edit_phase && temp > 7 && temp < 10 {
@@ -339,15 +335,15 @@ impl ProfilesView {
             let x = if temp > 15 {
                 170
             } else {
-                170 + store.font.string_width(&self.profile_label(temp)) as i32
+                170 + self.resources.font.string_width(&self.profile_label(temp)) as i32
             };
             let y = if temp > 15 { y + 8 } else { y };
             let value = format_profile_value(
                 profile,
                 temp,
-                &store.font,
-                &store.player_names,
-                &self.langbase,
+                &self.resources.font,
+                &self.resources.player_names,
+                &self.resources.langbase,
             );
             if !value.is_empty() {
                 els.push(Element::text_color(value, x, y, value_color));
@@ -377,7 +373,6 @@ impl ProfilesView {
             let mut store = self.store.borrow_mut();
             store.profiles.profiles.push(profile);
             let profile_index = store.profiles.num_profiles() - 1;
-            store.profiles.edit_index = profile_index;
             self.selected = profile_index;
             self.mode = Mode::Edit {
                 profile: profile_index,
@@ -428,8 +423,8 @@ impl ProfilesView {
                 action: QuestionAction::DeleteProfile(self.selected),
                 dialog: ConfirmDialog::new(
                     format!("{}: {}", self.lstr(328, "Delete"), name),
-                    Rc::clone(&self.langbase),
-                    self.store.borrow().font.clone(),
+                    Rc::clone(&self.resources.langbase),
+                    self.resources.font.clone(),
                 ),
             };
         }
@@ -441,11 +436,12 @@ impl ProfilesView {
             1 => self.start_text_input(profile, TextField::RealName),
             2 => {
                 let value = self.store.borrow().profiles.profiles[profile].suit_color;
-                let font = &self.store.borrow().font;
                 let x = (172
-                    + font
+                    + self
+                        .resources
+                        .font
                         .string_width(&self.profile_label(3))
-                        .max(font.string_width(&self.profile_label(4)))
+                        .max(self.resources.font.string_width(&self.profile_label(4)))
                         as i32)
                     .min(288);
                 self.mode = Mode::ColorSelect {
@@ -464,11 +460,12 @@ impl ProfilesView {
             }
             3 => {
                 let value = self.store.borrow().profiles.profiles[profile].ski_color;
-                let font = &self.store.borrow().font;
                 let x = (172
-                    + font
+                    + self
+                        .resources
+                        .font
                         .string_width(&self.profile_label(3))
-                        .max(font.string_width(&self.profile_label(4)))
+                        .max(self.resources.font.string_width(&self.profile_label(4)))
                         as i32)
                     .min(288);
                 self.mode = Mode::ColorSelect {
@@ -489,12 +486,12 @@ impl ProfilesView {
                 let value = self.store.borrow().profiles.profiles[profile]
                     .replace
                     .min(REPLACE_MAX);
-                let x = self.store.borrow().font.string_width("Replace:") as i32 + 170;
+                let x = self.resources.font.string_width("Replace:") as i32 + 170;
                 let display = if value > 0 {
                     replace_display_name(
                         value,
-                        &self.store.borrow().player_names,
-                        &self.store.borrow().font,
+                        &self.resources.player_names,
+                        &self.resources.font,
                         x,
                     )
                 } else {
@@ -517,14 +514,13 @@ impl ProfilesView {
                 self.mode = Mode::ReplaceSelect { profile, selector };
             }
             5 => {
-                let langbase = self.langbase.clone();
                 let style = {
                     let mut store = self.store.borrow_mut();
                     let p = &mut store.profiles.profiles[profile];
                     p.coach_style += 1;
                     p.coach_style
                 };
-                let check = langbase.lstr(361 + style * 40);
+                let check = self.resources.langbase.lstr(361 + style * 40);
                 if check == "?" {
                     let mut store = self.store.borrow_mut();
                     store.profiles.profiles[profile].coach_style = 0;
@@ -540,8 +536,8 @@ impl ProfilesView {
                     action: QuestionAction::ResetProfile(profile),
                     dialog: ConfirmDialog::new(
                         self.lstr(329, "Reset jumper?"),
-                        Rc::clone(&self.langbase),
-                        self.store.borrow().font.clone(),
+                        Rc::clone(&self.resources.langbase),
+                        self.resources.font.clone(),
                     ),
                 };
             }
@@ -552,26 +548,33 @@ impl ProfilesView {
     fn start_text_input(&mut self, profile: usize, field: TextField) {
         let store = self.store.borrow();
         let profile_data = &store.profiles.profiles[profile];
-        let label = match field {
-            TextField::Name => self.profile_label(1),
-            TextField::RealName => self.profile_label(2),
-        };
         let old = match field {
             TextField::Name => profile_data.name.clone(),
             TextField::RealName => profile_data.real_name.clone(),
         };
-        let x = 170 + store.font.string_width(&label) as i32;
+        drop(store);
+        let label = match field {
+            TextField::Name => self.profile_label(1),
+            TextField::RealName => self.profile_label(2),
+        };
+        let x = 170 + self.resources.font.string_width(&label) as i32;
         let y = match field {
             TextField::Name => 12,
             TextField::RealName => 20,
         };
-        let max_width = 314 - 170 - store.font.string_width(&label) as i32;
-        let font = store.font.clone();
-        drop(store);
+        let max_width = 314 - 170 - self.resources.font.string_width(&label) as i32;
         self.mode = Mode::TextInput {
             profile,
             field,
-            input: TextInput::new(x, y, max_width, old, 245, FONT_NEW, font),
+            input: TextInput::new(
+                x,
+                y,
+                max_width,
+                old,
+                245,
+                FONT_NEW,
+                self.resources.font.clone(),
+            ),
         };
     }
 
@@ -665,12 +668,16 @@ impl View<RouteTarget> for ProfilesView {
             Mode::ColorSelect { selector, .. } => els.extend(selector.elements()),
             Mode::ReplaceSelect { selector, .. } => {
                 let value = selector.value();
-                let x = self.store.borrow().font.string_width("Replace:") as i32 + 170;
+                let x = self.resources.font.string_width("Replace:") as i32 + 170;
                 els.push(Element::fillbox(x - 2, 43, 320 - x, 8, 245));
                 if value > 0 {
-                    let store = self.store.borrow();
-                    if value <= store.player_names.len() {
-                        let n = replace_display_name(value, &store.player_names, &store.font, x);
+                    if value <= self.resources.player_names.len() {
+                        let n = replace_display_name(
+                            value,
+                            &self.resources.player_names,
+                            &self.resources.font,
+                            x,
+                        );
                         els.push(Element::text_color(n, x, 44, FONT_DEFAULT));
                         els.push(Element::text_color_right(
                             format!("#{}", value),

@@ -53,7 +53,6 @@ impl Default for Profile {
 pub struct ProfileStore {
     pub profiles: Vec<Profile>,
     pub active_order: Vec<usize>,
-    pub edit_index: usize,
 }
 
 impl ProfileStore {
@@ -61,7 +60,6 @@ impl ProfileStore {
         Self {
             profiles: vec![Profile::default()],
             active_order: vec![0],
-            edit_index: 0,
         }
     }
 
