@@ -1,11 +1,12 @@
 use crate::sprite::SpriteData;
 use crate::ui::paint::PaintCtx;
 use crate::ui::Font;
+use std::rc::Rc;
 
 use crate::consts::{FILL_BRIGHTEN, FILL_RANGE_MAX, PATTERN_SPRITE, SHADOW_PIXEL, TILE_H, TILE_W};
 
 pub enum Element {
-    Image(Vec<u8>, u32, u32),
+    Image(Rc<[u8]>, u32, u32),
     Text {
         text: String,
         x: i32,
@@ -159,8 +160,8 @@ impl Element {
         Self::Sprite(idx, x, y)
     }
 
-    pub fn image(pixels: Vec<u8>, w: u32, h: u32) -> Self {
-        Self::Image(pixels, w, h)
+    pub fn image(pixels: impl Into<Rc<[u8]>>, w: u32, h: u32) -> Self {
+        Self::Image(pixels.into(), w, h)
     }
 
     pub fn fillbox(x: i32, y: i32, w: i32, h: i32, color: u8) -> Self {

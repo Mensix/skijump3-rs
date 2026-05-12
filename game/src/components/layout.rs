@@ -15,7 +15,7 @@ pub fn header_elements(text: &str, x: i32, y: i32, color: u8, bg: u8) -> Vec<Ele
 pub struct MainLayout {
     pub langbase: Rc<LangBase>,
     version: String,
-    background: Vec<u8>,
+    background: Rc<[u8]>,
 }
 
 impl MainLayout {
@@ -23,13 +23,13 @@ impl MainLayout {
         Self {
             langbase,
             version,
-            background,
+            background: background.into(),
         }
     }
 
     pub fn wrap(&self, content: Vec<Element>) -> Vec<Element> {
         let mut els = vec![
-            Element::image(self.background.clone(), WIDTH, HEIGHT),
+            Element::image(Rc::clone(&self.background), WIDTH, HEIGHT),
             Element::text_color(self.langbase.lstr(34), 170, 51, FONT_DEFAULT),
         ];
         els.extend(content);

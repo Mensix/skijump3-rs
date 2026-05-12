@@ -62,7 +62,10 @@ impl<T: Clone + PartialEq + 'static> Router<T> {
 
     pub fn back(&mut self) {
         if let Some(prev) = self.history.pop() {
-            self.navigate(prev);
+            if let Some(idx) = self.routes.iter().position(|(t, _)| *t == prev) {
+                self.current_route = Some(prev);
+                self.current = (self.routes[idx].1)();
+            }
         }
     }
 

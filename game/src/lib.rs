@@ -231,13 +231,15 @@ impl Game {
     }
 
     fn render_frame(&mut self) -> Result<(), String> {
-        let mut palette = self.base_palette.clone();
-        self.router.apply_palette(&mut palette);
-        self.renderer.set_palette(palette);
+        let palette = {
+            let mut p = self.base_palette.clone();
+            self.router.apply_palette(&mut p);
+            p
+        };
+        self.renderer.set_palette(palette.clone());
 
         self.framebuffer.fill(0);
-        let mut ctx =
-            engine::ui::PaintCtx::new(&mut self.framebuffer, &self.base_palette, WIDTH, HEIGHT);
+        let mut ctx = engine::ui::PaintCtx::new(&mut self.framebuffer, &palette, WIDTH, HEIGHT);
         let elements = self.router.current_view().elements();
         for el in &elements {
             el.render(&mut ctx, &self.font, &self.sprites);
