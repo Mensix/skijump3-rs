@@ -3,8 +3,6 @@ use crate::ui::Element;
 #[derive(Clone, Debug)]
 pub enum Event {
     Keyboard(Key),
-    Click { x: i32, y: i32 },
-    Timer(u32),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -18,7 +16,7 @@ pub enum Key {
     Char(char),
 }
 
-pub trait View<T: Clone + PartialEq + 'static>: Send + Sync {
+pub trait View<T: Clone + PartialEq + 'static> {
     fn elements(&self) -> Vec<Element>;
     fn handle_event(&mut self, event: Event) -> Option<T>;
     fn route(&self) -> Option<T>;
@@ -28,14 +26,14 @@ pub struct Router<T: Clone + PartialEq + 'static> {
     current: Box<dyn View<T>>,
     current_route: Option<T>,
     history: Vec<T>,
-    routes: Vec<(T, Box<dyn Fn() -> Box<dyn View<T>> + Send + Sync>)>,
+    routes: Vec<(T, Box<dyn Fn() -> Box<dyn View<T>>>)>,
 }
 
 impl<T: Clone + PartialEq + 'static> Router<T> {
     pub fn new(
         route: T,
         initial: Box<dyn View<T>>,
-        routes: Vec<(T, Box<dyn Fn() -> Box<dyn View<T>> + Send + Sync>)>,
+        routes: Vec<(T, Box<dyn Fn() -> Box<dyn View<T>>>)>,
     ) -> Self {
         Self { current: initial, current_route: Some(route), history: Vec::new(), routes }
     }

@@ -23,7 +23,7 @@ impl Glyph {
                 }
                 let px = start_x + xx;
                 let py = start_y + yy;
-                if px < 0 || py < 0 || px >= (screen_w as i32) || py >= 200 {
+                if px < 0 || py < 0 || px >= (screen_w as i32) || py >= crate::consts::HEIGHT as i32 {
                     continue;
                 }
                 let idx = (py as usize) * (screen_w as usize) + (px as usize);
@@ -47,7 +47,7 @@ impl Glyph {
                 }
                 let px = start_x + xx;
                 let py = start_y + yy;
-                if px < 0 || py < 0 || px >= (screen_w as i32) || py >= 200 {
+                if px < 0 || py < 0 || px >= (screen_w as i32) || py >= crate::consts::HEIGHT as i32 {
                     continue;
                 }
                 let idx = (py as usize) * (screen_w as usize) + (px as usize);
