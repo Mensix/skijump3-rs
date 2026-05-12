@@ -13,7 +13,7 @@ use engine::sprite::SpriteData;
 use engine::consts::{WIDTH, HEIGHT, FONT_GLYPH_COUNT};
 use loaders::assets::AssetStore;
 use parsers::{AssetParser, anim::AnimParser, langbase::{LangBase, LangBaseParser}, pcx::PcxParser};
-use views::MainMenuView;
+use views::{MainMenuView, JumpMenuView};
 use engine::ui::Font;
 use engine::palette::Palette;
 use route::RouteTarget;
@@ -112,11 +112,15 @@ impl Game {
                     let lb = Arc::clone(&langbase);
                     Box::new(move || Box::new(MainMenuView::new(Arc::clone(&lb), VERSION.to_string())))
                 }),
-                (RouteTarget::Play(1), {
+                (RouteTarget::JumpMenu, {
+                    let lb = Arc::clone(&langbase);
+                    Box::new(move || Box::new(JumpMenuView::new(Arc::clone(&lb), VERSION.to_string())))
+                }),
+                (RouteTarget::Profiles, {
                     let lb = Arc::clone(&langbase);
                     Box::new(move || Box::new(MainMenuView::new(Arc::clone(&lb), VERSION.to_string())))
                 }),
-                (RouteTarget::Play(2), {
+                (RouteTarget::OptionsMenu, {
                     let lb = Arc::clone(&langbase);
                     Box::new(move || Box::new(MainMenuView::new(Arc::clone(&lb), VERSION.to_string())))
                 }),

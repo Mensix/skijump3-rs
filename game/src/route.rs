@@ -2,7 +2,7 @@
 pub enum RouteTarget {
     Quit,
     MainMenu,
+    JumpMenu,
     OptionsMenu,
     Profiles,
-    Play(u8),
 }
