@@ -2,11 +2,16 @@ use crate::ui::paint::PaintCtx;
 use crate::ui::Font;
 use crate::sprite::SpriteData;
 
+const PATTERN_SPRITE: usize = 62;
+const TILE_W: u32 = 19;
+const TILE_H: u32 = 13;
+
 pub enum Element {
     Image(Vec<u8>, u32, u32),
     Text { text: String, x: i32, y: i32, color: u8, right: bool },
     Sprite(u16, i32, i32),
     Fillbox { x: i32, y: i32, w: i32, h: i32, color: u8 },
+    FillArea { thing: u8 },
     Box { x: i32, y: i32, w: i32, h: i32, color: u8 },
     Container(Vec<Element>),
 }
@@ -30,6 +35,27 @@ impl Element {
             }
             Element::Fillbox { x, y, w, h, color } => {
                 ctx.fill_rect(*x, *y, *w, *h, *color);
+            }
+            Element::FillArea { thing } => {
+                let Some(ref pattern) = sprites.get(PATTERN_SPRITE) else { return };
+                for py in 0..ctx.height {
+                    for px in 0..ctx.width {
+                        let cur = ctx.pixels[(py as usize) * (ctx.width as usize) + (px as usize)];
+                        if cur <= 242 || cur >= 246 {
+                            continue;
+                        }
+                        let (ax, ay) = if *thing == 64 {
+                            (((px + 2) as u32) % TILE_W, ((py + 7) as u32) % TILE_H)
+                        } else {
+                            (px % TILE_W, py % TILE_H)
+                        };
+                        let pi = (ay * TILE_W + ax) as usize;
+                        if pi < pattern.data.len() && pattern.data[pi] != 0 {
+                            let idx = (py as usize) * (ctx.width as usize) + (px as usize);
+                            ctx.pixels[idx] = cur + 5;
+                        }
+                    }
+                }
             }
             Element::Box { x, y, w, h, color } => {
                 ctx.fill_rect(*x, *y, *w, 1, *color);

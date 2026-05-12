@@ -36,10 +36,11 @@ impl View<RouteTarget> for WelcomeScreenView {
     fn elements(&self) -> Vec<Element> {
         let mut els = vec![];
 
-        // NewScreen(6,0): coloured panels
+        // NewScreen(6,0): coloured panels + dither texture
         els.push(Element::fillbox(0, 0, 50, 200, 245));
         els.push(Element::fillbox(52, 0, 267, 200, 243));
         els.push(Element::fillbox(269, 0, 319, 200, 245));
+        els.push(Element::FillArea { thing: 63 });
 
         // logo sprite 61 at (80,6)
         els.push(Element::sprite(61, 80, 6));
