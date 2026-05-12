@@ -47,9 +47,8 @@ impl Component for TextInput {
 
     fn elements(&self) -> Vec<Element> {
         let timer = self.cursor_timer.get();
-        self.cursor_timer
-            .set(if timer >= 20 { 0 } else { timer + 1 });
-        let cursor_visible = timer <= 10;
+        self.cursor_timer.set(if timer >= 8 { 0 } else { timer + 1 });
+        let cursor_visible = timer <= 4;
 
         let cx = self.x + self.font.string_width(&self.buf) as i32;
         let mut els = vec![
