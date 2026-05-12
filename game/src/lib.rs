@@ -3,18 +3,39 @@ pub extern crate engine;
 pub mod parsers;
 pub mod loaders;
 pub mod components;
+pub mod route;
 pub mod views;
 
-use engine::ui::{Router, RouteTarget, Event, Key};
+use engine::ui::{Router, Event, Key};
+use engine::sprite::SpriteData;
 use loaders::assets::AssetStore;
 use parsers::{AssetParser, anim::AnimParser, langbase::LangBaseParser, pcx::PcxParser};
 use views::MainMenuView;
 use engine::ui::Font;
+use route::RouteTarget;
 
 const MAIN_PCX: &str = "MAIN.PCX";
 const ANIM_SKI: &str = "ANIM.SKI";
 const LANGBASE_SKI: &str = "LANGBASE.SKI";
 const VERSION: &str = "3.12";
+
+const STANDARD_UI_PALETTE: [[u8; 3]; 36] = [
+    [53, 17, 53], [63,  0,  0], [43, 12, 43], [63,  0,  0],
+    [49, 45,  0], [34, 31,  0], [63,  0,  0], [56, 54, 54],
+    [63, 63, 21], [54, 52, 10], [42, 42, 42], [42, 20, 10],
+    [21, 21, 21], [57, 45, 38], [63,  0,  0], [63, 63, 32],
+    [40, 40, 41], [48, 48, 49], [55, 55, 56], [63, 63, 63],
+    [56, 13, 13], [13, 53, 13], [23, 23, 63], [63, 23, 23],
+    [63, 63, 63], [44, 44, 44], [ 0,  0,  0], [18, 13, 34],
+    [34, 13, 18], [20, 20, 20], [63, 57,  9], [ 9, 57, 63],
+    [23, 16, 43], [43, 16, 23], [26, 26, 26], [52, 47,  0],
+];
+
+fn apply_standard_ui_palette(palette: &mut engine::palette::Palette) {
+    for (i, &rgb) in STANDARD_UI_PALETTE.iter().enumerate() {
+        palette.set(216 + i, rgb);
+    }
+}
 
 pub fn run() -> Result<(), String> {
     let mut renderer = engine::video::Renderer::new()?;
@@ -23,7 +44,7 @@ pub fn run() -> Result<(), String> {
     let decoded = PcxParser::parse(&pcx_data).map_err(|e| e.to_string())?;
 
     let anim_data = AssetStore::read(ANIM_SKI).map_err(|e| e.to_string())?;
-    let sprites = AnimParser::parse(&anim_data).map_err(|e| e.to_string())?;
+    let sprites: Vec<SpriteData> = AnimParser::parse(&anim_data).map_err(|e| e.to_string())?;
 
     let langbase_data = AssetStore::read(LANGBASE_SKI).map_err(|e| e.to_string())?;
     let langbase = LangBaseParser::parse(&langbase_data).map_err(|e| e.to_string())?;
@@ -35,13 +56,15 @@ pub fn run() -> Result<(), String> {
         }
     }
 
-    renderer.set_palette(decoded.palette.clone());
+    let mut palette = decoded.palette.clone();
+    apply_standard_ui_palette(&mut palette);
+    renderer.set_palette(palette);
 
     let lb_main = langbase.clone();
     let lb_play1 = langbase.clone();
     let lb_play2 = langbase.clone();
 
-    let mut router = Router::new(
+    let mut router: Router<RouteTarget> = Router::new(
         RouteTarget::MainMenu,
         Box::new(MainMenuView::new(langbase, VERSION.to_string())),
         vec![
@@ -75,7 +98,7 @@ pub fn run() -> Result<(), String> {
             );
             let elements = router.current_view().elements();
             for el in &elements {
-                el.render(&mut ctx, &font, &[]);
+                el.render(&mut ctx, &font, &sprites);
             }
         }
         renderer.blit(&pixels);

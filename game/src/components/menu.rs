@@ -1,55 +1,73 @@
-use engine::ui::{Element, Event, Key};
+use engine::ui::{Element, Event, Key, Component};
 use crate::parsers::langbase::LangBase;
 
 pub struct MenuItem {
     pub num: u8,
     pub label: usize,
+    pub y_off: i32,
 }
 
 pub struct Menu {
     selected: usize,
+    x: i32,
+    y: i32,
+    item_w: i32,
+    item_h: i32,
+    items: Vec<MenuItem>,
+    langbase: LangBase,
+    fontcolor: u8,
+    boxcolor: u8,
 }
 
 impl Menu {
-    pub fn new() -> Self {
-        Self { selected: 1 }
-    }
-
-    pub fn reset(&mut self) {
-        self.selected = 1;
+    pub fn new(
+        x: i32, y: i32, item_w: i32, item_h: i32,
+        items: Vec<MenuItem>, langbase: &LangBase,
+        fontcolor: u8, boxcolor: u8,
+    ) -> Self {
+        Self {
+            selected: 1,
+            x, y, item_w, item_h,
+            items,
+            langbase: langbase.clone(),
+            fontcolor, boxcolor,
+        }
     }
 
     pub fn selected(&self) -> usize {
         self.selected
     }
 
-    pub fn elements(
-        &self,
-        x: i32, y: i32,
-        item_w: i32, item_h: i32,
-        items: &[MenuItem],
-        langbase: &LangBase,
-        fontcolor: u8,
-        boxcolor: u8,
-    ) -> Vec<Element> {
-        let mut els = Vec::with_capacity(items.len() + 1);
+    pub fn reset(&mut self) {
+        self.selected = 1;
+    }
 
-        for (i, item) in items.iter().enumerate() {
-            let iy = y + (i as i32) * item_h;
+    pub fn num_items(&self) -> usize {
+        self.items.len()
+    }
+}
+
+impl Component for Menu {
+    fn elements(&self) -> Vec<Element> {
+        let mut els = Vec::with_capacity(self.items.len() + 1);
+
+        for (i, item) in self.items.iter().enumerate() {
+            let iy = self.y + (i as i32) * self.item_h + item.y_off;
             els.push(Element::text_color(
-                format!("{} - {}", item.num, langbase.lstr(item.label)),
-                x, iy, fontcolor,
+                format!("{} - {}", item.num, self.langbase.lstr(item.label)),
+                self.x, iy, self.fontcolor,
             ));
         }
 
-        let bx = x - 6;
-        let by = y - 3 + ((self.selected - 1) as i32) * item_h;
-        els.push(Element::box_(bx, by, item_w, item_h, boxcolor));
+        let bx = self.x - 6;
+        let by = self.y - 3 + ((self.selected - 1) as i32) * self.item_h;
+        els.push(Element::box_(bx, by, self.item_w, self.item_h, self.boxcolor));
 
         els
     }
 
-    pub fn handle_event(&mut self, event: &Event, num_items: usize) -> Option<usize> {
+    fn handle_event(&mut self, event: &Event) -> Option<usize> {
+        let num_items = self.items.len();
         match event {
             Event::Keyboard(Key::Up) if self.selected > 1 => {
                 self.selected -= 1;

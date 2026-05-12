@@ -51,7 +51,8 @@ impl Glyph {
                     continue;
                 }
                 let idx = (py as usize) * (screen_w as usize) + (px as usize);
-                pixels[idx] = color;
+                // Pascal fontcolor: replace non-0/non-242 with col, keep 242 as shadow
+                pixels[idx] = if pixel == 242 { 242 } else { color };
             }
         }
     }
@@ -77,26 +78,74 @@ impl Font {
         self.blit_string_color(pixels, screen_w, text, x, y, 0);
     }
 
+    pub fn string_width(&self, text: &str) -> u32 {
+        let mut w = 0u32;
+        for byte in text.bytes().map(|b| b.to_ascii_uppercase()) {
+            match byte {
+                b' ' => w += 4,
+                b'$' => w += 5,
+                _ => {
+                    if let Some(idx) = Self::char_to_index(byte) {
+                        if let Some(ref g) = self.glyphs[idx] {
+                            w += g.width as u32;
+                        }
+                    }
+                }
+            }
+        }
+        w
+    }
+
     pub fn blit_string_color(&self, pixels: &mut [u8], screen_w: u32, text: &str, x: i32, y: i32, color: u8) {
         let mut px = x;
         for byte in text.bytes().map(|b| b.to_ascii_uppercase()) {
-            let idx = Self::char_to_index(byte);
-            if let Some(ref g) = self.glyphs[idx] {
-                if color != 0 {
-                    g.blit_color(pixels, screen_w, px, y, color);
-                } else {
-                    g.blit_to(pixels, screen_w, px, y);
+            match byte {
+                b' ' => px += 4,
+                b'$' => px += 5,
+                _ => {
+                    if let Some(idx) = Self::char_to_index(byte) {
+                        if let Some(ref g) = self.glyphs[idx] {
+                            if color != 0 {
+                                g.blit_color(pixels, screen_w, px, y, color);
+                            } else {
+                                g.blit_to(pixels, screen_w, px, y);
+                            }
+                            px += g.width as i32;
+                        }
+                    }
                 }
-                px += g.width as i32;
             }
         }
     }
 
-    fn char_to_index(c: u8) -> usize {
+    fn char_to_index(c: u8) -> Option<usize> {
         match c {
-            b'A'..=b'Z' => (c - b'A' + 1) as usize,
-            b'0'..=b'9' => (c - b'0' + 53) as usize,
-            _ => 0,
+            b'A'..=b'Z' => Some((c - b'A') as usize),
+            b'\xC4' | b'\xE4' => Some(26), // Ä
+            b'\xD6' | b'\xF6' => Some(27), // Ö
+            b'\xC5' | b'\xE5' => Some(28), // Å
+            b'0' => Some(29),
+            b'1'..=b'9' => Some((c - b'1' + 30) as usize),
+            b':' => Some(39),
+            b'.' => Some(40),
+            b'?' => Some(41),
+            b'!' => Some(42),
+            b'*' => Some(43),
+            b'-' => Some(44),
+            b',' => Some(45),
+            b'(' => Some(47),
+            b')' => Some(48),
+            b'\xB5' => Some(49),  // µ
+            b'"' => Some(50),
+            b'\'' => Some(51),
+            b'#' => Some(52),
+            b'\xD8' | b'\xF8' => Some(53), // Ø
+            b'\xDD' | b'\xFD' => Some(54), // Ý
+            b'\xDF' => Some(55), // ß
+            b'/' => Some(56),
+            b'\xC6' | b'\xE6' => Some(57), // Æ
+            b'%' => Some(58),
+            _ => None,
         }
     }
 }
