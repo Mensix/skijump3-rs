@@ -1,0 +1,15 @@
+pub const FONT_DEFAULT: u8 = 240;
+pub const FONT_HEADER: u8 = 246;
+pub const FONT_GOLD: u8 = 246;
+pub const FONT_GREET: u8 = 247;
+pub const FONT_NAME: u8 = 240;
+pub const FONT_NEW: u8 = 246;
+pub const FONT_BACK: u8 = 240;
+pub const FONT_HELP: u8 = 241;
+pub const BG_ERASE: u8 = 8;
+pub const BG_LIST: u8 = 8;
+pub const BG_LEFT: u8 = 243;
+pub const BG_RIGHT: u8 = 244;
+pub const BG_ORDER: u8 = 243;
+pub const BG_MENU: u8 = 243;
+pub const BG_PANEL: u8 = 244;

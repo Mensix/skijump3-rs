@@ -2,14 +2,7 @@ use engine::ui::{Element, Event, Key, View};
 use crate::data::profile::Profile;
 use crate::store::StoreRef;
 use crate::route::RouteTarget;
-
-const BG_LEFT: u8 = 243;
-const BG_RIGHT: u8 = 244;
-const FONT_HEADER: u8 = 241;
-const FONT_NAME: u8 = 240;
-const FONT_NEW: u8 = 246;
-const FONT_BACK: u8 = 240;
-const BG_ORDER: u8 = 243;
+use crate::palette_consts::*;
 
 pub struct ProfilesView {
     store: StoreRef,

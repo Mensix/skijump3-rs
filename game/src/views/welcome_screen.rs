@@ -3,11 +3,8 @@ use crate::parsers::langbase::LangBase;
 use std::rc::Rc;
 use crate::components::menu::{Menu, MenuItem};
 use crate::route::RouteTarget;
+use crate::palette_consts::*;
 
-const FONT_DEFAULT: u8 = 240;
-const FONT_GOLD: u8 = 246;
-const FONT_GREET: u8 = 247;
-const BOX_COLOR: u8 = 240;
 const LOGO_SPRITE: u16 = 60;
 
 pub struct WelcomeScreenView {
@@ -25,7 +22,7 @@ impl WelcomeScreenView {
         // phase=3: navigable = count-1, exit slot wraps to last language
         let navigable = if count > 1 { count - 1 } else { 1 };
         Self {
-            menu: Menu::new(112, 64, 100, 8, items, &langbase, FONT_DEFAULT, BOX_COLOR)
+            menu: Menu::new(112, 64, 100, 8, items, &langbase, FONT_DEFAULT, FONT_DEFAULT)
                 .with_navigable(navigable)
                 .with_labels(false),
             languages,

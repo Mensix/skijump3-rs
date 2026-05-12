@@ -2,8 +2,7 @@ use std::rc::Rc;
 use engine::ui::Element;
 use crate::parsers::langbase::LangBase;
 use engine::consts::{WIDTH, HEIGHT};
-
-const FONT_DEFAULT: u8 = 240;
+use crate::palette_consts::*;
 
 pub fn header_elements(text: &str, x: i32, y: i32, color: u8, bg: u8) -> Vec<Element> {
     vec![

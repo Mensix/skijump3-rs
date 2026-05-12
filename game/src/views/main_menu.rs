@@ -2,10 +2,7 @@ use engine::ui::{Element, Event, View, Component};
 use crate::components::layout::{self, MainLayout};
 use crate::components::menu::{Menu, MenuItem};
 use crate::route::RouteTarget;
-
-const FONT_DEFAULT: u8 = 240;
-const FONT_HEADER: u8 = 246;
-const BG_ERASE: u8 = 8;
+use crate::palette_consts::*;
 
 pub struct MainMenuView {
     menu: Menu,

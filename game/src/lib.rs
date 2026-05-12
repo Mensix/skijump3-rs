@@ -4,6 +4,7 @@ pub mod parsers;
 pub mod loaders;
 pub mod components;
 pub mod data;
+pub mod palette_consts;
 pub mod route;
 pub mod store;
 pub mod views;
