@@ -1,8 +1,6 @@
-use std::sync::Arc;
 use engine::ui::{Element, Event, View, Component};
-use crate::parsers::langbase::LangBase;
+use crate::components::layout::{self, MainLayout};
 use crate::components::menu::{Menu, MenuItem};
-use crate::components::layout;
 use crate::route::RouteTarget;
 
 const FONT_DEFAULT: u8 = 240;
@@ -12,12 +10,11 @@ const BG_LIST: u8 = 8;
 
 pub struct JumpMenuView {
     menu: Menu,
-    langbase: Arc<LangBase>,
-    version: String,
+    layout: MainLayout,
 }
 
 impl JumpMenuView {
-    pub fn new(langbase: Arc<LangBase>, version: String) -> Self {
+    pub fn new(layout: MainLayout) -> Self {
         let items = vec![
             MenuItem { num: 1, label: 27, y_off: 0 },
             MenuItem { num: 2, label: 28, y_off: 0 },
@@ -28,30 +25,21 @@ impl JumpMenuView {
             MenuItem { num: 0, label: 33, y_off: 12 },
         ];
         Self {
-            menu: Menu::new(11, 97, 108, 12, items, &langbase, FONT_DEFAULT, FONT_DEFAULT),
-            langbase,
-            version,
+            menu: Menu::new(11, 97, 108, 12, items, &layout.langbase, FONT_DEFAULT, FONT_DEFAULT),
+            layout,
         }
     }
 }
 
 impl View<RouteTarget> for JumpMenuView {
     fn elements(&self) -> Vec<Element> {
-        let mut els = vec![];
+        let mut content = vec![];
 
-        // FillBox(1,94,116,199,8) — background for item list
-        els.push(Element::fillbox(1, 94, 116, 106, BG_LIST));
+        content.push(Element::fillbox(1, 94, 116, 106, BG_LIST));
+        content.extend(layout::header_elements(self.layout.langbase.lstr(18), 11, 80, FONT_HEADER, BG_ERASE));
+        content.extend(self.menu.elements());
 
-        // header from MainMenuText(1): lstr(18) at (11,80) fontcolor(246)
-        els.extend(layout::header_elements(self.langbase.lstr(18), 11, 80, FONT_HEADER, BG_ERASE));
-
-        // items from Menu component
-        els.extend(self.menu.elements());
-
-        // right side text
-        els.extend(layout::top_right_text(&self.version));
-
-        els
+        self.layout.wrap(content)
     }
 
     fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {

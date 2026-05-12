@@ -14,6 +14,7 @@ use engine::consts::{WIDTH, HEIGHT, FONT_GLYPH_COUNT};
 use loaders::assets::AssetStore;
 use parsers::{AssetParser, anim::AnimParser, langbase::{LangBase, LangBaseParser}, pcx::PcxParser};
 use views::{MainMenuView, JumpMenuView};
+use crate::components::layout::MainLayout;
 use engine::ui::Font;
 use engine::palette::Palette;
 use route::RouteTarget;
@@ -103,30 +104,30 @@ impl Game {
     }
 
     fn create_router(langbase: Arc<LangBase>) -> Router<RouteTarget> {
-        let initial_lb = Arc::clone(&langbase);
+        let layout = MainLayout::new(langbase, VERSION.to_string());
         Router::new(
             RouteTarget::MainMenu,
-            Box::new(MainMenuView::new(initial_lb, VERSION.to_string())),
+            Box::new(MainMenuView::new(layout.clone())),
             vec![
                 (RouteTarget::MainMenu, {
-                    let lb = Arc::clone(&langbase);
-                    Box::new(move || Box::new(MainMenuView::new(Arc::clone(&lb), VERSION.to_string())))
+                    let l = layout.clone();
+                    Box::new(move || Box::new(MainMenuView::new(l.clone())))
                 }),
                 (RouteTarget::JumpMenu, {
-                    let lb = Arc::clone(&langbase);
-                    Box::new(move || Box::new(JumpMenuView::new(Arc::clone(&lb), VERSION.to_string())))
+                    let l = layout.clone();
+                    Box::new(move || Box::new(JumpMenuView::new(l.clone())))
                 }),
                 (RouteTarget::Profiles, {
-                    let lb = Arc::clone(&langbase);
-                    Box::new(move || Box::new(MainMenuView::new(Arc::clone(&lb), VERSION.to_string())))
+                    let l = layout.clone();
+                    Box::new(move || Box::new(MainMenuView::new(l.clone())))
                 }),
                 (RouteTarget::OptionsMenu, {
-                    let lb = Arc::clone(&langbase);
-                    Box::new(move || Box::new(MainMenuView::new(Arc::clone(&lb), VERSION.to_string())))
+                    let l = layout.clone();
+                    Box::new(move || Box::new(MainMenuView::new(l.clone())))
                 }),
                 (RouteTarget::Quit, {
-                    let lb = Arc::clone(&langbase);
-                    Box::new(move || Box::new(MainMenuView::new(Arc::clone(&lb), VERSION.to_string())))
+                    let l = layout.clone();
+                    Box::new(move || Box::new(MainMenuView::new(l.clone())))
                 }),
             ],
         )
