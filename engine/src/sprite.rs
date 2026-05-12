@@ -1,3 +1,5 @@
+use crate::consts::HEIGHT;
+
 #[derive(Debug, Clone)]
 pub struct SpriteData {
     pub data: Vec<u8>,
@@ -17,7 +19,7 @@ impl SpriteData {
                 if src_idx < self.data.len() {
                     let px = start_x + xx;
                     let py = start_y + yy;
-                    if px >= 0 && py >= 0 && (px as u32) < screen_w && py < 200 {
+                    if px >= 0 && py >= 0 && (px as u32) < screen_w && py < HEIGHT as i32 {
                         let idx = (py as usize) * (screen_w as usize) + (px as usize);
                         pixels[idx] = self.data[src_idx];
                     }
