@@ -21,8 +21,8 @@ impl<'a> PaintCtx<'a> {
             return;
         }
         for dy in 0..h {
-            let row_start = ((y + dy) as usize) * (self.width as usize);
-            self.pixels[row_start..row_start + (w as usize)].fill(color);
+            let idx = ((y + dy) as usize) * (self.width as usize) + (x as usize);
+            self.pixels[idx..idx + (w as usize)].fill(color);
         }
     }
 

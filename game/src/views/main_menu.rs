@@ -21,7 +21,7 @@ impl MainMenuView {
             MenuItem { num: 0, label: 26, y_off: 12 },
         ];
         Self {
-            menu: Menu::new(11, 98, 108, 12, items, &langbase, 240, 240),
+            menu: Menu::new(11, 97, 108, 12, items, &langbase, 240, 240),
             langbase,
             version,
         }
@@ -32,7 +32,7 @@ impl View<RouteTarget> for MainMenuView {
     fn elements(&self) -> Vec<Element> {
         let mut els = vec![];
 
-        els.push(Element::fillbox(11, 80, 100, 5, 8));
+        els.push(Element::fillbox(11, 80, 100, 6, 8));
 
         els.push(Element::text_color(self.langbase.lstr(17), 11, 80, 246));
 
@@ -56,6 +56,7 @@ impl View<RouteTarget> for MainMenuView {
             Some(4) => Some(RouteTarget::Play(1)),
             Some(5) => Some(RouteTarget::Play(1)),
             Some(6) => Some(RouteTarget::Play(1)),
+            Some(7) => Some(RouteTarget::Quit),
             _ => None,
         }
     }

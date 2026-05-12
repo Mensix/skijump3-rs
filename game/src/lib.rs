@@ -63,6 +63,7 @@ pub fn run() -> Result<(), String> {
     let lb_main = langbase.clone();
     let lb_play1 = langbase.clone();
     let lb_play2 = langbase.clone();
+    let lb_quit = langbase.clone();
 
     let mut router: Router<RouteTarget> = Router::new(
         RouteTarget::MainMenu,
@@ -71,10 +72,14 @@ pub fn run() -> Result<(), String> {
             (RouteTarget::MainMenu, Box::new(move || Box::new(MainMenuView::new(lb_main.clone(), VERSION.to_string())))),
             (RouteTarget::Play(1), Box::new(move || Box::new(MainMenuView::new(lb_play1.clone(), VERSION.to_string())))),
             (RouteTarget::Play(2), Box::new(move || Box::new(MainMenuView::new(lb_play2.clone(), VERSION.to_string())))),
+            (RouteTarget::Quit, Box::new(move || Box::new(MainMenuView::new(lb_quit.clone(), VERSION.to_string())))),
         ],
     );
 
     while renderer.running() {
+        if router.current_route() == Some(&RouteTarget::Quit) {
+            break;
+        }
         renderer.poll_input();
 
         if let Some(key) = renderer.last_key() {
@@ -83,6 +88,16 @@ pub fn run() -> Result<(), String> {
                 sdl2::keyboard::Keycode::Down => Event::Keyboard(Key::Down),
                 sdl2::keyboard::Keycode::Return => Event::Keyboard(Key::Enter),
                 sdl2::keyboard::Keycode::Escape => Event::Keyboard(Key::Escape),
+                sdl2::keyboard::Keycode::Num0 => Event::Keyboard(Key::Char('0')),
+                sdl2::keyboard::Keycode::Num1 => Event::Keyboard(Key::Char('1')),
+                sdl2::keyboard::Keycode::Num2 => Event::Keyboard(Key::Char('2')),
+                sdl2::keyboard::Keycode::Num3 => Event::Keyboard(Key::Char('3')),
+                sdl2::keyboard::Keycode::Num4 => Event::Keyboard(Key::Char('4')),
+                sdl2::keyboard::Keycode::Num5 => Event::Keyboard(Key::Char('5')),
+                sdl2::keyboard::Keycode::Num6 => Event::Keyboard(Key::Char('6')),
+                sdl2::keyboard::Keycode::Num7 => Event::Keyboard(Key::Char('7')),
+                sdl2::keyboard::Keycode::Num8 => Event::Keyboard(Key::Char('8')),
+                sdl2::keyboard::Keycode::Num9 => Event::Keyboard(Key::Char('9')),
                 _ => continue,
             };
             router.handle_event(event);
