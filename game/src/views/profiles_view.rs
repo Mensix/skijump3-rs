@@ -140,13 +140,29 @@ impl View<RouteTarget> for ProfilesView {
             Event::Keyboard(Key::Enter) | Event::Keyboard(Key::Char(' ')) => {
                 if self.selected <= entries {
                     if self.selected == entries && has_slot {
-                        // Create new jumper
+                        // Create new jumper: DefaultProfile + inc(numprofiles)
                         let mut store = self.store.borrow_mut();
                         let new_idx = store.profiles.num_profiles() + 1;
-                        store.profiles.profiles.push(Profile::default());
+                        let mut p = Profile::default();
+                        // count conflicts like Pascal: try "SKI JUMPER", then "SKI JUMPER 2", etc.
+                        p.name = "SKI JUMPER".to_string();
+                        let mut counter: usize = 2;
+                        loop {
+                            let conflict = store.profiles.profiles.iter().skip(1)
+                                .any(|x| x.name == p.name);
+                            if !conflict {
+                                break;
+                            }
+                            p.name = format!("SKI JUMPER {}", counter);
+                            counter += 1;
+                            if counter > 200 { break; }
+                        }
+                        store.profiles.profiles.push(p);
                         store.profiles.edit_index = new_idx;
+                        drop(store);
                         self.selected = new_idx;
-                        self.edit_buf = "SKI JUMPER".to_string();
+                        self.edit_buf = self.store.borrow().profiles.profiles
+                            .get(new_idx).map(|p| p.name.clone()).unwrap_or_default();
                         self.editing = true;
                         None
                     } else {
