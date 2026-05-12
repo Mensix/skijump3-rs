@@ -31,6 +31,7 @@ enum QuestionAction {
     ResetProfile(usize),
 }
 
+#[derive(Debug)]
 enum Mode {
     List,
     Edit {
@@ -145,7 +146,7 @@ impl ProfilesView {
         els.push(Element::fillbox(160, 0, 160, 200, BG_RIGHT));
         els.push(Element::FillArea { thing: 63 });
         els.push(Element::text_color(
-            &self.lstr(34, "Jumpers:"),
+            self.lstr(34, "Jumpers:"),
             40,
             3,
             FONT_HELP,
@@ -172,7 +173,7 @@ impl ProfilesView {
 
         if store.profiles.has_slot() {
             els.push(Element::text_color(
-                &self.lstr(302, "*Create New Jumper*"),
+                self.lstr(302, "*Create New Jumper*"),
                 40,
                 Self::y_for(np + 1),
                 FONT_NEW,
@@ -185,7 +186,7 @@ impl ProfilesView {
             np + 2
         };
         els.push(Element::text_color(
-            &self.lstr(33, "Back to Main Menu"),
+            self.lstr(33, "Back to Main Menu"),
             40,
             Self::y_for(back_temp),
             FONT_BACK,
@@ -218,33 +219,33 @@ impl ProfilesView {
         if let Some(profile) = profile {
             let in_order = store.profiles.order_pos(profile).is_some();
             els.push(Element::text_color(
-                &self.lstr(322, "(Use arrows,"),
+                self.lstr(322, "(Use arrows,"),
                 8,
                 175,
                 FONT_HELP,
             ));
             if in_order {
                 els.push(Element::text_color(
-                    &self.lstr(323, "ENTER edits jumper,"),
+                    self.lstr(323, "ENTER edits jumper,"),
                     11,
                     183,
                     FONT_HELP,
                 ));
                 els.push(Element::text_color(
-                    &self.lstr(324, "DEL removes from order)"),
+                    self.lstr(324, "DEL removes from order)"),
                     11,
                     191,
                     FONT_HELP,
                 ));
             } else {
                 els.push(Element::text_color(
-                    &self.lstr(325, "ENTER adds jumper,"),
+                    self.lstr(325, "ENTER adds jumper,"),
                     11,
                     183,
                     FONT_HELP,
                 ));
                 els.push(Element::text_color(
-                    &self.lstr(326, "DEL deletes jumper)"),
+                    self.lstr(326, "DEL deletes jumper)"),
                     11,
                     191,
                     FONT_HELP,
@@ -633,8 +634,10 @@ impl ProfilesView {
             }
             QuestionAction::ResetProfile(profile) => {
                 let name = self.store.borrow().profiles.profiles[profile].name.clone();
-                let mut reset = Profile::default();
-                reset.name = name;
+                let reset = Profile {
+                    name,
+                    ..Default::default()
+                };
                 self.store.borrow_mut().profiles.profiles[profile] = reset;
                 self.mode = Mode::Edit {
                     profile,

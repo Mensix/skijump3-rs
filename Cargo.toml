@@ -11,6 +11,11 @@ license = "MIT"
 [workspace.dependencies]
 sdl2 = "0.38"
 
+[workspace.lints.clippy]
+ptr_arg = "warn"
+clone_on_copy = "warn"
+redundant_clone = "warn"
+
 [package]
 name = "skijump3"
 version.workspace = true
@@ -19,6 +24,9 @@ edition.workspace = true
 [[bin]]
 name = "skijump3"
 path = "src/main.rs"
+
+[lints]
+workspace = true
 
 [dependencies]
 engine = { path = "engine" }

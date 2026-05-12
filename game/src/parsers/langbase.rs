@@ -2,7 +2,7 @@ use crate::parsers::{AssetParser, ParseError};
 
 const NUM_STR: usize = 599;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct LangBase {
     strings: Vec<String>,
     pub languages: Vec<String>,

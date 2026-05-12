@@ -1,5 +1,6 @@
 use engine::ui::{Component, Element, Event, Key};
 
+#[derive(Debug)]
 pub enum ValueSelectorAction {
     Commit(usize),
     Cancel,
@@ -11,6 +12,7 @@ pub enum ValueSelectorKind {
     Numeric,
 }
 
+#[derive(Debug)]
 pub struct ValueSelector {
     x: i32,
     y: i32,
@@ -54,6 +56,7 @@ impl ValueSelector {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn numeric(
         x: i32,
         y: i32,

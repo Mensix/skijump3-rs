@@ -45,43 +45,19 @@ impl WelcomeScreenView {
 
 impl View<RouteTarget> for WelcomeScreenView {
     fn elements(&self) -> Vec<Element> {
-        let mut els = vec![];
-
-        // initial black fill, then NewScreen(6,0) panels with 1px black gaps
-        // FillBox(0,0,319,199,0) → full screen black
-        // FillBox(0,0,50,199,245) → width 51, FillBox(52,0,267,199,243) → width 216
-        // FillBox(269,0,319,199,245) → width 51, gaps at cols 51 and 268
-        els.push(Element::fillbox(0, 0, 320, 200, 0));
-        els.push(Element::fillbox(0, 0, 51, 200, 245));
-        els.push(Element::fillbox(52, 0, 216, 200, 243));
-        els.push(Element::fillbox(269, 0, 51, 200, 245));
-        els.push(Element::FillArea { thing: 63 });
-
-        els.push(Element::sprite(LOGO_SPRITE, 80, 6));
-
-        // welcome text, ewritefont (right-aligned) at x=240
-        els.push(Element::text_color_right("WELCOME!", 240, 6, FONT_DEFAULT));
-        els.push(Element::text_color_right("TERVETULOA!", 240, 16, FONT_GOLD));
-        els.push(Element::text_color_right(
-            "WILLKOMMEN!",
-            240,
-            26,
-            FONT_GREET,
-        ));
-        els.push(Element::text_color_right(
-            "VALKOMMEN!",
-            240,
-            36,
-            FONT_DEFAULT,
-        ));
-
-        // instruction
-        els.push(Element::text_color(
-            "PLEASE CHOOSE A LANGUAGE:",
-            100,
-            50,
-            FONT_DEFAULT,
-        ));
+        let mut els = vec![
+            Element::fillbox(0, 0, 320, 200, 0),
+            Element::fillbox(0, 0, 51, 200, 245),
+            Element::fillbox(52, 0, 216, 200, 243),
+            Element::fillbox(269, 0, 51, 200, 245),
+            Element::FillArea { thing: 63 },
+            Element::sprite(LOGO_SPRITE, 80, 6),
+            Element::text_color_right("WELCOME!", 240, 6, FONT_DEFAULT),
+            Element::text_color_right("TERVETULOA!", 240, 16, FONT_GOLD),
+            Element::text_color_right("WILLKOMMEN!", 240, 26, FONT_GREET),
+            Element::text_color_right("VALKOMMEN!", 240, 36, FONT_DEFAULT),
+            Element::text_color("PLEASE CHOOSE A LANGUAGE:", 100, 50, FONT_DEFAULT),
+        ];
 
         // language names centred at x=155, y=temp*8+55
         for (i, name) in self.languages.iter().enumerate() {

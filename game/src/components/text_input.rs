@@ -1,11 +1,13 @@
 use engine::ui::{Component, Element, Event, Font, Key};
 use std::cell::Cell;
 
+#[derive(Debug)]
 pub enum TextInputAction {
     Commit(String),
     Cancel,
 }
 
+#[derive(Debug)]
 pub struct TextInput {
     x: i32,
     y: i32,

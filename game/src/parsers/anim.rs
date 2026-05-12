@@ -65,8 +65,8 @@ impl AssetParser<Vec<SpriteData>> for AnimParser {
         let temp_count = sprites.len();
         if temp_count >= 83 {
             let mut extra = Vec::new();
-            for i in 72..84.min(sprites.len()) {
-                let src = &sprites[i];
+            let end = 84.min(sprites.len());
+            for src in &sprites[72..end] {
                 let mut flipped = vec![0u8; src.data.len()];
                 let w = src.width as usize;
                 let h = src.height as usize;
@@ -82,7 +82,7 @@ impl AssetParser<Vec<SpriteData>> for AnimParser {
                     width: src.width,
                     height: src.height,
                     center_x: src.center_x,
-                    center_y: (h as i8 - 1) - src.center_y as i8,
+                    center_y: (h as i8 - 1) - src.center_y,
                 });
             }
             sprites.extend(extra);

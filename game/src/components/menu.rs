@@ -23,6 +23,7 @@ pub struct Menu {
 }
 
 impl Menu {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         x: i32,
         y: i32,

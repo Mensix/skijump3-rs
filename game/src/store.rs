@@ -4,6 +4,7 @@ use engine::ui::Font;
 use std::cell::RefCell;
 use std::rc::Rc;
 
+#[derive(Debug, Clone)]
 pub struct Resources {
     pub font: Font,
     pub langbase: Rc<LangBase>,
@@ -22,8 +23,15 @@ impl Resources {
 
 pub type ResourcesRef = Rc<Resources>;
 
+#[derive(Debug, Clone)]
 pub struct Store {
     pub profiles: ProfileStore,
+}
+
+impl Default for Store {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Store {

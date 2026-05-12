@@ -1,4 +1,4 @@
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 struct Glyph {
     data: Vec<u8>,
     width: u16,
@@ -63,7 +63,7 @@ impl Glyph {
     }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Font {
     glyphs: Vec<Option<Glyph>>,
 }
@@ -71,7 +71,7 @@ pub struct Font {
 impl Font {
     pub fn new() -> Self {
         Self {
-            glyphs: (0..67).map(|_| None).collect(),
+            glyphs: (0..crate::consts::FONT_GLYPH_COUNT).map(|_| None).collect(),
         }
     }
 

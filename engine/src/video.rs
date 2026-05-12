@@ -15,7 +15,7 @@ pub struct Renderer {
 
 impl Renderer {
     pub fn new(sdl: &sdl2::Sdl) -> Result<Self, String> {
-        let video = sdl.video().map_err(|e| e.to_string())?;
+        let video = sdl.video()?;
 
         let window = video
             .window("Ski Jump International v3", WIDTH * 2, HEIGHT * 2)
@@ -86,9 +86,7 @@ impl Renderer {
             .map_err(|e| e.to_string())?;
 
         self.canvas.clear();
-        self.canvas
-            .copy(&texture, None, None)
-            .map_err(|e| e.to_string())?;
+        self.canvas.copy(&texture, None, None)?;
         self.canvas.present();
         Ok(())
     }

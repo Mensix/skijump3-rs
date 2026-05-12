@@ -3,7 +3,7 @@ pub const MAX_ACTIVE_PROFILES: usize = 10;
 pub const NUM_SUITS: usize = 8;
 pub const NUM_SKIS: usize = 4;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Profile {
     pub name: String,
     pub real_name: String,
@@ -50,9 +50,16 @@ impl Default for Profile {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct ProfileStore {
     pub profiles: Vec<Profile>,
     pub active_order: Vec<usize>,
+}
+
+impl Default for ProfileStore {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl ProfileStore {

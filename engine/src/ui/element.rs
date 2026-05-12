@@ -5,6 +5,7 @@ use std::rc::Rc;
 
 use crate::consts::{FILL_BRIGHTEN, FILL_RANGE_MAX, PATTERN_SPRITE, SHADOW_PIXEL, TILE_H, TILE_W};
 
+#[derive(Debug, Clone)]
 pub enum Element {
     Image(Rc<[u8]>, u32, u32),
     Text {
@@ -71,7 +72,7 @@ impl Element {
                 ctx.fill_rect(*x, *y, *w, *h, *color);
             }
             Element::FillArea { thing } => {
-                let Some(ref pattern) = sprites.get(PATTERN_SPRITE) else {
+                let Some(pattern) = sprites.get(PATTERN_SPRITE) else {
                     return;
                 };
                 for py in 0..ctx.height {
@@ -81,7 +82,7 @@ impl Element {
                             continue;
                         }
                         let (ax, ay) = if *thing == 64 {
-                            (((px + 2) as u32) % TILE_W, ((py + 7) as u32) % TILE_H)
+                            ((px + 2) % TILE_W, (py + 7) % TILE_H)
                         } else {
                             (px % TILE_W, py % TILE_H)
                         };

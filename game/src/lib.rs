@@ -144,7 +144,7 @@ impl Game {
         let player_names = load_player_names();
         let resources: ResourcesRef = Rc::new(Resources::new(font.clone(), langbase, player_names));
         let store: StoreRef = Rc::new(RefCell::new(Store::new()));
-        let router = Self::create_router(resources.clone(), pixels.clone(), store.clone());
+        let router = Self::create_router(resources, pixels, store);
 
         Ok(Self {
             _sdl: sdl,
@@ -159,12 +159,13 @@ impl Game {
     }
 
     fn init_sdl() -> Result<(sdl2::Sdl, engine::video::Renderer, Input), String> {
-        let sdl = sdl2::init().map_err(|e| e.to_string())?;
+        let sdl = sdl2::init()?;
         let renderer = engine::video::Renderer::new(&sdl)?;
         let input = Input::new(&sdl)?;
         Ok((sdl, renderer, input))
     }
 
+    #[allow(clippy::type_complexity)]
     fn load_assets() -> Result<(Vec<u8>, Palette, Vec<SpriteData>, Rc<LangBase>), String> {
         let pcx_data = AssetStore::read(MAIN_PCX).map_err(|e| e.to_string())?;
         let decoded = PcxParser::parse(&pcx_data).map_err(|e| e.to_string())?;
@@ -201,8 +202,8 @@ impl Game {
                     Box::new(move || Box::new(JumpMenuView::new(l.clone())))
                 }),
                 (RouteTarget::ProfilesList, {
-                    let r = resources.clone();
-                    let s = store.clone();
+                    let r = resources;
+                    let s = store;
                     Box::new(move || Box::new(ProfilesView::new(r.clone(), s.clone())))
                 }),
                 (RouteTarget::OptionsMenu, {
@@ -210,7 +211,7 @@ impl Game {
                     Box::new(move || Box::new(MainMenuView::new(l.clone())))
                 }),
                 (RouteTarget::Quit, {
-                    let l = layout.clone();
+                    let l = layout;
                     Box::new(move || Box::new(MainMenuView::new(l.clone())))
                 }),
             ],

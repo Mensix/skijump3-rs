@@ -10,7 +10,7 @@ pub struct Input {
 
 impl Input {
     pub fn new(sdl: &sdl2::Sdl) -> Result<Self, String> {
-        let event_pump = sdl.event_pump().map_err(|e| e.to_string())?;
+        let event_pump = sdl.event_pump()?;
         Ok(Self {
             event_pump,
             keys_held: HashSet::new(),

@@ -1,7 +1,7 @@
 use crate::palette::Palette;
 use crate::ui::Element;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Event {
     Keyboard(Key),
 }
@@ -29,6 +29,7 @@ pub trait View<T: Clone + PartialEq + 'static> {
     fn apply_palette(&self, _palette: &mut Palette) {}
 }
 
+#[allow(clippy::type_complexity)]
 pub struct Router<T: Clone + PartialEq + 'static> {
     current: Box<dyn View<T>>,
     current_route: Option<T>,
@@ -37,6 +38,7 @@ pub struct Router<T: Clone + PartialEq + 'static> {
 }
 
 impl<T: Clone + PartialEq + 'static> Router<T> {
+    #[allow(clippy::type_complexity)]
     pub fn new(
         route: T,
         initial: Box<dyn View<T>>,
@@ -45,7 +47,7 @@ impl<T: Clone + PartialEq + 'static> Router<T> {
         Self {
             current: initial,
             current_route: Some(route),
-            history: Vec::new(),
+            history: Vec::with_capacity(4),
             routes,
         }
     }
@@ -78,7 +80,7 @@ impl<T: Clone + PartialEq + 'static> Router<T> {
     }
 
     pub fn handle_event(&mut self, event: &Event) {
-        if let Some(target) = self.current.handle_event(event.clone()) {
+        if let Some(target) = self.current.handle_event(*event) {
             self.navigate(target);
         }
     }

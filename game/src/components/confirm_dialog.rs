@@ -3,11 +3,13 @@ use engine::ui::{Component, Element, Event, Font, Key};
 use std::cell::Cell;
 use std::rc::Rc;
 
+#[derive(Debug)]
 pub enum ConfirmAction {
     Yes,
     No,
 }
 
+#[derive(Debug)]
 pub struct ConfirmDialog {
     message: String,
     langbase: Rc<LangBase>,

@@ -43,14 +43,14 @@ pub fn apply_suit_palette_at(palette: &mut Palette, col: usize, target_base: usi
     } else {
         SUIT_FADE_UP
     };
-    for i in 0..4 {
+    for (i, &fd) in fade.iter().enumerate() {
         let idx = target_base + i;
         palette.set(
             idx,
             [
-                (fade[i] * suit[1] as f32).round().min(63.0) as u8,
-                (fade[i] * suit[2] as f32).round().min(63.0) as u8,
-                (fade[i] * suit[3] as f32).round().min(63.0) as u8,
+                (fd * suit[1] as f32).round().min(63.0) as u8,
+                (fd * suit[2] as f32).round().min(63.0) as u8,
+                (fd * suit[3] as f32).round().min(63.0) as u8,
             ],
         );
     }

@@ -3,6 +3,9 @@ name = "game"
 version.workspace = true
 edition.workspace = true
 
+[lints]
+workspace = true
+
 [dependencies]
 engine = { path = "../engine" }
 sdl2 = { workspace = true }

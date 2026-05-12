@@ -27,10 +27,11 @@ impl AssetParser<Vec<String>> for NamesParser {
             }
 
             if trimmed[0] == b'*' {
-                if trimmed.len() >= 3 && &trimmed[..3] == b"***" {
-                    if trimmed.windows(5).any(|w| w == b"TEAMS") {
-                        break;
-                    }
+                if trimmed.len() >= 3
+                    && &trimmed[..3] == b"***"
+                    && trimmed.windows(5).any(|w| w == b"TEAMS")
+                {
+                    break;
                 }
                 in_names = true;
                 continue;
