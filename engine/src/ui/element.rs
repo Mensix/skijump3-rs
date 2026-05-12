@@ -2,9 +2,7 @@ use crate::ui::paint::PaintCtx;
 use crate::ui::Font;
 use crate::sprite::SpriteData;
 
-const PATTERN_SPRITE: usize = 62;
-const TILE_W: u32 = 19;
-const TILE_H: u32 = 13;
+use crate::consts::{FILL_RANGE_MAX, FILL_BRIGHTEN, PATTERN_SPRITE, SHADOW_PIXEL, TILE_W, TILE_H};
 
 pub enum Element {
     Image(Vec<u8>, u32, u32),
@@ -48,7 +46,7 @@ impl Element {
                 for py in 0..ctx.height {
                     for px in 0..ctx.width {
                         let cur = ctx.pixels[(py as usize) * (ctx.width as usize) + (px as usize)];
-                        if cur <= 242 || cur >= 246 {
+                        if cur <= SHADOW_PIXEL || cur > FILL_RANGE_MAX {
                             continue;
                         }
                         let (ax, ay) = if *thing == 64 {
@@ -59,7 +57,7 @@ impl Element {
                         let pi = (ay * TILE_W + ax) as usize;
                         if pi < pattern.data.len() && pattern.data[pi] != 0 {
                             let idx = (py as usize) * (ctx.width as usize) + (px as usize);
-                            ctx.pixels[idx] = cur + 5;
+                            ctx.pixels[idx] = cur + FILL_BRIGHTEN;
                         }
                     }
                 }

@@ -71,24 +71,13 @@ pub struct Game {
 
 impl Game {
     pub fn new() -> Result<Self, String> {
-        let sdl = sdl2::init().map_err(|e| e.to_string())?;
-        let mut renderer = engine::video::Renderer::new(&sdl)?;
-        let input = Input::new(&sdl)?;
-
-        let pcx_data = AssetStore::read(MAIN_PCX).map_err(|e| e.to_string())?;
-        let decoded = PcxParser::parse(&pcx_data).map_err(|e| e.to_string())?;
-
-        let anim_data = AssetStore::read(ANIM_SKI).map_err(|e| e.to_string())?;
-        let sprites: Vec<SpriteData> = AnimParser::parse(&anim_data).map_err(|e| e.to_string())?;
-
-        let langbase_data = AssetStore::read(LANGBASE_SKI).map_err(|e| e.to_string())?;
-        let langbase = Arc::new(LangBaseParser::parse(&langbase_data).map_err(|e| e.to_string())?);
+        let (sdl, mut renderer, input) = Self::init_sdl()?;
+        let (pixels, pcx_palette, sprites, langbase) = Self::load_assets()?;
 
         let font = load_font(&sprites);
-        let bufsize = (WIDTH * HEIGHT) as usize;
-        let framebuffer = vec![0u8; bufsize];
+        let framebuffer = vec![0u8; (WIDTH * HEIGHT) as usize];
 
-        let mut palette = decoded.palette.clone();
+        let mut palette = pcx_palette;
         apply_standard_ui_palette(&mut palette);
         renderer.set_palette(palette.clone());
 
@@ -101,10 +90,30 @@ impl Game {
             font,
             router,
             sprites,
-            background_pixels: decoded.pixels,
+            background_pixels: pixels,
             framebuffer,
             palette,
         })
+    }
+
+    fn init_sdl() -> Result<(sdl2::Sdl, engine::video::Renderer, Input), String> {
+        let sdl = sdl2::init().map_err(|e| e.to_string())?;
+        let renderer = engine::video::Renderer::new(&sdl)?;
+        let input = Input::new(&sdl)?;
+        Ok((sdl, renderer, input))
+    }
+
+    fn load_assets() -> Result<(Vec<u8>, Palette, Vec<SpriteData>, Arc<LangBase>), String> {
+        let pcx_data = AssetStore::read(MAIN_PCX).map_err(|e| e.to_string())?;
+        let decoded = PcxParser::parse(&pcx_data).map_err(|e| e.to_string())?;
+
+        let anim_data = AssetStore::read(ANIM_SKI).map_err(|e| e.to_string())?;
+        let sprites: Vec<SpriteData> = AnimParser::parse(&anim_data).map_err(|e| e.to_string())?;
+
+        let langbase_data = AssetStore::read(LANGBASE_SKI).map_err(|e| e.to_string())?;
+        let langbase = Arc::new(LangBaseParser::parse(&langbase_data).map_err(|e| e.to_string())?);
+
+        Ok((decoded.pixels, decoded.palette, sprites, langbase))
     }
 
     fn create_router(langbase: Arc<LangBase>) -> Router<RouteTarget> {

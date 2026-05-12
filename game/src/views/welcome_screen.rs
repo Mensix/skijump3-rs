@@ -8,6 +8,7 @@ const FONT_DEFAULT: u8 = 240;
 const FONT_GOLD: u8 = 246;
 const FONT_GREET: u8 = 247;
 const BOX_COLOR: u8 = 240;
+const LOGO_SPRITE: u16 = 60;
 
 pub struct WelcomeScreenView {
     menu: Menu,
@@ -46,8 +47,7 @@ impl View<RouteTarget> for WelcomeScreenView {
         els.push(Element::fillbox(269, 0, 51, 200, 245));
         els.push(Element::FillArea { thing: 63 });
 
-        // logo sprite: Pascal Anim[61] → 0-indexed 60
-        els.push(Element::sprite(60, 80, 6));
+        els.push(Element::sprite(LOGO_SPRITE, 80, 6));
 
         // welcome text, ewritefont (right-aligned) at x=240
         els.push(Element::text_color_right("WELCOME!", 240, 6, FONT_DEFAULT));
