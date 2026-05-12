@@ -71,7 +71,7 @@ impl Renderer {
 
         let tc = self.canvas.texture_creator();
         let mut texture = tc
-            .create_texture(PixelFormatEnum::RGB24, TextureAccess::Static, WIDTH, HEIGHT)
+            .create_texture(PixelFormatEnum::RGB24, TextureAccess::Streaming, WIDTH, HEIGHT)
             .map_err(|e| e.to_string())?;
 
         texture
