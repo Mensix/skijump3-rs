@@ -18,16 +18,14 @@ pub struct ProfileStore {
 
 impl ProfileStore {
     pub fn new() -> Self {
-        let mut profiles = Vec::with_capacity(MAX_PROFILES + 1);
-        profiles.push(Profile::default());
-        profiles.push(Profile {
+        let profiles = vec![Profile {
             name: "SKI JUMPER".to_string(),
-        });
-        Self { profiles, edit_index: 1 }
+        }];
+        Self { profiles, edit_index: 0 }
     }
 
     pub fn num_profiles(&self) -> usize {
-        self.profiles.len().saturating_sub(1)
+        self.profiles.len()
     }
 
     pub fn has_slot(&self) -> bool {

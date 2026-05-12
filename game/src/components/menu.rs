@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::rc::Rc;
 use engine::ui::{Element, Event, Key, Component};
 use crate::parsers::langbase::LangBase;
 
@@ -16,7 +16,7 @@ pub struct Menu {
     item_w: i32,
     item_h: i32,
     items: Vec<MenuItem>,
-    langbase: Arc<LangBase>,
+    langbase: Rc<LangBase>,
     fontcolor: u8,
     boxcolor: u8,
     show_labels: bool,
@@ -25,16 +25,16 @@ pub struct Menu {
 impl Menu {
     pub fn new(
         x: i32, y: i32, item_w: i32, item_h: i32,
-        items: Vec<MenuItem>, langbase: &Arc<LangBase>,
+        items: Vec<MenuItem>, langbase: &Rc<LangBase>,
         fontcolor: u8, boxcolor: u8,
     ) -> Self {
         let navigable = items.len();
         Self {
-            selected: 1,
+            selected: 0,
             navigable,
             x, y, item_w, item_h,
             items,
-            langbase: Arc::clone(langbase),
+            langbase: Rc::clone(langbase),
             fontcolor, boxcolor,
             show_labels: true,
         }
@@ -55,11 +55,7 @@ impl Menu {
     }
 
     pub fn reset(&mut self) {
-        self.selected = 1;
-    }
-
-    pub fn num_items(&self) -> usize {
-        self.items.len()
+        self.selected = 0;
     }
 }
 
@@ -78,7 +74,7 @@ impl Component for Menu {
         }
 
         let bx = self.x - 6;
-        let idx = (self.selected - 1).min(self.items.len() - 1);
+        let idx = self.selected.min(self.items.len() - 1);
         let by = self.y - 3 + (idx as i32) * self.item_h + self.items[idx].y_off;
         els.push(Element::box_(bx, by, self.item_w + 1, self.item_h + 1, self.boxcolor));
 
@@ -87,34 +83,36 @@ impl Component for Menu {
 
     fn handle_event(&mut self, event: &Event) -> Option<usize> {
         match event {
-            Event::Keyboard(Key::Up) if self.selected > 1 => {
+            Event::Keyboard(Key::Up) if self.selected > 0 => {
                 self.selected -= 1;
                 None
             }
             Event::Keyboard(Key::Up) => {
-                self.selected = self.navigable;
+                self.selected = self.navigable - 1;
                 None
             }
-            Event::Keyboard(Key::Down) if self.selected < self.navigable => {
+            Event::Keyboard(Key::Down) if self.selected + 1 < self.navigable => {
                 self.selected += 1;
                 None
             }
             Event::Keyboard(Key::Down) => {
-                self.selected = 1;
+                self.selected = 0;
                 None
             }
             Event::Keyboard(Key::Enter) | Event::Keyboard(Key::Char(' ')) => {
-                Some(self.selected)
+                // return 1-shifted: Some(0) = back sentinel, Some(1..) = selected + 1
+                Some(self.selected + 1)
             }
             Event::Keyboard(Key::Char(c)) => {
                 if let Some(d) = c.to_digit(10) {
-                    match d {
-                        0 => Some(0),
-                        n if (n as usize) <= self.navigable => {
-                            self.selected = n as usize;
-                            None
-                        }
-                        _ => None,
+                    let n = d as usize;
+                    if n >= 1 && n <= self.navigable {
+                        self.selected = n - 1;
+                        Some(n)
+                    } else if n == 0 {
+                        Some(0)
+                    } else {
+                        None
                     }
                 } else {
                     None

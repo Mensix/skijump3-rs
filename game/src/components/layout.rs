@@ -1,3 +1,4 @@
+use std::rc::Rc;
 use engine::ui::Element;
 use crate::parsers::langbase::LangBase;
 use engine::consts::{WIDTH, HEIGHT};
@@ -13,13 +14,13 @@ pub fn header_elements(text: &str, x: i32, y: i32, color: u8, bg: u8) -> Vec<Ele
 
 #[derive(Clone)]
 pub struct MainLayout {
-    pub langbase: std::sync::Arc<LangBase>,
+    pub langbase: Rc<LangBase>,
     version: String,
     background: Vec<u8>,
 }
 
 impl MainLayout {
-    pub fn new(langbase: std::sync::Arc<LangBase>, version: String, background: Vec<u8>) -> Self {
+    pub fn new(langbase: Rc<LangBase>, version: String, background: Vec<u8>) -> Self {
         Self { langbase, version, background }
     }
 

@@ -8,7 +8,7 @@ pub mod route;
 pub mod store;
 pub mod views;
 
-use std::sync::Arc;
+use std::rc::Rc;
 use engine::ui::Router;
 use engine::input::Input;
 use engine::sprite::SpriteData;
@@ -84,7 +84,7 @@ impl Game {
         renderer.set_palette(palette.clone());
 
         let store: StoreRef = std::rc::Rc::new(std::cell::RefCell::new(Store::new(font.clone())));
-        let router = Self::create_router(Arc::clone(&langbase), pixels.clone(), store);
+        let router = Self::create_router(Rc::clone(&langbase), pixels.clone(), store);
 
         Ok(Self {
             _sdl: sdl,
@@ -105,7 +105,7 @@ impl Game {
         Ok((sdl, renderer, input))
     }
 
-    fn load_assets() -> Result<(Vec<u8>, Palette, Vec<SpriteData>, Arc<LangBase>), String> {
+    fn load_assets() -> Result<(Vec<u8>, Palette, Vec<SpriteData>, Rc<LangBase>), String> {
         let pcx_data = AssetStore::read(MAIN_PCX).map_err(|e| e.to_string())?;
         let decoded = PcxParser::parse(&pcx_data).map_err(|e| e.to_string())?;
 
@@ -113,13 +113,13 @@ impl Game {
         let sprites: Vec<SpriteData> = AnimParser::parse(&anim_data).map_err(|e| e.to_string())?;
 
         let langbase_data = AssetStore::read(LANGBASE_SKI).map_err(|e| e.to_string())?;
-        let langbase = Arc::new(LangBaseParser::parse(&langbase_data).map_err(|e| e.to_string())?);
+        let langbase = Rc::new(LangBaseParser::parse(&langbase_data).map_err(|e| e.to_string())?);
 
         Ok((decoded.pixels, decoded.palette, sprites, langbase))
     }
 
-    fn create_router(langbase: Arc<LangBase>, background: Vec<u8>, store: StoreRef) -> Router<RouteTarget> {
-        let layout = MainLayout::new(Arc::clone(&langbase), VERSION.to_string(), background);
+    fn create_router(langbase: Rc<LangBase>, background: Vec<u8>, store: StoreRef) -> Router<RouteTarget> {
+        let layout = MainLayout::new(Rc::clone(&langbase), VERSION.to_string(), background);
         Router::new(
             RouteTarget::ProfilesList,
             Box::new(ProfilesView::new(store.clone())),

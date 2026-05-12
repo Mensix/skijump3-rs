@@ -1,6 +1,6 @@
-use std::sync::Arc;
 use engine::ui::{Element, Event, View, Component};
 use crate::parsers::langbase::LangBase;
+use std::rc::Rc;
 use crate::components::menu::{Menu, MenuItem};
 use crate::route::RouteTarget;
 
@@ -16,7 +16,7 @@ pub struct WelcomeScreenView {
 }
 
 impl WelcomeScreenView {
-    pub fn new(languages: Vec<String>, langbase: Arc<LangBase>) -> Self {
+    pub fn new(languages: Vec<String>, langbase: Rc<LangBase>) -> Self {
         let count = languages.len();
         let mut items = Vec::with_capacity(count);
         for (i, _) in languages.iter().enumerate() {
