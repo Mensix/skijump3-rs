@@ -379,6 +379,11 @@ impl JumpState {
         self.height = (terrain.profiili(self.x) - self.y).max(0);
         self.delta_height[(self.frame as usize) % 3] = prev_height - self.height;
 
+        // Pascal checks previous frame's height before recalculating Height later in the loop.
+        if self.landing_style == 0 && self.matka > 3.0 && prev_height < 4 {
+            self.landing_style = 2;
+        }
+
         if self.height == 0 {
             self.distance = self.distance(terrain);
             if let Some(rng) = rng.as_mut() {
@@ -632,6 +637,7 @@ impl JumpState {
                 self.start_anim,
                 self.landing_style,
                 self.grade,
+                detached_ski,
             )
         } else {
             landing_body_anim(detached_ski, self.landing_style)
@@ -1021,21 +1027,7 @@ impl View<RouteTarget> for JumpView {
 
     fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {
         match event {
-            Event::Keyboard(Key::Escape) => {
-                if self
-                    .state
-                    .get_mut()
-                    .as_ref()
-                    .is_some_and(|state| state.phase == JumpPhase::Result)
-                {
-                    Some(RouteTarget::Practice)
-                } else {
-                    if let Some(state) = self.state.get_mut() {
-                        state.phase = JumpPhase::Result;
-                    }
-                    None
-                }
-            }
+            Event::Keyboard(Key::Escape) => Some(RouteTarget::Practice),
             Event::Keyboard(Key::F5) => {
                 self.reset_wind();
                 None

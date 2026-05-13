@@ -127,13 +127,23 @@ pub fn landing_body_anim(mut ski_anim: u16, landing_style: u8) -> u16 {
     rust_sprite(value)
 }
 
-pub fn post_landing_body_anim(counter: i32, start_anim: i32, landing_style: u8, grade: i32) -> u16 {
+fn landing_loop_body_anim(counter: i32, slope_ski_anim: u16, landing_style: u8) -> u16 {
     // Pascal: if (laskuri<7) and (landing>0) then JumperAnim:=113+landing;
     if counter < 7 && landing_style > 0 {
         return rust_sprite(113 + landing_style as u16);
     }
+    landing_body_anim(slope_ski_anim, landing_style)
+}
+
+pub fn post_landing_body_anim(
+    counter: i32,
+    start_anim: i32,
+    landing_style: u8,
+    grade: i32,
+    slope_ski_anim: u16,
+) -> u16 {
     if counter <= start_anim {
-        return landing_body_anim(0, landing_style);
+        return landing_loop_body_anim(counter, slope_ski_anim, landing_style);
     }
 
     let phase = ((counter - start_anim) / 12).min(6);
@@ -189,7 +199,7 @@ pub fn fall_body_anim(
                 };
             }
             if fall_type == 2 && counter < 6 {
-                return landing_body_anim(detached_slope_ski_anim, landing_style);
+                return landing_loop_body_anim(counter, detached_slope_ski_anim, landing_style);
             }
             anim
         }
@@ -207,7 +217,7 @@ pub fn fall_body_anim(
             }
             anim
         }
-        _ => return landing_body_anim(detached_slope_ski_anim, landing_style),
+        _ => return landing_loop_body_anim(counter, detached_slope_ski_anim, landing_style),
     };
     rust_sprite(pascal_anim as u16)
 }
@@ -303,9 +313,9 @@ mod tests {
 
     #[test]
     fn maps_landing_and_fall_frames() {
-        assert_eq!(post_landing_body_anim(101, 100, 1, 0), 127);
-        assert_eq!(post_landing_body_anim(125, 100, 2, 120), 135);
-        assert_eq!(post_landing_body_anim(150, 100, 2, 120), 140);
+        assert_eq!(post_landing_body_anim(101, 100, 1, 0, 70), 127);
+        assert_eq!(post_landing_body_anim(125, 100, 2, 120, 70), 135);
+        assert_eq!(post_landing_body_anim(150, 100, 2, 120, 70), 140);
         assert_eq!(fall_body_anim(1, 10, 160, 74, 1), 142);
         assert_eq!(fall_body_anim(3, 24, 160, 76, 2), 156);
     }

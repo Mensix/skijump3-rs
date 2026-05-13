@@ -22,14 +22,15 @@ impl PracticeView {
     }
 
     fn item_row(&self, idx: usize) -> usize {
-        let page_n = self.page_items();
-        if idx < page_n {
-            idx
-        } else if self.has_more() && idx == page_n {
+        if self.has_more() && idx == self.page_items() {
             idx + 1
         } else {
-            idx + 2
+            idx
         }
+    }
+
+    fn exit_row(&self) -> usize {
+        self.page_items() + if self.has_more() { 3 } else { 2 }
     }
 
     pub fn new(resources: ResourcesRef, store: StoreRef) -> Self {
@@ -41,7 +42,7 @@ impl PracticeView {
             .min(total.saturating_sub(1));
         let start = if total > 20 { selected / 20 * 20 } else { 0 };
         let page_n = (total.saturating_sub(start)).min(20);
-        let n = page_n + if total > 20 { 1 } else { 0 } + 1;
+        let n = page_n + if total > 20 { 1 } else { 0 };
         let items = (0..n)
             .map(|_| MenuItem {
                 num: 0,
@@ -74,7 +75,7 @@ impl PracticeView {
 
     fn rebuild_menu(&self) -> Menu {
         let page_n = self.page_items();
-        let n = page_n + if self.has_more() { 1 } else { 0 } + 1;
+        let n = page_n + if self.has_more() { 1 } else { 0 };
         let items = (0..n)
             .map(|_| MenuItem {
                 num: 0,
@@ -102,8 +103,6 @@ impl PracticeView {
             self.start = (self.start + 20) % self.total;
             self.menu = self.rebuild_menu();
             None
-        } else if sel == self.menu.item_count() - 1 {
-            Some(RouteTarget::MainMenu)
         } else {
             *self.store.selected_hill.borrow_mut() = self.start + sel + 1;
             Some(RouteTarget::Jump)
@@ -157,9 +156,8 @@ impl View<RouteTarget> for PracticeView {
             ));
         }
 
-        let exit_idx = self.menu.item_count() - 1;
-        let y = self.item_row(exit_idx) as i32 * 8 + 10;
-        els.push(Element::text_color_right("0.", 130, y, FONT_GOLD));
+        let y = self.exit_row() as i32 * 8 + 10;
+        els.push(Element::text_color_right("0.", 130, y, FONT_DEFAULT));
         els.push(Element::text_color(
             self.resources.langbase.lstr(154),
             140,
