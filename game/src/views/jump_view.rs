@@ -695,12 +695,7 @@ impl JumpView {
             _ => None,
         };
 
-        let jumper_name = resources
-            .player_names
-            .first()
-            .map(|s| s.as_str())
-            .unwrap_or("The Training Man")
-            .to_string();
+        let jumper_name = "TRAINEE".to_string();
 
         let mut snow = SnowSystem::new();
         snow.set_count(50, &mut store.rng.borrow_mut());
@@ -761,7 +756,7 @@ impl JumpView {
 
         let text = format!("{:.1}", f64::from(value.abs()) / 10.0);
         if value < 0 {
-            els.push(Element::text_color("-", x + 10, y + 5, FONT_DEFAULT));
+            els.push(Element::text_color("-", x + 10, y + 5, FONT_GREET));
         }
         let mut chars = text.chars();
         if let Some(ones) = chars.next() {
@@ -769,7 +764,7 @@ impl JumpView {
                 ones.to_string(),
                 x + 15,
                 y + 5,
-                FONT_DEFAULT,
+                FONT_GREET,
             ));
         }
         if let Some(tenths) = text.chars().nth(2) {
@@ -777,7 +772,7 @@ impl JumpView {
                 tenths.to_string(),
                 x + 24,
                 y + 5,
-                FONT_DEFAULT,
+                FONT_GREET,
             ));
         }
     }
@@ -999,7 +994,12 @@ impl View<RouteTarget> for JumpView {
         let (body_x, body_y) = state.body_position();
         let jumper_x = state.x - state.sx;
         let jumper_y = state.y - state.sy;
-        if state.frame < 700 && !matches!(state.phase, JumpPhase::Result | JumpPhase::Landing) {
+        if state.frame < 700
+            && !matches!(
+                state.phase,
+                JumpPhase::Info | JumpPhase::Result | JumpPhase::Landing
+            )
+        {
             self.wind_elements(&mut els, wind.value);
         }
         if state.phase == JumpPhase::OnBar && (state.frame < 350 || (state.frame % 40) > 19) {
