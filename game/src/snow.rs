@@ -109,16 +109,17 @@ impl SnowSystem {
                 flake.sin_pos = (flake.sin_pos + 1) & (SINE_LENGTH - 1);
                 flake.y += flake.gravity + (delta_y as i64) * 256;
             }
+            if flake.x < 0 || flake.y < 0 {
+                continue;
+            }
             let screen_x = (flake.x >> 10) as usize;
             let screen_y = (flake.y >> 10) as usize;
+            if screen_y >= SCREEN_H as usize || screen_x >= SCREEN_W as usize {
+                continue;
+            }
             let offset = screen_x + screen_y * SCREEN_W as usize;
-            if offset + 1 < buffer.len()
-                && buffer[offset] >= BG_MIN
-                && buffer[offset + 1] >= BG_MIN
-                && buffer[offset] < BG_MAX
-                && buffer[offset + 1] < BG_MAX
-            {
-                if flake.style == 1 {
+            if buffer[offset] >= BG_MIN && buffer[offset] < BG_MAX {
+                if flake.style == 1 && offset + 1 < buffer.len() {
                     buffer[offset] = flake.c1 as u8;
                     if offset + 1 < buffer.len() {
                         buffer[offset + 1] = (flake.c1 >> 8) as u8;
