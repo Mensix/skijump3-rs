@@ -33,8 +33,8 @@ pub type ResourcesRef = Rc<Resources>;
 
 #[derive(Debug, Clone)]
 pub struct Store {
-    pub profiles: ProfileStore,
-    pub records: RecordStore,
+    pub profiles: RefCell<ProfileStore>,
+    pub records: RefCell<RecordStore>,
 }
 
 impl Default for Store {
@@ -46,10 +46,10 @@ impl Default for Store {
 impl Store {
     pub fn new(records: RecordStore) -> Self {
         Self {
-            profiles: ProfileStore::new(),
-            records,
+            profiles: RefCell::new(ProfileStore::new()),
+            records: RefCell::new(records),
         }
     }
 }
 
-pub type StoreRef = Rc<RefCell<Store>>;
+pub type StoreRef = Rc<Store>;

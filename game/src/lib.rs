@@ -29,7 +29,6 @@ use parsers::{
     AssetParser,
 };
 use route::RouteTarget;
-use std::cell::RefCell;
 use std::rc::Rc;
 use views::{
     HallOfFameView, HillRecordsView, JumpMenuView, MainMenuView, ProfilesView, WelcomeScreenView,
@@ -150,7 +149,7 @@ impl Game {
         let records = Self::load_records()?;
         let resources: ResourcesRef =
             Rc::new(Resources::new(font.clone(), langbase, player_names, hills));
-        let store: StoreRef = Rc::new(RefCell::new(Store::new(records)));
+        let store: StoreRef = Rc::new(Store::new(records));
         let router = Self::create_router(resources, pixels, store);
 
         Ok(Self {

@@ -88,9 +88,9 @@ impl ProfilesView {
     }
 
     fn entries(&self) -> usize {
-        let store = self.store.borrow();
-        let np = store.profiles.num_profiles();
-        if store.profiles.has_slot() {
+        let store = self.store.profiles.borrow();
+        let np = store.num_profiles();
+        if store.has_slot() {
             np + 1
         } else {
             np
@@ -107,11 +107,10 @@ impl ProfilesView {
     }
 
     fn unique_default_profile(&self) -> Profile {
-        let store = self.store.borrow();
+        let store = self.store.profiles.borrow();
         let mut profile = Profile::default();
         let mut counter = 2;
         while store
-            .profiles
             .profiles
             .iter()
             .any(|p| p.name == profile.name)
@@ -135,7 +134,7 @@ impl ProfilesView {
             | Mode::TextInput { profile, .. }
             | Mode::ColorSelect { profile, .. }
             | Mode::ReplaceSelect { profile, .. } => Some(profile),
-            _ => (self.selected < self.store.borrow().profiles.num_profiles())
+            _ => (self.selected < self.store.profiles.borrow().num_profiles())
                 .then_some(self.selected),
         }
     }
@@ -154,13 +153,13 @@ impl ProfilesView {
     }
 
     fn draw_list(&self, els: &mut Vec<Element>) {
-        let store = self.store.borrow();
-        let np = store.profiles.num_profiles();
+        let store = self.store.profiles.borrow();
+        let np = store.num_profiles();
 
-        for (i, profile) in store.profiles.profiles.iter().enumerate() {
+        for (i, profile) in store.profiles.iter().enumerate() {
             let y = Self::y_for(i + 1);
             els.push(Element::fillbox(10, y - 1, 21, 8, BG_ORDER));
-            if let Some(order_pos) = store.profiles.order_pos(i) {
+            if let Some(order_pos) = store.order_pos(i) {
                 els.push(Element::text_color(
                     format!("{}.", order_pos + 1),
                     18,
@@ -171,7 +170,7 @@ impl ProfilesView {
             els.push(Element::text_color(&profile.name, 40, y, FONT_NAME));
         }
 
-        if store.profiles.has_slot() {
+        if store.has_slot() {
             els.push(Element::text_color(
                 self.lstr(302, "*Create New Jumper*"),
                 40,
@@ -180,7 +179,7 @@ impl ProfilesView {
             ));
         }
 
-        let back_temp = if store.profiles.has_slot() {
+        let back_temp = if store.has_slot() {
             np + 3
         } else {
             np + 2
@@ -193,7 +192,7 @@ impl ProfilesView {
         ));
 
         if matches!(self.mode, Mode::List) {
-            let entries = if store.profiles.has_slot() {
+            let entries = if store.has_slot() {
                 np + 1
             } else {
                 np
@@ -208,8 +207,8 @@ impl ProfilesView {
     }
 
     fn draw_help(&self, els: &mut Vec<Element>, profile: Option<usize>) {
-        let store = self.store.borrow();
-        if store.profiles.num_profiles() >= 16 {
+        let store = self.store.profiles.borrow();
+        if store.num_profiles() >= 16 {
             return;
         }
 
@@ -217,7 +216,7 @@ impl ProfilesView {
         els.push(Element::FillArea { thing: 63 });
 
         if let Some(profile) = profile {
-            let in_order = store.profiles.order_pos(profile).is_some();
+            let in_order = store.order_pos(profile).is_some();
             els.push(Element::text_color(
                 self.lstr(322, "(Use arrows,"),
                 8,
@@ -302,8 +301,8 @@ impl ProfilesView {
     fn draw_profile(&self, els: &mut Vec<Element>, profile_index: usize, edit_phase: bool) {
         self.draw_empty_edit(els);
 
-        let store = self.store.borrow();
-        let profile = match store.profiles.profiles.get(profile_index) {
+        let store = self.store.profiles.borrow();
+        let profile = match store.profiles.get(profile_index) {
             Some(p) => p,
             None => return,
         };
@@ -364,16 +363,16 @@ impl ProfilesView {
 
     fn handle_list_enter(&mut self) -> Option<RouteTarget> {
         let entries = self.entries();
-        let np = self.store.borrow().profiles.num_profiles();
+        let np = self.store.profiles.borrow().num_profiles();
         if self.selected >= entries {
             return Some(RouteTarget::MainMenu);
         }
 
         if self.selected >= np {
             let profile = self.unique_default_profile();
-            let mut store = self.store.borrow_mut();
-            store.profiles.profiles.push(profile);
-            let profile_index = store.profiles.num_profiles() - 1;
+            let mut store = self.store.profiles.borrow_mut();
+            store.profiles.push(profile);
+            let profile_index = store.num_profiles() - 1;
             self.selected = profile_index;
             self.mode = Mode::Edit {
                 profile: profile_index,
@@ -384,8 +383,8 @@ impl ProfilesView {
 
         let in_order = self
             .store
-            .borrow()
             .profiles
+            .borrow()
             .order_pos(self.selected)
             .is_some();
         if in_order {
@@ -394,30 +393,30 @@ impl ProfilesView {
                 selected: 0,
             };
         } else {
-            self.store.borrow_mut().profiles.add_to_order(self.selected);
+            self.store.profiles.borrow_mut().add_to_order(self.selected);
         }
         None
     }
 
     fn handle_list_delete(&mut self) {
-        let np = self.store.borrow().profiles.num_profiles();
+        let np = self.store.profiles.borrow().num_profiles();
         if self.selected >= np {
             return;
         }
 
         if self
             .store
-            .borrow()
             .profiles
+            .borrow()
             .order_pos(self.selected)
             .is_some()
         {
             self.store
-                .borrow_mut()
                 .profiles
+                .borrow_mut()
                 .remove_from_order(self.selected);
         } else {
-            let name = self.store.borrow().profiles.profiles[self.selected]
+            let name = self.store.profiles.borrow().profiles[self.selected]
                 .name
                 .clone();
             self.mode = Mode::Question {
@@ -436,7 +435,7 @@ impl ProfilesView {
             0 => self.start_text_input(profile, TextField::Name),
             1 => self.start_text_input(profile, TextField::RealName),
             2 => {
-                let value = self.store.borrow().profiles.profiles[profile].suit_color;
+                let value = self.store.profiles.borrow().profiles[profile].suit_color;
                 let x = (172
                     + self
                         .resources
@@ -460,7 +459,7 @@ impl ProfilesView {
                 };
             }
             3 => {
-                let value = self.store.borrow().profiles.profiles[profile].ski_color;
+                let value = self.store.profiles.borrow().profiles[profile].ski_color;
                 let x = (172
                     + self
                         .resources
@@ -484,7 +483,7 @@ impl ProfilesView {
                 };
             }
             4 => {
-                let value = self.store.borrow().profiles.profiles[profile]
+                let value = self.store.profiles.borrow().profiles[profile]
                     .replace
                     .min(REPLACE_MAX);
                 let x = self.resources.font.string_width("Replace:") as i32 + 170;
@@ -516,20 +515,20 @@ impl ProfilesView {
             }
             5 => {
                 let style = {
-                    let mut store = self.store.borrow_mut();
-                    let p = &mut store.profiles.profiles[profile];
+                    let mut store = self.store.profiles.borrow_mut();
+                    let p = &mut store.profiles[profile];
                     p.coach_style += 1;
                     p.coach_style
                 };
                 let check = self.resources.langbase.lstr(361 + style * 40);
                 if check == "?" {
-                    let mut store = self.store.borrow_mut();
-                    store.profiles.profiles[profile].coach_style = 0;
+                    let mut store = self.store.profiles.borrow_mut();
+                    store.profiles[profile].coach_style = 0;
                 }
             }
             6 => {
-                let mut store = self.store.borrow_mut();
-                let profile = &mut store.profiles.profiles[profile];
+                let mut store = self.store.profiles.borrow_mut();
+                let profile = &mut store.profiles[profile];
                 profile.skip_quali = (profile.skip_quali + 1) % 3;
             }
             7 => {
@@ -547,8 +546,8 @@ impl ProfilesView {
     }
 
     fn start_text_input(&mut self, profile: usize, field: TextField) {
-        let store = self.store.borrow();
-        let profile_data = &store.profiles.profiles[profile];
+        let store = self.store.profiles.borrow();
+        let profile_data = &store.profiles[profile];
         let old = match field {
             TextField::Name => profile_data.name.clone(),
             TextField::RealName => profile_data.real_name.clone(),
@@ -595,8 +594,8 @@ impl ProfilesView {
         if field == TextField::Name {
             let duplicate = self
                 .store
-                .borrow()
                 .profiles
+                .borrow()
                 .profiles
                 .iter()
                 .enumerate()
@@ -607,10 +606,10 @@ impl ProfilesView {
             }
         }
 
-        let mut store = self.store.borrow_mut();
+        let mut store = self.store.profiles.borrow_mut();
         match field {
-            TextField::Name => store.profiles.profiles[profile].name = value,
-            TextField::RealName => store.profiles.profiles[profile].real_name = value,
+            TextField::Name => store.profiles[profile].name = value,
+            TextField::RealName => store.profiles[profile].real_name = value,
         }
         drop(store);
         self.mode = Mode::Edit {
@@ -625,20 +624,20 @@ impl ProfilesView {
     fn apply_question(&mut self, action: QuestionAction) {
         match action {
             QuestionAction::DeleteProfile(profile) => {
-                self.store.borrow_mut().profiles.remove_profile(profile);
-                let np = self.store.borrow().profiles.num_profiles();
+                self.store.profiles.borrow_mut().remove_profile(profile);
+                let np = self.store.profiles.borrow().num_profiles();
                 if self.selected >= np {
                     self.selected = np.saturating_sub(1);
                 }
                 self.mode = Mode::List;
             }
             QuestionAction::ResetProfile(profile) => {
-                let name = self.store.borrow().profiles.profiles[profile].name.clone();
+                let name = self.store.profiles.borrow().profiles[profile].name.clone();
                 let reset = Profile {
                     name,
                     ..Default::default()
                 };
-                self.store.borrow_mut().profiles.profiles[profile] = reset;
+                self.store.profiles.borrow_mut().profiles[profile] = reset;
                 self.mode = Mode::Edit {
                     profile,
                     selected: 7,
@@ -794,13 +793,13 @@ impl View<RouteTarget> for ProfilesView {
                 if let Some(action) = selector.handle_event(&event) {
                     pending = Some(match action {
                         ValueSelectorAction::Commit(value) => {
-                            let mut store = self.store.borrow_mut();
+                            let mut store = self.store.profiles.borrow_mut();
                             match field {
                                 ColorField::Suit => {
-                                    store.profiles.profiles[*profile].suit_color = value
+                                    store.profiles[*profile].suit_color = value
                                 }
                                 ColorField::Ski => {
-                                    store.profiles.profiles[*profile].ski_color = value
+                                    store.profiles[*profile].ski_color = value
                                 }
                             }
                             drop(store);
@@ -814,7 +813,7 @@ impl View<RouteTarget> for ProfilesView {
                 if let Some(action) = selector.handle_event(&event) {
                     match action {
                         ValueSelectorAction::Commit(value) => {
-                            self.store.borrow_mut().profiles.profiles[*profile].replace = value;
+                            self.store.profiles.borrow_mut().profiles[*profile].replace = value;
                             pending = Some(Pending::ReplaceCommit(*profile, value));
                         }
                         ValueSelectorAction::Cancel => {
@@ -897,8 +896,8 @@ impl View<RouteTarget> for ProfilesView {
 
     fn apply_palette(&self, palette: &mut Palette) {
         if let Some(profile) = self.active_profile() {
-            let store = self.store.borrow();
-            if let Some(p) = store.profiles.profiles.get(profile) {
+            let store = self.store.profiles.borrow();
+            if let Some(p) = store.profiles.get(profile) {
                 apply_suit_palette(palette, p.suit_color);
                 apply_ski_palette(palette, p.ski_color);
             }

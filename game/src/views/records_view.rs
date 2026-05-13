@@ -137,10 +137,10 @@ impl HallOfFameView {
             FONT_NEW,
         ));
 
-        let store = self.store.borrow();
+        let records = self.store.records.borrow();
         for temp in start..start + entries {
             yy += 8;
-            let Some(hi) = store.records.top(temp) else {
+            let Some(hi) = records.top(temp) else {
                 continue;
             };
             self.push_hiscore_row(&mut table, hi, temp - start + 1, yy, col, sortby);
@@ -196,7 +196,7 @@ impl HallOfFameView {
             FONT_DEFAULT,
         ));
 
-        let store = self.store.borrow();
+        let records = self.store.records.borrow();
         for temp in 1..=6 {
             yy += 18;
             table.push(Cell::left(
@@ -212,7 +212,7 @@ impl HallOfFameView {
             yy += 10;
 
             let name = lstr(&self.resources, 161, "Nobody");
-            let Some(hi) = store.records.top(temp + 35) else {
+            let Some(hi) = records.top(temp + 35) else {
                 table.push(Cell::left(name, col[1], yy, FONT_HELP));
                 continue;
             };
@@ -332,7 +332,7 @@ impl HillRecordsView {
             FONT_DEFAULT,
         ));
 
-        let store = self.store.borrow();
+        let records = self.store.records.borrow();
         let mut ahi_sum = 0i64;
         for aa in 1..=loop_count {
             let pascal_idx = aa + start;
@@ -340,8 +340,7 @@ impl HillRecordsView {
             let Some(hill) = self.resources.hills.hill(pascal_idx) else {
                 continue;
             };
-            let record = store
-                .records
+            let record = records
                 .hill_record(pascal_idx)
                 .cloned()
                 .unwrap_or_default();

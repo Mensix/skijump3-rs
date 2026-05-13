@@ -81,14 +81,12 @@ impl View<RouteTarget> for MainMenuView {
         content.extend(self.menu.elements());
 
         // Profile names (Pascal drawmainmenu)
-        let store = self.store.borrow();
-        let profiles = &store.profiles.profiles;
-        let order = &store.profiles.active_order;
-        for (i, &profile_idx) in order.iter().enumerate() {
-            if profile_idx >= profiles.len() {
+        let pb = self.store.profiles.borrow();
+        for (i, &profile_idx) in pb.active_order.iter().enumerate() {
+            if profile_idx >= pb.profiles.len() {
                 continue;
             }
-            let profile = &profiles[profile_idx];
+            let profile = &pb.profiles[profile_idx];
             let y = (i as i32) * 9 + 64;
             content.push(Element::text_color_right(format!("{}.", i + 1), 162, y, FONT_HELP));
             content.push(Element::text_color(&profile.name, 170, y, FONT_HELP));
