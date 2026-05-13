@@ -3,7 +3,7 @@ pub mod paint;
 mod router;
 mod text;
 
-pub use element::Element;
+pub use element::{Element, ImageRegion};
 pub use paint::PaintCtx;
 pub use router::{Event, Key, Router, View};
 pub use text::Font;

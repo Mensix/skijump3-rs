@@ -1,11 +1,12 @@
 use crate::components::menu::{Menu, MenuItem};
 use crate::palette_consts::*;
 use crate::route::RouteTarget;
-use crate::store::ResourcesRef;
+use crate::store::{ResourcesRef, StoreRef};
 use engine::ui::{Component, Element, Event, Key, View};
 
 pub struct PracticeView {
     resources: ResourcesRef,
+    store: StoreRef,
     menu: Menu,
     start: usize,
     total: usize,
@@ -31,7 +32,7 @@ impl PracticeView {
         }
     }
 
-    pub fn new(resources: ResourcesRef) -> Self {
+    pub fn new(resources: ResourcesRef, store: StoreRef) -> Self {
         let total = resources.hills.len();
         let page_n = total.min(20);
         let n = page_n + if total > 20 { 1 } else { 0 } + 1;
@@ -56,6 +57,7 @@ impl PracticeView {
             .with_labels(false)
             .with_box(false),
             resources,
+            store,
             start: 0,
             total,
         }
@@ -91,8 +93,11 @@ impl PracticeView {
             self.start = (self.start + 20) % self.total;
             self.menu = self.rebuild_menu();
             None
-        } else {
+        } else if sel == self.menu.item_count() - 1 {
             Some(RouteTarget::JumpMenu)
+        } else {
+            *self.store.selected_hill.borrow_mut() = self.start + sel + 1;
+            Some(RouteTarget::Jump)
         }
     }
 }

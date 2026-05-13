@@ -35,6 +35,7 @@ pub type ResourcesRef = Rc<Resources>;
 pub struct Store {
     pub profiles: RefCell<ProfileStore>,
     pub records: RefCell<RecordStore>,
+    pub selected_hill: RefCell<usize>,
 }
 
 impl Default for Store {
@@ -48,6 +49,7 @@ impl Store {
         Self {
             profiles: RefCell::new(ProfileStore::new()),
             records: RefCell::new(records),
+            selected_hill: RefCell::new(1),
         }
     }
 }
