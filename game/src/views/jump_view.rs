@@ -1,4 +1,5 @@
 use crate::data::hill_profile::HillTerrain;
+use crate::jump::animation::{inrun_body_anim, slope_ski_anim, takeoff_body_anim};
 use crate::palette_consts::*;
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
@@ -26,6 +27,8 @@ struct JumpState {
     sx: i32,
     sy: i32,
     frame: i32,
+    takeoff_counter: u8,
+    takeoff_phase: u8,
 }
 
 impl JumpState {
@@ -46,6 +49,8 @@ impl JumpState {
             sx: 0,
             sy: 0,
             frame: 0,
+            takeoff_counter: 0,
+            takeoff_phase: 0,
         }
     }
 
@@ -54,6 +59,12 @@ impl JumpState {
             self.phase = JumpPhase::Inrun;
             self.px = 37.0;
             self.frame = 0;
+        }
+    }
+
+    fn start_takeoff(&mut self) {
+        if self.phase == JumpPhase::Inrun && self.matka > -40.0 && self.takeoff_counter == 0 {
+            self.takeoff_counter = 1;
         }
     }
 
@@ -70,6 +81,11 @@ impl JumpState {
         self.y = terrain.profiili(self.x);
         self.px = (self.px * self.pxk).min(self.maxspeed);
 
+        if self.takeoff_counter > 0 {
+            self.takeoff_counter = self.takeoff_counter.saturating_add(1);
+            self.px += 0.21;
+        }
+
         if self.x >= 160 && self.x < 864 {
             self.sx += self.x - fx;
         }
@@ -80,17 +96,25 @@ impl JumpState {
         self.sy = self.sy.min(312);
     }
 
-    fn jumper_anim(&self) -> u16 {
+    fn anims(&mut self, terrain: &HillTerrain) -> (u16, u16) {
         match self.phase {
-            JumpPhase::OnBar => 164,
-            JumpPhase::Inrun => 101,
+            JumpPhase::OnBar => (163, slope_ski_anim(terrain.maki_kulma(self.x))),
+            JumpPhase::Inrun => {
+                let ski = slope_ski_anim(terrain.maki_kulma(self.x));
+                if self.takeoff_counter > 0 {
+                    (takeoff_body_anim(&mut self.takeoff_phase), ski)
+                } else {
+                    (inrun_body_anim(ski), ski)
+                }
+            }
         }
     }
 
     fn status(&self) -> &'static str {
         match self.phase {
             JumpPhase::OnBar => "ON BAR - ENTER/RIGHT TO START",
-            JumpPhase::Inrun => "INRUN",
+            JumpPhase::Inrun if self.takeoff_counter > 0 => "TAKEOFF",
+            JumpPhase::Inrun => "INRUN - UP TO TAKE OFF",
         }
     }
 }
@@ -186,8 +210,9 @@ impl View<RouteTarget> for JumpView {
 
         let jumper_x = state.x - state.sx;
         let jumper_y = state.y - state.sy;
-        els.push(Element::sprite(state.jumper_anim(), jumper_x, jumper_y - 2));
-        els.push(Element::sprite(71, jumper_x, jumper_y - 1));
+        let (body_anim, ski_anim) = state.anims(terrain);
+        els.push(Element::sprite(body_anim, jumper_x, jumper_y - 2));
+        els.push(Element::sprite(ski_anim, jumper_x, jumper_y - 1));
         els.push(Element::text_color("ESC: HILLS", 8, 188, FONT_HELP));
         els
     }
@@ -198,6 +223,12 @@ impl View<RouteTarget> for JumpView {
             Event::Keyboard(Key::Enter | Key::Right) => {
                 if let Some(state) = self.state.get_mut() {
                     state.start();
+                }
+                None
+            }
+            Event::Keyboard(Key::Up) => {
+                if let Some(state) = self.state.get_mut() {
+                    state.start_takeoff();
                 }
                 None
             }

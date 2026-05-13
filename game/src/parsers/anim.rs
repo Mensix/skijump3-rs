@@ -60,32 +60,29 @@ impl AssetParser<Vec<SpriteData>> for AnimParser {
                 center_x,
                 center_y,
             });
-        }
 
-        let temp_count = sprites.len();
-        if temp_count >= 83 {
-            let mut extra = Vec::new();
-            let end = 84.min(sprites.len());
-            for src in &sprites[72..end] {
-                let mut flipped = vec![0u8; src.data.len()];
-                let w = src.width as usize;
-                let h = src.height as usize;
-                for yy in 0..h {
-                    for xx in 0..w {
-                        let src_idx = yy * w + xx;
-                        let dst_idx = (h - 1 - yy) * w + xx;
-                        flipped[dst_idx] = src.data[src_idx];
+            if sprites.len() == 83 {
+                let sources = sprites[71..83].to_vec();
+                for src in &sources {
+                    let mut flipped = vec![0u8; src.data.len()];
+                    let w = src.width as usize;
+                    let h = src.height as usize;
+                    for yy in 0..h {
+                        for xx in 0..w {
+                            let src_idx = yy * w + xx;
+                            let dst_idx = (h - 1 - yy) * w + xx;
+                            flipped[dst_idx] = src.data[src_idx];
+                        }
                     }
+                    sprites.push(SpriteData {
+                        data: flipped,
+                        width: src.width,
+                        height: src.height,
+                        center_x: src.center_x,
+                        center_y: (h as i8 - 1) - src.center_y,
+                    });
                 }
-                extra.push(SpriteData {
-                    data: flipped,
-                    width: src.width,
-                    height: src.height,
-                    center_x: src.center_x,
-                    center_y: (h as i8 - 1) - src.center_y,
-                });
             }
-            sprites.extend(extra);
         }
 
         Ok(sprites)

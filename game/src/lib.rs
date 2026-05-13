@@ -2,6 +2,7 @@ pub extern crate engine;
 
 pub mod components;
 pub mod data;
+pub mod jump;
 pub mod loaders;
 pub mod palette_consts;
 pub mod parsers;
