@@ -903,7 +903,7 @@ impl View<RouteTarget> for JumpView {
                 }
             }
             let label56 = self.resources.langbase.lstr(56);
-            let label_w = self.resources.font.string_width(&label56) as i32;
+            let label_w = self.resources.font.string_width(label56) as i32;
             els.push(Element::text_color(
                 format!(
                     "{} {} (+/-)",
@@ -1189,13 +1189,9 @@ impl View<RouteTarget> for JumpView {
                     state.phase,
                     JumpPhase::Info | JumpPhase::OnBar | JumpPhase::Inrun | JumpPhase::Flight
                 );
-                self.snow.borrow_mut().update(
-                    framebuffer,
-                    delta_x as i32,
-                    delta_y as i32,
-                    wind,
-                    draw,
-                );
+                self.snow
+                    .borrow_mut()
+                    .update(framebuffer, delta_x, delta_y, wind, draw);
             }
         }
     }

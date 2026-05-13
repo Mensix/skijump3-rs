@@ -27,6 +27,12 @@ pub struct SnowSystem {
     sleet: bool,
 }
 
+impl Default for SnowSystem {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SnowSystem {
     pub fn new() -> Self {
         let mut system = Self {
