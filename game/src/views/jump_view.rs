@@ -1154,5 +1154,8 @@ impl View<RouteTarget> for JumpView {
         if let Ok(terrain) = &self.terrain {
             terrain.apply_hill_palette(palette);
         }
+        // Pascal MuutaLogo(6) — green traffic light (overrides palette 253,254)
+        palette.set(253, [10, 54, 10]);
+        palette.set(254, [0, 47, 0]);
     }
 }

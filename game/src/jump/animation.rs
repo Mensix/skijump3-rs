@@ -128,6 +128,10 @@ pub fn landing_body_anim(mut ski_anim: u16, landing_style: u8) -> u16 {
 }
 
 pub fn post_landing_body_anim(counter: i32, start_anim: i32, landing_style: u8, grade: i32) -> u16 {
+    // Pascal: if (laskuri<7) and (landing>0) then JumperAnim:=113+landing;
+    if counter < 7 && landing_style > 0 {
+        return rust_sprite(113 + landing_style as u16);
+    }
     if counter <= start_anim {
         return landing_body_anim(0, landing_style);
     }
