@@ -2,17 +2,15 @@ use crate::components::layout::{self, MainLayout};
 use crate::components::menu::{Menu, MenuItem};
 use crate::palette_consts::*;
 use crate::route::RouteTarget;
-use crate::store::StoreRef;
 use engine::ui::{Component, Element, Event, View};
 
 pub struct MainMenuView {
     menu: Menu,
     layout: MainLayout,
-    store: StoreRef,
 }
 
 impl MainMenuView {
-    pub fn new(layout: MainLayout, store: StoreRef) -> Self {
+    pub fn new(layout: MainLayout) -> Self {
         let items = vec![
             MenuItem {
                 num: 1,
@@ -62,7 +60,6 @@ impl MainMenuView {
                 FONT_DEFAULT,
             ),
             layout,
-            store,
         }
     }
 }
@@ -79,38 +76,6 @@ impl View<RouteTarget> for MainMenuView {
             BG_ERASE,
         ));
         content.extend(self.menu.elements());
-
-        // Profile names (Pascal drawmainmenu)
-        let pb = self.store.profiles.borrow();
-        for (i, &profile_idx) in pb.active_order.iter().enumerate() {
-            if profile_idx >= pb.profiles.len() {
-                continue;
-            }
-            let profile = &pb.profiles[profile_idx];
-            let y = (i as i32) * 9 + 64;
-            content.push(Element::text_color_right(format!("{}.", i + 1), 162, y, FONT_HELP));
-            content.push(Element::text_color(&profile.name, 170, y, FONT_HELP));
-        }
-
-        // Registered version text (Pascal newregtext + regendtext)
-        content.push(Element::fillbox(128, 155, 185, 1, 9));
-        content.push(Element::text_color(
-            format!(
-                "{} {}",
-                self.layout.langbase.lstr(35),
-                self.layout.langbase.lstr(36)
-            ),
-            132,
-            163,
-            FONT_DEFAULT,
-        ));
-        content.push(Element::fillbox(132, 175, 177, 22, 248));
-        content.push(Element::text_color(
-            "EVERYONE - THANKS FOR THE SUPPORT!",
-            140,
-            177,
-            FONT_NEW,
-        ));
 
         self.layout.wrap(content)
     }

@@ -205,6 +205,7 @@ impl Game {
             Rc::clone(&resources.langbase),
             VERSION.to_string(),
             background,
+            store.clone(),
         );
         Router::new(
             RouteTarget::Welcome,
@@ -215,8 +216,7 @@ impl Game {
             vec![
                 (RouteTarget::MainMenu, {
                     let l = layout.clone();
-                    let s = store.clone();
-                    Box::new(move || Box::new(MainMenuView::new(l.clone(), s.clone())))
+                    Box::new(move || Box::new(MainMenuView::new(l.clone())))
                 }),
                 (RouteTarget::JumpMenu, {
                     let l = layout.clone();
@@ -238,18 +238,16 @@ impl Game {
                 }),
                 (RouteTarget::HillRecords, {
                     let r = resources.clone();
-                    let s = store.clone();
+                    let s = store;
                     Box::new(move || Box::new(HillRecordsView::new(r.clone(), s.clone())))
                 }),
                 (RouteTarget::OptionsMenu, {
                     let l = layout.clone();
-                    let s = store.clone();
-                    Box::new(move || Box::new(MainMenuView::new(l.clone(), s.clone())))
+                    Box::new(move || Box::new(MainMenuView::new(l.clone())))
                 }),
                 (RouteTarget::Quit, {
                     let l = layout;
-                    let s = store;
-                    Box::new(move || Box::new(MainMenuView::new(l.clone(), s.clone())))
+                    Box::new(move || Box::new(MainMenuView::new(l.clone())))
                 }),
                 (RouteTarget::Welcome, {
                     let r = resources;
