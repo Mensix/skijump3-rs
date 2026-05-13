@@ -388,6 +388,10 @@ impl JumpState {
             self.distance = self.distance(terrain);
             if let Some(rng) = rng.as_mut() {
                 self.prepare_landing(terrain, rng);
+                self.phase = JumpPhase::Landing;
+                self.landing_counter = 0;
+                self.tick_landing(terrain, rng);
+                return;
             }
             self.phase = JumpPhase::Landing;
             self.landing_counter = 0;
