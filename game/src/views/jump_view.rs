@@ -1,7 +1,7 @@
 use crate::data::hill_profile::HillTerrain;
 use crate::jump::animation::{
-    crash_risk, flight_body_anim, flight_ski_anim, inrun_body_anim, landing_body_anim,
-    slope_ski_anim, takeoff_body_anim,
+    crash_risk, fall_body_anim, flight_body_anim, flight_ski_anim, inrun_body_anim,
+    landing_body_anim, post_landing_body_anim, slope_ski_anim, takeoff_body_anim,
 };
 use crate::palette_consts::*;
 use crate::pascal_random::PascalRandom;
@@ -92,6 +92,7 @@ struct JumpState {
     landing_counter: i32,
     fall_type: u8,
     grade: i32,
+    start_anim: i32,
     skis_stuck: bool,
     detached_matka: f64,
     detached_vertical_pos: f64,
@@ -151,6 +152,7 @@ impl JumpState {
             landing_counter: 0,
             fall_type: 0,
             grade: 0,
+            start_anim: 100,
             skis_stuck: false,
             detached_matka: matka,
             detached_vertical_pos: f64::from(y),
@@ -389,9 +391,6 @@ impl JumpState {
             }
         }
 
-        if self.fall_type == 0 && self.landing_counter > 120 {
-            self.phase = JumpPhase::Result;
-        }
         if self.x > 1050 {
             self.phase = JumpPhase::Result;
         }
@@ -431,6 +430,7 @@ impl JumpState {
             self.grade = i32::from(self.fall_type);
         }
         self.skis_stuck = rng.random_i32(2) != 0;
+        self.start_anim = if self.landing_style == 2 { 50 } else { 100 };
         self.detached_matka = self.matka;
         self.detached_vertical_pos = self.vertical_pos;
         self.detached_px = self.px;
@@ -532,6 +532,40 @@ impl JumpState {
         self.landing_requested = Some(style);
     }
 
+    fn landing_body_anim_for_state(&self, terrain: &HillTerrain) -> u16 {
+        let detached_x = pascal_round(self.detached_matka + self.qx);
+        let detached_ski = slope_ski_anim(terrain.maki_kulma(detached_x));
+        if self.fall_type > 0 {
+            fall_body_anim(
+                self.fall_type,
+                self.landing_counter,
+                self.body_angle,
+                detached_ski,
+                self.landing_style,
+            )
+        } else if self.phase == JumpPhase::Landing {
+            post_landing_body_anim(
+                self.landing_counter,
+                self.start_anim,
+                self.landing_style,
+                self.grade,
+            )
+        } else {
+            landing_body_anim(detached_ski, self.landing_style)
+        }
+    }
+
+    fn body_position(&self) -> (i32, i32) {
+        if self.phase == JumpPhase::Landing {
+            (
+                pascal_round(self.detached_matka + self.qx),
+                pascal_round(self.detached_vertical_pos),
+            )
+        } else {
+            (self.x, self.y)
+        }
+    }
+
     fn anims(&mut self, terrain: &HillTerrain) -> (u16, u16) {
         match self.phase {
             JumpPhase::Info => (163, slope_ski_anim(terrain.maki_kulma(self.x))),
@@ -562,7 +596,7 @@ impl JumpState {
             }
             JumpPhase::Landing | JumpPhase::Result => {
                 let ski = slope_ski_anim(terrain.maki_kulma(self.x));
-                (landing_body_anim(ski, self.landing_style), ski)
+                (self.landing_body_anim_for_state(terrain), ski)
             }
         }
     }
@@ -798,13 +832,18 @@ impl View<RouteTarget> for JumpView {
             ));
         }
 
+        let (body_x, body_y) = state.body_position();
         let jumper_x = state.x - state.sx;
         let jumper_y = state.y - state.sy;
         if state.frame < 700 && state.phase != JumpPhase::Result {
             self.wind_elements(&mut els, wind.value);
         }
         let (body_anim, ski_anim) = state.anims(terrain);
-        els.push(Element::sprite(body_anim, jumper_x, jumper_y - 2));
+        els.push(Element::sprite(
+            body_anim,
+            body_x - state.sx,
+            body_y - state.sy - 2,
+        ));
         els.push(Element::sprite(ski_anim, jumper_x, jumper_y - 1));
         els.push(Element::text_color("ESC: HILLS", 8, 188, FONT_HELP));
         els
