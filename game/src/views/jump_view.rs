@@ -153,6 +153,12 @@ impl JumpState {
         }
         self.takeoff_requested = false;
 
+        if self.frame < 14 {
+            self.px = 0.0;
+        } else if self.frame < 28 {
+            self.px = 37.0;
+        }
+
         self.px = (self.px * self.pxk).min(self.maxspeed);
 
         if self.takeoff_counter > 0 {
@@ -218,10 +224,6 @@ impl JumpState {
 
         self.update_ski_swing();
 
-        if self.landing_style == 0 && self.matka > 3.0 && self.height < 4 {
-            self.landing_style = 2;
-        }
-
         if self.first_flight_frame {
             self.body_angle = 158;
             self.first_flight_frame = false;
@@ -240,13 +242,10 @@ impl JumpState {
         self.height = (terrain.profiili(self.x) - self.y).max(0);
         self.delta_height[(self.frame as usize) % 3] = prev_height - self.height;
 
-        if self.height == 0 && self.matka > 20.0 {
+        if self.height == 0 {
             self.distance = self.distance(terrain);
             self.phase = JumpPhase::Landing;
             self.landing_counter = 0;
-            if self.landing_style == 0 {
-                self.landing_style = 2;
-            }
         }
 
         self.update_camera(fx, fy);
