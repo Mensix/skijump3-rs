@@ -8,9 +8,13 @@ pub const HILL_PROFILE_LEN: usize = 1300;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HillTerrain {
-    pub pixels: Rc<[u8]>,
+    front_pixels: Rc<[u8]>,
+    back_pixels: Rc<[u8]>,
     pub width: u16,
     pub height: u16,
+    back_width: u16,
+    back_height: u16,
+    line_lengths: Vec<usize>,
     profile_y: Vec<i32>,
     pub keula_x: i32,
 }
@@ -36,27 +40,92 @@ mod tests {
 
 impl HillTerrain {
     pub fn load(info: &HillInfo) -> Result<Self, String> {
-        let data = AssetStore::read(&format!("FRONT{}.PCX", info.front_index))
+        let front_data = AssetStore::read(&format!("FRONT{}.PCX", info.front_index))
             .map_err(|e| e.to_string())?;
-        let pcx = PcxParser::parse(&data).map_err(|e| e.to_string())?;
-        Ok(Self::from_front_pcx(pcx, info.kr, info.pk()))
+        let back_data =
+            AssetStore::read(&format!("BACK{}.PCX", info.back_index)).map_err(|e| e.to_string())?;
+        let front = PcxParser::parse(&front_data).map_err(|e| e.to_string())?;
+        let mut back = PcxParser::parse(&back_data).map_err(|e| e.to_string())?;
+        if info.back_mirror != 0 {
+            Self::mirror_pixels(&mut back.pixels, back.width as usize, back.height as usize);
+        }
+        Ok(Self::from_pcxs(front, back, info.kr, info.pk()))
     }
 
     pub fn from_front_pcx(pcx: DecodedPcx, kr: i64, pk: f64) -> Self {
-        let width = pcx.width as usize;
-        let height = pcx.height as usize;
-        let mut pixels = pcx.pixels;
+        Self::from_pcxs(pcx.clone(), pcx, kr, pk)
+    }
+
+    pub fn from_pcxs(front: DecodedPcx, back: DecodedPcx, kr: i64, pk: f64) -> Self {
+        let width = front.width as usize;
+        let height = front.height as usize;
+        let mut pixels = front.pixels;
         let line_lengths = Self::line_lengths(&pixels, width, height);
         let profile_y = Self::profile_y(&line_lengths, width, height);
         let keula_x = Self::keula_x(&profile_y, width);
         Self::draw_distance_markers(&mut pixels, width, &profile_y, keula_x, kr, pk);
 
         Self {
-            pixels: pixels.into(),
-            width: pcx.width,
-            height: pcx.height,
+            front_pixels: pixels.into(),
+            back_pixels: back.pixels.into(),
+            width: front.width,
+            height: front.height,
+            back_width: back.width,
+            back_height: back.height,
+            line_lengths,
             profile_y,
             keula_x,
+        }
+    }
+
+    pub fn viewport_pixels(&self, scroll_x: i32, scroll_y: i32, w: u32, h: u32) -> Rc<[u8]> {
+        let mut out = vec![0; w as usize * h as usize];
+        for dy in 0..h as i32 {
+            let front_y = scroll_y + dy;
+            let back_y = scroll_y / 2 + dy;
+            for dx in 0..w as i32 {
+                let front_x = scroll_x + dx;
+                let back_x = scroll_x / 2 + dx;
+                let pixel = if self.is_front_pixel(front_x, front_y) {
+                    self.front_pixel(front_x, front_y)
+                } else {
+                    self.back_pixel(back_x, back_y)
+                };
+                out[dy as usize * w as usize + dx as usize] = pixel;
+            }
+        }
+        out.into()
+    }
+
+    fn is_front_pixel(&self, x: i32, y: i32) -> bool {
+        if x < 0 || y < 0 || x >= self.width as i32 || y >= self.height as i32 {
+            return false;
+        }
+        (x as usize)
+            < self
+                .line_lengths
+                .get(y as usize)
+                .copied()
+                .unwrap_or_default()
+    }
+
+    fn front_pixel(&self, x: i32, y: i32) -> u8 {
+        let idx = y as usize * self.width as usize + x as usize;
+        self.front_pixels.get(idx).copied().unwrap_or_default()
+    }
+
+    fn back_pixel(&self, x: i32, y: i32) -> u8 {
+        if x < 0 || y < 0 || x >= self.back_width as i32 || y >= self.back_height as i32 {
+            return 0;
+        }
+        let idx = y as usize * self.back_width as usize + x as usize;
+        self.back_pixels.get(idx).copied().unwrap_or_default()
+    }
+
+    fn mirror_pixels(pixels: &mut [u8], width: usize, height: usize) {
+        for y in 0..height {
+            let row = &mut pixels[y * width..(y + 1) * width];
+            row.reverse();
         }
     }
 
