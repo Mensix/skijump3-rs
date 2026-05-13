@@ -1,5 +1,8 @@
 use crate::data::hill_profile::HillTerrain;
-use crate::jump::animation::{inrun_body_anim, slope_ski_anim, takeoff_body_anim};
+use crate::jump::animation::{
+    flight_body_anim, flight_ski_anim, inrun_body_anim, landing_body_anim, slope_ski_anim,
+    takeoff_body_anim,
+};
 use crate::palette_consts::*;
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
@@ -12,6 +15,9 @@ use std::rc::Rc;
 enum JumpPhase {
     OnBar,
     Inrun,
+    Flight,
+    Landing,
+    Result,
 }
 
 #[derive(Debug, Clone)]
@@ -21,7 +27,19 @@ struct JumpState {
     px: f64,
     pxk: f64,
     maxspeed: f64,
+    distance_factor: f64,
     qx: f64,
+    ramp_y: i32,
+    vertical_pos: f64,
+    vertical_speed: f64,
+    flight_time: f64,
+    lift: f64,
+    body_angle: i32,
+    ski_angle: i32,
+    landing_style: u8,
+    height: i32,
+    distance: i32,
+    landing_counter: i32,
     x: i32,
     y: i32,
     sx: i32,
@@ -32,18 +50,31 @@ struct JumpState {
 }
 
 impl JumpState {
-    fn new(terrain: &HillTerrain, maxspeed: f64) -> Self {
+    fn new(terrain: &HillTerrain, maxspeed: f64, distance_factor: f64, lift: f64) -> Self {
         let matka = -f64::from(terrain.keula_x) + 10.0;
         let qx = f64::from(terrain.keula_x) + 0.5;
         let x = (matka + qx).round() as i32;
         let y = terrain.profiili(x);
+        let ramp_y = terrain.profiili(terrain.keula_x);
         Self {
             phase: JumpPhase::OnBar,
             matka,
             px: 0.0,
             pxk: 1.016,
             maxspeed,
+            distance_factor,
             qx,
+            ramp_y,
+            vertical_pos: f64::from(y),
+            vertical_speed: 0.0,
+            flight_time: 0.0,
+            lift,
+            body_angle: 0,
+            ski_angle: 0,
+            landing_style: 0,
+            height: 0,
+            distance: 0,
+            landing_counter: 0,
             x,
             y,
             sx: 0,
@@ -63,29 +94,122 @@ impl JumpState {
     }
 
     fn start_takeoff(&mut self) {
-        if self.phase == JumpPhase::Inrun && self.matka > -40.0 && self.takeoff_counter == 0 {
+        if self.phase == JumpPhase::Inrun
+            && self.matka > -40.0
+            && self.matka < 0.0
+            && self.takeoff_counter == 0
+        {
             self.takeoff_counter = 1;
         }
     }
 
     fn tick(&mut self, terrain: &HillTerrain) {
         self.frame += 1;
-        if self.phase != JumpPhase::Inrun {
-            return;
+        match self.phase {
+            JumpPhase::Inrun => self.tick_inrun(terrain),
+            JumpPhase::Flight => self.tick_flight(terrain),
+            JumpPhase::Landing => self.tick_landing(terrain),
+            JumpPhase::OnBar | JumpPhase::Result => {}
         }
+    }
 
+    fn tick_inrun(&mut self, terrain: &HillTerrain) {
         let fx = self.x;
         let fy = self.y;
         self.matka += self.px * 0.01;
         self.x = (self.matka + self.qx).round() as i32;
         self.y = terrain.profiili(self.x);
+        self.vertical_pos = f64::from(self.y);
         self.px = (self.px * self.pxk).min(self.maxspeed);
 
         if self.takeoff_counter > 0 {
             self.takeoff_counter = self.takeoff_counter.saturating_add(1);
             self.px += 0.21;
+            self.vertical_speed += 1.21;
+            self.body_angle += 12;
+            if self.takeoff_counter > 16 {
+                if self.takeoff_counter == 17 {
+                    self.lift += 0.023;
+                }
+                self.lift += 0.013;
+                self.vertical_speed -= 1.0;
+                self.body_angle = 158;
+            }
         }
 
+        if self.matka >= 0.0 {
+            if self.takeoff_counter == 0 {
+                self.distance = 0;
+                self.phase = JumpPhase::Result;
+            } else {
+                if self.body_angle == 0 {
+                    self.body_angle = 158;
+                }
+                self.phase = JumpPhase::Flight;
+            }
+        }
+
+        self.update_camera(fx, fy);
+    }
+
+    fn tick_flight(&mut self, terrain: &HillTerrain) {
+        let fx = self.x;
+        let fy = self.y;
+
+        self.matka += self.px * 0.01;
+        self.x = (self.matka + self.qx).round() as i32;
+
+        if self.body_angle < 50 {
+            self.lift += 0.0001 - f64::from(self.body_angle - 50) / 18_000.0;
+        }
+        self.lift -= (1.0 - f64::from(self.body_angle) / 900.0) / 1875.0;
+        self.px -= (f64::from(self.body_angle) / 900.0) / 20.0;
+        self.px += (245.0_f64.sqrt() - 16.0) / 400.0;
+        self.flight_time += 0.01;
+        self.lift = self.lift.max(0.105);
+
+        if self.landing_style > 0 && self.body_angle < 600 {
+            self.body_angle += 9 + (i32::from(self.landing_style) - 1) * 5;
+            if self.lift < 1.0 {
+                self.lift += 0.003;
+            }
+        }
+
+        self.vertical_pos += (self.flight_time * self.flight_time * self.lift)
+            - ((self.vertical_speed - 8.0) / 100.0);
+        self.y = self.vertical_pos.round() as i32;
+        self.height = (terrain.profiili(self.x) - self.y).max(0);
+
+        if self.height == 0 && self.matka > 20.0 {
+            self.distance = self.distance(terrain);
+            self.phase = JumpPhase::Landing;
+            self.landing_counter = 0;
+            if self.landing_style == 0 {
+                self.landing_style = 2;
+            }
+        }
+
+        self.update_camera(fx, fy);
+    }
+
+    fn tick_landing(&mut self, terrain: &HillTerrain) {
+        let fx = self.x;
+        let fy = self.y;
+
+        self.landing_counter += 1;
+        self.matka += self.px * 0.008;
+        self.x = (self.matka + self.qx).round() as i32;
+        self.y = terrain.profiili(self.x);
+        self.vertical_pos = f64::from(self.y);
+
+        if self.landing_counter > 120 {
+            self.phase = JumpPhase::Result;
+        }
+
+        self.update_camera(fx, fy);
+    }
+
+    fn update_camera(&mut self, fx: i32, fy: i32) {
         if self.x >= 160 && self.x < 864 {
             self.sx += self.x - fx;
         }
@@ -94,6 +218,33 @@ impl JumpState {
         }
         self.sx = self.sx.min(704);
         self.sy = self.sy.min(312);
+    }
+
+    fn distance(&self, _terrain: &HillTerrain) -> i32 {
+        let vertical_delta = self.vertical_pos - f64::from(self.ramp_y);
+        (((self.matka * self.matka + vertical_delta * vertical_delta).sqrt()
+            * self.distance_factor
+            * 0.5)
+            .round() as i32)
+            * 5
+    }
+
+    fn lean_forward(&mut self) {
+        if self.phase == JumpPhase::Flight && self.landing_style == 0 && self.body_angle > 0 {
+            self.body_angle -= (f64::from(self.body_angle) / 5.0).round() as i32;
+        }
+    }
+
+    fn lean_back(&mut self) {
+        if self.phase == JumpPhase::Flight && self.body_angle <= 600 {
+            self.body_angle += (f64::from(self.body_angle) / 4.0).round() as i32;
+        }
+    }
+
+    fn set_landing(&mut self, style: u8) {
+        if self.phase == JumpPhase::Flight {
+            self.landing_style = style;
+        }
     }
 
     fn anims(&mut self, terrain: &HillTerrain) -> (u16, u16) {
@@ -107,6 +258,18 @@ impl JumpState {
                     (inrun_body_anim(ski), ski)
                 }
             }
+            JumpPhase::Flight => {
+                let body = if self.takeoff_counter > 0 && self.takeoff_phase < 25 {
+                    takeoff_body_anim(&mut self.takeoff_phase)
+                } else {
+                    flight_body_anim(self.body_angle)
+                };
+                (body, flight_ski_anim(self.ski_angle))
+            }
+            JumpPhase::Landing | JumpPhase::Result => {
+                let ski = slope_ski_anim(terrain.maki_kulma(self.x));
+                (landing_body_anim(ski, self.landing_style), ski)
+            }
         }
     }
 
@@ -115,6 +278,9 @@ impl JumpState {
             JumpPhase::OnBar => "ON BAR - ENTER/RIGHT TO START",
             JumpPhase::Inrun if self.takeoff_counter > 0 => "TAKEOFF",
             JumpPhase::Inrun => "INRUN - UP TO TAKE OFF",
+            JumpPhase::Flight => "FLIGHT - LEFT/RIGHT, T/R LANDING",
+            JumpPhase::Landing => "LANDING / OUTRUN",
+            JumpPhase::Result => "RESULT - ENTER FOR HILLS",
         }
     }
 }
@@ -134,7 +300,12 @@ impl JumpView {
             .ok_or_else(|| format!("Hill {} not found", hill_idx))
             .and_then(HillTerrain::load);
         let state = match (&terrain, hill) {
-            (Ok(terrain), Some(hill)) => Some(JumpState::new(terrain, hill.vx_final as f64)),
+            (Ok(terrain), Some(hill)) => Some(JumpState::new(
+                terrain,
+                hill.vx_final as f64,
+                hill.pk(),
+                hill.pl_save(),
+            )),
             _ => None,
         };
 
@@ -207,6 +378,21 @@ impl View<RouteTarget> for JumpView {
         ));
 
         els.push(Element::text_color(state.status(), 8, 38, FONT_HELP));
+        if state.phase == JumpPhase::Result {
+            els.push(Element::text_color(
+                format!("DISTANCE {:.1}m", f64::from(state.distance) / 10.0),
+                8,
+                50,
+                FONT_DEFAULT,
+            ));
+        } else if state.phase == JumpPhase::Flight {
+            els.push(Element::text_color(
+                format!("ANGLE {} HEIGHT {}", state.body_angle, state.height),
+                8,
+                50,
+                FONT_HELP,
+            ));
+        }
 
         let jumper_x = state.x - state.sx;
         let jumper_y = state.y - state.sy;
@@ -220,15 +406,50 @@ impl View<RouteTarget> for JumpView {
     fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {
         match event {
             Event::Keyboard(Key::Escape) => Some(RouteTarget::Practice),
-            Event::Keyboard(Key::Enter | Key::Right) => {
+            Event::Keyboard(Key::Enter) => {
                 if let Some(state) = self.state.get_mut() {
+                    if state.phase == JumpPhase::Result {
+                        return Some(RouteTarget::Practice);
+                    }
+                    if state.phase == JumpPhase::Landing {
+                        state.phase = JumpPhase::Result;
+                        return None;
+                    }
                     state.start();
+                }
+                None
+            }
+            Event::Keyboard(Key::Right) => {
+                if let Some(state) = self.state.get_mut() {
+                    if state.phase == JumpPhase::OnBar {
+                        state.start();
+                    } else {
+                        state.lean_forward();
+                    }
+                }
+                None
+            }
+            Event::Keyboard(Key::Left) => {
+                if let Some(state) = self.state.get_mut() {
+                    state.lean_back();
                 }
                 None
             }
             Event::Keyboard(Key::Up) => {
                 if let Some(state) = self.state.get_mut() {
                     state.start_takeoff();
+                }
+                None
+            }
+            Event::Keyboard(Key::Char('t') | Key::Char('T')) => {
+                if let Some(state) = self.state.get_mut() {
+                    state.set_landing(1);
+                }
+                None
+            }
+            Event::Keyboard(Key::Char('r') | Key::Char('R')) => {
+                if let Some(state) = self.state.get_mut() {
+                    state.set_landing(2);
                 }
                 None
             }
