@@ -133,6 +133,16 @@ mod tests {
     }
 
     #[test]
+    fn verify_fpc_longint_overload_three_values() {
+        let mut rng = PascalRandom::new(0);
+        assert_eq!(rng.random_i32(180), 98);
+        assert_eq!(rng.random_i32(120), 71);
+        assert_eq!(rng.random_i32(142), 101);
+        assert_eq!(rng.random_i32(50), 42);
+        assert_eq!(rng.random_i32(2), 1);
+    }
+
+    #[test]
     fn matches_fpc_random_float_for_seed_one() {
         let mut rng = PascalRandom::new(1);
         let actual: Vec<f64> = (0..5).map(|_| rng.random_f64()).collect();

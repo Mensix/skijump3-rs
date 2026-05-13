@@ -308,6 +308,7 @@ impl JumpState {
 
         if let Some(rng) = rng.as_deref_mut() {
             if rng.random_i32(30_000) < wind.windy + 10 + wind.strength {
+                self.frame = 0;
                 if rng.random_i32(2) == 1 {
                     self.style_base -= 5;
                 }
@@ -326,18 +327,18 @@ impl JumpState {
 
         self.lift = self.lift.max(0.105);
 
+        self.vertical_pos += (self.flight_time * self.flight_time * self.lift)
+            - ((self.vertical_speed - 8.0) / 100.0);
+        self.y = pascal_round(self.vertical_pos);
+
+        self.update_ski_swing(&mut rng);
+
         if self.landing_style > 0 && self.body_angle < 600 {
             self.body_angle += 9 + (i32::from(self.landing_style) - 1) * 5;
             if self.lift < 1.0 {
                 self.lift += 0.003;
             }
         }
-
-        self.vertical_pos += (self.flight_time * self.flight_time * self.lift)
-            - ((self.vertical_speed - 8.0) / 100.0);
-        self.y = pascal_round(self.vertical_pos);
-
-        self.update_ski_swing(&mut rng);
 
         if self.first_flight_frame {
             self.body_angle = 158;
@@ -910,6 +911,23 @@ impl View<RouteTarget> for JumpView {
                     ));
                 }
             }
+        } else if state.phase == JumpPhase::Landing {
+            for (i, &point) in state.style_points.iter().enumerate() {
+                els.push(Element::text_color_right(
+                    format!("{:.1}", f64::from(point) / 10.0),
+                    308 - (i as i32) * 24,
+                    21,
+                    FONT_DEFAULT,
+                ));
+            }
+            if state.fall_type > 0 {
+                els.push(Element::text_color(
+                    format!("FALL {}", state.fall_type),
+                    8,
+                    80,
+                    FONT_HELP,
+                ));
+            }
         } else if state.phase == JumpPhase::Flight {
             els.push(Element::text_color(
                 format!("ANGLE {} HEIGHT {}", state.body_angle, state.height),
@@ -922,11 +940,13 @@ impl View<RouteTarget> for JumpView {
         let (body_x, body_y) = state.body_position();
         let jumper_x = state.x - state.sx;
         let jumper_y = state.y - state.sy;
-        if state.frame < 700 && state.phase != JumpPhase::Result {
+        if state.frame < 700 && !matches!(state.phase, JumpPhase::Result | JumpPhase::Landing) {
             self.wind_elements(&mut els, wind.value);
         }
-        if matches!(state.phase, JumpPhase::Info | JumpPhase::OnBar) {
-            els.push(Element::sprite(67, jumper_x + 60, jumper_y - 10));
+        if state.phase == JumpPhase::OnBar {
+            if state.frame < 350 || (state.frame % 40) > 19 {
+                els.push(Element::sprite(67, jumper_x + 60, jumper_y - 10));
+            }
         }
         let (body_anim, ski_anim) = state.anims(terrain);
         els.push(Element::sprite(
@@ -948,7 +968,21 @@ impl View<RouteTarget> for JumpView {
 
     fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {
         match event {
-            Event::Keyboard(Key::Escape) => Some(RouteTarget::Practice),
+            Event::Keyboard(Key::Escape) => {
+                if self
+                    .state
+                    .get_mut()
+                    .as_ref()
+                    .is_some_and(|state| state.phase == JumpPhase::Result)
+                {
+                    Some(RouteTarget::Practice)
+                } else {
+                    if let Some(state) = self.state.get_mut() {
+                        state.phase = JumpPhase::Result;
+                    }
+                    None
+                }
+            }
             Event::Keyboard(Key::F5) => {
                 self.reset_wind();
                 None

@@ -103,7 +103,7 @@ impl PracticeView {
             self.menu = self.rebuild_menu();
             None
         } else if sel == self.menu.item_count() - 1 {
-            Some(RouteTarget::JumpMenu)
+            Some(RouteTarget::MainMenu)
         } else {
             *self.store.selected_hill.borrow_mut() = self.start + sel + 1;
             Some(RouteTarget::Jump)
@@ -178,7 +178,7 @@ impl View<RouteTarget> for PracticeView {
     fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {
         match &event {
             Event::Keyboard(Key::Escape) | Event::Keyboard(Key::Char('0')) => {
-                return Some(RouteTarget::JumpMenu);
+                return Some(RouteTarget::MainMenu);
             }
             Event::Keyboard(Key::Char(ch)) if '1' <= *ch && *ch <= '9' => {
                 let n = *ch as usize - '0' as usize;
