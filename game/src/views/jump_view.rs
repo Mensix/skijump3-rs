@@ -1,7 +1,8 @@
 use crate::data::hill_profile::HillTerrain;
 use crate::jump::animation::{
     crash_risk, fall_body_anim, flight_body_anim, flight_ski_anim, inrun_body_anim,
-    landing_body_anim, post_landing_body_anim, slope_ski_anim, takeoff_body_anim,
+    inrun_transition_body_anim, landing_body_anim, post_landing_body_anim, slope_ski_anim,
+    takeoff_body_anim,
 };
 use crate::palette_consts::*;
 use crate::pascal_random::PascalRandom;
@@ -12,6 +13,8 @@ use engine::consts::{HEIGHT, WIDTH};
 use engine::ui::{Element, Event, ImageRegion, Key, View};
 use std::cell::RefCell;
 use std::rc::Rc;
+
+const FONT_DIM_TURQUOISE: u8 = 252;
 
 fn pascal_round(value: f64) -> i32 {
     if value >= 0.0 {
@@ -96,6 +99,7 @@ struct JumpState {
     start_anim: i32,
     style_base: i32,
     style_points: [i32; 5],
+    style_revealed: [bool; 5],
     score: i32,
     skis_stuck: bool,
     detached_matka: f64,
@@ -159,6 +163,7 @@ impl JumpState {
             start_anim: 100,
             style_base: 195,
             style_points: [0; 5],
+            style_revealed: [false; 5],
             score: 0,
             skis_stuck: false,
             detached_matka: matka,
@@ -204,13 +209,28 @@ impl JumpState {
     }
 
     fn tick(&mut self, terrain: &HillTerrain, wind: FlightWind, rng: &mut PascalRandom) {
-        self.frame += 1;
         match self.phase {
-            JumpPhase::Inrun => self.tick_inrun(terrain, wind, rng),
-            JumpPhase::Flight => self.tick_flight(terrain, wind, rng),
-            JumpPhase::Landing => self.tick_landing(terrain),
-            JumpPhase::Info => self.info_counter += 1,
-            JumpPhase::OnBar | JumpPhase::Result => {}
+            JumpPhase::Info => {
+                self.frame += 1;
+                self.info_counter += 1;
+            }
+            JumpPhase::OnBar => {
+                // Pascal: if (not treeni) then inc(laskuri);
+                // Training mode: frame stays 0 so the start light is always on
+            }
+            JumpPhase::Inrun => {
+                self.frame += 1;
+                self.tick_inrun(terrain, wind, rng);
+            }
+            JumpPhase::Flight => {
+                self.frame += 1;
+                self.tick_flight(terrain, wind, rng);
+            }
+            JumpPhase::Landing => {
+                self.frame += 1;
+                self.tick_landing(terrain, rng);
+            }
+            JumpPhase::Result => {}
         }
     }
 
@@ -371,11 +391,15 @@ impl JumpState {
         self.update_camera(fx, fy);
     }
 
-    fn tick_landing(&mut self, terrain: &HillTerrain) {
+    fn tick_landing(&mut self, terrain: &HillTerrain, rng: &mut PascalRandom) {
         let fx = self.x;
         let fy = self.y;
 
         self.landing_counter += 1;
+        let note = rng.random_i32(5) as usize;
+        if rng.random_i32(20) == 1 {
+            self.style_revealed[note] = true;
+        }
         self.matka += self.px * 0.008;
         self.detached_matka += self.detached_px * 0.008;
         if self.skis_stuck {
@@ -441,6 +465,7 @@ impl JumpState {
         }
 
         self.calculate_score(rng);
+        self.style_revealed = [false; 5];
 
         if self.fall_type > 0 {
             self.grade = i32::from(self.fall_type);
@@ -632,6 +657,8 @@ impl JumpState {
                 let ski = slope_ski_anim(terrain.maki_kulma(self.x));
                 if self.takeoff_counter > 0 {
                     (takeoff_body_anim(&mut self.takeoff_phase), ski)
+                } else if self.frame < 28 {
+                    (inrun_transition_body_anim(self.frame), ski)
                 } else {
                     (inrun_body_anim(ski), ski)
                 }
@@ -866,7 +893,7 @@ impl View<RouteTarget> for JumpView {
             let label56 = self.resources.langbase.lstr(56);
             let label_w = self.resources.font.string_width(label56) as i32;
             let label58 = self.resources.langbase.lstr(58);
-            let label58_w = self.resources.font.string_width(&label58) as i32;
+            let label58_w = self.resources.font.string_width(label58) as i32;
             els.push(Element::text_color(label58, 64, 19, FONT_DEFAULT));
             els.push(Element::text_color(
                 format!("{}", state.start_gate),
@@ -895,22 +922,11 @@ impl View<RouteTarget> for JumpView {
                 FONT_HELP,
             ));
         } else if state.phase == JumpPhase::Result {
+            els.push(Element::sprite(63, 227, 2));
             els.push(Element::text_color_right(
                 &self.jumper_name,
                 308,
                 9,
-                FONT_DEFAULT,
-            ));
-            els.push(Element::text_color(
-                format!("DISTANCE {:.1}m", f64::from(state.distance) / 10.0),
-                8,
-                50,
-                FONT_DEFAULT,
-            ));
-            els.push(Element::text_color(
-                format!("POINTS {:.1}", f64::from(state.score) / 10.0),
-                8,
-                60,
                 FONT_DEFAULT,
             ));
             let style_min = *state.style_points.iter().min().unwrap_or(&0);
@@ -920,12 +936,12 @@ impl View<RouteTarget> for JumpView {
             for (i, &point) in state.style_points.iter().enumerate() {
                 let color = if point == style_min && !found_min {
                     found_min = true;
-                    FONT_GREET
+                    FONT_DIM_TURQUOISE
                 } else if point == style_max && !found_max {
                     found_max = true;
-                    FONT_GREET
+                    FONT_DIM_TURQUOISE
                 } else {
-                    FONT_HELP
+                    FONT_GREET
                 };
                 els.push(Element::text_color_right(
                     format!("{:.1}", f64::from(point) / 10.0),
@@ -934,59 +950,47 @@ impl View<RouteTarget> for JumpView {
                     color,
                 ));
             }
-            if state.fall_type > 0 {
-                els.push(Element::text_color(
-                    format!("FALL {}", state.fall_type),
-                    8,
-                    80,
-                    FONT_HELP,
-                ));
-            }
-            if record_len > 0 {
-                els.push(Element::text_color(
-                    format!("HILL RECORD {:.1}m", record_len as f64 / 10.0),
-                    8,
-                    90,
-                    FONT_GOLD,
-                ));
-                if state.fall_type == 0 && i64::from(state.distance) > record_len {
-                    els.push(Element::text_color(
-                        "TRAINING JUMP - RECORD NOT SAVED",
-                        8,
-                        100,
-                        FONT_HELP,
-                    ));
-                }
-            }
+            els.push(Element::text_color_right(
+                format!("{:.1}m", f64::from(state.distance) / 10.0),
+                308,
+                33,
+                FONT_GREET,
+            ));
+            els.push(Element::text_color_right(
+                format!("{:.1}", f64::from(state.score) / 10.0),
+                308,
+                45,
+                FONT_GOLD,
+            ));
+            els.push(Element::text_color_right(
+                self.resources.langbase.lstr(298),
+                308,
+                73,
+                FONT_GREET,
+            ));
         } else if state.phase == JumpPhase::Landing {
             els.push(Element::sprite(63, 227, 2));
             els.push(Element::text_color_right(
                 &self.jumper_name,
                 308,
                 9,
-                FONT_DEFAULT,
+                FONT_GREET,
             ));
             els.push(Element::text_color_right(
                 format!("{:.1}m", f64::from(state.distance) / 10.0),
                 308,
                 33,
-                FONT_DEFAULT,
+                FONT_GREET,
             ));
             for (i, &point) in state.style_points.iter().enumerate() {
-                els.push(Element::text_color_right(
-                    format!("{:.1}", f64::from(point) / 10.0),
-                    308 - (i as i32) * 24,
-                    21,
-                    FONT_DEFAULT,
-                ));
-            }
-            if state.fall_type > 0 {
-                els.push(Element::text_color(
-                    format!("FALL {}", state.fall_type),
-                    8,
-                    80,
-                    FONT_HELP,
-                ));
+                if state.style_revealed[i] {
+                    els.push(Element::text_color_right(
+                        format!("{:.1}", f64::from(point) / 10.0),
+                        308 - (i as i32) * 24,
+                        21,
+                        FONT_GREET,
+                    ));
+                }
             }
         } else if state.phase == JumpPhase::Flight {
         }
@@ -1003,7 +1007,7 @@ impl View<RouteTarget> for JumpView {
             self.wind_elements(&mut els, wind.value);
         }
         if state.phase == JumpPhase::OnBar && (state.frame < 350 || (state.frame % 40) > 19) {
-            els.push(Element::sprite(67, jumper_x + 60, jumper_y - 10));
+            els.push(Element::sprite(66, jumper_x + 60, jumper_y - 10));
         }
         let (body_anim, ski_anim) = state.anims(terrain);
         els.push(Element::sprite(
@@ -1012,14 +1016,6 @@ impl View<RouteTarget> for JumpView {
             body_y - state.sy - 2,
         ));
         els.push(Element::sprite(ski_anim, jumper_x, jumper_y - 1));
-        if state.phase == JumpPhase::Result {
-            els.push(Element::text_color(
-                "ENTER: AGAIN  ESC: HILLS",
-                8,
-                188,
-                FONT_HELP,
-            ));
-        }
         els
     }
 

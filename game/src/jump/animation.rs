@@ -106,6 +106,10 @@ pub fn inrun_body_anim(ski_anim: u16) -> u16 {
     rust_sprite(value + 101)
 }
 
+pub fn inrun_transition_body_anim(counter: i32) -> u16 {
+    rust_sprite((165 + counter / 7) as u16)
+}
+
 pub fn landing_body_anim(mut ski_anim: u16, landing_style: u8) -> u16 {
     if ski_anim >= rust_sprite(71) {
         ski_anim -= rust_sprite(71);
