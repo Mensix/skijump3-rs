@@ -66,19 +66,20 @@ impl JumpMenuView {
 
 impl View<RouteTarget> for JumpMenuView {
     fn elements(&self) -> Vec<Element> {
-        let mut content = vec![];
-
-        content.push(Element::fillbox(1, 94, 116, 106, BG_LIST));
-        content.extend(layout::header_elements(
+        let mut els = self.layout.background();
+        els.extend(self.layout.jumpers());
+        els.extend(self.layout.registration());
+        els.push(Element::fillbox(1, 94, 116, 106, BG_LIST));
+        els.extend(layout::header_elements(
             self.layout.langbase.lstr(18),
             11,
             80,
             FONT_HEADER,
             BG_ERASE,
         ));
-        content.extend(self.menu.elements());
-
-        self.layout.wrap(content)
+        els.extend(self.menu.elements());
+        els.extend(self.layout.footer());
+        els
     }
 
     fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {
