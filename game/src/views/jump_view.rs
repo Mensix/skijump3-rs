@@ -837,6 +837,8 @@ impl View<RouteTarget> for JumpView {
 
         self.hill_header(&mut els);
         if state.phase == JumpPhase::Info {
+            els.push(Element::sprite(63, 227, 2));
+            els.push(Element::sprite(64, 3, 150));
             els.push(Element::text_color(
                 format!(
                     "{} {} (+/-)",
@@ -846,6 +848,12 @@ impl View<RouteTarget> for JumpView {
                 64,
                 19,
                 FONT_DEFAULT,
+            ));
+            els.push(Element::text_color(
+                self.resources.langbase.lstr(59),
+                12,
+                191,
+                FONT_HELP,
             ));
             els.push(Element::text_color(
                 "PRESS ENTER/RIGHT TO CONTINUE",
@@ -943,10 +951,8 @@ impl View<RouteTarget> for JumpView {
         if state.frame < 700 && !matches!(state.phase, JumpPhase::Result | JumpPhase::Landing) {
             self.wind_elements(&mut els, wind.value);
         }
-        if state.phase == JumpPhase::OnBar {
-            if state.frame < 350 || (state.frame % 40) > 19 {
-                els.push(Element::sprite(67, jumper_x + 60, jumper_y - 10));
-            }
+        if state.phase == JumpPhase::OnBar && (state.frame < 350 || (state.frame % 40) > 19) {
+            els.push(Element::sprite(67, jumper_x + 60, jumper_y - 10));
         }
         let (body_anim, ski_anim) = state.anims(terrain);
         els.push(Element::sprite(
