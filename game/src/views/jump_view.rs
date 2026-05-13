@@ -1,9 +1,10 @@
 use crate::data::hill_profile::HillTerrain;
 use crate::jump::animation::{
-    flight_body_anim, flight_ski_anim, inrun_body_anim, landing_body_anim, slope_ski_anim,
-    takeoff_body_anim,
+    crash_risk, flight_body_anim, flight_ski_anim, inrun_body_anim, landing_body_anim,
+    slope_ski_anim, takeoff_body_anim,
 };
 use crate::palette_consts::*;
+use crate::pascal_random::PascalRandom;
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use engine::consts::{HEIGHT, WIDTH};
@@ -16,6 +17,15 @@ fn pascal_round(value: f64) -> i32 {
         (value + 0.5).floor() as i32
     } else {
         (value - 0.5).ceil() as i32
+    }
+}
+
+fn nsqrt(value: f64) -> f64 {
+    let root = value.abs().sqrt();
+    if value < 0.0 {
+        -root
+    } else {
+        root
     }
 }
 
@@ -48,6 +58,13 @@ enum JumpPhase {
     Result,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct FlightWind {
+    value: i32,
+    windy: i32,
+    strength: i32,
+}
+
 #[derive(Debug, Clone)]
 struct JumpState {
     phase: JumpPhase,
@@ -57,6 +74,7 @@ struct JumpState {
     base_maxspeed: f64,
     maxspeed: f64,
     distance_factor: f64,
+    hill_kr: i32,
     qx: f64,
     ramp_y: i32,
     vertical_pos: f64,
@@ -72,6 +90,12 @@ struct JumpState {
     first_flight_frame: bool,
     distance: i32,
     landing_counter: i32,
+    fall_type: u8,
+    grade: i32,
+    skis_stuck: bool,
+    detached_matka: f64,
+    detached_vertical_pos: f64,
+    detached_px: f64,
     takeoff_requested: bool,
     lean_forward_requested: bool,
     lean_back_requested: bool,
@@ -92,6 +116,7 @@ impl JumpState {
         terrain: &HillTerrain,
         maxspeed: f64,
         distance_factor: f64,
+        hill_kr: i32,
         lift: f64,
         start_gate: i32,
     ) -> Self {
@@ -108,6 +133,7 @@ impl JumpState {
             base_maxspeed: maxspeed,
             maxspeed,
             distance_factor,
+            hill_kr,
             qx,
             ramp_y,
             vertical_pos: f64::from(y),
@@ -123,6 +149,12 @@ impl JumpState {
             first_flight_frame: true,
             distance: 0,
             landing_counter: 0,
+            fall_type: 0,
+            grade: 0,
+            skis_stuck: false,
+            detached_matka: matka,
+            detached_vertical_pos: f64::from(y),
+            detached_px: 0.0,
             takeoff_requested: false,
             lean_forward_requested: false,
             lean_back_requested: false,
@@ -162,18 +194,18 @@ impl JumpState {
         self.takeoff_requested = true;
     }
 
-    fn tick(&mut self, terrain: &HillTerrain) {
+    fn tick(&mut self, terrain: &HillTerrain, wind: FlightWind, rng: &mut PascalRandom) {
         self.frame += 1;
         match self.phase {
-            JumpPhase::Inrun => self.tick_inrun(terrain),
-            JumpPhase::Flight => self.tick_flight(terrain),
+            JumpPhase::Inrun => self.tick_inrun(terrain, wind, rng),
+            JumpPhase::Flight => self.tick_flight(terrain, wind, rng),
             JumpPhase::Landing => self.tick_landing(terrain),
             JumpPhase::Info => self.info_counter += 1,
             JumpPhase::OnBar | JumpPhase::Result => {}
         }
     }
 
-    fn tick_inrun(&mut self, terrain: &HillTerrain) {
+    fn tick_inrun(&mut self, terrain: &HillTerrain, wind: FlightWind, rng: &mut PascalRandom) {
         let fx = self.x;
         let fy = self.y;
         self.matka += self.px * 0.01;
@@ -181,7 +213,7 @@ impl JumpState {
 
         if self.matka >= 0.0 {
             self.phase = JumpPhase::Flight;
-            self.tick_flight_after_position_update(fx, fy, terrain);
+            self.tick_flight_after_position_update(fx, fy, terrain, wind, Some(rng));
             return;
         }
 
@@ -221,17 +253,24 @@ impl JumpState {
         self.update_camera(fx, fy);
     }
 
-    fn tick_flight(&mut self, terrain: &HillTerrain) {
+    fn tick_flight(&mut self, terrain: &HillTerrain, wind: FlightWind, rng: &mut PascalRandom) {
         let fx = self.x;
         let fy = self.y;
 
         self.matka += self.px * 0.01;
         self.x = pascal_round(self.matka + self.qx);
 
-        self.tick_flight_after_position_update(fx, fy, terrain);
+        self.tick_flight_after_position_update(fx, fy, terrain, wind, Some(rng));
     }
 
-    fn tick_flight_after_position_update(&mut self, fx: i32, fy: i32, terrain: &HillTerrain) {
+    fn tick_flight_after_position_update(
+        &mut self,
+        fx: i32,
+        fy: i32,
+        terrain: &HillTerrain,
+        wind: FlightWind,
+        mut rng: Option<&mut PascalRandom>,
+    ) {
         if let Some(style) = self.landing_requested.take() {
             self.landing_style = style;
         }
@@ -248,10 +287,35 @@ impl JumpState {
         if self.body_angle < 50 {
             self.lift += 0.0001 - f64::from(self.body_angle - 50) / 18_000.0;
         }
-        self.lift -= (1.0 - f64::from(self.body_angle) / 900.0) / 1875.0;
+        if wind.value > 0 {
+            self.lift -= (1.0 - f64::from(self.body_angle) / 900.0) / 1875.0;
+            self.lift += f64::from(2 * wind.value).sqrt().sqrt() / 65_500.0;
+        } else {
+            self.lift -= (1.0 - f64::from(self.body_angle) / 900.0) / 1875.0;
+            self.lift -= f64::from(-2 * wind.value).sqrt().sqrt() / 65_500.0;
+        }
         self.px -= (f64::from(self.body_angle) / 900.0) / 20.0;
-        self.px += (245.0_f64.sqrt() - 16.0) / 400.0;
+        self.px += (nsqrt(f64::from(4 * wind.value + 245)) - 16.0) / 400.0;
         self.flight_time += 0.01;
+
+        if let Some(rng) = rng.as_deref_mut() {
+            if rng.random_i32(30_000) < wind.windy + 10 + wind.strength {
+                if rng.random_i32(2) == 1 {
+                    // Style points are not ported yet; Pascal lowers tyylip[1] here.
+                }
+                let gust_angle = rng.random_i32(15) - 6;
+                self.body_angle += gust_angle;
+                if gust_angle > 0 {
+                    self.ski_swing = 3;
+                    self.lift -= f64::from(rng.random_i32(wind.strength + 50)) / 15_000.0;
+                }
+                if gust_angle < 0 {
+                    self.ski_swing = 6;
+                    self.lift += f64::from(rng.random_i32(wind.strength + 50)) / 15_000.0;
+                }
+            }
+        }
+
         self.lift = self.lift.max(0.105);
 
         if self.landing_style > 0 && self.body_angle < 600 {
@@ -265,7 +329,7 @@ impl JumpState {
             - ((self.vertical_speed - 8.0) / 100.0);
         self.y = pascal_round(self.vertical_pos);
 
-        self.update_ski_swing();
+        self.update_ski_swing(&mut rng);
 
         if self.first_flight_frame {
             self.body_angle = 158;
@@ -287,6 +351,9 @@ impl JumpState {
 
         if self.height == 0 {
             self.distance = self.distance(terrain);
+            if let Some(rng) = rng.as_mut() {
+                self.prepare_landing(terrain, rng);
+            }
             self.phase = JumpPhase::Landing;
             self.landing_counter = 0;
         }
@@ -300,18 +367,76 @@ impl JumpState {
 
         self.landing_counter += 1;
         self.matka += self.px * 0.008;
+        self.detached_matka += self.detached_px * 0.008;
+        if self.skis_stuck {
+            self.matka = self.detached_matka;
+        }
         self.x = pascal_round(self.matka + self.qx);
         self.y = terrain.profiili(self.x);
         self.vertical_pos = f64::from(self.y);
+        self.detached_vertical_pos =
+            f64::from(terrain.profiili(pascal_round(self.detached_matka + self.qx)));
 
-        if self.landing_counter > 120 {
+        if self.fall_type > 0 {
+            if self.landing_counter > 50 && self.detached_px > 0.0 {
+                self.detached_px -= 0.8;
+            }
+            if self.detached_px < 0.0 {
+                self.detached_px = 0.0;
+                if self.skis_stuck {
+                    self.phase = JumpPhase::Result;
+                }
+            }
+        }
+
+        if self.fall_type == 0 && self.landing_counter > 120 {
+            self.phase = JumpPhase::Result;
+        }
+        if self.x > 1050 {
             self.phase = JumpPhase::Result;
         }
 
         self.update_camera(fx, fy);
     }
 
-    fn update_ski_swing(&mut self) {
+    fn prepare_landing(&mut self, terrain: &HillTerrain, rng: &mut PascalRandom) {
+        self.grade = if self.hill_kr != 0 {
+            pascal_round(f64::from(self.distance) / f64::from(self.hill_kr)) * 10
+        } else {
+            0
+        };
+
+        let slope_angle = terrain.maki_kulma(self.x);
+        let landing_quality =
+            pascal_round(f64::from(slope_angle) * 1.34 + f64::from(self.body_angle) / 10.0);
+        let mut risk = crash_risk(slope_angle) as i32;
+        if f64::from(self.distance) < (20.0 / 3.0) * f64::from(self.hill_kr) {
+            risk = 1;
+        }
+        if landing_quality < 63 {
+            risk = pascal_round(f64::from(risk) * (1.0 + f64::from(63 - landing_quality) * 0.075));
+        }
+
+        if self.landing_style == 0 || landing_quality < 56 {
+            self.fall_type = if self.landing_style == 0 { 1 } else { 2 };
+        }
+        if self.landing_style == 1 {
+            risk *= 3;
+        }
+        if rng.random_i32(1000) < risk {
+            self.fall_type = 3;
+        }
+
+        if self.fall_type > 0 {
+            self.grade = i32::from(self.fall_type);
+        }
+        self.skis_stuck = rng.random_i32(2) != 0;
+        self.detached_matka = self.matka;
+        self.detached_vertical_pos = self.vertical_pos;
+        self.detached_px = self.px;
+    }
+
+    fn update_ski_swing(&mut self, rng: &mut Option<&mut PascalRandom>) {
         if self.ski_swing <= 0 {
             return;
         }
@@ -338,6 +463,10 @@ impl JumpState {
                     self.ski_angle = 0;
                 }
             }
+            3 => {
+                self.ski_angle -= rng.as_deref_mut().map_or(0, |rng| rng.random_i32(50)) + 30;
+                self.ski_swing = 2;
+            }
             4 => {
                 if self.ski_angle == 0 {
                     self.ski_angle = 70 + (i32::from(self.takeoff_counter) - 16) * 6;
@@ -358,6 +487,10 @@ impl JumpState {
                 if self.ski_angle < 0 {
                     self.ski_angle = 0;
                 }
+            }
+            6 => {
+                self.ski_angle += rng.as_deref_mut().map_or(0, |rng| rng.random_i32(50)) + 30;
+                self.ski_swing = 5;
             }
             _ => {}
         }
@@ -472,6 +605,7 @@ impl JumpView {
                 terrain,
                 hill.vx_final as f64,
                 hill.pk(),
+                hill.kr as i32,
                 hill.pl_save(),
                 *store.start_gate.borrow(),
             )),
@@ -495,6 +629,7 @@ impl JumpView {
             terrain,
             hill.vx_final as f64,
             hill.pk(),
+            hill.kr as i32,
             hill.pl_save(),
             *self.store.start_gate.borrow(),
         ))
@@ -583,14 +718,30 @@ impl View<RouteTarget> for JumpView {
 
         let mut state_ref = self.state.borrow_mut();
         let state = state_ref.as_mut().expect("terrain-loaded jump state");
-        let wind_value = if state.phase == JumpPhase::Result {
-            self.store.wind.borrow().value
+        let wind = if state.phase == JumpPhase::Result {
+            let wind = self.store.wind.borrow();
+            FlightWind {
+                value: wind.value,
+                windy: wind.windy,
+                strength: wind.strength,
+            }
         } else {
             let mut rng = self.store.rng.borrow_mut();
             let mut wind = self.store.wind.borrow_mut();
-            wind.sample(&mut rng)
+            let wind_value = wind.sample(&mut rng);
+            let wind_frame = FlightWind {
+                value: wind_value,
+                windy: wind.windy,
+                strength: wind.strength,
+            };
+            drop(wind);
+            state.tick(terrain, wind_frame, &mut rng);
+            wind_frame
         };
-        state.tick(terrain);
+        if state.phase == JumpPhase::Result {
+            let mut rng = self.store.rng.borrow_mut();
+            state.tick(terrain, wind, &mut rng);
+        }
 
         let viewport = terrain.viewport_pixels(state.sx, state.sy, WIDTH, HEIGHT);
         let mut els = vec![Element::image_region(ImageRegion {
@@ -650,7 +801,7 @@ impl View<RouteTarget> for JumpView {
         let jumper_x = state.x - state.sx;
         let jumper_y = state.y - state.sy;
         if state.frame < 700 && state.phase != JumpPhase::Result {
-            self.wind_elements(&mut els, wind_value);
+            self.wind_elements(&mut els, wind.value);
         }
         let (body_anim, ski_anim) = state.anims(terrain);
         els.push(Element::sprite(body_anim, jumper_x, jumper_y - 2));
