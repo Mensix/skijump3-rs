@@ -870,19 +870,16 @@ impl View<RouteTarget> for JumpView {
             }
             let label56 = self.resources.langbase.lstr(56);
             let label_w = self.resources.font.string_width(label56) as i32;
-            els.push(Element::text_color(
-                self.resources.langbase.lstr(58),
-                64,
-                19,
-                FONT_DEFAULT,
-            ));
+            let label58 = self.resources.langbase.lstr(58);
+            let label58_w = self.resources.font.string_width(&label58) as i32;
+            els.push(Element::text_color(label58, 64, 19, FONT_DEFAULT));
             els.push(Element::text_color(
                 format!("{}", state.start_gate),
-                64,
-                27,
+                70 + label58_w,
+                19,
                 FONT_GOLD,
             ));
-            els.push(Element::text_color("(+/-)", 64, 35, FONT_GREET));
+            els.push(Element::text_color("(+/-)", 67 + label58_w, 27, FONT_GREET));
             els.push(Element::text_color(
                 self.resources.langbase.lstr(52),
                 12,
