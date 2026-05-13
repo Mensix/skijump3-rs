@@ -873,6 +873,12 @@ impl View<RouteTarget> for JumpView {
                 FONT_HELP,
             ));
         } else if state.phase == JumpPhase::Result {
+            let record_len = self
+                .store
+                .records
+                .borrow()
+                .hill_record(self.hill_idx)
+                .map_or(0, |record| record.len);
             els.push(Element::text_color(
                 format!("DISTANCE {:.1}m", f64::from(state.distance) / 10.0),
                 8,
@@ -905,6 +911,22 @@ impl View<RouteTarget> for JumpView {
                     80,
                     FONT_HELP,
                 ));
+            }
+            if record_len > 0 {
+                els.push(Element::text_color(
+                    format!("HILL RECORD {:.1}m", record_len as f64 / 10.0),
+                    8,
+                    90,
+                    FONT_HELP,
+                ));
+                if state.fall_type == 0 && i64::from(state.distance) > record_len {
+                    els.push(Element::text_color(
+                        "TRAINING JUMP - RECORD NOT SAVED",
+                        8,
+                        100,
+                        FONT_HELP,
+                    ));
+                }
             }
         } else if state.phase == JumpPhase::Flight {
             els.push(Element::text_color(
