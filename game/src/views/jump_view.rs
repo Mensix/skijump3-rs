@@ -1019,25 +1019,33 @@ impl View<RouteTarget> for JumpView {
             }
             Event::Keyboard(Key::Left) => {
                 if let Some(state) = self.state.get_mut() {
-                    state.lean_back();
+                    if state.phase == JumpPhase::Flight {
+                        state.lean_back();
+                    }
                 }
                 None
             }
             Event::Keyboard(Key::Up) => {
                 if let Some(state) = self.state.get_mut() {
-                    state.start_takeoff();
+                    if state.phase == JumpPhase::Inrun {
+                        state.start_takeoff();
+                    }
                 }
                 None
             }
             Event::Keyboard(Key::Char('t') | Key::Char('T')) => {
                 if let Some(state) = self.state.get_mut() {
-                    state.set_landing(1);
+                    if state.phase == JumpPhase::Flight {
+                        state.set_landing(1);
+                    }
                 }
                 None
             }
             Event::Keyboard(Key::Char('r') | Key::Char('R')) => {
                 if let Some(state) = self.state.get_mut() {
-                    state.set_landing(2);
+                    if state.phase == JumpPhase::Flight {
+                        state.set_landing(2);
+                    }
                 }
                 None
             }
