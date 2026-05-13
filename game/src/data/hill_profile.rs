@@ -2,6 +2,7 @@ use crate::data::records::HillInfo;
 use crate::loaders::assets::AssetStore;
 use crate::parsers::pcx::{DecodedPcx, PcxParser};
 use crate::parsers::AssetParser;
+use engine::palette::Palette;
 use std::rc::Rc;
 
 pub const HILL_PROFILE_LEN: usize = 1300;
@@ -10,6 +11,8 @@ pub const HILL_PROFILE_LEN: usize = 1300;
 pub struct HillTerrain {
     front_pixels: Rc<[u8]>,
     back_pixels: Rc<[u8]>,
+    front_palette: Palette,
+    back_palette: Palette,
     pub width: u16,
     pub height: u16,
     back_width: u16,
@@ -35,6 +38,47 @@ mod tests {
         assert!(terrain.profiili(terrain.keula_x) > 0);
         assert_eq!(terrain.maki_kulma(terrain.keula_x), 0);
         assert_eq!(terrain.profiili(1299), terrain.profiili(1023));
+    }
+
+    #[test]
+    fn back_pcx_loads_nonzero_pixels() {
+        let front =
+            PcxParser::parse(include_bytes!("../../assets/FRONT1.PCX")).expect("FRONT1.PCX");
+        let back = PcxParser::parse(include_bytes!("../../assets/BACK0.PCX")).expect("BACK0.PCX");
+        let terrain = HillTerrain::from_pcxs(front, back, 120, 0.89);
+
+        assert_eq!(terrain.back_width, 1024);
+        assert_eq!(terrain.back_height, 400);
+
+        let pixel = terrain.back_pixel(50, 5);
+        assert_ne!(
+            pixel, 0,
+            "back pixel at (50,5) should not be 0, got {}",
+            pixel
+        );
+
+        let vp = terrain.viewport_pixels(0, 0, 320, 200);
+        let row5_nonzero = vp[5 * 320..6 * 320].iter().filter(|&&p| p != 0).count();
+        assert!(
+            row5_nonzero > 0,
+            "row 5 of viewport should have non-zero back pixels, got 0/320"
+        );
+        // Also check that row 5 at col 50 is non-zero
+        assert_ne!(vp[5 * 320 + 50], 0, "vp pixel at (50,5) should be non-zero");
+    }
+
+    #[test]
+    fn line_lengths_for_sky_rows_are_zero() {
+        let pcx = PcxParser::parse(include_bytes!("../../assets/FRONT1.PCX")).expect("FRONT1.PCX");
+        let terrain = HillTerrain::from_front_pcx(pcx, 120, 0.89);
+        for y in 0..15 {
+            assert_eq!(
+                terrain.line_lengths[y], 0,
+                "row {} should have line_length=0 (pure sky), got {}",
+                y, terrain.line_lengths[y]
+            );
+        }
+        assert!(terrain.line_lengths[200] > 0, "row 200 should have terrain");
     }
 }
 
@@ -68,6 +112,8 @@ impl HillTerrain {
         Self {
             front_pixels: pixels.into(),
             back_pixels: back.pixels.into(),
+            front_palette: front.palette,
+            back_palette: back.palette,
             width: front.width,
             height: front.height,
             back_width: back.width,
@@ -75,6 +121,18 @@ impl HillTerrain {
             line_lengths,
             profile_y,
             keula_x,
+        }
+    }
+
+    pub fn apply_hill_palette(&self, palette: &mut Palette) {
+        // FRONT images use low indices for terrain; BACK images use 65..213 for sky.
+        // Pascal loads both PCXs into one indexed buffer, so we compose the two palettes here
+        // while preserving standard UI colors in 216..255.
+        for i in 0..=64 {
+            palette.set(i, self.front_palette.color(i));
+        }
+        for i in 65..=215 {
+            palette.set(i, self.back_palette.color(i));
         }
     }
 

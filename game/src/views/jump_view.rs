@@ -204,4 +204,10 @@ impl View<RouteTarget> for JumpView {
             _ => None,
         }
     }
+
+    fn apply_palette(&self, palette: &mut engine::palette::Palette) {
+        if let Ok(terrain) = &self.terrain {
+            terrain.apply_hill_palette(palette);
+        }
+    }
 }
