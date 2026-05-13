@@ -1,4 +1,5 @@
 use crate::parsers::{AssetParser, ParseError};
+use crate::utils::pascal_decode;
 
 pub struct NamesParser;
 
@@ -48,7 +49,7 @@ impl AssetParser<Vec<String>> for NamesParser {
                 continue;
             }
 
-            let name = String::from_utf8_lossy(&trimmed).trim().to_string();
+            let name = pascal_decode(&trimmed).trim().to_string();
             if !name.is_empty() {
                 names.push(name);
             }

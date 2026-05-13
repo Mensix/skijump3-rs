@@ -658,18 +658,6 @@ impl JumpState {
             }
         }
     }
-
-    fn status(&self) -> &'static str {
-        match self.phase {
-            JumpPhase::Info => "INFO - +/- GATE, ENTER TO BAR",
-            JumpPhase::OnBar => "ON BAR - ENTER/RIGHT TO START",
-            JumpPhase::Inrun if self.takeoff_counter > 0 => "TAKEOFF",
-            JumpPhase::Inrun => "INRUN - UP TO TAKE OFF",
-            JumpPhase::Flight => "FLIGHT - LEFT/RIGHT, T/R LANDING",
-            JumpPhase::Landing => "LANDING / OUTRUN",
-            JumpPhase::Result => "RESULT - ENTER FOR HILLS",
-        }
-    }
 }
 
 pub struct JumpView {
@@ -800,7 +788,7 @@ impl JumpView {
                 format!("{} K{}", hill.name, hill.kr),
                 8,
                 8,
-                FONT_DEFAULT,
+                FONT_GOLD,
             ));
         }
     }
@@ -874,12 +862,7 @@ impl View<RouteTarget> for JumpView {
         if state.phase == JumpPhase::Info {
             els.push(Element::sprite(63, 227, 2));
             els.push(Element::sprite(64, 3, 150));
-            els.push(Element::text_color_right(
-                &hill_name_k,
-                308,
-                9,
-                FONT_DEFAULT,
-            ));
+            els.push(Element::text_color_right(&hill_name_k, 308, 9, FONT_GOLD));
             els.push(Element::text_color_right(
                 self.resources.langbase.lstr(65),
                 308,
@@ -888,33 +871,40 @@ impl View<RouteTarget> for JumpView {
             ));
             if record_len > 0 {
                 if let Some(record) = self.store.records.borrow().hill_record(self.hill_idx) {
-                    els.push(Element::text_color_right(
-                        &record.name,
-                        308,
-                        29,
-                        FONT_DEFAULT,
-                    ));
+                    els.push(Element::text_color_right(&record.name, 308, 29, FONT_GOLD));
                     els.push(Element::text_color_right(
                         format!("{:.1}m", record.len as f64 / 10.0),
                         308,
                         39,
-                        FONT_DEFAULT,
+                        FONT_GOLD,
                     ));
                 }
             }
             let label56 = self.resources.langbase.lstr(56);
             let label_w = self.resources.font.string_width(label56) as i32;
             els.push(Element::text_color(
-                format!(
-                    "{} {} (+/-)",
-                    self.resources.langbase.lstr(58),
-                    state.start_gate
-                ),
+                self.resources.langbase.lstr(58),
                 64,
                 19,
                 FONT_DEFAULT,
             ));
-            els.push(Element::text_color(label56, 12, 172, FONT_DEFAULT));
+            let label58_w = self
+                .resources
+                .font
+                .string_width(&self.resources.langbase.lstr(58));
+            els.push(Element::text_color(
+                format!("{}", state.start_gate),
+                (70 + label58_w) as i32,
+                19,
+                FONT_DEFAULT,
+            ));
+            els.push(Element::text_color(
+                "(+/-)",
+                (67 + label58_w) as i32,
+                27,
+                FONT_HELP,
+            ));
+            els.push(Element::text_color(label56, 12, 172, FONT_GREET));
             els.push(Element::text_color(
                 &self.jumper_name,
                 12 + label_w,
@@ -927,14 +917,6 @@ impl View<RouteTarget> for JumpView {
                 191,
                 FONT_HELP,
             ));
-            els.push(Element::text_color(
-                "PRESS ENTER/RIGHT TO CONTINUE",
-                12,
-                188,
-                FONT_HELP,
-            ));
-        } else if state.phase != JumpPhase::Result {
-            els.push(Element::text_color(state.status(), 8, 188, FONT_HELP));
         } else if state.phase == JumpPhase::Result {
             els.push(Element::text_color_right(
                 &self.jumper_name,
@@ -1030,12 +1012,6 @@ impl View<RouteTarget> for JumpView {
                 ));
             }
         } else if state.phase == JumpPhase::Flight {
-            els.push(Element::text_color(
-                format!("ANGLE {} HEIGHT {}", state.body_angle, state.height),
-                8,
-                50,
-                FONT_HELP,
-            ));
         }
 
         let (body_x, body_y) = state.body_position();
