@@ -93,6 +93,9 @@ struct JumpState {
     fall_type: u8,
     grade: i32,
     start_anim: i32,
+    style_base: i32,
+    style_points: [i32; 5],
+    score: i32,
     skis_stuck: bool,
     detached_matka: f64,
     detached_vertical_pos: f64,
@@ -153,6 +156,9 @@ impl JumpState {
             fall_type: 0,
             grade: 0,
             start_anim: 100,
+            style_base: 195,
+            style_points: [0; 5],
+            score: 0,
             skis_stuck: false,
             detached_matka: matka,
             detached_vertical_pos: f64::from(y),
@@ -303,7 +309,7 @@ impl JumpState {
         if let Some(rng) = rng.as_deref_mut() {
             if rng.random_i32(30_000) < wind.windy + 10 + wind.strength {
                 if rng.random_i32(2) == 1 {
-                    // Style points are not ported yet; Pascal lowers tyylip[1] here.
+                    self.style_base -= 5;
                 }
                 let gust_angle = rng.random_i32(15) - 6;
                 self.body_angle += gust_angle;
@@ -421,10 +427,18 @@ impl JumpState {
         }
         if self.landing_style == 1 {
             risk *= 3;
+            if landing_quality < 60 {
+                self.style_base -= 5;
+            }
+            if landing_quality < 64 {
+                self.style_base -= 5;
+            }
         }
         if rng.random_i32(1000) < risk {
             self.fall_type = 3;
         }
+
+        self.calculate_score(rng);
 
         if self.fall_type > 0 {
             self.grade = i32::from(self.fall_type);
@@ -434,6 +448,48 @@ impl JumpState {
         self.detached_matka = self.matka;
         self.detached_vertical_pos = self.vertical_pos;
         self.detached_px = self.px;
+    }
+
+    fn calculate_score(&mut self, rng: &mut PascalRandom) {
+        let mut base = self.style_base;
+        let short_jump_penalty_count = pascal_round(
+            (f64::from(self.hill_kr) + f64::from(self.hill_kr) / 20.0
+                - (f64::from(self.distance) / 10.0))
+                / 6.0,
+        );
+        if short_jump_penalty_count > 0 {
+            base -= short_jump_penalty_count * 5;
+        }
+
+        if self.fall_type > 0 {
+            base -= 100;
+        } else if self.landing_style == 2 {
+            base -= 15 + rng.random_i32(2) * 5;
+        }
+
+        self.style_points[0] = base;
+        for i in 1..5 {
+            let temp = rng.random_i32(4);
+            self.style_points[i] = base - (temp - 1) * 5;
+        }
+
+        let mut min_style = 200;
+        let mut max_style = 0;
+        for point in &mut self.style_points {
+            *point = (*point).clamp(0, 200);
+            min_style = min_style.min(*point);
+            max_style = max_style.max(*point);
+        }
+
+        self.score = self.style_points.iter().sum::<i32>() - min_style - max_style;
+        if self.hill_kr != 0 {
+            self.score += pascal_round(
+                ((f64::from(self.distance) / 10.0) - (f64::from(self.hill_kr) * 2.0 / 3.0))
+                    * (180.0 / f64::from(self.hill_kr))
+                    * 10.0,
+            );
+        }
+        self.style_base = base;
     }
 
     fn update_ski_swing(&mut self, rng: &mut Option<&mut PascalRandom>) {
@@ -823,6 +879,33 @@ impl View<RouteTarget> for JumpView {
                 50,
                 FONT_DEFAULT,
             ));
+            els.push(Element::text_color(
+                format!("POINTS {:.1}", f64::from(state.score) / 10.0),
+                8,
+                60,
+                FONT_DEFAULT,
+            ));
+            els.push(Element::text_color(
+                format!(
+                    "STYLE {:.1} {:.1} {:.1} {:.1} {:.1}",
+                    f64::from(state.style_points[0]) / 10.0,
+                    f64::from(state.style_points[1]) / 10.0,
+                    f64::from(state.style_points[2]) / 10.0,
+                    f64::from(state.style_points[3]) / 10.0,
+                    f64::from(state.style_points[4]) / 10.0,
+                ),
+                8,
+                70,
+                FONT_HELP,
+            ));
+            if state.fall_type > 0 {
+                els.push(Element::text_color(
+                    format!("FALL {}", state.fall_type),
+                    8,
+                    80,
+                    FONT_HELP,
+                ));
+            }
         } else if state.phase == JumpPhase::Flight {
             els.push(Element::text_color(
                 format!("ANGLE {} HEIGHT {}", state.body_angle, state.height),
