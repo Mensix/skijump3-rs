@@ -779,18 +779,6 @@ impl JumpView {
                 8,
                 FONT_DEFAULT,
             ));
-            els.push(Element::text_color(
-                format!(
-                    "FRONT{}  VX{}  PK{:.2}  PL{:.4}",
-                    hill.front_index,
-                    hill.vx_final,
-                    hill.pk(),
-                    hill.pl_save()
-                ),
-                8,
-                18,
-                FONT_HELP,
-            ));
         }
     }
 }
@@ -847,14 +835,6 @@ impl View<RouteTarget> for JumpView {
         })];
 
         self.hill_header(&mut els);
-        els.push(Element::text_color(
-            format!("KEULAX {}", terrain.keula_x),
-            8,
-            28,
-            FONT_HELP,
-        ));
-
-        els.push(Element::text_color(state.status(), 8, 38, FONT_HELP));
         if state.phase == JumpPhase::Info {
             els.push(Element::text_color(
                 format!(
@@ -872,6 +852,8 @@ impl View<RouteTarget> for JumpView {
                 188,
                 FONT_HELP,
             ));
+        } else if state.phase != JumpPhase::Result {
+            els.push(Element::text_color(state.status(), 8, 188, FONT_HELP));
         } else if state.phase == JumpPhase::Result {
             let record_len = self
                 .store
@@ -943,6 +925,9 @@ impl View<RouteTarget> for JumpView {
         if state.frame < 700 && state.phase != JumpPhase::Result {
             self.wind_elements(&mut els, wind.value);
         }
+        if matches!(state.phase, JumpPhase::Info | JumpPhase::OnBar) {
+            els.push(Element::sprite(67, jumper_x + 60, jumper_y - 10));
+        }
         let (body_anim, ski_anim) = state.anims(terrain);
         els.push(Element::sprite(
             body_anim,
@@ -950,7 +935,14 @@ impl View<RouteTarget> for JumpView {
             body_y - state.sy - 2,
         ));
         els.push(Element::sprite(ski_anim, jumper_x, jumper_y - 1));
-        els.push(Element::text_color("ESC: HILLS", 8, 188, FONT_HELP));
+        if state.phase == JumpPhase::Result {
+            els.push(Element::text_color(
+                "ENTER: AGAIN  ESC: HILLS",
+                8,
+                188,
+                FONT_HELP,
+            ));
+        }
         els
     }
 
