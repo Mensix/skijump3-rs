@@ -677,6 +677,7 @@ pub struct JumpView {
     hill_idx: usize,
     terrain: Result<HillTerrain, String>,
     state: RefCell<Option<JumpState>>,
+    jumper_name: String,
 }
 
 impl JumpView {
@@ -703,12 +704,20 @@ impl JumpView {
             _ => None,
         };
 
+        let jumper_name = resources
+            .player_names
+            .first()
+            .map(|s| s.as_str())
+            .unwrap_or("The Training Man")
+            .to_string();
+
         Self {
             resources,
             store,
             hill_idx,
             terrain,
             state: RefCell::new(state),
+            jumper_name,
         }
     }
 
@@ -835,10 +844,53 @@ impl View<RouteTarget> for JumpView {
             h: HEIGHT,
         })];
 
+        let record_len = self
+            .store
+            .records
+            .borrow()
+            .hill_record(self.hill_idx)
+            .map_or(0, |record| record.len);
+        let hill_name_k = self
+            .resources
+            .hills
+            .hill(self.hill_idx)
+            .map(|h| format!("{} K{}", h.name, h.kr))
+            .unwrap_or_default();
+
         self.hill_header(&mut els);
         if state.phase == JumpPhase::Info {
             els.push(Element::sprite(63, 227, 2));
             els.push(Element::sprite(64, 3, 150));
+            els.push(Element::text_color_right(
+                &hill_name_k,
+                308,
+                9,
+                FONT_DEFAULT,
+            ));
+            els.push(Element::text_color_right(
+                self.resources.langbase.lstr(65),
+                308,
+                19,
+                FONT_HELP,
+            ));
+            if record_len > 0 {
+                if let Some(record) = self.store.records.borrow().hill_record(self.hill_idx) {
+                    els.push(Element::text_color_right(
+                        &record.name,
+                        308,
+                        29,
+                        FONT_DEFAULT,
+                    ));
+                    els.push(Element::text_color_right(
+                        format!("{:.1}m", record.len as f64 / 10.0),
+                        308,
+                        39,
+                        FONT_DEFAULT,
+                    ));
+                }
+            }
+            let label56 = self.resources.langbase.lstr(56);
+            let label_w = self.resources.font.string_width(&label56) as i32;
             els.push(Element::text_color(
                 format!(
                     "{} {} (+/-)",
@@ -847,6 +899,13 @@ impl View<RouteTarget> for JumpView {
                 ),
                 64,
                 19,
+                FONT_DEFAULT,
+            ));
+            els.push(Element::text_color(label56, 12, 172, FONT_DEFAULT));
+            els.push(Element::text_color(
+                &self.jumper_name,
+                12 + label_w,
+                172,
                 FONT_DEFAULT,
             ));
             els.push(Element::text_color(
@@ -864,12 +923,12 @@ impl View<RouteTarget> for JumpView {
         } else if state.phase != JumpPhase::Result {
             els.push(Element::text_color(state.status(), 8, 188, FONT_HELP));
         } else if state.phase == JumpPhase::Result {
-            let record_len = self
-                .store
-                .records
-                .borrow()
-                .hill_record(self.hill_idx)
-                .map_or(0, |record| record.len);
+            els.push(Element::text_color_right(
+                &self.jumper_name,
+                308,
+                9,
+                FONT_DEFAULT,
+            ));
             els.push(Element::text_color(
                 format!("DISTANCE {:.1}m", f64::from(state.distance) / 10.0),
                 8,
@@ -882,19 +941,27 @@ impl View<RouteTarget> for JumpView {
                 60,
                 FONT_DEFAULT,
             ));
-            els.push(Element::text_color(
-                format!(
-                    "STYLE {:.1} {:.1} {:.1} {:.1} {:.1}",
-                    f64::from(state.style_points[0]) / 10.0,
-                    f64::from(state.style_points[1]) / 10.0,
-                    f64::from(state.style_points[2]) / 10.0,
-                    f64::from(state.style_points[3]) / 10.0,
-                    f64::from(state.style_points[4]) / 10.0,
-                ),
-                8,
-                70,
-                FONT_HELP,
-            ));
+            let style_min = *state.style_points.iter().min().unwrap_or(&0);
+            let style_max = *state.style_points.iter().max().unwrap_or(&0);
+            let mut found_min = false;
+            let mut found_max = false;
+            for (i, &point) in state.style_points.iter().enumerate() {
+                let color = if point == style_min && !found_min {
+                    found_min = true;
+                    FONT_GREET
+                } else if point == style_max && !found_max {
+                    found_max = true;
+                    FONT_GREET
+                } else {
+                    FONT_HELP
+                };
+                els.push(Element::text_color_right(
+                    format!("{:.1}", f64::from(point) / 10.0),
+                    308 - (i as i32) * 24,
+                    21,
+                    color,
+                ));
+            }
             if state.fall_type > 0 {
                 els.push(Element::text_color(
                     format!("FALL {}", state.fall_type),
@@ -920,6 +987,19 @@ impl View<RouteTarget> for JumpView {
                 }
             }
         } else if state.phase == JumpPhase::Landing {
+            els.push(Element::sprite(63, 227, 2));
+            els.push(Element::text_color_right(
+                &self.jumper_name,
+                308,
+                9,
+                FONT_DEFAULT,
+            ));
+            els.push(Element::text_color_right(
+                format!("{:.1}m", f64::from(state.distance) / 10.0),
+                308,
+                33,
+                FONT_DEFAULT,
+            ));
             for (i, &point) in state.style_points.iter().enumerate() {
                 els.push(Element::text_color_right(
                     format!("{:.1}", f64::from(point) / 10.0),
