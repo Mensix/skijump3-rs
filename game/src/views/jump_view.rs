@@ -781,17 +781,6 @@ impl JumpView {
             ));
         }
     }
-
-    fn hill_header(&self, els: &mut Vec<Element>) {
-        if let Some(hill) = self.resources.hills.hill(self.hill_idx) {
-            els.push(Element::text_color(
-                format!("{} K{}", hill.name, hill.kr),
-                8,
-                8,
-                FONT_GOLD,
-            ));
-        }
-    }
 }
 
 impl View<RouteTarget> for JumpView {
@@ -858,7 +847,6 @@ impl View<RouteTarget> for JumpView {
             .map(|h| format!("{} K{}", h.name, h.kr))
             .unwrap_or_default();
 
-        self.hill_header(&mut els);
         if state.phase == JumpPhase::Info {
             els.push(Element::sprite(63, 227, 2));
             els.push(Element::sprite(64, 3, 150));
@@ -895,22 +883,6 @@ impl View<RouteTarget> for JumpView {
                 FONT_GOLD,
             ));
             els.push(Element::text_color("(+/-)", 64, 35, FONT_GREET));
-            let label58_w = self
-                .resources
-                .font
-                .string_width(&self.resources.langbase.lstr(58));
-            els.push(Element::text_color(
-                format!("{}", state.start_gate),
-                (70 + label58_w) as i32,
-                19,
-                FONT_DEFAULT,
-            ));
-            els.push(Element::text_color(
-                "(+/-)",
-                (67 + label58_w) as i32,
-                27,
-                FONT_HELP,
-            ));
             els.push(Element::text_color(label56, 12, 172, FONT_GREET));
             els.push(Element::text_color(
                 &self.jumper_name,
