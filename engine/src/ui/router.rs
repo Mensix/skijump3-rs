@@ -20,6 +20,7 @@ pub enum Key {
     Escape,
     Backspace,
     Delete,
+    F5,
     Char(char),
 }
 

@@ -40,6 +40,7 @@ mod tests {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum JumpPhase {
+    Info,
     OnBar,
     Inrun,
     Flight,
@@ -53,6 +54,7 @@ struct JumpState {
     matka: f64,
     px: f64,
     pxk: f64,
+    base_maxspeed: f64,
     maxspeed: f64,
     distance_factor: f64,
     qx: f64,
@@ -79,22 +81,31 @@ struct JumpState {
     sx: i32,
     sy: i32,
     frame: i32,
+    info_counter: i32,
+    start_gate: i32,
     takeoff_counter: u8,
     takeoff_phase: u8,
 }
 
 impl JumpState {
-    fn new(terrain: &HillTerrain, maxspeed: f64, distance_factor: f64, lift: f64) -> Self {
+    fn new(
+        terrain: &HillTerrain,
+        maxspeed: f64,
+        distance_factor: f64,
+        lift: f64,
+        start_gate: i32,
+    ) -> Self {
         let matka = -f64::from(terrain.keula_x) + 10.0;
         let qx = f64::from(terrain.keula_x) + 0.5;
         let x = pascal_round(matka + qx);
         let y = terrain.profiili(x);
         let ramp_y = terrain.profiili(terrain.keula_x);
         Self {
-            phase: JumpPhase::OnBar,
+            phase: JumpPhase::Info,
             matka,
             px: 0.0,
             pxk: 1.016,
+            base_maxspeed: maxspeed,
             maxspeed,
             distance_factor,
             qx,
@@ -121,8 +132,22 @@ impl JumpState {
             sx: 0,
             sy: 0,
             frame: 0,
+            info_counter: 0,
+            start_gate,
             takeoff_counter: 0,
             takeoff_phase: 0,
+        }
+    }
+
+    fn adjust_start_gate(&mut self, delta: i32) {
+        self.start_gate = (self.start_gate + delta).clamp(1, 30);
+    }
+
+    fn leave_info(&mut self) {
+        if self.phase == JumpPhase::Info {
+            self.maxspeed = self.base_maxspeed + f64::from(self.start_gate - 15);
+            self.phase = JumpPhase::OnBar;
+            self.frame = 0;
         }
     }
 
@@ -143,6 +168,7 @@ impl JumpState {
             JumpPhase::Inrun => self.tick_inrun(terrain),
             JumpPhase::Flight => self.tick_flight(terrain),
             JumpPhase::Landing => self.tick_landing(terrain),
+            JumpPhase::Info => self.info_counter += 1,
             JumpPhase::OnBar | JumpPhase::Result => {}
         }
     }
@@ -375,6 +401,7 @@ impl JumpState {
 
     fn anims(&mut self, terrain: &HillTerrain) -> (u16, u16) {
         match self.phase {
+            JumpPhase::Info => (163, slope_ski_anim(terrain.maki_kulma(self.x))),
             JumpPhase::OnBar => (163, slope_ski_anim(terrain.maki_kulma(self.x))),
             JumpPhase::Inrun => {
                 let ski = slope_ski_anim(terrain.maki_kulma(self.x));
@@ -409,6 +436,7 @@ impl JumpState {
 
     fn status(&self) -> &'static str {
         match self.phase {
+            JumpPhase::Info => "INFO - +/- GATE, ENTER TO BAR",
             JumpPhase::OnBar => "ON BAR - ENTER/RIGHT TO START",
             JumpPhase::Inrun if self.takeoff_counter > 0 => "TAKEOFF",
             JumpPhase::Inrun => "INRUN - UP TO TAKE OFF",
@@ -421,6 +449,7 @@ impl JumpState {
 
 pub struct JumpView {
     resources: ResourcesRef,
+    store: StoreRef,
     hill_idx: usize,
     terrain: Result<HillTerrain, String>,
     state: RefCell<Option<JumpState>>,
@@ -433,21 +462,87 @@ impl JumpView {
         let terrain = hill
             .ok_or_else(|| format!("Hill {} not found", hill_idx))
             .and_then(HillTerrain::load);
+        if terrain.is_ok() && hill.is_some() {
+            let mut rng = store.rng.borrow_mut();
+            let mut wind = store.wind.borrow_mut();
+            wind.initialize(&mut rng, *store.wind_place.borrow());
+        }
         let state = match (&terrain, hill) {
             (Ok(terrain), Some(hill)) => Some(JumpState::new(
                 terrain,
                 hill.vx_final as f64,
                 hill.pk(),
                 hill.pl_save(),
+                *store.start_gate.borrow(),
             )),
             _ => None,
         };
 
         Self {
             resources,
+            store,
             hill_idx,
             terrain,
             state: RefCell::new(state),
+        }
+    }
+
+    fn new_state(&self) -> Option<JumpState> {
+        let terrain = self.terrain.as_ref().ok()?;
+        let hill = self.resources.hills.hill(self.hill_idx)?;
+        self.reset_wind();
+        Some(JumpState::new(
+            terrain,
+            hill.vx_final as f64,
+            hill.pk(),
+            hill.pl_save(),
+            *self.store.start_gate.borrow(),
+        ))
+    }
+
+    fn reset_wind(&self) {
+        {
+            let mut rng = self.store.rng.borrow_mut();
+            let mut wind = self.store.wind.borrow_mut();
+            wind.initialize(&mut rng, *self.store.wind_place.borrow());
+        }
+    }
+
+    fn wind_elements(&self, els: &mut Vec<Element>, value: i32) {
+        let position = self.store.wind.borrow().position();
+        let x = position.x;
+        let y = position.y;
+        els.push(Element::fillbox(x + 4, y + 1, 35, 2, 248));
+        els.push(Element::fillbox(x + 21, y + 1, 1, 2, 240));
+        els.push(Element::fillbox(x + 21, y + 9, 1, 1, 247));
+        if value > 0 {
+            els.push(Element::fillbox(x + 22, y + 1, value / 3 + 1, 2, 236));
+        }
+        if value < 0 {
+            let w = (-value) / 3 + 1;
+            els.push(Element::fillbox(x + 21 - w, y + 1, w, 2, 237));
+        }
+
+        let text = format!("{:.1}", f64::from(value.abs()) / 10.0);
+        if value < 0 {
+            els.push(Element::text_color("-", x + 10, y + 5, FONT_DEFAULT));
+        }
+        let mut chars = text.chars();
+        if let Some(ones) = chars.next() {
+            els.push(Element::text_color(
+                ones.to_string(),
+                x + 15,
+                y + 5,
+                FONT_DEFAULT,
+            ));
+        }
+        if let Some(tenths) = text.chars().nth(2) {
+            els.push(Element::text_color(
+                tenths.to_string(),
+                x + 24,
+                y + 5,
+                FONT_DEFAULT,
+            ));
         }
     }
 
@@ -488,6 +583,13 @@ impl View<RouteTarget> for JumpView {
 
         let mut state_ref = self.state.borrow_mut();
         let state = state_ref.as_mut().expect("terrain-loaded jump state");
+        let wind_value = if state.phase == JumpPhase::Result {
+            self.store.wind.borrow().value
+        } else {
+            let mut rng = self.store.rng.borrow_mut();
+            let mut wind = self.store.wind.borrow_mut();
+            wind.sample(&mut rng)
+        };
         state.tick(terrain);
 
         let viewport = terrain.viewport_pixels(state.sx, state.sy, WIDTH, HEIGHT);
@@ -512,7 +614,24 @@ impl View<RouteTarget> for JumpView {
         ));
 
         els.push(Element::text_color(state.status(), 8, 38, FONT_HELP));
-        if state.phase == JumpPhase::Result {
+        if state.phase == JumpPhase::Info {
+            els.push(Element::text_color(
+                format!(
+                    "{} {} (+/-)",
+                    self.resources.langbase.lstr(58),
+                    state.start_gate
+                ),
+                64,
+                19,
+                FONT_DEFAULT,
+            ));
+            els.push(Element::text_color(
+                "PRESS ENTER/RIGHT TO CONTINUE",
+                12,
+                188,
+                FONT_HELP,
+            ));
+        } else if state.phase == JumpPhase::Result {
             els.push(Element::text_color(
                 format!("DISTANCE {:.1}m", f64::from(state.distance) / 10.0),
                 8,
@@ -530,6 +649,9 @@ impl View<RouteTarget> for JumpView {
 
         let jumper_x = state.x - state.sx;
         let jumper_y = state.y - state.sy;
+        if state.frame < 700 && state.phase != JumpPhase::Result {
+            self.wind_elements(&mut els, wind_value);
+        }
         let (body_anim, ski_anim) = state.anims(terrain);
         els.push(Element::sprite(body_anim, jumper_x, jumper_y - 2));
         els.push(Element::sprite(ski_anim, jumper_x, jumper_y - 1));
@@ -540,10 +662,26 @@ impl View<RouteTarget> for JumpView {
     fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {
         match event {
             Event::Keyboard(Key::Escape) => Some(RouteTarget::Practice),
+            Event::Keyboard(Key::F5) => {
+                self.reset_wind();
+                None
+            }
             Event::Keyboard(Key::Enter) => {
+                if self
+                    .state
+                    .get_mut()
+                    .as_ref()
+                    .is_some_and(|state| state.phase == JumpPhase::Result)
+                {
+                    *self.state.get_mut() = self.new_state();
+                    return None;
+                }
+
                 if let Some(state) = self.state.get_mut() {
-                    if state.phase == JumpPhase::Result {
-                        return Some(RouteTarget::Practice);
+                    if state.phase == JumpPhase::Info {
+                        *self.store.start_gate.borrow_mut() = state.start_gate;
+                        state.leave_info();
+                        return None;
                     }
                     if state.phase == JumpPhase::Landing {
                         state.phase = JumpPhase::Result;
@@ -555,10 +693,31 @@ impl View<RouteTarget> for JumpView {
             }
             Event::Keyboard(Key::Right) => {
                 if let Some(state) = self.state.get_mut() {
-                    if state.phase == JumpPhase::OnBar {
+                    if state.phase == JumpPhase::Info {
+                        *self.store.start_gate.borrow_mut() = state.start_gate;
+                        state.leave_info();
+                    } else if state.phase == JumpPhase::OnBar {
                         state.start();
                     } else {
                         state.lean_forward();
+                    }
+                }
+                None
+            }
+            Event::Keyboard(Key::Char('+')) => {
+                if let Some(state) = self.state.get_mut() {
+                    if state.phase == JumpPhase::Info {
+                        state.adjust_start_gate(1);
+                        *self.store.start_gate.borrow_mut() = state.start_gate;
+                    }
+                }
+                None
+            }
+            Event::Keyboard(Key::Char('-')) => {
+                if let Some(state) = self.state.get_mut() {
+                    if state.phase == JumpPhase::Info {
+                        state.adjust_start_gate(-1);
+                        *self.store.start_gate.borrow_mut() = state.start_gate;
                     }
                 }
                 None

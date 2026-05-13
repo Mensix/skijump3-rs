@@ -6,10 +6,12 @@ pub mod jump;
 pub mod loaders;
 pub mod palette_consts;
 pub mod parsers;
+pub mod pascal_random;
 pub mod route;
 pub mod store;
 pub mod utils;
 pub mod views;
+pub mod wind;
 
 use crate::components::layout::MainLayout;
 use crate::store::{Resources, ResourcesRef, Store, StoreRef};

@@ -47,6 +47,7 @@ impl Input {
                         Keycode::Escape => Key::Escape,
                         Keycode::Backspace => Key::Backspace,
                         Keycode::Delete => Key::Delete,
+                        Keycode::F5 => Key::F5,
                         Keycode::Space => Key::Char(' '),
                         Keycode::Minus => Key::Char('-'),
                         Keycode::Period => Key::Char('.'),

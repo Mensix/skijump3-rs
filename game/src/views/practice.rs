@@ -34,7 +34,13 @@ impl PracticeView {
 
     pub fn new(resources: ResourcesRef, store: StoreRef) -> Self {
         let total = resources.hills.len();
-        let page_n = total.min(20);
+        let selected = store
+            .selected_hill
+            .borrow()
+            .saturating_sub(1)
+            .min(total.saturating_sub(1));
+        let start = if total > 20 { selected / 20 * 20 } else { 0 };
+        let page_n = (total.saturating_sub(start)).min(20);
         let n = page_n + if total > 20 { 1 } else { 0 } + 1;
         let items = (0..n)
             .map(|_| MenuItem {
@@ -43,22 +49,25 @@ impl PracticeView {
                 y_off: 0,
             })
             .collect();
+        let mut menu = Menu::new(
+            110,
+            11,
+            170,
+            8,
+            items,
+            &resources.langbase,
+            FONT_DEFAULT,
+            FONT_DEFAULT,
+        )
+        .with_labels(false)
+        .with_box(false);
+        menu.set_selected(selected.saturating_sub(start).min(page_n.saturating_sub(1)));
+
         Self {
-            menu: Menu::new(
-                110,
-                11,
-                170,
-                8,
-                items,
-                &resources.langbase,
-                FONT_DEFAULT,
-                FONT_DEFAULT,
-            )
-            .with_labels(false)
-            .with_box(false),
+            menu,
             resources,
             store,
-            start: 0,
+            start,
             total,
         }
     }

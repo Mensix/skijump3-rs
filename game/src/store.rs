@@ -1,6 +1,8 @@
 use crate::data::profile::ProfileStore;
 use crate::data::records::{HillCatalog, RecordStore};
 use crate::parsers::langbase::LangBase;
+use crate::pascal_random::PascalRandom;
+use crate::wind::PascalWind;
 use engine::ui::Font;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -35,7 +37,11 @@ pub type ResourcesRef = Rc<Resources>;
 pub struct Store {
     pub profiles: RefCell<ProfileStore>,
     pub records: RefCell<RecordStore>,
+    pub rng: RefCell<PascalRandom>,
+    pub wind: RefCell<PascalWind>,
+    pub wind_place: RefCell<u8>,
     pub selected_hill: RefCell<usize>,
+    pub start_gate: RefCell<i32>,
 }
 
 impl Default for Store {
@@ -49,7 +55,11 @@ impl Store {
         Self {
             profiles: RefCell::new(ProfileStore::new()),
             records: RefCell::new(records),
+            rng: RefCell::new(PascalRandom::default()),
+            wind: RefCell::new(PascalWind::default()),
+            wind_place: RefCell::new(0),
             selected_hill: RefCell::new(1),
+            start_gate: RefCell::new(15),
         }
     }
 }
