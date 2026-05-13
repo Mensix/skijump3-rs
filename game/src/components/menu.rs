@@ -20,6 +20,7 @@ pub struct Menu {
     fontcolor: u8,
     boxcolor: u8,
     show_labels: bool,
+    show_box: bool,
 }
 
 impl Menu {
@@ -47,6 +48,7 @@ impl Menu {
             fontcolor,
             boxcolor,
             show_labels: true,
+            show_box: true,
         }
     }
 
@@ -60,12 +62,25 @@ impl Menu {
         self
     }
 
+    pub fn with_box(mut self, show: bool) -> Self {
+        self.show_box = show;
+        self
+    }
+
     pub fn selected(&self) -> usize {
         self.selected
     }
 
     pub fn reset(&mut self) {
         self.selected = 0;
+    }
+
+    pub fn set_selected(&mut self, idx: usize) {
+        self.selected = idx.min(self.items.len().saturating_sub(1));
+    }
+
+    pub fn item_count(&self) -> usize {
+        self.items.len()
     }
 }
 
@@ -87,16 +102,18 @@ impl Component for Menu {
             }
         }
 
-        let bx = self.x - 6;
-        let idx = self.selected.min(self.items.len() - 1);
-        let by = self.y - 3 + (idx as i32) * self.item_h + self.items[idx].y_off;
-        els.push(Element::box_(
-            bx,
-            by,
-            self.item_w + 1,
-            self.item_h + 1,
-            self.boxcolor,
-        ));
+        if self.show_box {
+            let bx = self.x - 6;
+            let idx = self.selected.min(self.items.len() - 1);
+            let by = self.y - 3 + (idx as i32) * self.item_h + self.items[idx].y_off;
+            els.push(Element::box_(
+                bx,
+                by,
+                self.item_w + 1,
+                self.item_h + 1,
+                self.boxcolor,
+            ));
+        }
 
         els
     }

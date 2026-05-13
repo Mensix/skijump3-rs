@@ -1,10 +1,12 @@
 pub mod jump_menu;
 pub mod main_menu;
+pub mod practice;
 pub mod profiles_view;
 pub mod records_view;
 pub mod welcome_screen;
 pub use jump_menu::JumpMenuView;
 pub use main_menu::MainMenuView;
+pub use practice::PracticeView;
 pub use profiles_view::ProfilesView;
 pub use records_view::{HallOfFameView, HillRecordsView};
 pub use welcome_screen::WelcomeScreenView;

@@ -89,7 +89,7 @@ impl View<RouteTarget> for JumpMenuView {
             Some(3) => Some(RouteTarget::MainMenu),
             Some(4) => Some(RouteTarget::MainMenu),
             Some(5) => Some(RouteTarget::MainMenu),
-            Some(6) => Some(RouteTarget::MainMenu),
+            Some(6) => Some(RouteTarget::Practice),
             Some(7) => Some(RouteTarget::MainMenu),
             _ => None,
         }

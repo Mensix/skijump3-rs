@@ -4,6 +4,7 @@ pub enum RouteTarget {
     MainMenu,
     Welcome,
     JumpMenu,
+    Practice,
     HallOfFame,
     HillRecords,
     OptionsMenu,

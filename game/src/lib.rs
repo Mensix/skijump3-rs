@@ -31,7 +31,8 @@ use parsers::{
 use route::RouteTarget;
 use std::rc::Rc;
 use views::{
-    HallOfFameView, HillRecordsView, JumpMenuView, MainMenuView, ProfilesView, WelcomeScreenView,
+    HallOfFameView, HillRecordsView, JumpMenuView, MainMenuView, PracticeView, ProfilesView,
+    WelcomeScreenView,
 };
 
 const MAIN_PCX: &str = "MAIN.PCX";
@@ -220,6 +221,10 @@ impl Game {
                 (RouteTarget::JumpMenu, {
                     let l = layout.clone();
                     Box::new(move || Box::new(JumpMenuView::new(l.clone())))
+                }),
+                (RouteTarget::Practice, {
+                    let r = resources.clone();
+                    Box::new(move || Box::new(PracticeView::new(r.clone())))
                 }),
                 (RouteTarget::ProfilesList, {
                     let r = resources.clone();
