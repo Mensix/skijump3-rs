@@ -855,7 +855,7 @@ impl View<RouteTarget> for JumpView {
                 self.resources.langbase.lstr(65),
                 308,
                 19,
-                FONT_HELP,
+                FONT_GOLD,
             ));
             if record_len > 0 {
                 if let Some(record) = self.store.records.borrow().hill_record(self.hill_idx) {
@@ -881,10 +881,10 @@ impl View<RouteTarget> for JumpView {
             ));
             els.push(Element::text_color("(+/-)", 67 + label58_w, 27, FONT_GREET));
             els.push(Element::text_color(
-                self.resources.langbase.lstr(52),
+                self.resources.langbase.lstr(51),
                 12,
                 160,
-                FONT_GOLD,
+                FONT_GREET,
             ));
             els.push(Element::text_color(label56, 12, 172, FONT_GREET));
             els.push(Element::text_color(
