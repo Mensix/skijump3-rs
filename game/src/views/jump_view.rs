@@ -888,6 +888,13 @@ impl View<RouteTarget> for JumpView {
                 19,
                 FONT_DEFAULT,
             ));
+            els.push(Element::text_color(
+                format!("{}", state.start_gate),
+                64,
+                27,
+                FONT_GOLD,
+            ));
+            els.push(Element::text_color("(+/-)", 64, 35, FONT_GREET));
             let label58_w = self
                 .resources
                 .font
