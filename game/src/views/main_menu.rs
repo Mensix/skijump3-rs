@@ -93,4 +93,8 @@ impl View<RouteTarget> for MainMenuView {
             _ => None,
         }
     }
+
+    fn apply_palette(&self, palette: &mut engine::palette::Palette) {
+        apply_logo_tint(palette, 0);
+    }
 }

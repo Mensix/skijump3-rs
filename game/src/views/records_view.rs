@@ -4,7 +4,7 @@ use crate::data::records::{HillRecord, Hiscore};
 use crate::palette_consts::*;
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
-use crate::utils::shorten_name;
+use crate::utils::{is_computer_name, shorten_name};
 use engine::ui::{Element, Event, Key, View};
 
 const HALL_PAGES: usize = 3;
@@ -39,10 +39,6 @@ fn txtp(value: i64) -> String {
         out.insert(0, '0');
     }
     format!("{}{}", sign, out)
-}
-
-fn computer_name(name: &str) -> bool {
-    name.ends_with('�')
 }
 
 fn handle_page_event(event: Event, page: &mut usize, pages: usize) -> Option<PageAction> {
@@ -162,12 +158,12 @@ impl HallOfFameView {
         col: [i32; 4],
         sortby_points: bool,
     ) {
-        table.push(Cell::right(format!("{}.", place), 24, y, FONT_NEW));
-        let name_color = if computer_name(&hi.name) {
+        let name_color = if is_computer_name(&hi.name) {
             FONT_GREET
         } else {
             FONT_DEFAULT
         };
+        table.push(Cell::right(format!("{}.", place), 24, y, FONT_NEW));
         table.push(Cell::left(
             shorten_name(&hi.name, &self.resources.font, 110),
             col[0],
@@ -178,14 +174,14 @@ impl HallOfFameView {
             format!("{}.", hi.pos),
             col[1] + 14,
             y,
-            FONT_DEFAULT,
+            name_color,
         ));
         let score = if sortby_points {
             txtp(hi.score)
         } else {
             hi.score.to_string()
         };
-        table.push(Cell::right(score, col[2] + 24, y, FONT_DEFAULT));
+        table.push(Cell::right(score, col[2] + 24, y, name_color));
         table.push(Cell::left(&hi.time, col[3], y, FONT_HELP));
     }
 
@@ -215,22 +211,23 @@ impl HallOfFameView {
             ));
             yy += 10;
 
-            let mut name = lstr(&self.resources, 161, "Nobody");
+            let name = lstr(&self.resources, 161, "Nobody");
             let Some(hi) = store.records.top(temp + 35) else {
                 table.push(Cell::left(name, col[1], yy, FONT_HELP));
                 continue;
             };
             if hi.score > 0 {
                 table.push(Cell::left(&hi.time, col[2], yy, FONT_HELP));
-                name = hi.name.clone();
                 table.push(Cell::left(
                     format!("{} X", hi.score),
                     col[3],
                     yy,
                     FONT_DEFAULT,
                 ));
+                table.push(Cell::left(&hi.name, col[1], yy, FONT_DEFAULT));
+            } else {
+                table.push(Cell::left(name, col[1], yy, FONT_HELP));
             }
-            table.push(Cell::left(name, col[1], yy, FONT_DEFAULT));
         }
 
         els.extend(table.into_elements());
@@ -267,6 +264,13 @@ impl View<RouteTarget> for HallOfFameView {
     fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {
         handle_page_event(event, &mut self.page, HALL_PAGES)
             .and_then(|action| apply_page_action(action, &mut self.page, HALL_PAGES))
+    }
+
+    fn apply_palette(&self, palette: &mut engine::palette::Palette) {
+        apply_menu_tint(palette, 3, 0);
+        if self.page == 2 {
+            apply_menu_tint(palette, 1, 4);
+        }
     }
 }
 
@@ -306,26 +310,26 @@ impl HillRecordsView {
             lstr(&self.resources, 106, "Hill"),
             col[0],
             23,
-            FONT_NEW,
+            FONT_DEFAULT,
         ));
         table.push(Cell::left(
             lstr(&self.resources, 171, "Who"),
             col[1],
             23,
-            FONT_NEW,
+            FONT_DEFAULT,
         ));
         table.push(Cell::right(
             lstr(&self.resources, 172, "Length"),
             col[2],
             23,
-            FONT_NEW,
+            FONT_DEFAULT,
         ));
-        table.push(Cell::left("(K)", col[3], 23, FONT_NEW));
+        table.push(Cell::left("(K)", col[3], 23, FONT_DEFAULT));
         table.push(Cell::left(
             lstr(&self.resources, 169, "Date"),
             col[4],
             23,
-            FONT_NEW,
+            FONT_DEFAULT,
         ));
 
         let store = self.store.borrow();
@@ -352,7 +356,7 @@ impl HillRecordsView {
                 y,
                 FONT_NEW,
             ));
-            let record_color = if computer_name(&record.name) {
+            let record_color = if is_computer_name(&record.name) {
                 FONT_GREET
             } else {
                 FONT_DEFAULT
@@ -363,7 +367,7 @@ impl HillRecordsView {
                 y,
                 record_color,
             ));
-            let length_color = if computer_name(&record.name) {
+            let length_color = if is_computer_name(&record.name) {
                 FONT_GREET
             } else {
                 FONT_NEW
@@ -373,7 +377,7 @@ impl HillRecordsView {
                 format!("({})", hill.kr),
                 col[3] + 11,
                 y,
-                FONT_NEW,
+                length_color,
             ));
             table.push(Cell::left(record.time, col[4], y, FONT_HELP));
         }
@@ -383,13 +387,8 @@ impl HillRecordsView {
                 .filter_map(|idx| self.resources.hills.hill(idx).map(|hill| hill.kr * 10))
                 .sum();
             if total > 0 {
-                table.push(Cell::left("A.H.I.", 130, 192, FONT_DEFAULT));
-                table.push(Cell::right(
-                    format_ahi(ahi_sum, total),
-                    197,
-                    192,
-                    FONT_DEFAULT,
-                ));
+                table.push(Cell::left("A.H.I.", 130, 192, FONT_HELP));
+                table.push(Cell::right(format_ahi(ahi_sum, total), 197, 192, FONT_HELP));
             }
         }
 
@@ -398,7 +397,7 @@ impl HillRecordsView {
 }
 
 fn ahi_len(record: &HillRecord, hill_kr: i64) -> i64 {
-    if computer_name(&record.name) {
+    if is_computer_name(&record.name) {
         hill_kr * 10
     } else {
         record.len
@@ -432,5 +431,9 @@ impl View<RouteTarget> for HillRecordsView {
         let pages = self.pages();
         handle_page_event(event, &mut self.page, pages)
             .and_then(|action| apply_page_action(action, &mut self.page, pages))
+    }
+
+    fn apply_palette(&self, palette: &mut engine::palette::Palette) {
+        apply_menu_tint(palette, 3, 0);
     }
 }

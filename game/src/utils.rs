@@ -26,28 +26,24 @@ pub fn shorten_name(s: &str, font: &Font, max_width: i32) -> String {
     if font.string_width(s) as i32 <= max_width {
         return s.to_string();
     }
-    let bytes = s.as_bytes();
-    for i in 1..s.len().saturating_sub(1) {
-        if bytes[i] == b' ' && i + 1 < s.len() && bytes[i + 1] != b' ' {
-            let abbr = format!("{}.{}", &s[..1], &s[i..]);
+    let chars: Vec<char> = s.chars().collect();
+    for i in 1..chars.len().saturating_sub(1) {
+        if chars[i] == ' ' && i + 1 < chars.len() && chars[i + 1] != ' ' {
+            let rest: String = chars[i..].iter().collect();
+            let abbr = format!("{}.{}", chars[0], rest);
             if font.string_width(&abbr) as i32 <= max_width {
                 return abbr;
             }
         }
     }
-    let mut len = s.len();
-    loop {
-        let mut n = s[..len].to_string();
+    for len in (1..chars.len()).rev() {
+        let mut n: String = chars[..len].iter().collect();
         n.push('.');
         if font.string_width(&n) as i32 <= max_width {
             return n;
         }
-        if len <= 1 {
-            break;
-        }
-        len -= 1;
     }
-    s[..1].to_string()
+    chars[..1].iter().collect()
 }
 
 pub fn replace_label_x(label_width: i32) -> i32 {
@@ -80,6 +76,73 @@ fn lang_str(langbase: &LangBase, index: usize, fallback: &str) -> String {
     } else {
         v.to_string()
     }
+}
+
+pub fn pascal_decode(bytes: &[u8]) -> String {
+    fn cp850_to_char(b: u8) -> char {
+        match b {
+            0x80 => '\u{00C7}',
+            0x81 => '\u{00FC}',
+            0x82 => '\u{00E9}',
+            0x83 => '\u{00E2}',
+            0x84 => '\u{00E4}',
+            0x85 => '\u{00E0}',
+            0x86 => '\u{00E5}',
+            0x87 => '\u{00E7}',
+            0x88 => '\u{00EA}',
+            0x89 => '\u{00EB}',
+            0x8A => '\u{00E8}',
+            0x8B => '\u{00EF}',
+            0x8C => '\u{00EE}',
+            0x8D => '\u{00EC}',
+            0x8E => '\u{00C4}',
+            0x8F => '\u{00C5}',
+            0x90 => '\u{00C9}',
+            0x91 => '\u{00E6}',
+            0x92 => '\u{00C6}',
+            0x93 => '\u{00F4}',
+            0x94 => '\u{00F6}',
+            0x95 => '\u{00F2}',
+            0x96 => '\u{00FB}',
+            0x97 => '\u{00F9}',
+            0x98 => '\u{00FF}',
+            0x99 => '\u{00D6}',
+            0x9A => '\u{00DC}',
+            0x9B => '\u{00F8}',
+            0x9C => '\u{00A3}',
+            0x9D => '\u{00D8}',
+            0x9E => '\u{00D7}',
+            0x9F => '\u{0192}',
+            0xA0 => '\u{00E1}',
+            0xA1 => '\u{00ED}',
+            0xA2 => '\u{00F3}',
+            0xA3 => '\u{00FA}',
+            0xA4 => '\u{00F1}',
+            0xA5 => '\u{00D1}',
+            0xA6 => '\u{00AA}',
+            0xA7 => '\u{00BA}',
+            0xA8 => '\u{00BF}',
+            0xE1 => '\u{00DF}',
+            0xE6 => '\u{00B5}',
+            0xFF => '\u{00FF}',
+            _ => {
+                if b.is_ascii() {
+                    b as char
+                } else {
+                    '\u{FFFD}'
+                }
+            }
+        }
+    }
+    let mut out = String::with_capacity(bytes.len());
+    for &b in bytes {
+        out.push(cp850_to_char(b));
+    }
+    out
+}
+
+pub fn is_computer_name(name: &str) -> bool {
+    name.ends_with('\u{00FF}')
 }
 
 pub fn format_profile_value(

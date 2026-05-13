@@ -68,3 +68,42 @@ pub fn apply_ski_palette_at(palette: &mut Palette, col: usize, target: usize) {
 pub fn apply_ski_palette(palette: &mut Palette, col: usize) {
     apply_ski_palette_at(palette, col, SKI_PALETTE_INDEX);
 }
+
+/// Maps to Pascal `ReplaceMenu` — colour pairs for MuutaMenu.
+/// Each colour `col` provides two RGB triples: upper (pairs 242+index..) and lower (247+index..).
+const REPLACE_MENU: [[u8; 3]; 12] = [
+    [20, 20, 20], // col 0 upper — gray
+    [26, 26, 26], // col 0 lower — gray
+    [10, 10, 10], // col 1 upper — near black
+    [15, 15, 15], // col 1 lower — near black
+    [28, 8, 24],  // col 2 upper — violet
+    [34, 13, 28], // col 2 lower — violet
+    [0, 24, 24],  // col 3 upper — turquoise
+    [6, 30, 30],  // col 3 lower — turquoise
+    [0, 25, 0],   // col 4 upper — KOTH green
+    [5, 30, 5],   // col 4 lower — KOTH green
+    [47, 0, 0],   // col 5 upper — red
+    [54, 10, 10], // col 5 lower — red
+];
+
+/// Pascal `MuutaMenu(index, col)` — overwrites palette entries 242+index and 247+index.
+pub fn apply_menu_tint(palette: &mut Palette, index: usize, col: usize) {
+    let col = col.min(5);
+    let upper = &REPLACE_MENU[col * 2];
+    let lower = &REPLACE_MENU[col * 2 + 1];
+    palette.set(242 + index, *upper);
+    palette.set(247 + index, *lower);
+}
+
+/// Pascal `MuutaLogo(col)` — overwrites palette entries 253 and 254.
+pub fn apply_logo_tint(palette: &mut Palette, col: usize) {
+    const REPLACE_LOGO: [[u8; 3]; 4] = [
+        [46, 46, 63], // col 0 — blue
+        [32, 32, 63],
+        [51, 51, 51], // col 1 — gray
+        [38, 38, 38],
+    ];
+    let col = col.min(3);
+    palette.set(253, REPLACE_LOGO[col * 2]);
+    palette.set(254, REPLACE_LOGO[col * 2 + 1]);
+}

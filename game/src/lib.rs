@@ -31,7 +31,9 @@ use parsers::{
 use route::RouteTarget;
 use std::cell::RefCell;
 use std::rc::Rc;
-use views::{HallOfFameView, HillRecordsView, JumpMenuView, MainMenuView, ProfilesView};
+use views::{
+    HallOfFameView, HillRecordsView, JumpMenuView, MainMenuView, ProfilesView, WelcomeScreenView,
+};
 
 const MAIN_PCX: &str = "MAIN.PCX";
 const ANIM_SKI: &str = "ANIM.SKI";
@@ -89,8 +91,6 @@ fn apply_standard_ui_palette(palette: &mut Palette) {
     for (i, &rgb) in STANDARD_UI_PALETTE.iter().enumerate() {
         palette.set(UI_PALETTE_BASE + i, rgb);
     }
-    palette.set(253, [46, 46, 63]);
-    palette.set(254, [32, 32, 63]);
 }
 
 fn load_font(sprites: &[SpriteData]) -> Font {
@@ -207,8 +207,11 @@ impl Game {
             background,
         );
         Router::new(
-            RouteTarget::ProfilesList,
-            Box::new(ProfilesView::new(resources.clone(), store.clone())),
+            RouteTarget::Welcome,
+            Box::new(WelcomeScreenView::new(
+                resources.langbase.languages.clone(),
+                Rc::clone(&resources.langbase),
+            )),
             vec![
                 (RouteTarget::MainMenu, {
                     let l = layout.clone();
@@ -229,7 +232,7 @@ impl Game {
                     Box::new(move || Box::new(HallOfFameView::new(r.clone(), s.clone())))
                 }),
                 (RouteTarget::HillRecords, {
-                    let r = resources;
+                    let r = resources.clone();
                     let s = store;
                     Box::new(move || Box::new(HillRecordsView::new(r.clone(), s.clone())))
                 }),
@@ -240,6 +243,15 @@ impl Game {
                 (RouteTarget::Quit, {
                     let l = layout;
                     Box::new(move || Box::new(MainMenuView::new(l.clone())))
+                }),
+                (RouteTarget::Welcome, {
+                    let r = resources;
+                    Box::new(move || {
+                        Box::new(WelcomeScreenView::new(
+                            r.langbase.languages.clone(),
+                            Rc::clone(&r.langbase),
+                        ))
+                    })
                 }),
             ],
         )

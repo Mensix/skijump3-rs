@@ -5,7 +5,7 @@ use crate::route::RouteTarget;
 use engine::ui::{Component, Element, Event, View};
 use std::rc::Rc;
 
-const LOGO_SPRITE: u16 = 60;
+const LOGO_SPRITE: u16 = 61;
 
 pub struct WelcomeScreenView {
     menu: Menu,
@@ -83,5 +83,9 @@ impl View<RouteTarget> for WelcomeScreenView {
             }
             _ => None,
         }
+    }
+
+    fn apply_palette(&self, palette: &mut engine::palette::Palette) {
+        apply_logo_tint(palette, 0);
     }
 }

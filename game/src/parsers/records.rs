@@ -1,5 +1,6 @@
 use crate::data::records::{HillRecord, Hiscore, RecordStore};
 use crate::parsers::{AssetParser, ParseError};
+use crate::utils::pascal_decode;
 
 const NUM_TOPS: usize = 41;
 const NUM_HILL_RECORDS: usize = 20;
@@ -20,7 +21,7 @@ fn trim_ascii(bytes: &[u8]) -> &[u8] {
 }
 
 fn decode_line(bytes: &[u8]) -> String {
-    String::from_utf8_lossy(trim_ascii(bytes)).to_string()
+    pascal_decode(trim_ascii(bytes))
 }
 
 fn uncrypt(input: &str, order: usize) -> i64 {

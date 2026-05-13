@@ -2,6 +2,7 @@
 pub enum RouteTarget {
     Quit,
     MainMenu,
+    Welcome,
     JumpMenu,
     HallOfFame,
     HillRecords,
