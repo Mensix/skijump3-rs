@@ -132,13 +132,8 @@ impl JumpState {
         self.x = pascal_round(self.matka + self.qx);
 
         if self.matka >= 0.0 {
-            if self.takeoff_counter == 0 {
-                self.distance = 0;
-                self.phase = JumpPhase::Result;
-            } else {
-                self.phase = JumpPhase::Flight;
-                self.tick_flight_after_position_update(fx, fy, terrain);
-            }
+            self.phase = JumpPhase::Flight;
+            self.tick_flight_after_position_update(fx, fy, terrain);
             return;
         }
 
