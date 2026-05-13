@@ -883,6 +883,12 @@ impl View<RouteTarget> for JumpView {
                 FONT_GOLD,
             ));
             els.push(Element::text_color("(+/-)", 64, 35, FONT_GREET));
+            els.push(Element::text_color(
+                self.resources.langbase.lstr(52),
+                12,
+                160,
+                FONT_GOLD,
+            ));
             els.push(Element::text_color(label56, 12, 172, FONT_GREET));
             els.push(Element::text_color(
                 &self.jumper_name,
@@ -949,7 +955,7 @@ impl View<RouteTarget> for JumpView {
                     format!("HILL RECORD {:.1}m", record_len as f64 / 10.0),
                     8,
                     90,
-                    FONT_HELP,
+                    FONT_GOLD,
                 ));
                 if state.fall_type == 0 && i64::from(state.distance) > record_len {
                     els.push(Element::text_color(
