@@ -8,6 +8,7 @@ pub mod palette_consts;
 pub mod parsers;
 pub mod pascal_random;
 pub mod route;
+pub mod snow;
 pub mod store;
 pub mod utils;
 pub mod views;
@@ -302,6 +303,9 @@ impl Game {
         for el in &elements {
             el.render(&mut ctx, &self.font, &self.sprites);
         }
+        self.router
+            .current_view()
+            .render_snow(&mut self.framebuffer);
         self.renderer.blit(&self.framebuffer);
         self.renderer.present()?;
         self.renderer.wait_frame();

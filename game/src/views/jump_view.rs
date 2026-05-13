@@ -6,6 +6,7 @@ use crate::jump::animation::{
 use crate::palette_consts::*;
 use crate::pascal_random::PascalRandom;
 use crate::route::RouteTarget;
+use crate::snow::SnowSystem;
 use crate::store::{ResourcesRef, StoreRef};
 use engine::consts::{HEIGHT, WIDTH};
 use engine::ui::{Element, Event, ImageRegion, Key, View};
@@ -678,6 +679,8 @@ pub struct JumpView {
     terrain: Result<HillTerrain, String>,
     state: RefCell<Option<JumpState>>,
     jumper_name: String,
+    snow: RefCell<SnowSystem>,
+    prev_camera: RefCell<(i32, i32)>,
 }
 
 impl JumpView {
@@ -711,6 +714,14 @@ impl JumpView {
             .unwrap_or("The Training Man")
             .to_string();
 
+        let mut snow = SnowSystem::new();
+        snow.set_count(50, &mut store.rng.borrow_mut());
+
+        let camera = match &state {
+            Some(s) => (s.sx, s.sy),
+            None => (0, 0),
+        };
+
         Self {
             resources,
             store,
@@ -718,6 +729,8 @@ impl JumpView {
             terrain,
             state: RefCell::new(state),
             jumper_name,
+            snow: RefCell::new(snow),
+            prev_camera: RefCell::new(camera),
         }
     }
 
@@ -1162,6 +1175,28 @@ impl View<RouteTarget> for JumpView {
                 None
             }
             _ => None,
+        }
+    }
+
+    fn render_snow(&self, framebuffer: &mut [u8]) {
+        if let Ok(ref state) = self.state.try_borrow() {
+            if let Some(state) = state.as_ref() {
+                let prev = self.prev_camera.replace((state.sx, state.sy));
+                let delta_x = prev.0 - state.sx;
+                let delta_y = prev.1 - state.sy;
+                let wind = self.store.wind.borrow().value;
+                let draw = matches!(
+                    state.phase,
+                    JumpPhase::Info | JumpPhase::OnBar | JumpPhase::Inrun | JumpPhase::Flight
+                );
+                self.snow.borrow_mut().update(
+                    framebuffer,
+                    delta_x as i32,
+                    delta_y as i32,
+                    wind,
+                    draw,
+                );
+            }
         }
     }
 

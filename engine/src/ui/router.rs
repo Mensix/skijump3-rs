@@ -28,6 +28,7 @@ pub trait View<T: Clone + PartialEq + 'static> {
     fn elements(&self) -> Vec<Element>;
     fn handle_event(&mut self, event: Event) -> Option<T>;
     fn apply_palette(&self, _palette: &mut Palette) {}
+    fn render_snow(&self, _framebuffer: &mut [u8]) {}
 }
 
 #[allow(clippy::type_complexity)]
