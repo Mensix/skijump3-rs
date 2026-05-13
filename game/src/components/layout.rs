@@ -21,7 +21,12 @@ pub struct MainLayout {
 }
 
 impl MainLayout {
-    pub fn new(langbase: Rc<LangBase>, version: String, background: Vec<u8>, store: StoreRef) -> Self {
+    pub fn new(
+        langbase: Rc<LangBase>,
+        version: String,
+        background: Vec<u8>,
+        store: StoreRef,
+    ) -> Self {
         Self {
             langbase,
             version,
@@ -46,7 +51,12 @@ impl MainLayout {
             }
             let profile = &pb.profiles[profile_idx];
             let y = (i as i32) * 9 + 64;
-            els.push(Element::text_color_right(format!("{}.", i + 1), 162, y, FONT_HELP));
+            els.push(Element::text_color_right(
+                format!("{}.", i + 1),
+                162,
+                y,
+                FONT_HELP,
+            ));
             els.push(Element::text_color(&profile.name, 170, y, FONT_HELP));
         }
         els
@@ -62,12 +72,7 @@ impl MainLayout {
                 FONT_DEFAULT,
             ),
             Element::fillbox(132, 175, 177, 22, 248),
-            Element::text_color(
-                "EVERYONE - THANKS FOR THE SUPPORT!",
-                140,
-                177,
-                FONT_NEW,
-            ),
+            Element::text_color("EVERYONE - THANKS FOR THE SUPPORT!", 140, 177, FONT_NEW),
         ]
     }
 

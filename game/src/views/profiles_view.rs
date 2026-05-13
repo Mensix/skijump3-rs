@@ -110,11 +110,7 @@ impl ProfilesView {
         let store = self.store.profiles.borrow();
         let mut profile = Profile::default();
         let mut counter = 2;
-        while store
-            .profiles
-            .iter()
-            .any(|p| p.name == profile.name)
-        {
+        while store.profiles.iter().any(|p| p.name == profile.name) {
             profile.name = format!("SKI JUMPER {}", counter);
             counter += 1;
         }
@@ -179,11 +175,7 @@ impl ProfilesView {
             ));
         }
 
-        let back_temp = if store.has_slot() {
-            np + 3
-        } else {
-            np + 2
-        };
+        let back_temp = if store.has_slot() { np + 3 } else { np + 2 };
         els.push(Element::text_color(
             self.lstr(33, "Back to Main Menu"),
             40,
@@ -192,11 +184,7 @@ impl ProfilesView {
         ));
 
         if matches!(self.mode, Mode::List) {
-            let entries = if store.has_slot() {
-                np + 1
-            } else {
-                np
-            };
+            let entries = if store.has_slot() { np + 1 } else { np };
             let box_y = if self.selected < entries {
                 10 + (self.selected as i32) * 8
             } else {
@@ -795,12 +783,8 @@ impl View<RouteTarget> for ProfilesView {
                         ValueSelectorAction::Commit(value) => {
                             let mut store = self.store.profiles.borrow_mut();
                             match field {
-                                ColorField::Suit => {
-                                    store.profiles[*profile].suit_color = value
-                                }
-                                ColorField::Ski => {
-                                    store.profiles[*profile].ski_color = value
-                                }
+                                ColorField::Suit => store.profiles[*profile].suit_color = value,
+                                ColorField::Ski => store.profiles[*profile].ski_color = value,
                             }
                             drop(store);
                             Pending::ColorCommit(*profile, *field)

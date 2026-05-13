@@ -35,11 +35,26 @@ impl PracticeView {
         let total = resources.hills.len();
         let page_n = total.min(20);
         let n = page_n + if total > 20 { 1 } else { 0 } + 1;
-        let items = (0..n).map(|_| MenuItem { num: 0, label: 0, y_off: 0 }).collect();
+        let items = (0..n)
+            .map(|_| MenuItem {
+                num: 0,
+                label: 0,
+                y_off: 0,
+            })
+            .collect();
         Self {
-            menu: Menu::new(110, 11, 170, 8, items, &resources.langbase, FONT_DEFAULT, FONT_DEFAULT)
-                .with_labels(false)
-                .with_box(false),
+            menu: Menu::new(
+                110,
+                11,
+                170,
+                8,
+                items,
+                &resources.langbase,
+                FONT_DEFAULT,
+                FONT_DEFAULT,
+            )
+            .with_labels(false)
+            .with_box(false),
             resources,
             start: 0,
             total,
@@ -49,10 +64,25 @@ impl PracticeView {
     fn rebuild_menu(&self) -> Menu {
         let page_n = self.page_items();
         let n = page_n + if self.has_more() { 1 } else { 0 } + 1;
-        let items = (0..n).map(|_| MenuItem { num: 0, label: 0, y_off: 0 }).collect();
-        Menu::new(110, 11, 170, 8, items, &self.resources.langbase, FONT_DEFAULT, FONT_DEFAULT)
-            .with_labels(false)
-            .with_box(false)
+        let items = (0..n)
+            .map(|_| MenuItem {
+                num: 0,
+                label: 0,
+                y_off: 0,
+            })
+            .collect();
+        Menu::new(
+            110,
+            11,
+            170,
+            8,
+            items,
+            &self.resources.langbase,
+            FONT_DEFAULT,
+            FONT_DEFAULT,
+        )
+        .with_labels(false)
+        .with_box(false)
     }
 
     fn confirm(&mut self) -> Option<RouteTarget> {
@@ -85,7 +115,12 @@ impl View<RouteTarget> for PracticeView {
         for i in 0..page_n {
             let pascal_idx = self.start + i + 1;
             let y = self.item_row(i) as i32 * 8 + 10;
-            els.push(Element::text_color_right(format!("{}.", i + 1), 130, y, FONT_GOLD));
+            els.push(Element::text_color_right(
+                format!("{}.", i + 1),
+                130,
+                y,
+                FONT_GOLD,
+            ));
             if let Some(hill) = self.resources.hills.hill(pascal_idx) {
                 els.push(Element::text_color(&hill.name, 140, y, FONT_DEFAULT));
                 let name_w = self.resources.font.string_width(&hill.name) as i32;

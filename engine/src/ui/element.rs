@@ -6,8 +6,22 @@ use std::rc::Rc;
 use crate::consts::{FILL_BRIGHTEN, FILL_RANGE_MAX, PATTERN_SPRITE, SHADOW_PIXEL, TILE_H, TILE_W};
 
 #[derive(Debug, Clone)]
+pub struct ImageRegion {
+    pub pixels: Rc<[u8]>,
+    pub src_w: u32,
+    pub src_h: u32,
+    pub src_x: i32,
+    pub src_y: i32,
+    pub dst_x: i32,
+    pub dst_y: i32,
+    pub w: u32,
+    pub h: u32,
+}
+
+#[derive(Debug, Clone)]
 pub enum Element {
     Image(Rc<[u8]>, u32, u32),
+    ImageRegion(ImageRegion),
     Text {
         text: String,
         x: i32,
@@ -48,6 +62,27 @@ impl Element {
                     let dst_row = (y as usize) * (ctx.width as usize);
                     let src = &pixels[src_row..src_row + dst_w as usize];
                     ctx.pixels[dst_row..dst_row + dst_w as usize].copy_from_slice(src);
+                }
+            }
+            Element::ImageRegion(region) => {
+                for y in 0..region.h as i32 {
+                    let sy = region.src_y + y;
+                    let dy = region.dst_y + y;
+                    if sy < 0 || dy < 0 || sy >= region.src_h as i32 || dy >= ctx.height as i32 {
+                        continue;
+                    }
+                    for x in 0..region.w as i32 {
+                        let sx = region.src_x + x;
+                        let dx = region.dst_x + x;
+                        if sx < 0 || dx < 0 || sx >= region.src_w as i32 || dx >= ctx.width as i32 {
+                            continue;
+                        }
+                        let src_idx = sy as usize * region.src_w as usize + sx as usize;
+                        let dst_idx = dy as usize * ctx.width as usize + dx as usize;
+                        if let Some(&pixel) = region.pixels.get(src_idx) {
+                            ctx.pixels[dst_idx] = pixel;
+                        }
+                    }
                 }
             }
             Element::Text {
@@ -163,6 +198,10 @@ impl Element {
 
     pub fn image(pixels: impl Into<Rc<[u8]>>, w: u32, h: u32) -> Self {
         Self::Image(pixels.into(), w, h)
+    }
+
+    pub fn image_region(region: ImageRegion) -> Self {
+        Self::ImageRegion(region)
     }
 
     pub fn fillbox(x: i32, y: i32, w: i32, h: i32, color: u8) -> Self {
