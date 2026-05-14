@@ -354,6 +354,11 @@ impl JumpState {
 
         self.update_ski_swing(&mut rng);
 
+        // Pascal: auto-landing before body-angle boost (line 1773)
+        if self.landing_style == 0 && self.matka > 3.0 && self.height < 4 {
+            self.landing_style = 2;
+        }
+
         if self.landing_style > 0 && self.body_angle < 600 {
             self.body_angle += 9 + (i32::from(self.landing_style) - 1) * 5;
             if self.lift < 1.0 {
@@ -378,11 +383,6 @@ impl JumpState {
         let prev_height = self.height;
         self.height = (terrain.profiili(self.x) - self.y).max(0);
         self.delta_height[(self.frame as usize) % 3] = prev_height - self.height;
-
-        // Pascal checks previous frame's height before recalculating Height later in the loop.
-        if self.landing_style == 0 && self.matka > 3.0 && prev_height < 4 {
-            self.landing_style = 2;
-        }
 
         if self.height == 0 {
             self.distance = self.distance(terrain);
