@@ -217,7 +217,7 @@ fn landing_elements(
     }
 }
 
-fn wind_elements(els: &mut Vec<Element>, position: WindGaugePosition, value: i32) {
+pub(crate) fn wind_elements(els: &mut Vec<Element>, position: WindGaugePosition, value: i32) {
     let x = position.x;
     let y = position.y;
     els.push(Element::fillbox(x + 4, y + 1, 35, 2, 248));

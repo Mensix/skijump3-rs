@@ -37,6 +37,11 @@ impl ReplaySession {
     }
 
     #[must_use]
+    pub fn position_at(&self, frame: usize) -> Option<(i32, i32)> {
+        self.absolute_positions.get(frame).copied()
+    }
+
+    #[must_use]
     pub fn current_frame(&self) -> Option<ReplayFrame> {
         self.trace.frames.get(self.frame).copied()
     }
@@ -49,6 +54,12 @@ impl ReplaySession {
     pub fn step_forward(&mut self) {
         if self.frame + 1 < self.trace.frames.len() {
             self.frame += 1;
+        }
+    }
+
+    pub fn auto_step_forward(&mut self) {
+        if self.trace.meta.intro {
+            self.step_forward();
         }
     }
 
