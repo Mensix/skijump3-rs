@@ -103,37 +103,84 @@ impl SnowSystem {
     }
 
     pub fn update(&mut self, buffer: &mut [u8], delta_x: i32, delta_y: i32, wind: i32, draw: bool) {
-        for flake in &mut self.flakes {
+        let max = self.max.min(LUMI_MAX - 1);
+        for flake in self.flakes.iter_mut().take(max + 1) {
             if draw {
                 flake.x += self.sine[flake.sin_pos] + (delta_x as i64) * 512 + wind as i64;
                 flake.sin_pos = (flake.sin_pos + 1) & (SINE_LENGTH - 1);
                 flake.y += flake.gravity + (delta_y as i64) * 256;
             }
-            if flake.x < 0 || flake.y < 0 {
-                continue;
-            }
-            let screen_x = (flake.x >> 10) as usize;
-            let screen_y = (flake.y >> 10) as usize;
-            if screen_y >= SCREEN_H as usize || screen_x >= SCREEN_W as usize {
-                continue;
-            }
-            let offset = screen_x + screen_y * SCREEN_W as usize;
-            if buffer[offset] >= BG_MIN && buffer[offset] < BG_MAX {
+
+            let x = ((flake.x as i32 as u32) >> 10) as u16;
+            let y = ((flake.y as i32 as u32) >> 10) as u16;
+            let offset = x.wrapping_add(y.wrapping_mul(SCREEN_W as u16)) as usize;
+            if offset < 63_679
+                && offset + (SCREEN_W as usize) + 1 < buffer.len()
+                && buffer[offset] >= BG_MIN
+                && buffer[offset + 1] >= BG_MIN
+                && buffer[offset] < BG_MAX
+                && buffer[offset + 1] < BG_MAX
+            {
                 if flake.style == 1 && offset + 1 < buffer.len() {
                     buffer[offset] = flake.c1 as u8;
-                    if offset + 1 < buffer.len() {
-                        buffer[offset + 1] = (flake.c1 >> 8) as u8;
-                    }
-                    if offset + (SCREEN_W as usize) < buffer.len() {
-                        buffer[offset + (SCREEN_W as usize)] = flake.c2 as u8;
-                    }
-                    if offset + (SCREEN_W as usize) + 1 < buffer.len() {
-                        buffer[offset + (SCREEN_W as usize) + 1] = (flake.c2 >> 8) as u8;
-                    }
+                    buffer[offset + 1] = (flake.c1 >> 8) as u8;
+                    buffer[offset + (SCREEN_W as usize)] = flake.c2 as u8;
+                    buffer[offset + (SCREEN_W as usize) + 1] = (flake.c2 >> 8) as u8;
                 } else {
                     buffer[offset] = flake.c1 as u8;
                 }
             }
         }
+    }
+}
+
+impl Default for SnowSystem {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn flake_at(x: i64, y: i64, color: u16) -> Snowflake {
+        Snowflake {
+            x,
+            y,
+            gravity: 0,
+            sin_pos: 0,
+            c1: color,
+            c2: color,
+            style: 0,
+        }
+    }
+
+    #[test]
+    fn update_uses_pascal_wrapped_offset_for_offscreen_flakes() {
+        let mut snow = SnowSystem::new();
+        snow.flakes = vec![flake_at(0, 205_i64 << 10, 233)];
+        snow.max = 0;
+
+        let mut buffer = vec![BG_MIN; (SCREEN_W * SCREEN_H) as usize];
+        snow.update(&mut buffer, 0, 0, 0, false);
+
+        assert_eq!(buffer[64], 233);
+    }
+
+    #[test]
+    fn update_respects_pascal_inclusive_max_count() {
+        let mut snow = SnowSystem::new();
+        snow.flakes = vec![
+            flake_at(10_i64 << 10, 10_i64 << 10, 233),
+            flake_at(20_i64 << 10, 10_i64 << 10, 234),
+        ];
+        snow.max = 0;
+
+        let mut buffer = vec![BG_MIN; (SCREEN_W * SCREEN_H) as usize];
+        snow.update(&mut buffer, 0, 0, 0, false);
+
+        assert_eq!(buffer[10 + 10 * SCREEN_W as usize], 233);
+        assert_eq!(buffer[20 + 10 * SCREEN_W as usize], BG_MIN);
     }
 }

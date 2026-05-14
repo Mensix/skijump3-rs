@@ -159,7 +159,10 @@ mod tests {
         assert!(wind.increasing);
 
         let actual: Vec<i32> = (0..12).map(|_| wind.sample(&mut rng)).collect();
-        assert_eq!(actual, vec![-38, -38, -38, -38, -38, -39, -39, -39, -39, -39, -39, -39]);
+        assert_eq!(
+            actual,
+            vec![-38, -38, -38, -38, -38, -39, -39, -39, -39, -39, -39, -39]
+        );
         assert!((wind.angle - 161.200_012).abs() < 0.000_1);
     }
 }

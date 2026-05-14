@@ -871,7 +871,7 @@ impl View<RouteTarget> for JumpView {
                 strength: w.strength,
             };
             drop(w);
-            state.tick(terrain, wind, &mut *self.store.rng.borrow_mut());
+            state.tick(terrain, wind, &mut self.store.rng.borrow_mut());
         } else {
             // OnBar, Inrun, Flight: sample wind each frame (Pascal lines 1536, 1691)
             let mut rng = self.store.rng.borrow_mut();
