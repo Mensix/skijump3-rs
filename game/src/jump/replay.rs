@@ -312,8 +312,8 @@ fn decode_frames(data: &[u8], max_turns: usize) -> Result<Vec<ReplayFrame>, Repl
         frames.push(ReplayFrame {
             dx: (i32::from(data[base]) - 128) as i8,
             dy: (i32::from(data[base + 1]) - 128) as i8,
-            body_anim: data[base + 2],
-            ski_anim: data[base + 3],
+            body_anim: data[base + 2].saturating_sub(1),
+            ski_anim: data[base + 3].saturating_sub(1),
             wind: (i32::from(data[base + 4]) - 128) as i8,
         });
     }
@@ -331,8 +331,8 @@ fn encode_frames(out: &mut Vec<u8>, frames: &[ReplayFrame]) {
         });
         out.push((i16::from(frame.dx) + 128) as u8);
         out.push((i16::from(frame.dy) + 128) as u8);
-        out.push(frame.body_anim);
-        out.push(frame.ski_anim);
+        out.push(frame.body_anim + 1);
+        out.push(frame.ski_anim + 1);
         out.push((i16::from(frame.wind) + 128) as u8);
     }
 }
