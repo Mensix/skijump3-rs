@@ -27,6 +27,7 @@ pub struct ReplayView {
     active_intro_box: RefCell<Option<u8>>,
     shown_intro_boxes: RefCell<[bool; 11]>,
     cursor_blink: Cell<u32>,
+    mode: Cell<u8>,
 }
 
 impl ReplayView {
@@ -52,6 +53,7 @@ impl ReplayView {
             active_intro_box: RefCell::new(None),
             shown_intro_boxes: RefCell::new([false; 11]),
             cursor_blink: Cell::new(0),
+            mode: Cell::new(3),
         }
     }
 
@@ -97,6 +99,24 @@ impl ReplayView {
             Some(RouteTarget::Replays)
         } else {
             None
+        }
+    }
+
+    fn advance_replay_mode(&self, session: &mut ReplaySession) {
+        let mode = self.mode.get();
+        let frame = session.frame_index();
+        match mode {
+            1 | 3 | 5 => session.step_forward(),
+            2 => session.step_back(),
+            _ => {}
+        }
+        if session.frame_index() != frame {
+            self.snow_advance.set(true);
+        }
+        match mode {
+            3 => self.mode.set(0),
+            5 => self.mode.set(3),
+            _ => {}
         }
     }
 }
@@ -247,6 +267,8 @@ impl View<RouteTarget> for ReplayView {
             } else {
                 session.auto_step_forward();
             }
+        } else {
+            self.advance_replay_mode(session);
         }
         els
     }
@@ -256,25 +278,21 @@ impl View<RouteTarget> for ReplayView {
             return self.dismiss_intro_box();
         }
         match event {
-            Event::Keyboard(Key::Escape) => Some(RouteTarget::Replays),
-            Event::Keyboard(Key::Right | Key::Char(' ')) => {
-                if let Some(session) = self.session.borrow_mut().as_mut() {
-                    let frame = session.frame_index();
-                    session.step_forward();
-                    if session.frame_index() != frame {
-                        self.snow_advance.set(true);
-                    }
-                }
+            Event::Keyboard(Key::Escape | Key::Delete) => Some(RouteTarget::Replays),
+            Event::Keyboard(Key::Right) => {
+                self.mode.set(if self.mode.get() == 1 { 3 } else { 1 });
                 None
             }
             Event::Keyboard(Key::Left) => {
-                if let Some(session) = self.session.borrow_mut().as_mut() {
-                    let frame = session.frame_index();
-                    session.step_back();
-                    if session.frame_index() != frame {
-                        self.snow_advance.set(true);
-                    }
-                }
+                self.mode.set(if self.mode.get() == 2 { 3 } else { 2 });
+                None
+            }
+            Event::Keyboard(Key::Char(' ')) if self.mode.get() == 0 => {
+                self.mode.set(5);
+                None
+            }
+            Event::Keyboard(Key::Char('p') | Key::Char('P')) => {
+                self.mode.set(3);
                 None
             }
             _ => None,
@@ -285,7 +303,7 @@ impl View<RouteTarget> for ReplayView {
         if let Ok(terrain) = &self.terrain {
             terrain.apply_hill_palette(palette);
         }
-        muuta_replay(palette, 3);
+        muuta_replay(palette, self.mode.get());
     }
 }
 
