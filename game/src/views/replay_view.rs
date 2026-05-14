@@ -20,6 +20,7 @@ pub struct ReplayView {
     camera: RefCell<(i32, i32)>,
     snow_camera: RefCell<(i32, i32)>,
     snow_frame: RefCell<Option<(i32, i32, i32)>>,
+    snow_advance: Cell<bool>,
     intro_boxes: RefCell<VecDeque<u8>>,
     active_intro_box: RefCell<Option<u8>>,
     shown_intro_boxes: RefCell<[bool; 11]>,
@@ -46,6 +47,7 @@ impl ReplayView {
             camera: RefCell::new((0, 0)),
             snow_camera: RefCell::new((0, 0)),
             snow_frame: RefCell::new(None),
+            snow_advance: Cell::new(true),
             intro_boxes: RefCell::new(VecDeque::new()),
             active_intro_box: RefCell::new(None),
             shown_intro_boxes: RefCell::new([false; 11]),
@@ -250,13 +252,21 @@ impl View<RouteTarget> for ReplayView {
             Event::Keyboard(Key::Escape) => Some(RouteTarget::Replays),
             Event::Keyboard(Key::Right | Key::Char(' ')) => {
                 if let Some(session) = self.session.get_mut() {
+                    let frame = session.frame_index();
                     session.step_forward();
+                    if session.frame_index() != frame {
+                        self.snow_advance.set(true);
+                    }
                 }
                 None
             }
             Event::Keyboard(Key::Left) => {
                 if let Some(session) = self.session.get_mut() {
+                    let frame = session.frame_index();
                     session.step_back();
+                    if session.frame_index() != frame {
+                        self.snow_advance.set(true);
+                    }
                 }
                 None
             }
@@ -281,9 +291,10 @@ impl View<RouteTarget> for ReplayView {
         };
         let previous = *self.snow_camera.borrow();
         *self.snow_camera.borrow_mut() = (sx, sy);
+        let draw = self.snow_advance.replace(false);
         self.snow
             .borrow_mut()
-            .update(framebuffer, previous.0 - sx, previous.1 - sy, wind, true);
+            .update(framebuffer, previous.0 - sx, previous.1 - sy, wind, draw);
     }
 
     fn apply_palette(&self, palette: &mut Palette) {
