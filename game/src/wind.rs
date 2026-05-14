@@ -44,7 +44,7 @@ impl PascalWind {
         self.windy = temp2;
         self.lower = temp1 - temp2;
         self.upper = temp1 + temp2;
-        self.angle = (rng.random_i64(i64::from(temp2 * 2)) as i32 + self.lower) as f32;
+        self.angle = (rng.random_i32(temp2 * 2) + self.lower) as f32;
         self.strength = rng.random_i32(50);
         self.increasing = rng.random_i32(2) == 0;
         self.set_place(place);
@@ -134,15 +134,15 @@ mod tests {
         assert_eq!(wind.lower, 27);
         assert_eq!(wind.upper, 169);
         assert!((wind.angle - 128.0).abs() < 0.000_01);
-        assert_eq!(wind.strength, 30);
+        assert_eq!(wind.strength, 42);
         assert!(!wind.increasing);
 
         let actual: Vec<i32> = (0..12).map(|_| wind.sample(&mut rng)).collect();
         assert_eq!(
             actual,
-            vec![-18, -18, -18, -18, -18, -18, -18, -17, -17, -17, -17, -17]
+            vec![-26, -26, -25, -25, -25, -24, -24, -24, -24, -23, -23, -23]
         );
-        assert!((wind.angle - 124.400_024).abs() < 0.000_1);
+        assert!((wind.angle - 123.400_009).abs() < 0.000_1);
     }
 
     #[test]
@@ -154,12 +154,12 @@ mod tests {
         assert_eq!(wind.windy, 16);
         assert_eq!(wind.lower, 130);
         assert_eq!(wind.upper, 162);
-        assert!((wind.angle - 144.0).abs() < 0.000_01);
-        assert_eq!(wind.strength, 6);
-        assert!(!wind.increasing);
+        assert!((wind.angle - 158.0).abs() < 0.000_01);
+        assert_eq!(wind.strength, 41);
+        assert!(wind.increasing);
 
         let actual: Vec<i32> = (0..12).map(|_| wind.sample(&mut rng)).collect();
-        assert_eq!(actual, vec![-5, -5, -5, -5, -5, -5, -5, -5, -5, -5, -5, -5]);
-        assert!((wind.angle - 139.799_988).abs() < 0.000_1);
+        assert_eq!(actual, vec![-38, -38, -38, -38, -38, -39, -39, -39, -39, -39, -39, -39]);
+        assert!((wind.angle - 161.200_012).abs() < 0.000_1);
     }
 }

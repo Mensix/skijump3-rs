@@ -25,6 +25,7 @@ pub struct SnowSystem {
     g_variation: u16,
     side_movement: u16,
     sleet: bool,
+    rng: PascalRandom,
 }
 
 impl Default for SnowSystem {
@@ -43,6 +44,7 @@ impl SnowSystem {
             g_variation: 300,
             side_movement: 50,
             sleet: false,
+            rng: PascalRandom::new(1),
         };
         system.compute_sine();
         system
@@ -55,7 +57,7 @@ impl SnowSystem {
         }
     }
 
-    pub fn set_count(&mut self, count: u16, rng: &mut PascalRandom) {
+    pub fn set_count(&mut self, count: u16) {
         self.perus_g = 600;
         self.g_variation = 300;
         self.side_movement = 50;
@@ -68,37 +70,37 @@ impl SnowSystem {
             self.side_movement = 50;
             self.max = (count - 1000) as usize;
         }
-        self.reset(rng);
+        self.reset();
     }
 
-    fn reset(&mut self, rng: &mut PascalRandom) {
+    fn reset(&mut self) {
         self.compute_sine();
         let count = self.max.min(LUMI_MAX);
         self.flakes = (0..count)
             .map(|_| {
-                let style = rng.random_i32(2) as u16;
+                let style = self.rng.random_i32(2) as u16;
                 let style = if self.sleet && style == 1 {
-                    rng.random_i32(2) as u16
+                    self.rng.random_i32(2) as u16
                 } else {
                     style
                 };
                 Snowflake {
-                    x: (rng.random_i32(SCREEN_W as i32) as i64) << 10,
-                    y: (rng.random_i32(SCREEN_H as i32) as i64) << 10,
-                    sin_pos: rng.random_i32(SINE_LENGTH as i32) as usize,
-                    gravity: (rng.random_i32(self.g_variation as i32) as i64 + self.perus_g as i64
+                    x: (self.rng.random_i32(SCREEN_W as i32) as i64) << 10,
+                    y: (self.rng.random_i32(SCREEN_H as i32) as i64) << 10,
+                    sin_pos: self.rng.random_i32(SINE_LENGTH as i32) as usize,
+                    gravity: (self.rng.random_i32(self.g_variation as i32) as i64 + self.perus_g as i64
                         - self.g_variation as i64),
                     style,
-                    c1: Self::get_color(rng),
-                    c2: Self::get_color(rng),
+                    c1: self.get_color(),
+                    c2: self.get_color(),
                 }
             })
             .collect();
     }
 
-    fn get_color(rng: &mut PascalRandom) -> u16 {
-        let low = rng.random_i32(4) + 232;
-        let high = rng.random_i32(4) + 232;
+    fn get_color(&mut self) -> u16 {
+        let low = self.rng.random_i32(4) + 232;
+        let high = self.rng.random_i32(4) + 232;
         (low as u16) | ((high as u16) << 8)
     }
 

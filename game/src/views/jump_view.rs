@@ -354,11 +354,8 @@ impl JumpState {
 
         self.update_ski_swing(&mut rng);
 
-        // Pascal: auto-landing before body-angle boost (line 1773)
-        if self.landing_style == 0 && self.matka > 3.0 && self.height < 4 {
-            self.landing_style = 2;
-        }
-
+        // Pascal: auto-landing (height<4) only for computer jumpers (if cjumper), line 1773
+        // For humans, landing_style is set only by T/R keypress (landing_requested at line 303)
         if self.landing_style > 0 && self.body_angle < 600 {
             self.body_angle += 9 + (i32::from(self.landing_style) - 1) * 5;
             if self.lift < 1.0 {
@@ -735,7 +732,7 @@ impl JumpView {
         let jumper_name = "TRAINEE".to_string();
 
         let mut snow = SnowSystem::new();
-        snow.set_count(50, &mut store.rng.borrow_mut());
+        snow.set_count(50);
 
         let camera = match &state {
             Some(s) => (s.sx, s.sy),
