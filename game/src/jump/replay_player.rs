@@ -5,6 +5,7 @@ pub struct ReplaySession {
     trace: ReplayTrace,
     absolute_positions: Vec<(i32, i32)>,
     frame: usize,
+    camera: (i32, i32),
 }
 
 impl ReplaySession {
@@ -23,6 +24,7 @@ impl ReplaySession {
             trace,
             absolute_positions,
             frame: 0,
+            camera: (0, 0),
         }
     }
 
@@ -44,6 +46,22 @@ impl ReplaySession {
     #[must_use]
     pub fn current_frame(&self) -> Option<ReplayFrame> {
         self.trace.frames.get(self.frame).copied()
+    }
+
+    pub fn viewport_scroll(&mut self) -> Option<(i32, i32)> {
+        let (x, y) = self.position()?;
+        let mut sx = self.camera.0;
+        let mut sy = self.camera.1;
+        if (160..864).contains(&x) {
+            sx = x - 160;
+        }
+        if (100..412).contains(&y) {
+            sy = y - 100;
+        }
+        sx = sx.clamp(0, 704);
+        sy = sy.clamp(0, 312);
+        self.camera = (sx, sy);
+        Some(self.camera)
     }
 
     #[must_use]
