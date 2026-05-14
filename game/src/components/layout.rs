@@ -37,9 +37,13 @@ impl MainLayout {
 
     pub fn background(&self) -> Vec<Element> {
         vec![
-            Element::image(Rc::clone(&self.background), WIDTH, HEIGHT),
+            self.background_element(),
             Element::text_color(self.langbase.lstr(34), 170, 51, FONT_DEFAULT),
         ]
+    }
+
+    pub fn background_element(&self) -> Element {
+        Element::image(Rc::clone(&self.background), WIDTH, HEIGHT)
     }
 
     pub fn jumpers(&self) -> Vec<Element> {

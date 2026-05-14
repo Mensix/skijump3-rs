@@ -1,9 +1,10 @@
-use crate::components::layout::MainLayout;
+use crate::components::layout::{self, MainLayout};
+use crate::components::menu::{Menu, MenuItem};
 use crate::jump::replay::ReplayTrace;
 use crate::palette_consts::*;
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
-use engine::ui::{Element, Event, Key, View};
+use engine::ui::{Component, Element, Event, Key, View};
 use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone)]
@@ -17,6 +18,7 @@ pub struct ReplayBrowserView {
     resources: ResourcesRef,
     store: StoreRef,
     layout: MainLayout,
+    menu: Menu,
     entries: Vec<ReplayEntry>,
     selected: usize,
 }
@@ -24,10 +26,59 @@ pub struct ReplayBrowserView {
 impl ReplayBrowserView {
     pub fn new(resources: ResourcesRef, store: StoreRef, layout: MainLayout) -> Self {
         let entries = load_replays();
+        let items = vec![
+            MenuItem {
+                num: 1,
+                label: 20,
+                y_off: 0,
+            },
+            MenuItem {
+                num: 2,
+                label: 21,
+                y_off: 0,
+            },
+            MenuItem {
+                num: 3,
+                label: 22,
+                y_off: 0,
+            },
+            MenuItem {
+                num: 4,
+                label: 23,
+                y_off: 0,
+            },
+            MenuItem {
+                num: 5,
+                label: 24,
+                y_off: 0,
+            },
+            MenuItem {
+                num: 6,
+                label: 25,
+                y_off: 0,
+            },
+            MenuItem {
+                num: 0,
+                label: 26,
+                y_off: 12,
+            },
+        ];
+        let menu = Menu::new(
+            11,
+            97,
+            108,
+            12,
+            items,
+            &layout.langbase,
+            FONT_DEFAULT,
+            FONT_DEFAULT,
+        )
+        .with_box(false);
         Self {
             resources,
             store,
             layout,
+            menu,
             entries,
             selected: 0,
         }
@@ -56,25 +107,28 @@ impl ReplayBrowserView {
 
 impl View<RouteTarget> for ReplayBrowserView {
     fn elements(&self) -> Vec<Element> {
-        let mut els = self.layout.background();
-        els.extend(self.layout.jumpers());
-        els.extend(self.layout.registration());
+        let mut els = vec![self.layout.background_element()];
+        els.extend(layout::header_elements(
+            self.layout.langbase.lstr(17),
+            11,
+            80,
+            FONT_HEADER,
+            BG_ERASE,
+        ));
+        els.extend(self.menu.elements());
+        els.extend(self.layout.footer());
 
-        els.push(Element::fillbox(145, 50, 319, 199, BG_ERASE));
-        els.push(Element::fillbox(128, 70, 145, 199, BG_ERASE));
-        els.push(Element::fillbox(128, 70, 17, 129, 64));
-        els.push(Element::fillbox(145, 50, 174, 149, 64));
         els.push(Element::text_color(
             format!("{}:", self.resources.langbase.lstr(25)),
             170,
             51,
-            FONT_GOLD,
+            FONT_HELP,
         ));
         els.push(Element::text_color(
             self.resources.langbase.lstr(146),
             150,
             185,
-            FONT_GOLD,
+            FONT_HELP,
         ));
 
         if self.entries.is_empty() {
@@ -82,7 +136,7 @@ impl View<RouteTarget> for ReplayBrowserView {
                 self.resources.langbase.lstr(290),
                 170,
                 80,
-                FONT_HEADER,
+                FONT_HELP,
             ));
             return els;
         }
@@ -92,35 +146,35 @@ impl View<RouteTarget> for ReplayBrowserView {
             format!("{}/{}", self.selected + 1, self.entries.len()),
             272,
             85,
-            FONT_DEFAULT,
+            FONT_HELP,
         ));
         els.push(Element::text_color(
             self.resources.langbase.lstr(293),
             150,
             71,
-            FONT_DEFAULT,
+            FONT_HELP,
         ));
         els.push(Element::fillbox(163, 78, 95, 21, 248));
-        els.push(Element::fillbox(164, 79, 93, 19, BG_ERASE));
-        els.push(Element::text_color(&entry.filename, 170, 85, FONT_DEFAULT));
+        els.push(Element::fillbox(164, 79, 93, 19, BG_LEFT));
+        els.push(Element::text_color(&entry.filename, 170, 85, FONT_GOLD));
 
         els.push(Element::text_color(
             self.resources.langbase.lstr(291),
             150,
             106,
-            FONT_DEFAULT,
+            FONT_HELP,
         ));
         els.push(Element::text_color(
             self.resources.langbase.lstr(292),
             150,
             126,
-            FONT_DEFAULT,
+            FONT_HELP,
         ));
         els.push(Element::text_color(
             self.resources.langbase.lstr(294),
             150,
             146,
-            FONT_DEFAULT,
+            FONT_HELP,
         ));
 
         if let Some(trace) = &entry.trace {
@@ -130,11 +184,6 @@ impl View<RouteTarget> for ReplayBrowserView {
                 .hill(trace.meta.hill_idx)
                 .map(|hill| format!("{} K{}", hill.name, hill.kr))
                 .unwrap_or_else(|| "?".to_string());
-            let color = if trace.meta.valid_checksum {
-                FONT_GREET
-            } else {
-                FONT_GOLD
-            };
             els.push(Element::text_color(
                 &trace.meta.author,
                 170,
@@ -147,25 +196,22 @@ impl View<RouteTarget> for ReplayBrowserView {
                 135,
                 FONT_DEFAULT,
             ));
-            els.push(Element::text_color(hill, 170, 155, color));
+            els.push(Element::text_color(hill, 170, 155, FONT_DEFAULT));
             els.push(Element::text_color(
                 &trace.meta.saved_at,
                 170,
                 163,
-                FONT_DEFAULT,
+                FONT_HELP,
             ));
-            if trace.meta.intro {
-                els.push(Element::text_color("INTRO", 260, 115, FONT_GOLD));
-            }
         } else if let Some(error) = &entry.error {
-            els.push(Element::text_color("Unknown", 170, 115, FONT_DEFAULT));
+            els.push(Element::text_color("Unknown", 170, 115, FONT_HELP));
             els.push(Element::text_color(
                 "Not a valid replay.",
                 170,
                 135,
-                FONT_DEFAULT,
+                FONT_HELP,
             ));
-            els.push(Element::text_color(error, 170, 155, FONT_GOLD));
+            els.push(Element::text_color(error, 170, 155, FONT_HELP));
         }
         els
     }
