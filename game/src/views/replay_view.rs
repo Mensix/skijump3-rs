@@ -1,4 +1,5 @@
 use crate::data::hill_profile::HillTerrain;
+use crate::jump::math::pascal_round;
 use crate::jump::presentation::{self, WindGaugePosition};
 use crate::jump::replay_player::ReplaySession;
 use crate::palette_consts::*;
@@ -28,6 +29,8 @@ pub struct ReplayView {
     shown_intro_boxes: RefCell<[bool; 11]>,
     cursor_blink: Cell<u32>,
     mode: Cell<u8>,
+    speed: Cell<u8>,
+    place_counter: Cell<u32>,
 }
 
 impl ReplayView {
@@ -54,6 +57,8 @@ impl ReplayView {
             shown_intro_boxes: RefCell::new([false; 11]),
             cursor_blink: Cell::new(0),
             mode: Cell::new(3),
+            speed: Cell::new(3),
+            place_counter: Cell::new(0),
         }
     }
 
@@ -104,19 +109,79 @@ impl ReplayView {
 
     fn advance_replay_mode(&self, session: &mut ReplaySession) {
         let mode = self.mode.get();
+        if mode == 0 {
+            return;
+        }
+
+        if mode == 3 {
+            self.mode.set(0);
+            return;
+        }
+
+        if mode == 4 {
+            self.mode.set(3);
+            return;
+        }
+
         let frame = session.frame_index();
+        let speed = self.speed.get();
+        if matches!(mode, 1 | 2) {
+            self.place_counter
+                .set(self.place_counter.get().wrapping_add(1));
+            if self.place_counter.get() > 999 {
+                self.place_counter.set(0);
+            }
+        }
+        let place = self.place_counter.get();
+        let advance_by = match speed {
+            0 => {
+                let flight_start = session.trace().meta.flight_start;
+                let flight_stop = session.trace().meta.flight_stop;
+                let dist_to_start = (frame as i32 - flight_start as i32).unsigned_abs();
+                let dist_to_stop = (frame as i32 - flight_stop as i32).unsigned_abs();
+                let effective = if dist_to_start < 20 {
+                    1
+                } else if dist_to_start < 40 || dist_to_stop < 40 {
+                    2
+                } else {
+                    3
+                };
+                match effective {
+                    1 => i32::from(place.is_multiple_of(4)),
+                    2 => (place % 2) as i32,
+                    _ => 1,
+                }
+            }
+            1 => i32::from(place.is_multiple_of(4)),
+            2 => (place % 2) as i32,
+            3 => 1,
+            4 => 1 + (place % 2) as i32,
+            5 => 2,
+            _ => 1,
+        };
         match mode {
-            1 | 3 | 5 => session.step_forward(),
-            2 => session.step_back(),
+            1 | 3 | 5 => {
+                for _ in 0..advance_by {
+                    session.step_forward();
+                }
+            }
+            2 => {
+                for _ in 0..advance_by {
+                    session.step_back();
+                }
+            }
             _ => {}
         }
         if session.frame_index() != frame {
             self.snow_advance.set(true);
         }
-        match mode {
-            3 => self.mode.set(0),
-            5 => self.mode.set(3),
-            _ => {}
+        if mode == 5 {
+            self.mode.set(3);
+        }
+        if (mode == 1 && session.frame_index() + 1 >= session.trace().frames.len())
+            || (mode == 2 && session.frame_index() == 0)
+        {
+            self.mode.set(3);
         }
     }
 }
@@ -217,7 +282,11 @@ impl View<RouteTarget> for ReplayView {
                 format!(
                     "{} {}",
                     self.resources.langbase.lstr(340),
-                    replay_time(session.frame_index(), session.trace().meta.flight_start)
+                    replay_time(
+                        session.frame_index(),
+                        session.trace().meta.flight_start,
+                        session.trace().meta.flight_stop,
+                    )
                 ),
                 309,
                 29,
@@ -240,7 +309,11 @@ impl View<RouteTarget> for ReplayView {
                 FONT_GREET,
             ));
             els.push(Element::text_color_right(
-                format!("{} 100%", self.resources.langbase.lstr(342)),
+                format!(
+                    "{} {}",
+                    self.resources.langbase.lstr(342),
+                    replay_speed_text(self.speed.get(), &self.resources.langbase)
+                ),
                 309,
                 49,
                 FONT_GREET,
@@ -279,6 +352,26 @@ impl View<RouteTarget> for ReplayView {
         }
         match event {
             Event::Keyboard(Key::Escape | Key::Delete) => Some(RouteTarget::Replays),
+            Event::Keyboard(Key::Char('+') | Key::Up) => {
+                let s = self.speed.get();
+                if s < 5 {
+                    self.speed.set(s + 1);
+                    if self.mode.get() == 0 {
+                        self.mode.set(4);
+                    }
+                }
+                None
+            }
+            Event::Keyboard(Key::Char('-') | Key::Down) => {
+                let s = self.speed.get();
+                if s > 0 {
+                    self.speed.set(s - 1);
+                    if self.mode.get() == 0 {
+                        self.mode.set(4);
+                    }
+                }
+                None
+            }
             Event::Keyboard(Key::Right) => {
                 self.mode.set(if self.mode.get() == 1 { 3 } else { 1 });
                 None
@@ -324,15 +417,20 @@ fn muuta_replay(palette: &mut Palette, mode: u8) {
 }
 
 fn format_distance(distance: i32) -> String {
-    format!("{:.1}m", f64::from(distance) / 10.0)
+    format!("{:.1}", f64::from(distance) / 10.0)
 }
 
-fn replay_time(frame_index: usize, flight_start: usize) -> String {
+fn replay_time(frame_index: usize, flight_start: usize, flight_stop: usize) -> String {
     if frame_index <= flight_start {
         return "0.00".to_string();
     }
-    let tenths = (((frame_index - flight_start) as f64 * 10.0 / 7.0) + 0.5).floor() as i32;
-    format!("{}.{:02}", tenths / 10, tenths % 10)
+    let temp = if frame_index > flight_stop {
+        flight_stop - flight_start
+    } else {
+        frame_index - flight_start
+    };
+    let hundredths = pascal_round(temp as f64 * 10.0 / 7.0).max(0);
+    format!("{}.{:02}", hundredths / 100, hundredths % 100)
 }
 
 fn replay_distance(session: &ReplaySession, hill_pk: f64) -> String {
@@ -359,6 +457,18 @@ fn replay_gate_text(langbase: &crate::parsers::langbase::LangBase, gate: i32) ->
         1..=5 => Some(langbase.lstr((26 + gate) as usize).to_string()),
         11.. => Some(format!("{} {}", langbase.lstr(58), 100 - gate)),
         _ => None,
+    }
+}
+
+fn replay_speed_text(speed: u8, langbase: &crate::parsers::langbase::LangBase) -> String {
+    match speed {
+        0 => langbase.lstr(343).to_string(),
+        1 => "50%".to_string(),
+        2 => "75%".to_string(),
+        3 => "100%".to_string(),
+        4 => "150%".to_string(),
+        5 => "200%".to_string(),
+        _ => "100%".to_string(),
     }
 }
 

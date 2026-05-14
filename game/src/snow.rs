@@ -22,6 +22,7 @@ struct Snowflake {
 pub struct SnowSystem {
     flakes: Vec<Snowflake>,
     sine: Vec<i64>,
+    count: u16,
     max: usize,
     perus_g: u16,
     g_variation: u16,
@@ -34,6 +35,7 @@ impl SnowSystem {
         let mut system = Self {
             flakes: vec![],
             sine: vec![0; SINE_LENGTH + 1],
+            count: 0,
             max: 0,
             perus_g: 600,
             g_variation: 300,
@@ -56,6 +58,7 @@ impl SnowSystem {
         self.g_variation = 300;
         self.side_movement = 50;
         self.sleet = false;
+        self.count = count;
         self.max = count as usize;
         if count > 1000 {
             self.sleet = true;
@@ -68,7 +71,7 @@ impl SnowSystem {
     }
 
     pub fn count(&self) -> u16 {
-        self.max as u16
+        self.count
     }
 
     fn reset(&mut self, rng: &mut PascalRandom) {
