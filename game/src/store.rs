@@ -42,6 +42,7 @@ pub struct Store {
     pub wind_place: RefCell<u8>,
     pub selected_hill: RefCell<usize>,
     pub start_gate: RefCell<i32>,
+    pub eka: RefCell<bool>,
 }
 
 impl Default for Store {
@@ -60,6 +61,7 @@ impl Store {
             wind_place: RefCell::new(0),
             selected_hill: RefCell::new(1),
             start_gate: RefCell::new(15),
+            eka: RefCell::new(true),
         }
     }
 }

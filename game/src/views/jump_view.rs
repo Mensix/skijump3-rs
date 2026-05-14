@@ -712,11 +712,43 @@ impl JumpView {
         let terrain = hill
             .ok_or_else(|| format!("Hill {} not found", hill_idx))
             .and_then(HillTerrain::load);
+
+        let mut snow = SnowSystem::new();
+
+        // Pascal: each new practice/competition round resets eka=true
+        *store.eka.borrow_mut() = true;
+
         if terrain.is_ok() && hill.is_some() {
             let mut rng = store.rng.borrow_mut();
             let mut wind = store.wind.borrow_mut();
             wind.initialize(&mut rng, *store.wind_place.borrow());
+
+            if *store.eka.borrow() {
+                // Pascal lines 1127-1131: snow LMaara calc + VieLmaara on first jump
+                let lmaara = rng.random_i32(2) * rng.random_i32(256);
+                let lmaara = if lmaara > 0 && lmaara < 40 {
+                    lmaara + rng.random_i32(150)
+                } else {
+                    lmaara
+                };
+                let lmaara = if lmaara > 0 && rng.random_i32(4) == 0 {
+                    lmaara + 1000
+                } else {
+                    lmaara
+                };
+                snow.set_count(lmaara as u16, &mut rng);
+
+                // Pascal line 1149: Tuuli.Hae inside eka block (first wind shift)
+                wind.sample(&mut rng);
+
+                *store.eka.borrow_mut() = false;
+            } else {
+                // Pascal: on subsequent jumps, snow persists (no re-init).
+                // Initialize with fixed count so snow stays visible.
+                snow.set_count(50, &mut rng);
+            }
         }
+
         let state = match (&terrain, hill) {
             (Ok(terrain), Some(hill)) => Some(JumpState::new(
                 terrain,
@@ -730,9 +762,6 @@ impl JumpView {
         };
 
         let jumper_name = "TRAINEE".to_string();
-
-        let mut snow = SnowSystem::new();
-        snow.set_count(50);
 
         let camera = match &state {
             Some(s) => (s.sx, s.sy),
@@ -754,7 +783,7 @@ impl JumpView {
     fn new_state(&self) -> Option<JumpState> {
         let terrain = self.terrain.as_ref().ok()?;
         let hill = self.resources.hills.hill(self.hill_idx)?;
-        self.reset_wind();
+        // Pascal: wind continues between jumps, NOT re-initialized (only F5 resets it)
         Some(JumpState::new(
             terrain,
             hill.vx_final as f64,
@@ -825,25 +854,36 @@ impl View<RouteTarget> for JumpView {
 
         let mut state_ref = self.state.borrow_mut();
         let state = state_ref.as_mut().expect("terrain-loaded jump state");
-        let wind = if state.phase == JumpPhase::Result {
-            let wind = self.store.wind.borrow();
-            FlightWind {
-                value: wind.value,
-                windy: wind.windy,
-                strength: wind.strength,
-            }
-        } else {
-            let mut rng = self.store.rng.borrow_mut();
-            let mut wind = self.store.wind.borrow_mut();
-            let wind_value = wind.sample(&mut rng);
-            let wind_frame = FlightWind {
-                value: wind_value,
-                windy: wind.windy,
-                strength: wind.strength,
+        let wind: FlightWind;
+        if state.phase == JumpPhase::Result {
+            let w = self.store.wind.borrow();
+            wind = FlightWind {
+                value: w.value,
+                windy: w.windy,
+                strength: w.strength,
             };
-            drop(wind);
-            state.tick(terrain, wind_frame, &mut rng);
-            wind_frame
+        } else if state.phase == JumpPhase::Info {
+            // Pascal: info screen does NOT call Tuuli.Hae (line 1420 commented out)
+            let w = self.store.wind.borrow();
+            wind = FlightWind {
+                value: w.value,
+                windy: w.windy,
+                strength: w.strength,
+            };
+            drop(w);
+            state.tick(terrain, wind, &mut *self.store.rng.borrow_mut());
+        } else {
+            // OnBar, Inrun, Flight: sample wind each frame (Pascal lines 1536, 1691)
+            let mut rng = self.store.rng.borrow_mut();
+            let mut w = self.store.wind.borrow_mut();
+            let wind_value = w.sample(&mut rng);
+            wind = FlightWind {
+                value: wind_value,
+                windy: w.windy,
+                strength: w.strength,
+            };
+            drop(w);
+            state.tick(terrain, wind, &mut rng);
         };
         if state.phase == JumpPhase::Result {
             let mut rng = self.store.rng.borrow_mut();
