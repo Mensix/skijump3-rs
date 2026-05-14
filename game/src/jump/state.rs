@@ -179,7 +179,13 @@ impl JumpState {
         self.takeoff_requested = true;
     }
 
-    pub(crate) fn tick(&mut self, terrain: &HillTerrain, wind: FlightWind, rng: &mut PascalRandom) {
+    pub(crate) fn tick(
+        &mut self,
+        terrain: &HillTerrain,
+        wind: FlightWind,
+        rng: &mut PascalRandom,
+        count_onbar_frames: bool,
+    ) {
         match self.phase {
             JumpPhase::Info => {
                 self.frame += 1;
@@ -188,6 +194,9 @@ impl JumpState {
             JumpPhase::OnBar => {
                 // Pascal: if (not treeni) then inc(laskuri);
                 // Training mode: frame stays 0 so the start light is always on.
+                if count_onbar_frames {
+                    self.frame += 1;
+                }
             }
             JumpPhase::Inrun => {
                 self.frame += 1;

@@ -20,6 +20,7 @@ pub struct ReplayMeta {
     pub author: String,
     pub name: String,
     pub start_gate_or_competition: i32,
+    pub frame_count: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -82,8 +83,10 @@ impl ReplayRecorder {
     }
 
     pub fn finish(&self) -> Option<ReplayTrace> {
+        let mut meta = self.meta.clone()?;
+        meta.frame_count = self.frames.len();
         Some(ReplayTrace {
-            meta: self.meta.clone()?,
+            meta,
             frames: self.frames.clone(),
         })
     }

@@ -1,14 +1,13 @@
 use crate::data::hill_profile::HillTerrain;
 use crate::jump::presentation;
-use crate::jump::{
-    FlightWind, JumpInput, JumpPhase, JumpPresentationContext, JumpSession, WindGaugePosition,
-};
+use crate::jump::{JumpPolicy, JumpPresentationContext, JumpSession, WindGaugePosition};
 use crate::palette_consts::*;
 use crate::route::RouteTarget;
 use crate::snow::SnowSystem;
 use crate::store::{ResourcesRef, StoreRef};
+use crate::views::training_jump_controller::{TrainingJumpAction, TrainingJumpController};
 use engine::consts::{HEIGHT, WIDTH};
-use engine::ui::{Element, Event, Key, View};
+use engine::ui::{Element, Event, View};
 use std::cell::RefCell;
 
 pub struct JumpView {
@@ -71,6 +70,7 @@ impl JumpView {
             *store.start_gate.borrow(),
             snow,
             jumper_name.clone(),
+            JumpPolicy::training(),
         );
 
         Self {
@@ -127,7 +127,7 @@ impl JumpView {
 
 impl JumpView {
     fn elements_for_loaded_session(&self, session: &mut JumpSession) -> Vec<Element> {
-        let Some(phase) = session.state().map(|state| state.phase) else {
+        if session.phase().is_none() {
             let mut els = vec![Element::fillbox(0, 0, WIDTH as i32, HEIGHT as i32, 0)];
             els.push(Element::text_color(
                 "jump state not available",
@@ -137,46 +137,13 @@ impl JumpView {
             ));
             els.push(Element::text_color("PRESS ESC", 20, 95, FONT_HELP));
             return els;
-        };
-
-        let wind: FlightWind;
-        if phase == JumpPhase::Result {
-            let w = self.store.wind.borrow();
-            wind = FlightWind {
-                value: w.value,
-                windy: w.windy,
-                strength: w.strength,
-            };
-        } else if phase == JumpPhase::Info {
-            // Pascal: info screen does NOT call Tuuli.Hae (line 1420 commented out)
-            let w = self.store.wind.borrow();
-            wind = FlightWind {
-                value: w.value,
-                windy: w.windy,
-                strength: w.strength,
-            };
-            drop(w);
-            session.tick(wind, &mut self.store.rng.borrow_mut());
-        } else {
-            // OnBar, Inrun, Flight: sample wind each frame (Pascal lines 1536, 1691)
-            let mut rng = self.store.rng.borrow_mut();
-            let mut w = self.store.wind.borrow_mut();
-            let wind_value = w.sample(&mut rng);
-            wind = FlightWind {
-                value: wind_value,
-                windy: w.windy,
-                strength: w.strength,
-            };
-            drop(w);
-            session.tick(wind, &mut rng);
-        };
-        if session
-            .state()
-            .is_some_and(|state| state.phase == JumpPhase::Result)
-        {
-            let mut rng = self.store.rng.borrow_mut();
-            session.tick(wind, &mut rng);
         }
+
+        let mut rng = self.store.rng.borrow_mut();
+        let mut wind_store = self.store.wind.borrow_mut();
+        let wind = session.tick_with_wind(&mut rng, &mut wind_store);
+        drop(wind_store);
+        drop(rng);
 
         let hill_name_k = self
             .resources
@@ -210,119 +177,30 @@ impl View<RouteTarget> for JumpView {
     }
 
     fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {
-        match event {
-            Event::Keyboard(Key::Escape) => Some(RouteTarget::Practice),
-            Event::Keyboard(Key::F5) => {
+        match TrainingJumpController.handle_event(event, self.session.get_mut()) {
+            TrainingJumpAction::None => None,
+            TrainingJumpAction::RoutePractice => Some(RouteTarget::Practice),
+            TrainingJumpAction::ResetWind => {
                 self.reset_wind();
                 None
             }
-            Event::Keyboard(Key::Enter) => {
-                if self
-                    .session
-                    .get_mut()
-                    .state()
-                    .is_some_and(|state| state.phase == JumpPhase::Result)
-                {
-                    let _ = self.session.get_mut().outcome();
-                    let _ = self.session.get_mut().replay_trace();
-                    self.reset_jump_state();
-                    return None;
-                }
-
-                if let Some(phase) = self.session.get_mut().state().map(|state| state.phase) {
-                    if phase == JumpPhase::Info {
-                        if let Some(state) = self.session.get_mut().state() {
-                            *self.store.start_gate.borrow_mut() = state.start_gate;
-                        }
-                        self.session.get_mut().handle_input(JumpInput::LeaveInfo);
-                        return None;
-                    }
-                    if phase == JumpPhase::Landing {
-                        self.session.get_mut().handle_input(JumpInput::ShowResult);
-                        return None;
-                    }
-                    self.session.get_mut().handle_input(JumpInput::Start);
-                }
+            TrainingJumpAction::ResetJump => {
+                let _ = self.session.get_mut().outcome();
+                let _ = self.session.get_mut().replay_trace();
+                self.reset_jump_state();
                 None
             }
-            Event::Keyboard(Key::Right) => {
-                if let Some(phase) = self.session.get_mut().state().map(|state| state.phase) {
-                    if phase == JumpPhase::Info {
-                        if let Some(state) = self.session.get_mut().state() {
-                            *self.store.start_gate.borrow_mut() = state.start_gate;
-                        }
-                        self.session.get_mut().handle_input(JumpInput::LeaveInfo);
-                    } else if phase == JumpPhase::OnBar {
-                        self.session.get_mut().handle_input(JumpInput::Start);
-                    } else {
-                        self.session.get_mut().handle_input(JumpInput::LeanForward);
-                    }
-                }
+            TrainingJumpAction::PersistStartGate(start_gate) => {
+                *self.store.start_gate.borrow_mut() = start_gate;
                 None
             }
-            Event::Keyboard(Key::Char('+')) => {
-                if let Some(state) = self.session.get_mut().state_mut() {
-                    if state.phase == JumpPhase::Info {
-                        state.handle_input(JumpInput::AdjustGate(1));
-                        *self.store.start_gate.borrow_mut() = state.start_gate;
-                    }
-                }
-                None
-            }
-            Event::Keyboard(Key::Char('-')) => {
-                if let Some(state) = self.session.get_mut().state_mut() {
-                    if state.phase == JumpPhase::Info {
-                        state.handle_input(JumpInput::AdjustGate(-1));
-                        *self.store.start_gate.borrow_mut() = state.start_gate;
-                    }
-                }
-                None
-            }
-            Event::Keyboard(Key::Left) => {
-                if let Some(state) = self.session.get_mut().state_mut() {
-                    if state.phase == JumpPhase::Flight {
-                        state.handle_input(JumpInput::LeanBack);
-                    }
-                }
-                None
-            }
-            Event::Keyboard(Key::Up) => {
-                if let Some(state) = self.session.get_mut().state_mut() {
-                    if state.phase == JumpPhase::Inrun {
-                        state.handle_input(JumpInput::Takeoff);
-                    }
-                }
-                None
-            }
-            Event::Keyboard(Key::Char('t') | Key::Char('T')) => {
-                if let Some(state) = self.session.get_mut().state_mut() {
-                    if state.phase == JumpPhase::Flight {
-                        state.handle_input(JumpInput::Telemark);
-                    }
-                }
-                None
-            }
-            Event::Keyboard(Key::Char('r') | Key::Char('R')) => {
-                if let Some(state) = self.session.get_mut().state_mut() {
-                    if state.phase == JumpPhase::Flight {
-                        state.handle_input(JumpInput::TwoFooted);
-                    }
-                }
-                None
-            }
-            _ => None,
         }
     }
 
     fn render_snow(&self, framebuffer: &mut [u8]) {
         if let Ok(mut session) = self.session.try_borrow_mut() {
             let wind = self.store.wind.borrow().value;
-            let draw = session.state().is_some_and(|state| {
-                matches!(
-                    state.phase,
-                    JumpPhase::Info | JumpPhase::OnBar | JumpPhase::Inrun | JumpPhase::Flight
-                )
-            });
+            let draw = session.draws_snow();
             session.render_snow(framebuffer, wind, draw);
         }
     }

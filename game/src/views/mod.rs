@@ -4,6 +4,7 @@ pub mod main_menu;
 pub mod practice;
 pub mod profiles_view;
 pub mod records_view;
+mod training_jump_controller;
 pub mod welcome_screen;
 pub use jump_menu::JumpMenuView;
 pub use jump_view::JumpView;

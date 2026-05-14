@@ -1,11 +1,13 @@
 use crate::data::hill_profile::HillTerrain;
 use crate::data::records::HillInfo;
 use crate::jump::frame::JumpRenderFrame;
+use crate::jump::policy::JumpPolicy;
 use crate::jump::replay::{ReplayMeta, ReplayRecorder, ReplayTrace};
 use crate::jump::types::{FlightWind, JumpInput, JumpOutcome, JumpPhase};
 use crate::jump::JumpState;
 use crate::pascal_random::PascalRandom;
 use crate::snow::SnowSystem;
+use crate::wind::PascalWind;
 
 #[derive(Debug)]
 pub(crate) struct JumpSession {
@@ -19,6 +21,7 @@ pub(crate) struct JumpSession {
     snow_count: u16,
     replay_name: String,
     last_phase: Option<JumpPhase>,
+    policy: JumpPolicy,
 }
 
 impl JumpSession {
@@ -29,6 +32,7 @@ impl JumpSession {
         start_gate: i32,
         snow: SnowSystem,
         replay_name: String,
+        policy: JumpPolicy,
     ) -> Self {
         let state = match (&terrain, hill) {
             (Ok(terrain), Some(hill)) => Some(JumpState::new(
@@ -67,6 +71,7 @@ impl JumpSession {
             snow_count,
             replay_name,
             last_phase,
+            policy,
         }
     }
 
@@ -89,6 +94,7 @@ impl JumpSession {
             author: String::new(),
             name: replay_name.to_string(),
             start_gate_or_competition: 100 - start_gate,
+            frame_count: 0,
         }
     }
 
@@ -100,8 +106,16 @@ impl JumpSession {
         self.state.as_ref()
     }
 
-    pub(crate) fn state_mut(&mut self) -> Option<&mut JumpState> {
-        self.state.as_mut()
+    pub(crate) fn phase(&self) -> Option<JumpPhase> {
+        self.state.as_ref().map(|state| state.phase)
+    }
+
+    pub(crate) fn start_gate(&self) -> Option<i32> {
+        self.state.as_ref().map(|state| state.start_gate)
+    }
+
+    pub(crate) fn policy(&self) -> JumpPolicy {
+        self.policy
     }
 
     pub(crate) fn reset_state(&mut self, hill: &HillInfo, start_gate: i32) {
@@ -138,10 +152,18 @@ impl JumpSession {
         }
     }
 
+    pub(crate) fn handle_start_gate_adjust(&mut self, delta: i32) -> Option<i32> {
+        if !self.policy.allow_start_gate_adjust {
+            return self.start_gate();
+        }
+        self.handle_input(JumpInput::AdjustGate(delta));
+        self.start_gate()
+    }
+
     pub(crate) fn tick(&mut self, wind: FlightWind, rng: &mut PascalRandom) {
         let phase_change = if let (Ok(terrain), Some(state)) = (&self.terrain, &mut self.state) {
             let previous_phase = state.phase;
-            state.tick(terrain, wind, rng);
+            state.tick(terrain, wind, rng, self.policy.count_onbar_frames);
             Some((previous_phase, state.phase))
         } else {
             None
@@ -149,6 +171,29 @@ impl JumpSession {
         if let Some((previous_phase, current_phase)) = phase_change {
             self.update_replay_markers(previous_phase, current_phase);
         }
+    }
+
+    pub(crate) fn tick_with_wind(
+        &mut self,
+        rng: &mut PascalRandom,
+        wind: &mut PascalWind,
+    ) -> FlightWind {
+        let phase = self.phase();
+        let wind_value = if matches!(phase, Some(JumpPhase::Info | JumpPhase::Result)) {
+            wind.value
+        } else {
+            wind.sample(rng)
+        };
+        let sampled = FlightWind {
+            value: wind_value,
+            windy: wind.windy,
+            strength: wind.strength,
+        };
+        self.tick(sampled, rng);
+        if self.phase() == Some(JumpPhase::Result) {
+            self.tick(sampled, rng);
+        }
+        sampled
     }
 
     fn update_replay_markers(&mut self, previous_phase: JumpPhase, current_phase: JumpPhase) {
@@ -178,6 +223,13 @@ impl JumpSession {
             let delta_y = previous.1 - state.sy;
             self.snow.update(framebuffer, delta_x, delta_y, wind, draw);
         }
+    }
+
+    pub(crate) fn draws_snow(&self) -> bool {
+        matches!(
+            self.phase(),
+            Some(JumpPhase::Info | JumpPhase::OnBar | JumpPhase::Inrun | JumpPhase::Flight)
+        )
     }
 
     pub(crate) fn render_frame(
