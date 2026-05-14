@@ -258,7 +258,7 @@ impl View<RouteTarget> for ReplayView {
         match event {
             Event::Keyboard(Key::Escape) => Some(RouteTarget::Replays),
             Event::Keyboard(Key::Right | Key::Char(' ')) => {
-                if let Some(session) = self.session.get_mut() {
+                if let Some(session) = self.session.borrow_mut().as_mut() {
                     let frame = session.frame_index();
                     session.step_forward();
                     if session.frame_index() != frame {
@@ -268,7 +268,7 @@ impl View<RouteTarget> for ReplayView {
                 None
             }
             Event::Keyboard(Key::Left) => {
-                if let Some(session) = self.session.get_mut() {
+                if let Some(session) = self.session.borrow_mut().as_mut() {
                     let frame = session.frame_index();
                     session.step_back();
                     if session.frame_index() != frame {
@@ -284,6 +284,23 @@ impl View<RouteTarget> for ReplayView {
     fn apply_palette(&self, palette: &mut Palette) {
         if let Ok(terrain) = &self.terrain {
             terrain.apply_hill_palette(palette);
+        }
+        muuta_replay(palette, 3);
+    }
+}
+
+fn muuta_replay(palette: &mut Palette, mode: u8) {
+    let col: u8 = match mode {
+        1 => 250,
+        2 => 253,
+        4 => 251,
+        _ => 249,
+    };
+    for temp in 249..=253 {
+        if temp == col {
+            palette.set(temp as usize, [10, 63, 20]);
+        } else {
+            palette.set(temp as usize, [0, 0, 0]);
         }
     }
 }
