@@ -1,4 +1,4 @@
-use crate::jump::replay::ReplayTrace;
+use crate::jump::replay::{ReplayFrame, ReplayTrace};
 
 #[derive(Debug, Clone)]
 pub struct ReplaySession {
@@ -34,6 +34,16 @@ impl ReplaySession {
     #[must_use]
     pub fn position(&self) -> Option<(i32, i32)> {
         self.absolute_positions.get(self.frame).copied()
+    }
+
+    #[must_use]
+    pub fn current_frame(&self) -> Option<ReplayFrame> {
+        self.trace.frames.get(self.frame).copied()
+    }
+
+    #[must_use]
+    pub fn trace(&self) -> &ReplayTrace {
+        &self.trace
     }
 
     pub fn step_forward(&mut self) {

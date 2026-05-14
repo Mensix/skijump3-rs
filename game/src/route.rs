@@ -6,6 +6,8 @@ pub enum RouteTarget {
     JumpMenu,
     Practice,
     Jump,
+    Replays,
+    ReplayPlayback,
     HallOfFame,
     HillRecords,
     OptionsMenu,

@@ -89,7 +89,7 @@ impl View<RouteTarget> for MainMenuView {
             Some(3) => Some(RouteTarget::OptionsMenu),
             Some(4) => Some(RouteTarget::HallOfFame),
             Some(5) => Some(RouteTarget::HillRecords),
-            Some(6) => Some(RouteTarget::MainMenu),
+            Some(6) => Some(RouteTarget::Replays),
             Some(7) => Some(RouteTarget::Quit),
             _ => None,
         }

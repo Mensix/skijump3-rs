@@ -36,7 +36,7 @@ use route::RouteTarget;
 use std::rc::Rc;
 use views::{
     HallOfFameView, HillRecordsView, JumpMenuView, JumpView, MainMenuView, PracticeView,
-    ProfilesView, WelcomeScreenView,
+    ProfilesView, ReplayBrowserView, ReplayView, WelcomeScreenView,
 };
 
 const MAIN_PCX: &str = "MAIN.PCX";
@@ -235,6 +235,19 @@ impl Game {
                     let r = resources.clone();
                     let s = store.clone();
                     Box::new(move || Box::new(JumpView::new(r.clone(), s.clone())))
+                }),
+                (RouteTarget::Replays, {
+                    let r = resources.clone();
+                    let s = store.clone();
+                    let l = layout.clone();
+                    Box::new(move || {
+                        Box::new(ReplayBrowserView::new(r.clone(), s.clone(), l.clone()))
+                    })
+                }),
+                (RouteTarget::ReplayPlayback, {
+                    let r = resources.clone();
+                    let s = store.clone();
+                    Box::new(move || Box::new(ReplayView::new(r.clone(), s.clone())))
                 }),
                 (RouteTarget::ProfilesList, {
                     let r = resources.clone();

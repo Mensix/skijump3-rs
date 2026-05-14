@@ -8,6 +8,7 @@ pub(crate) enum TrainingJumpAction {
     ResetWind,
     ResetJump,
     PersistStartGate(i32),
+    SaveReplay,
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
@@ -55,6 +56,13 @@ impl TrainingJumpController {
                     session.handle_input(JumpInput::TwoFooted);
                 }
                 TrainingJumpAction::None
+            }
+            Event::Keyboard(Key::Char('s') | Key::Char('S')) => {
+                if session.phase() == Some(JumpPhase::Result) {
+                    TrainingJumpAction::SaveReplay
+                } else {
+                    TrainingJumpAction::None
+                }
             }
             _ => TrainingJumpAction::None,
         }

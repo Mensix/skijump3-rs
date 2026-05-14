@@ -194,6 +194,12 @@ impl View<RouteTarget> for JumpView {
                 *self.store.start_gate.borrow_mut() = start_gate;
                 None
             }
+            TrainingJumpAction::SaveReplay => {
+                if let Some(trace) = self.session.get_mut().replay_trace() {
+                    let _ = std::fs::write("TEMP.SJR", trace.to_sjr_bytes());
+                }
+                None
+            }
         }
     }
 

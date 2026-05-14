@@ -1,5 +1,6 @@
 use crate::data::profile::ProfileStore;
 use crate::data::records::{HillCatalog, RecordStore};
+use crate::jump::replay::ReplayTrace;
 use crate::parsers::langbase::LangBase;
 use crate::pascal_random::PascalRandom;
 use crate::wind::PascalWind;
@@ -43,6 +44,7 @@ pub struct Store {
     pub selected_hill: RefCell<usize>,
     pub start_gate: RefCell<i32>,
     pub eka: RefCell<bool>,
+    pub selected_replay: RefCell<Option<ReplayTrace>>,
 }
 
 impl Default for Store {
@@ -62,6 +64,7 @@ impl Store {
             selected_hill: RefCell::new(1),
             start_gate: RefCell::new(15),
             eka: RefCell::new(true),
+            selected_replay: RefCell::new(None),
         }
     }
 }

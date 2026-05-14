@@ -91,10 +91,19 @@ impl JumpSession {
             flight_start: 0,
             flight_stop: 0,
             hill_record_marker: None,
+            hill_filename: "HILLBASE".to_string(),
+            hill_profile: 0,
+            suit_color: 0,
+            ski_color: 0,
+            saved_at: String::new(),
+            has_bib: false,
             author: String::new(),
             name: replay_name.to_string(),
             start_gate_or_competition: 100 - start_gate,
             frame_count: 0,
+            checksum: 0,
+            valid_checksum: true,
+            intro: false,
         }
     }
 
