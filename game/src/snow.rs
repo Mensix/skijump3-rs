@@ -7,6 +7,7 @@ const BG_MAX: u8 = 215;
 const SCREEN_W: u32 = 320;
 const SCREEN_H: u32 = 200;
 
+#[derive(Debug, Clone)]
 struct Snowflake {
     x: i64,
     y: i64,
@@ -17,6 +18,7 @@ struct Snowflake {
     style: u16,
 }
 
+#[derive(Debug, Clone)]
 pub struct SnowSystem {
     flakes: Vec<Snowflake>,
     sine: Vec<i64>,
@@ -63,6 +65,10 @@ impl SnowSystem {
             self.max = (count - 1000) as usize;
         }
         self.reset(rng);
+    }
+
+    pub fn count(&self) -> u16 {
+        self.max as u16
     }
 
     fn reset(&mut self, rng: &mut PascalRandom) {

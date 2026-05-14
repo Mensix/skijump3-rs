@@ -1,0 +1,180 @@
+use crate::data::hill_profile::HillTerrain;
+use crate::data::records::HillInfo;
+use crate::jump::replay::{ReplayMeta, ReplayRecorder, ReplayTrace};
+use crate::jump::types::{FlightWind, JumpInput, JumpOutcome};
+use crate::jump::JumpState;
+use crate::pascal_random::PascalRandom;
+use crate::snow::SnowSystem;
+
+#[derive(Debug)]
+pub(crate) struct JumpSession {
+    terrain: Result<HillTerrain, String>,
+    state: Option<JumpState>,
+    snow: SnowSystem,
+    prev_camera: (i32, i32),
+    replay_prev_pos: Option<(i32, i32)>,
+    replay: ReplayRecorder,
+    hill_idx: usize,
+    snow_count: u16,
+    replay_name: String,
+}
+
+impl JumpSession {
+    pub(crate) fn new(
+        terrain: Result<HillTerrain, String>,
+        hill: Option<&HillInfo>,
+        hill_idx: usize,
+        start_gate: i32,
+        snow: SnowSystem,
+        replay_name: String,
+    ) -> Self {
+        let state = match (&terrain, hill) {
+            (Ok(terrain), Some(hill)) => Some(JumpState::new(
+                terrain,
+                hill.vx_final as f64,
+                hill.pk(),
+                hill.kr as i32,
+                hill.pl_save(),
+                start_gate,
+            )),
+            _ => None,
+        };
+        let prev_camera = state.as_ref().map_or((0, 0), |state| (state.sx, state.sy));
+        let replay_prev_pos = state.as_ref().map(|state| (state.x, state.y));
+        let snow_count = snow.count();
+        let mut replay = ReplayRecorder::default();
+        if let Some(state) = &state {
+            replay.start(Self::replay_meta(
+                state,
+                hill_idx,
+                snow_count,
+                &replay_name,
+                start_gate,
+            ));
+        }
+
+        Self {
+            terrain,
+            state,
+            snow,
+            prev_camera,
+            replay_prev_pos,
+            replay,
+            hill_idx,
+            snow_count,
+            replay_name,
+        }
+    }
+
+    fn replay_meta(
+        state: &JumpState,
+        hill_idx: usize,
+        snow_count: u16,
+        replay_name: &str,
+        start_gate: i32,
+    ) -> ReplayMeta {
+        ReplayMeta {
+            start_x: state.x,
+            start_y: state.y,
+            hill_idx,
+            snow_count,
+            distance: 0,
+            flight_start: 0,
+            flight_stop: 0,
+            hill_record_marker: None,
+            author: String::new(),
+            name: replay_name.to_string(),
+            start_gate_or_competition: 100 - start_gate,
+        }
+    }
+
+    pub(crate) fn terrain(&self) -> &Result<HillTerrain, String> {
+        &self.terrain
+    }
+
+    pub(crate) fn state(&self) -> Option<&JumpState> {
+        self.state.as_ref()
+    }
+
+    pub(crate) fn state_mut(&mut self) -> Option<&mut JumpState> {
+        self.state.as_mut()
+    }
+
+    pub(crate) fn terrain_and_state_mut(&mut self) -> Result<(&HillTerrain, &mut JumpState), &str> {
+        match (&self.terrain, &mut self.state) {
+            (Ok(terrain), Some(state)) => Ok((terrain, state)),
+            (Err(err), _) => Err(err.as_str()),
+            _ => Err("jump state not available"),
+        }
+    }
+
+    pub(crate) fn reset_state(&mut self, hill: &HillInfo, start_gate: i32) {
+        self.state = self.terrain.as_ref().ok().map(|terrain| {
+            JumpState::new(
+                terrain,
+                hill.vx_final as f64,
+                hill.pk(),
+                hill.kr as i32,
+                hill.pl_save(),
+                start_gate,
+            )
+        });
+        self.prev_camera = self
+            .state
+            .as_ref()
+            .map_or((0, 0), |state| (state.sx, state.sy));
+        self.replay_prev_pos = self.state.as_ref().map(|state| (state.x, state.y));
+        if let Some(state) = &self.state {
+            self.replay.start(Self::replay_meta(
+                state,
+                self.hill_idx,
+                self.snow_count,
+                &self.replay_name,
+                start_gate,
+            ));
+        }
+    }
+
+    pub(crate) fn handle_input(&mut self, input: JumpInput) {
+        if let Some(state) = &mut self.state {
+            state.handle_input(input);
+        }
+    }
+
+    pub(crate) fn tick(&mut self, wind: FlightWind, rng: &mut PascalRandom) {
+        if let (Ok(terrain), Some(state)) = (&self.terrain, &mut self.state) {
+            state.tick(terrain, wind, rng);
+        }
+    }
+
+    pub(crate) fn outcome(&self) -> Option<JumpOutcome> {
+        self.state.as_ref()?.outcome()
+    }
+
+    pub(crate) fn render_snow(&mut self, framebuffer: &mut [u8], wind: i32, draw: bool) {
+        if let Some(state) = &self.state {
+            let previous = self.prev_camera;
+            self.prev_camera = (state.sx, state.sy);
+            let delta_x = previous.0 - state.sx;
+            let delta_y = previous.1 - state.sy;
+            self.snow.update(framebuffer, delta_x, delta_y, wind, draw);
+        }
+    }
+
+    pub(crate) fn record_render_frame(
+        &mut self,
+        current_pos: (i32, i32),
+        body_anim: u16,
+        ski_anim: u16,
+        wind: i32,
+    ) {
+        let previous = self.replay_prev_pos.unwrap_or(current_pos);
+        self.replay
+            .record_frame(previous, current_pos, body_anim, ski_anim, wind);
+        self.replay_prev_pos = Some(current_pos);
+    }
+
+    pub(crate) fn replay_trace(&self) -> Option<ReplayTrace> {
+        self.replay.finish()
+    }
+}
