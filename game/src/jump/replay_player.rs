@@ -1,5 +1,13 @@
 use crate::jump::replay::{ReplayFrame, ReplayTrace};
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ReplayRenderFrame {
+    pub frame_index: usize,
+    pub position: (i32, i32),
+    pub scroll: (i32, i32),
+    pub replay_frame: ReplayFrame,
+}
+
 #[derive(Debug, Clone)]
 pub struct ReplaySession {
     trace: ReplayTrace,
@@ -62,6 +70,15 @@ impl ReplaySession {
         sy = sy.clamp(0, 312);
         self.camera = (sx, sy);
         Some(self.camera)
+    }
+
+    pub fn render_frame(&mut self) -> Option<ReplayRenderFrame> {
+        Some(ReplayRenderFrame {
+            frame_index: self.frame,
+            position: self.position()?,
+            scroll: self.viewport_scroll()?,
+            replay_frame: self.current_frame()?,
+        })
     }
 
     #[must_use]

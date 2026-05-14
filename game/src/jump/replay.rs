@@ -511,6 +511,23 @@ mod tests {
     }
 
     #[test]
+    fn sjr_anim_indices_are_pascal_indexed_only_on_disk() {
+        let bytes = trace().to_sjr_bytes();
+        let data_start = bytes
+            .iter()
+            .position(|byte| *byte == b'*')
+            .expect("replay data marker")
+            + 1;
+
+        assert_eq!(bytes[data_start + 2], 164);
+        assert_eq!(bytes[data_start + 3], 73);
+
+        let parsed = ReplayTrace::from_sjr_bytes(&bytes, false).expect("valid replay");
+        assert_eq!(parsed.frames[0].body_anim, 163);
+        assert_eq!(parsed.frames[0].ski_anim, 72);
+    }
+
+    #[test]
     fn checksum_uses_pascal_wrapping_valuestr_bytes() {
         let input = ReplayChecksumInput {
             start_x: 10,

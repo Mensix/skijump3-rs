@@ -118,16 +118,12 @@ impl View<RouteTarget> for ReplayView {
                 Element::text_color("PRESS ESC", 20, 95, FONT_HELP),
             ];
         };
-        let Some((x, y)) = session.position() else {
+        let Some(frame) = session.render_frame() else {
             return vec![Element::fillbox(0, 0, WIDTH as i32, HEIGHT as i32, 0)];
         };
-        let Some(frame) = session.current_frame() else {
-            return vec![Element::fillbox(0, 0, WIDTH as i32, HEIGHT as i32, 0)];
-        };
-
-        let Some((sx, sy)) = session.viewport_scroll() else {
-            return vec![Element::fillbox(0, 0, WIDTH as i32, HEIGHT as i32, 0)];
-        };
+        let (x, y) = frame.position;
+        let (sx, sy) = frame.scroll;
+        let replay_frame = frame.replay_frame;
 
         let mut viewport = terrain
             .viewport_pixels(sx, sy, WIDTH, HEIGHT)
@@ -141,7 +137,7 @@ impl View<RouteTarget> for ReplayView {
                 &mut viewport,
                 previous.0 - sx,
                 previous.1 - sy,
-                i32::from(frame.wind),
+                i32::from(replay_frame.wind),
                 draw,
             );
         }
@@ -166,12 +162,12 @@ impl View<RouteTarget> for ReplayView {
             ));
         }
         els.push(Element::sprite(
-            u16::from(frame.body_anim),
+            u16::from(replay_frame.body_anim),
             x - sx,
             y - sy - 2,
         ));
         els.push(Element::sprite(
-            u16::from(frame.ski_anim),
+            u16::from(replay_frame.ski_anim),
             x - sx,
             y - sy - 1,
         ));
@@ -236,7 +232,7 @@ impl View<RouteTarget> for ReplayView {
                 els.push(Element::text_color_right(gate_text, 309, 59, FONT_GREET));
             }
         }
-        presentation::wind_elements(&mut els, wind_pos, i32::from(frame.wind));
+        presentation::wind_elements(&mut els, wind_pos, i32::from(replay_frame.wind));
         if session.trace().meta.intro {
             self.update_intro_boxes(session.frame_index());
             if let Some(phase) = *self.active_intro_box.borrow() {
