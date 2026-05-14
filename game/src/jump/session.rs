@@ -1,7 +1,8 @@
 use crate::data::hill_profile::HillTerrain;
 use crate::data::records::HillInfo;
+use crate::jump::frame::JumpRenderFrame;
 use crate::jump::replay::{ReplayMeta, ReplayRecorder, ReplayTrace};
-use crate::jump::types::{FlightWind, JumpInput, JumpOutcome};
+use crate::jump::types::{FlightWind, JumpInput, JumpOutcome, JumpPhase};
 use crate::jump::JumpState;
 use crate::pascal_random::PascalRandom;
 use crate::snow::SnowSystem;
@@ -17,6 +18,7 @@ pub(crate) struct JumpSession {
     hill_idx: usize,
     snow_count: u16,
     replay_name: String,
+    last_phase: Option<JumpPhase>,
 }
 
 impl JumpSession {
@@ -41,6 +43,7 @@ impl JumpSession {
         };
         let prev_camera = state.as_ref().map_or((0, 0), |state| (state.sx, state.sy));
         let replay_prev_pos = state.as_ref().map(|state| (state.x, state.y));
+        let last_phase = state.as_ref().map(|state| state.phase);
         let snow_count = snow.count();
         let mut replay = ReplayRecorder::default();
         if let Some(state) = &state {
@@ -63,6 +66,7 @@ impl JumpSession {
             hill_idx,
             snow_count,
             replay_name,
+            last_phase,
         }
     }
 
@@ -100,14 +104,6 @@ impl JumpSession {
         self.state.as_mut()
     }
 
-    pub(crate) fn terrain_and_state_mut(&mut self) -> Result<(&HillTerrain, &mut JumpState), &str> {
-        match (&self.terrain, &mut self.state) {
-            (Ok(terrain), Some(state)) => Ok((terrain, state)),
-            (Err(err), _) => Err(err.as_str()),
-            _ => Err("jump state not available"),
-        }
-    }
-
     pub(crate) fn reset_state(&mut self, hill: &HillInfo, start_gate: i32) {
         self.state = self.terrain.as_ref().ok().map(|terrain| {
             JumpState::new(
@@ -124,6 +120,7 @@ impl JumpSession {
             .as_ref()
             .map_or((0, 0), |state| (state.sx, state.sy));
         self.replay_prev_pos = self.state.as_ref().map(|state| (state.x, state.y));
+        self.last_phase = self.state.as_ref().map(|state| state.phase);
         if let Some(state) = &self.state {
             self.replay.start(Self::replay_meta(
                 state,
@@ -142,9 +139,31 @@ impl JumpSession {
     }
 
     pub(crate) fn tick(&mut self, wind: FlightWind, rng: &mut PascalRandom) {
-        if let (Ok(terrain), Some(state)) = (&self.terrain, &mut self.state) {
+        let phase_change = if let (Ok(terrain), Some(state)) = (&self.terrain, &mut self.state) {
+            let previous_phase = state.phase;
             state.tick(terrain, wind, rng);
+            Some((previous_phase, state.phase))
+        } else {
+            None
+        };
+        if let Some((previous_phase, current_phase)) = phase_change {
+            self.update_replay_markers(previous_phase, current_phase);
         }
+    }
+
+    fn update_replay_markers(&mut self, previous_phase: JumpPhase, current_phase: JumpPhase) {
+        if previous_phase != JumpPhase::Flight && current_phase == JumpPhase::Flight {
+            self.replay.mark_flight_start();
+        }
+        if previous_phase == JumpPhase::Flight && current_phase == JumpPhase::Landing {
+            self.replay.mark_flight_stop();
+        }
+        if let Some(state) = &self.state {
+            if current_phase == JumpPhase::Landing || current_phase == JumpPhase::Result {
+                self.replay.set_distance(state.distance);
+            }
+        }
+        self.last_phase = Some(current_phase);
     }
 
     pub(crate) fn outcome(&self) -> Option<JumpOutcome> {
@@ -161,17 +180,48 @@ impl JumpSession {
         }
     }
 
-    pub(crate) fn record_render_frame(
+    pub(crate) fn render_frame(
         &mut self,
-        current_pos: (i32, i32),
-        body_anim: u16,
-        ski_anim: u16,
-        wind: i32,
-    ) {
+        wind: FlightWind,
+        width: u32,
+        height: u32,
+    ) -> Result<JumpRenderFrame, String> {
+        let (frame, current_pos, body_anim, ski_anim) = {
+            let (terrain, state) = match (&self.terrain, &mut self.state) {
+                (Ok(terrain), Some(state)) => (terrain, state),
+                (Err(err), _) => return Err(err.clone()),
+                _ => return Err("jump state not available".to_string()),
+            };
+            let viewport = terrain.viewport_pixels(state.sx, state.sy, width, height);
+            let (body_x, body_y) = state.body_position();
+            let (body_anim, ski_anim) = state.anims(terrain);
+            let current_pos = (state.x, state.y);
+            let frame = JumpRenderFrame {
+                viewport,
+                phase: state.phase,
+                x: state.x,
+                y: state.y,
+                sx: state.sx,
+                sy: state.sy,
+                body_x,
+                body_y,
+                frame_counter: state.frame,
+                body_anim,
+                ski_anim,
+                wind_value: wind.value,
+                start_gate: state.start_gate,
+                distance: state.distance,
+                score: state.score,
+                style_points: state.style_points,
+                style_revealed: state.style_revealed,
+            };
+            (frame, current_pos, body_anim, ski_anim)
+        };
         let previous = self.replay_prev_pos.unwrap_or(current_pos);
         self.replay
-            .record_frame(previous, current_pos, body_anim, ski_anim, wind);
+            .record_frame(previous, current_pos, body_anim, ski_anim, wind.value);
         self.replay_prev_pos = Some(current_pos);
+        Ok(frame)
     }
 
     pub(crate) fn replay_trace(&self) -> Option<ReplayTrace> {

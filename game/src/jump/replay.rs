@@ -61,6 +61,26 @@ impl ReplayRecorder {
         });
     }
 
+    pub fn mark_flight_start(&mut self) {
+        if let Some(meta) = &mut self.meta {
+            if meta.flight_start == 0 {
+                meta.flight_start = self.frames.len();
+            }
+        }
+    }
+
+    pub fn mark_flight_stop(&mut self) {
+        if let Some(meta) = &mut self.meta {
+            meta.flight_stop = self.frames.len();
+        }
+    }
+
+    pub fn set_distance(&mut self, distance: i32) {
+        if let Some(meta) = &mut self.meta {
+            meta.distance = distance;
+        }
+    }
+
     pub fn finish(&self) -> Option<ReplayTrace> {
         Some(ReplayTrace {
             meta: self.meta.clone()?,

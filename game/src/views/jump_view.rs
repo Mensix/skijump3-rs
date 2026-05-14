@@ -1,15 +1,15 @@
 use crate::data::hill_profile::HillTerrain;
-use crate::jump::{FlightWind, JumpInput, JumpPhase, JumpSession};
+use crate::jump::presentation;
+use crate::jump::{
+    FlightWind, JumpInput, JumpPhase, JumpPresentationContext, JumpSession, WindGaugePosition,
+};
 use crate::palette_consts::*;
 use crate::route::RouteTarget;
 use crate::snow::SnowSystem;
 use crate::store::{ResourcesRef, StoreRef};
 use engine::consts::{HEIGHT, WIDTH};
-use engine::ui::{Element, Event, ImageRegion, Key, View};
+use engine::ui::{Element, Event, Key, View};
 use std::cell::RefCell;
-use std::rc::Rc;
-
-const FONT_DIM_TURQUOISE: u8 = 252;
 
 pub struct JumpView {
     resources: ResourcesRef,
@@ -98,44 +98,6 @@ impl JumpView {
             wind.initialize(&mut rng, *self.store.wind_place.borrow());
         }
     }
-
-    fn wind_elements(&self, els: &mut Vec<Element>, value: i32) {
-        let position = self.store.wind.borrow().position();
-        let x = position.x;
-        let y = position.y;
-        els.push(Element::fillbox(x + 4, y + 1, 35, 2, 248));
-        els.push(Element::fillbox(x + 21, y + 1, 1, 2, 240));
-        els.push(Element::fillbox(x + 21, y + 9, 1, 1, 247));
-        if value > 0 {
-            els.push(Element::fillbox(x + 22, y + 1, value / 3 + 1, 2, 236));
-        }
-        if value < 0 {
-            let w = (-value) / 3 + 1;
-            els.push(Element::fillbox(x + 21 - w, y + 1, w, 2, 237));
-        }
-
-        let text = format!("{:.1}", f64::from(value.abs()) / 10.0);
-        if value < 0 {
-            els.push(Element::text_color("-", x + 10, y + 5, FONT_GREET));
-        }
-        let mut chars = text.chars();
-        if let Some(ones) = chars.next() {
-            els.push(Element::text_color(
-                ones.to_string(),
-                x + 15,
-                y + 5,
-                FONT_GREET,
-            ));
-        }
-        if let Some(tenths) = text.chars().nth(2) {
-            els.push(Element::text_color(
-                tenths.to_string(),
-                x + 24,
-                y + 5,
-                FONT_GREET,
-            ));
-        }
-    }
 }
 
 impl JumpView {
@@ -216,186 +178,29 @@ impl JumpView {
             session.tick(wind, &mut rng);
         }
 
-        let (terrain, state) = session
-            .terrain_and_state_mut()
-            .expect("loaded jump session state");
-
-        let viewport = terrain.viewport_pixels(state.sx, state.sy, WIDTH, HEIGHT);
-        let mut els = vec![Element::image_region(ImageRegion {
-            pixels: Rc::clone(&viewport),
-            src_w: WIDTH,
-            src_h: HEIGHT,
-            src_x: 0,
-            src_y: 0,
-            dst_x: 0,
-            dst_y: 0,
-            w: WIDTH,
-            h: HEIGHT,
-        })];
-
-        let record_len = self
-            .store
-            .records
-            .borrow()
-            .hill_record(self.hill_idx)
-            .map_or(0, |record| record.len);
         let hill_name_k = self
             .resources
             .hills
             .hill(self.hill_idx)
             .map(|h| format!("{} K{}", h.name, h.kr))
             .unwrap_or_default();
-
-        if state.phase == JumpPhase::Info {
-            els.push(Element::sprite(63, 227, 2));
-            els.push(Element::sprite(64, 3, 150));
-            els.push(Element::text_color_right(&hill_name_k, 308, 9, FONT_GOLD));
-            els.push(Element::text_color_right(
-                self.resources.langbase.lstr(65),
-                308,
-                19,
-                FONT_GOLD,
-            ));
-            if record_len > 0 {
-                if let Some(record) = self.store.records.borrow().hill_record(self.hill_idx) {
-                    els.push(Element::text_color_right(&record.name, 308, 29, FONT_GOLD));
-                    els.push(Element::text_color_right(
-                        format!("{:.1}m", record.len as f64 / 10.0),
-                        308,
-                        39,
-                        FONT_GOLD,
-                    ));
-                }
-            }
-            let label56 = self.resources.langbase.lstr(56);
-            let label_w = self.resources.font.string_width(label56) as i32;
-            let label58 = self.resources.langbase.lstr(58);
-            let label58_w = self.resources.font.string_width(label58) as i32;
-            els.push(Element::text_color(label58, 64, 19, FONT_DEFAULT));
-            els.push(Element::text_color(
-                format!("{}", state.start_gate),
-                70 + label58_w,
-                19,
-                FONT_GOLD,
-            ));
-            els.push(Element::text_color("(+/-)", 67 + label58_w, 27, FONT_GREET));
-            els.push(Element::text_color(
-                self.resources.langbase.lstr(51),
-                12,
-                160,
-                FONT_GREET,
-            ));
-            els.push(Element::text_color(label56, 12, 172, FONT_GREET));
-            els.push(Element::text_color(
-                &self.jumper_name,
-                12 + label_w,
-                172,
-                FONT_DEFAULT,
-            ));
-            els.push(Element::text_color(
-                self.resources.langbase.lstr(59),
-                12,
-                191,
-                FONT_HELP,
-            ));
-        } else if state.phase == JumpPhase::Result {
-            els.push(Element::sprite(63, 227, 2));
-            els.push(Element::text_color_right(
-                &self.jumper_name,
-                308,
-                9,
-                FONT_DEFAULT,
-            ));
-            let style_min = *state.style_points.iter().min().unwrap_or(&0);
-            let style_max = *state.style_points.iter().max().unwrap_or(&0);
-            let mut found_min = false;
-            let mut found_max = false;
-            for (i, &point) in state.style_points.iter().enumerate() {
-                let color = if point == style_min && !found_min {
-                    found_min = true;
-                    FONT_DIM_TURQUOISE
-                } else if point == style_max && !found_max {
-                    found_max = true;
-                    FONT_DIM_TURQUOISE
-                } else {
-                    FONT_GREET
-                };
-                els.push(Element::text_color_right(
-                    format!("{:.1}", f64::from(point) / 10.0),
-                    308 - (i as i32) * 24,
-                    21,
-                    color,
-                ));
-            }
-            els.push(Element::text_color_right(
-                format!("{:.1}m", f64::from(state.distance) / 10.0),
-                308,
-                33,
-                FONT_GREET,
-            ));
-            els.push(Element::text_color_right(
-                format!("{:.1}", f64::from(state.score) / 10.0),
-                308,
-                45,
-                FONT_GOLD,
-            ));
-            els.push(Element::text_color_right(
-                self.resources.langbase.lstr(298),
-                308,
-                73,
-                FONT_GREET,
-            ));
-        } else if state.phase == JumpPhase::Landing {
-            els.push(Element::sprite(63, 227, 2));
-            els.push(Element::text_color_right(
-                &self.jumper_name,
-                308,
-                9,
-                FONT_GREET,
-            ));
-            els.push(Element::text_color_right(
-                format!("{:.1}m", f64::from(state.distance) / 10.0),
-                308,
-                33,
-                FONT_GREET,
-            ));
-            for (i, &point) in state.style_points.iter().enumerate() {
-                if state.style_revealed[i] {
-                    els.push(Element::text_color_right(
-                        format!("{:.1}", f64::from(point) / 10.0),
-                        308 - (i as i32) * 24,
-                        21,
-                        FONT_GREET,
-                    ));
-                }
-            }
-        } else if state.phase == JumpPhase::Flight {
-        }
-
-        let (body_x, body_y) = state.body_position();
-        let jumper_x = state.x - state.sx;
-        let jumper_y = state.y - state.sy;
-        if state.frame < 700
-            && !matches!(
-                state.phase,
-                JumpPhase::Info | JumpPhase::Result | JumpPhase::Landing
-            )
-        {
-            self.wind_elements(&mut els, wind.value);
-        }
-        if state.phase == JumpPhase::OnBar && (state.frame < 350 || (state.frame % 40) > 19) {
-            els.push(Element::sprite(66, jumper_x + 60, jumper_y - 10));
-        }
-        let (body_anim, ski_anim) = state.anims(terrain);
-        let replay_pos = (state.x, state.y);
-        els.push(Element::sprite(
-            body_anim,
-            body_x - state.sx,
-            body_y - state.sy - 2,
-        ));
-        els.push(Element::sprite(ski_anim, jumper_x, jumper_y - 1));
-        session.record_render_frame(replay_pos, body_anim, ski_anim, wind.value);
-        els
+        let wind_pos = self.store.wind.borrow().position();
+        let records = self.store.records.borrow();
+        let frame = session
+            .render_frame(wind, WIDTH, HEIGHT)
+            .expect("loaded jump render frame");
+        let ctx = JumpPresentationContext {
+            font: &self.resources.font,
+            langbase: &self.resources.langbase,
+            jumper_name: &self.jumper_name,
+            hill_name_k: &hill_name_k,
+            hill_record: records.hill_record(self.hill_idx),
+            wind_position: WindGaugePosition {
+                x: wind_pos.x,
+                y: wind_pos.y,
+            },
+        };
+        presentation::elements(&frame, &ctx)
     }
 }
 
