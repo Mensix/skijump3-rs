@@ -194,13 +194,13 @@ impl SaveReplayDialog {
                 format!("{}.SJR {}", filename, self.resources.langbase.lstr(345)),
                 80,
                 90,
-                FONT_DEFAULT,
+                FONT_GOLD,
             ));
             els.push(Element::text_color(
                 format!("{} (Y/N):", self.resources.langbase.lstr(346)),
                 80,
                 110,
-                FONT_DEFAULT,
+                FONT_GOLD,
             ));
         }
 
