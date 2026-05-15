@@ -372,14 +372,13 @@ fn field_idx(field: &SaveField) -> usize {
 
 impl JumpView {
     fn save_dialog_elements(&self) -> Vec<Element> {
-        // Background with panel fills, dither, and logo (like WelcomeScreenView/language choice)
+        // Pascal newscreen(1,0): black base, top strip 245 rows 0..18, main area 243 rows 20..199
         let mut els = vec![
             Element::fillbox(0, 0, WIDTH as i32, HEIGHT as i32, 0),
-            Element::fillbox(0, 0, 51, HEIGHT as i32, 245),
-            Element::fillbox(52, 0, (WIDTH - 104) as i32, HEIGHT as i32, 243),
-            Element::fillbox((WIDTH - 52) as i32, 0, 51, HEIGHT as i32, 245),
+            Element::fillbox(0, 0, WIDTH as i32, 19, 245),
+            Element::fillbox(0, 20, WIDTH as i32, (HEIGHT - 20) as i32, 243),
             Element::FillArea { thing: 63 },
-            Element::sprite(61, 80, 6),
+            Element::sprite(61, 30, 8),
         ];
 
         match self.save_dialog.borrow().clone() {
