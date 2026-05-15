@@ -1,10 +1,10 @@
 use crate::components::screen::{new_screen, page_hints};
-use crate::components::table::{Cell, Table};
 use crate::data::records::{HillRecord, Hiscore};
 use crate::palette_consts::*;
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::utils::{is_computer_name, shorten_name};
+use engine::ui::{Cell, Table};
 use engine::ui::{Element, Event, Key, View};
 
 const HALL_PAGES: usize = 3;

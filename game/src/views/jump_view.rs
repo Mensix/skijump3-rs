@@ -8,8 +8,8 @@ use crate::store::{ResourcesRef, StoreRef};
 use crate::views::training_jump_controller::{TrainingJumpAction, TrainingJumpController};
 use engine::consts::{HEIGHT, WIDTH};
 use engine::palette::Palette;
-use engine::ui::{Element, Event, Key, View};
-use std::cell::{Cell, RefCell};
+use engine::ui::{Blinker, Element, Event, Key, TextEditState, View};
+use std::cell::RefCell;
 use std::path::Path;
 
 #[derive(Debug, Clone)]
@@ -27,8 +27,7 @@ enum SaveDialogState {
     },
     EditField {
         field: SaveField,
-        value: String,
-        cursor: usize,
+        editor: TextEditState,
     },
     ConfirmOverwrite {
         filename: String,
@@ -47,7 +46,7 @@ pub struct JumpView {
     save_author: RefCell<String>,
     save_name: RefCell<String>,
     save_filename: RefCell<String>,
-    cursor_blink: Cell<u32>,
+    cursor_blink: Blinker,
 }
 
 impl JumpView {
@@ -122,7 +121,7 @@ impl JumpView {
             save_author: RefCell::new(String::new()),
             save_name: RefCell::new(String::new()),
             save_filename: RefCell::new("TEMP".to_string()),
-            cursor_blink: Cell::new(0),
+            cursor_blink: Blinker::new(),
         }
     }
 
@@ -241,35 +240,26 @@ impl JumpView {
                 }
                 Event::Keyboard(Key::Enter) | Event::Keyboard(Key::Char(' ')) => match selected {
                     0 => {
-                        let v = self.save_author.borrow().clone();
-                        let len = v.len();
-                        self.cursor_blink.set(0);
+                        self.cursor_blink.reset();
                         *self.save_dialog.borrow_mut() = SaveDialogState::EditField {
                             field: SaveField::Author,
-                            value: v,
-                            cursor: len,
+                            editor: TextEditState::new(self.save_author.borrow().clone(), 130),
                         };
                         None
                     }
                     1 => {
-                        let v = self.save_name.borrow().clone();
-                        let len = v.len();
-                        self.cursor_blink.set(0);
+                        self.cursor_blink.reset();
                         *self.save_dialog.borrow_mut() = SaveDialogState::EditField {
                             field: SaveField::Name,
-                            value: v,
-                            cursor: len,
+                            editor: TextEditState::new(self.save_name.borrow().clone(), 130),
                         };
                         None
                     }
                     2 => {
-                        let v = self.save_filename.borrow().clone();
-                        let len = v.len();
-                        self.cursor_blink.set(0);
+                        self.cursor_blink.reset();
                         *self.save_dialog.borrow_mut() = SaveDialogState::EditField {
                             field: SaveField::Filename,
-                            value: v,
-                            cursor: len,
+                            editor: TextEditState::new(self.save_filename.borrow().clone(), 8),
                         };
                         None
                     }
@@ -298,55 +288,41 @@ impl JumpView {
                 },
                 _ => None,
             },
-            SaveDialogState::EditField {
-                field,
-                mut value,
-                cursor,
-            } => match event {
+            SaveDialogState::EditField { field, mut editor } => match event {
                 Event::Keyboard(Key::Escape) => {
-                    self.cursor_blink.set(0);
+                    self.cursor_blink.reset();
                     *self.save_dialog.borrow_mut() = SaveDialogState::Browse {
                         selected: field_idx(&field),
                     };
                     None
                 }
                 Event::Keyboard(Key::Enter) => {
-                    self.cursor_blink.set(0);
+                    self.cursor_blink.reset();
+                    let buf = editor.buffer().to_string();
                     match field {
-                        SaveField::Author => *self.save_author.borrow_mut() = value,
-                        SaveField::Name => *self.save_name.borrow_mut() = value,
-                        SaveField::Filename => *self.save_filename.borrow_mut() = value,
+                        SaveField::Author => *self.save_author.borrow_mut() = buf,
+                        SaveField::Name => *self.save_name.borrow_mut() = buf,
+                        SaveField::Filename => *self.save_filename.borrow_mut() = buf,
                     }
                     *self.save_dialog.borrow_mut() = SaveDialogState::Browse {
                         selected: field_idx(&field),
                     };
                     None
                 }
-                Event::Keyboard(Key::Backspace) if cursor > 0 => {
-                    self.cursor_blink.set(0);
-                    value.remove(cursor - 1);
-                    *self.save_dialog.borrow_mut() = SaveDialogState::EditField {
-                        field,
-                        value,
-                        cursor: cursor - 1,
-                    };
+                Event::Keyboard(Key::Backspace) => {
+                    if editor.backspace() {
+                        self.cursor_blink.reset();
+                        *self.save_dialog.borrow_mut() =
+                            SaveDialogState::EditField { field, editor };
+                    }
                     None
                 }
                 Event::Keyboard(Key::Char(c)) => {
-                    let limit = match field {
-                        SaveField::Filename => 8,
-                        _ => 130,
-                    };
-                    if value.len() >= limit {
-                        return None;
+                    if editor.insert(c) {
+                        self.cursor_blink.reset();
+                        *self.save_dialog.borrow_mut() =
+                            SaveDialogState::EditField { field, editor };
                     }
-                    self.cursor_blink.set(0);
-                    value.insert(cursor, c);
-                    *self.save_dialog.borrow_mut() = SaveDialogState::EditField {
-                        field,
-                        value,
-                        cursor: cursor + 1,
-                    };
                     None
                 }
                 _ => None,
@@ -454,7 +430,9 @@ impl JumpView {
                         let is_editing = editing && editing_field == Some(i);
                         let value = if is_editing {
                             match *self.save_dialog.borrow() {
-                                SaveDialogState::EditField { ref value, .. } => value.clone(),
+                                SaveDialogState::EditField { ref editor, .. } => {
+                                    editor.buffer().to_string()
+                                }
                                 _ => String::new(),
                             }
                         } else {
@@ -477,20 +455,17 @@ impl JumpView {
                         els.push(Element::text_color(&value, 148, final_yy, FONT_GOLD));
 
                         if is_editing {
-                            if let SaveDialogState::EditField {
-                                ref value, cursor, ..
-                            } = *self.save_dialog.borrow()
+                            if let SaveDialogState::EditField { ref editor, .. } =
+                                *self.save_dialog.borrow()
                             {
                                 // Cursor: Pascal givech 5x1 horizontal line at (xx+cx, yy+6), white, blinks 11on/10off
                                 let cx = 148
                                     + self
                                         .resources
                                         .font
-                                        .string_width(&value[..cursor.min(value.len())])
+                                        .string_width(&editor.buffer()[..editor.cursor_byte()])
                                         as i32;
-                                let blink = self.cursor_blink.get();
-                                self.cursor_blink.set(blink + 1);
-                                if blink % 21 <= 10 {
+                                if self.cursor_blink.visible(11, 10) {
                                     els.push(Element::fillbox(
                                         cx,
                                         final_yy + 6,

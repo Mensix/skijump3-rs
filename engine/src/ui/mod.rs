@@ -1,12 +1,20 @@
+pub mod blinker;
 pub mod element;
 pub mod paint;
 mod router;
-mod text;
+pub mod selection;
+pub mod table;
+pub mod text;
+pub mod text_edit;
 
+pub use blinker::Blinker;
 pub use element::{Element, ImageRegion};
 pub use paint::PaintCtx;
 pub use router::{Event, Key, Router, View};
+pub use selection::SelectionState;
+pub use table::{Align, Cell, Table};
 pub use text::Font;
+pub use text_edit::TextEditState;
 
 pub trait Component {
     type Action;

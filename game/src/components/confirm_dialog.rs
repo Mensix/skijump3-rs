@@ -1,6 +1,5 @@
 use crate::parsers::langbase::LangBase;
-use engine::ui::{Component, Element, Event, Font, Key};
-use std::cell::Cell;
+use engine::ui::{Blinker, Component, Element, Event, Font, Key};
 use std::rc::Rc;
 
 #[derive(Debug)]
@@ -14,7 +13,7 @@ pub struct ConfirmDialog {
     message: String,
     langbase: Rc<LangBase>,
     font: Font,
-    cursor_timer: Cell<u8>,
+    blinker: Blinker,
 }
 
 impl ConfirmDialog {
@@ -23,7 +22,7 @@ impl ConfirmDialog {
             message,
             langbase,
             font,
-            cursor_timer: Cell::new(0),
+            blinker: Blinker::new(),
         }
     }
 
@@ -41,10 +40,6 @@ impl Component for ConfirmDialog {
     type Action = ConfirmAction;
 
     fn elements(&self) -> Vec<Element> {
-        let timer = self.cursor_timer.get();
-        let next = if timer >= 20 { 0 } else { timer + 1 };
-        self.cursor_timer.set(next);
-
         let str2 = self.lstr(193, "Are you sure?");
         let hint_x = 70 + self.font.string_width(&str2) as i32 + 4;
         let cursor_x = hint_x + 25;
@@ -57,14 +52,14 @@ impl Component for ConfirmDialog {
             Element::text_color("(Y/N)", hint_x, 110, 241),
             Element::fillbox(cursor_x - 2, 108, 9, 11, 243),
         ];
-        if timer <= 10 {
+        if self.blinker.visible(11, 10) {
             els.push(Element::fillbox(cursor_x, 116, 5, 1, 240));
         }
         els
     }
 
     fn handle_event(&mut self, event: &Event) -> Option<Self::Action> {
-        self.cursor_timer.set(0);
+        self.blinker.reset();
         match event {
             Event::Keyboard(Key::Char('y') | Key::Char('Y')) => Some(ConfirmAction::Yes),
             Event::Keyboard(Key::Char('n') | Key::Char('N') | Key::Escape) => {

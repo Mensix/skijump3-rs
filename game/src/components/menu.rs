@@ -1,5 +1,5 @@
 use crate::parsers::langbase::LangBase;
-use engine::ui::{Component, Element, Event, Key};
+use engine::ui::{Component, Element, Event, Key, SelectionState};
 use std::rc::Rc;
 
 pub struct MenuItem {
@@ -9,7 +9,7 @@ pub struct MenuItem {
 }
 
 pub struct Menu {
-    selected: usize,
+    selection: SelectionState,
     x: i32,
     y: i32,
     item_w: i32,
@@ -38,7 +38,7 @@ impl Menu {
         boxcolor: u8,
     ) -> Self {
         Self {
-            selected: 0,
+            selection: SelectionState::new(items.len()),
             x,
             y,
             item_w,
@@ -69,24 +69,21 @@ impl Menu {
         self.exit_item = true;
         self.exit_label_idx = label_idx;
         self.exit_y_off = y_off;
+        self.selection
+            .resize(self.items.len() + self.exit_item as usize);
         self
     }
 
     pub fn selected(&self) -> usize {
-        self.selected
+        self.selection.selected()
     }
 
     pub fn reset(&mut self) {
-        self.selected = 0;
+        self.selection.set_selected(0);
     }
 
     pub fn set_selected(&mut self, idx: usize) {
-        let max = if self.exit_item {
-            self.items.len()
-        } else {
-            self.items.len().saturating_sub(1)
-        };
-        self.selected = idx.min(max);
+        self.selection.set_selected(idx);
     }
 
     pub fn item_count(&self) -> usize {
@@ -127,10 +124,11 @@ impl Component for Menu {
 
         if self.show_box {
             let bx = self.x - 6;
-            let (row, y_off) = if self.exit_item && self.selected == self.items.len() {
+            let sel = self.selection.selected();
+            let (row, y_off) = if self.exit_item && sel == self.items.len() {
                 (self.items.len() as i32, self.exit_y_off)
             } else {
-                let idx = self.selected.min(self.items.len().saturating_sub(1));
+                let idx = sel.min(self.items.len().saturating_sub(1));
                 (idx as i32, self.items[idx].y_off)
             };
             let by = self.y - 3 + row * self.item_h + y_off;
@@ -149,38 +147,31 @@ impl Component for Menu {
     fn handle_event(&mut self, event: &Event) -> Option<usize> {
         let total = self.items.len() + self.exit_item as usize;
         match event {
-            Event::Keyboard(Key::Up) if self.selected > 0 => {
-                self.selected -= 1;
-                None
-            }
             Event::Keyboard(Key::Up) => {
-                self.selected = total - 1;
-                None
-            }
-            Event::Keyboard(Key::Down) if self.selected + 1 < total => {
-                self.selected += 1;
+                self.selection.up();
                 None
             }
             Event::Keyboard(Key::Down) => {
-                self.selected = 0;
+                self.selection.down();
                 None
             }
             Event::Keyboard(Key::Enter) | Event::Keyboard(Key::Char(' ')) => {
-                if self.exit_item && self.selected == self.items.len() {
+                let sel = self.selection.selected();
+                if self.exit_item && sel == self.items.len() {
                     Some(0)
                 } else {
-                    Some(self.selected + 1)
+                    Some(sel + 1)
                 }
             }
             Event::Keyboard(Key::Char(c)) => {
                 if let Some(d) = c.to_digit(10) {
                     let n = d as usize;
                     if n >= 1 && n <= total {
-                        self.selected = n - 1;
+                        self.selection.set_selected(n - 1);
                         Some(n)
                     } else if n == 0 {
                         if self.exit_item {
-                            self.selected = self.items.len();
+                            self.selection.set_selected(self.items.len());
                         }
                         Some(0)
                     } else {

@@ -1,5 +1,4 @@
-use engine::ui::{Component, Element, Event, Font, Key};
-use std::cell::Cell;
+use engine::ui::{Blinker, Component, Element, Event, Font, Key};
 
 #[derive(Debug)]
 pub enum TextInputAction {
@@ -17,7 +16,7 @@ pub struct TextInput {
     font: Font,
     old: String,
     buf: String,
-    cursor_timer: Cell<u8>,
+    blinker: Blinker,
 }
 
 impl TextInput {
@@ -31,7 +30,7 @@ impl TextInput {
             font,
             old: old.clone(),
             buf: old,
-            cursor_timer: Cell::new(0),
+            blinker: Blinker::new(),
         }
     }
 
@@ -40,7 +39,7 @@ impl TextInput {
     }
 
     fn reset_cursor(&self) {
-        self.cursor_timer.set(0);
+        self.blinker.reset();
     }
 }
 
@@ -48,16 +47,12 @@ impl Component for TextInput {
     type Action = TextInputAction;
 
     fn elements(&self) -> Vec<Element> {
-        let timer = self.cursor_timer.get();
-        let next = if timer >= 20 { 0 } else { timer + 1 };
-        self.cursor_timer.set(next);
-
         let cx = self.x + self.font.string_width(&self.buf) as i32;
         let mut els = vec![
             Element::fillbox(self.x - 2, self.y - 2, self.max_width + 4, 10, self.bg),
             Element::text_color(&self.buf, self.x, self.y, self.fg),
         ];
-        if timer <= 10 {
+        if self.blinker.visible(11, 10) {
             els.push(Element::fillbox(cx, self.y + 6, 5, 1, 240));
         }
         els
