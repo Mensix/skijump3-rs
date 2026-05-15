@@ -243,6 +243,7 @@ impl JumpView {
                     0 => {
                         let v = self.save_author.borrow().clone();
                         let len = v.len();
+                        self.cursor_blink.set(0);
                         *self.save_dialog.borrow_mut() = SaveDialogState::EditField {
                             field: SaveField::Author,
                             value: v,
@@ -253,6 +254,7 @@ impl JumpView {
                     1 => {
                         let v = self.save_name.borrow().clone();
                         let len = v.len();
+                        self.cursor_blink.set(0);
                         *self.save_dialog.borrow_mut() = SaveDialogState::EditField {
                             field: SaveField::Name,
                             value: v,
@@ -263,6 +265,7 @@ impl JumpView {
                     2 => {
                         let v = self.save_filename.borrow().clone();
                         let len = v.len();
+                        self.cursor_blink.set(0);
                         *self.save_dialog.borrow_mut() = SaveDialogState::EditField {
                             field: SaveField::Filename,
                             value: v,
@@ -301,12 +304,14 @@ impl JumpView {
                 cursor,
             } => match event {
                 Event::Keyboard(Key::Escape) => {
+                    self.cursor_blink.set(0);
                     *self.save_dialog.borrow_mut() = SaveDialogState::Browse {
                         selected: field_idx(&field),
                     };
                     None
                 }
                 Event::Keyboard(Key::Enter) => {
+                    self.cursor_blink.set(0);
                     match field {
                         SaveField::Author => *self.save_author.borrow_mut() = value,
                         SaveField::Name => *self.save_name.borrow_mut() = value,
@@ -318,6 +323,7 @@ impl JumpView {
                     None
                 }
                 Event::Keyboard(Key::Backspace) if cursor > 0 => {
+                    self.cursor_blink.set(0);
                     value.remove(cursor - 1);
                     *self.save_dialog.borrow_mut() = SaveDialogState::EditField {
                         field,
@@ -334,6 +340,7 @@ impl JumpView {
                     if value.len() >= limit {
                         return None;
                     }
+                    self.cursor_blink.set(0);
                     value.insert(cursor, c);
                     *self.save_dialog.borrow_mut() = SaveDialogState::EditField {
                         field,
@@ -460,8 +467,12 @@ impl JumpView {
                         };
                         if is_editing {
                             // Pascal getstr: fillbox(xx-2,yy-2,xx+maxlength+2,yy+7,bkcolor)
-                            // xx=148, maxlength=130, yy=final_yy
-                            els.push(Element::fillbox(146, final_yy - 2, 134, 10, 242));
+                            // Pascal getstr2 (filename): fillbox(xx-2,yy-2,xx+(maxchars*7)+2,yy+8,bkcolor)
+                            let (fw, fh) = match editing_field {
+                                Some(2) => (60, 11), // filename: 8*7+4=60px
+                                _ => (134, 10),      // author/name: 130+4=134px
+                            };
+                            els.push(Element::fillbox(146, final_yy - 2, fw, fh, 242));
                         }
                         els.push(Element::text_color(&value, 148, final_yy, FONT_GOLD));
 
