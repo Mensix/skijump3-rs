@@ -442,30 +442,39 @@ impl JumpView {
 
                     // Value in gold (FONT_GOLD=246) for items 1-3 only
                     if i < 3 {
-                        let value = match i {
-                            0 => self.save_author.borrow().clone(),
-                            1 => self.save_name.borrow().clone(),
-                            2 => self.save_filename.borrow().clone(),
-                            _ => String::new(),
+                        let is_editing = editing && editing_field == Some(i);
+                        let value = if is_editing {
+                            // During editing, read from the EditField state, not from persistent storage
+                            match *self.save_dialog.borrow() {
+                                SaveDialogState::EditField { ref value, .. } => value.clone(),
+                                _ => String::new(),
+                            }
+                        } else {
+                            match i {
+                                0 => self.save_author.borrow().clone(),
+                                1 => self.save_name.borrow().clone(),
+                                2 => self.save_filename.borrow().clone(),
+                                _ => String::new(),
+                            }
                         };
+                        if is_editing {
+                            // Pascal getstr: fillbox background with bkcolor=242 around the text
+                            els.push(Element::fillbox(146, final_yy - 2, 134, 11, 242));
+                        }
                         els.push(Element::text_color(&value, 148, final_yy, FONT_GOLD));
 
-                        if editing && editing_field == Some(i) {
+                        if is_editing {
                             if let SaveDialogState::EditField {
                                 ref value, cursor, ..
                             } = *self.save_dialog.borrow()
                             {
-                                if cursor < value.len() {
-                                    let cursor_x = 148
-                                        + self.resources.font.string_width(&value[..cursor]) as i32;
-                                    els.push(Element::box_(
-                                        cursor_x,
-                                        final_yy - 1,
-                                        1,
-                                        9,
-                                        FONT_GOLD,
-                                    ));
-                                }
+                                let cursor_x = 148
+                                    + self
+                                        .resources
+                                        .font
+                                        .string_width(&value[..cursor.min(value.len())])
+                                        as i32;
+                                els.push(Element::box_(cursor_x, final_yy - 1, 1, 9, FONT_GOLD));
                             }
                         }
                     }
