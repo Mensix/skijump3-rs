@@ -131,7 +131,7 @@ impl JumpView {
             .hill(self.hill_idx)
             .map(|h| h.name.clone())
             .unwrap_or_default();
-        *self.save_author.borrow_mut() = self.jumper_name.clone();
+        *self.save_author.borrow_mut() = String::new();
         *self.save_name.borrow_mut() = format!("Huge Jump in {}", hill_name);
         *self.save_filename.borrow_mut() = "TEMP".to_string();
         *self.save_dialog.borrow_mut() = SaveDialogState::Browse { selected: 0 };
@@ -205,19 +205,17 @@ impl JumpView {
                     None
                 }
                 Event::Keyboard(Key::Up) if selected > 0 => {
-                    *self.save_dialog.borrow_mut() = SaveDialogState::Browse {
-                        selected: selected - 1,
-                    };
+                    let next = if selected == 4 { 3 } else { selected - 1 };
+                    *self.save_dialog.borrow_mut() = SaveDialogState::Browse { selected: next };
                     None
                 }
                 Event::Keyboard(Key::Up) => {
-                    *self.save_dialog.borrow_mut() = SaveDialogState::Browse { selected: 3 };
+                    *self.save_dialog.borrow_mut() = SaveDialogState::Browse { selected: 4 };
                     None
                 }
-                Event::Keyboard(Key::Down) if selected < 3 => {
-                    *self.save_dialog.borrow_mut() = SaveDialogState::Browse {
-                        selected: selected + 1,
-                    };
+                Event::Keyboard(Key::Down) if selected < 4 => {
+                    let next = if selected == 3 { 4 } else { selected + 1 };
+                    *self.save_dialog.borrow_mut() = SaveDialogState::Browse { selected: next };
                     None
                 }
                 Event::Keyboard(Key::Down) => {
@@ -256,6 +254,12 @@ impl JumpView {
                         None
                     }
                     3 => {
+                        // Don't save / cancel
+                        *self.save_dialog.borrow_mut() = SaveDialogState::Inactive;
+                        None
+                    }
+                    4 => {
+                        // Save
                         let filename = self.save_filename.borrow().clone();
                         if Path::new(&format!("{}.SJR", filename)).exists() {
                             let author = self.save_author.borrow().clone();
@@ -355,8 +359,15 @@ impl JumpView {
     fn save_dialog_elements(&self) -> Vec<Element> {
         let mut els = Vec::new();
 
-        els.push(Element::fillbox(0, 0, WIDTH as i32, HEIGHT as i32, 0));
-        els.push(Element::FillArea { thing: 63 });
+        // Pascal newscreen(1,0): screen cleared, top strip 245 on rows 0..18, main area 243
+        els.push(Element::fillbox(0, 0, WIDTH as i32, 18, 245));
+        els.push(Element::fillbox(
+            0,
+            18,
+            WIDTH as i32,
+            HEIGHT as i32 - 18,
+            BG_LEFT,
+        ));
 
         match self.save_dialog.borrow().clone() {
             SaveDialogState::Browse { .. } | SaveDialogState::EditField { .. } => {
@@ -387,6 +398,7 @@ impl JumpView {
                     .map(|h| format!("{} K{}", h.name, h.kr))
                     .unwrap_or_default();
 
+                // Header: Pascal writefont(30,6,lstr(25)+': '+txtp(hp)+' at '+hillname+' K'+txt(hillkr))
                 els.push(Element::text_color(
                     format!(
                         "{}: {}m at {}",
@@ -399,21 +411,24 @@ impl JumpView {
                     FONT_DEFAULT,
                 ));
 
-                for i in 0..4 {
+                // Pascal: for temp:=1 to 5 do
+                for i in 0..5 {
                     let yy = (i * 16 + 26) as i32;
-                    let label = self.resources.langbase.lstr(291 + i);
-                    let color = if editing_field == Some(i) {
-                        FONT_GOLD
-                    } else {
-                        FONT_DEFAULT
-                    };
-                    els.push(Element::text_color(
-                        format!("{}. {}", i + 1, label),
-                        18,
-                        yy,
-                        color,
-                    ));
+                    let final_yy = if i == 4 { yy + 16 } else { yy };
 
+                    // Label color: temp<5 → FONT_DEFAULT(240), temp=5 → FONT_GOLD(246, stays from prev)
+                    let label_color = if i < 4 { FONT_DEFAULT } else { FONT_GOLD };
+
+                    // Label string
+                    let label = match i {
+                        0..=2 => format!("{}. {}", i + 1, self.resources.langbase.lstr(291 + i)),
+                        3 => format!("4. {}", self.resources.langbase.lstr(295)),
+                        4 => format!("5. {}", self.resources.langbase.lstr(296)),
+                        _ => String::new(),
+                    };
+                    els.push(Element::text_color(&label, 18, final_yy, label_color));
+
+                    // Value in gold (FONT_GOLD=246) for items 1-3 only
                     if i < 3 {
                         let value = match i {
                             0 => self.save_author.borrow().clone(),
@@ -421,12 +436,8 @@ impl JumpView {
                             2 => self.save_filename.borrow().clone(),
                             _ => String::new(),
                         };
-                        let val_color = if i == selected_idx {
-                            FONT_GOLD
-                        } else {
-                            FONT_GREET
-                        };
-                        els.push(Element::text_color(&value, 148, yy, val_color));
+                        let val_color = FONT_GOLD;
+                        els.push(Element::text_color(&value, 148, final_yy, val_color));
 
                         if editing && editing_field == Some(i) {
                             if let SaveDialogState::EditField {
@@ -436,18 +447,34 @@ impl JumpView {
                                 if cursor < value.len() {
                                     let cursor_x = 148
                                         + self.resources.font.string_width(&value[..cursor]) as i32;
-                                    els.push(Element::box_(cursor_x, yy - 1, 1, 9, FONT_GOLD));
+                                    els.push(Element::box_(
+                                        cursor_x,
+                                        final_yy - 1,
+                                        1,
+                                        9,
+                                        FONT_GOLD,
+                                    ));
                                 }
                             }
                         }
                     }
                 }
 
-                let bx = 9i32;
-                let by = (23 + selected_idx * 16) as i32;
-                els.push(Element::box_(bx, by, 231, 17, FONT_DEFAULT));
+                // Selection box matching Pascal MakeMenu(15,39,135,16,4,...)
+                // Items 1-4 at yy=36,52,68,84. EXIT (index 6) at yy=116 (skip gap at index 5/yy=100)
+                let box_y = if selected_idx < 4 {
+                    36 + selected_idx * 16
+                } else {
+                    36 + 5 * 16
+                };
+                els.push(Element::box_(9, box_y as i32, 135, 17, FONT_DEFAULT));
             }
             SaveDialogState::ConfirmOverwrite { ref filename, .. } => {
+                // Pascal alertbox background
+                els.push(Element::fillbox(59, 79, 203, 53, 242));
+                els.push(Element::fillbox(60, 80, 201, 51, 244));
+                els.push(Element::FillArea { thing: 63 });
+
                 els.push(Element::text_color(
                     format!("{}.SJR {}", filename, self.resources.langbase.lstr(345)),
                     80,
