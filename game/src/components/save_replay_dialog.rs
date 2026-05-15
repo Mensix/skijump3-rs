@@ -246,14 +246,13 @@ impl SaveReplayDialog {
     fn handle_browse_digit(&self, c: char) -> SaveAction {
         match c.to_digit(10) {
             Some(d) if (1..=5).contains(&d) => {
-                let idx = d as usize - 1;
-                *self.state.borrow_mut() = SaveDialogState::Browse { selected: idx };
-                self.activate_item(idx)
-            }
-            Some(0) => {
-                // EXIT: same as Escape
+                // Pascal makemenu: digit keys only navigate, don't activate.
+                *self.state.borrow_mut() = SaveDialogState::Browse {
+                    selected: d as usize - 1,
+                };
                 SaveAction::Consumed
             }
+            Some(0) => SaveAction::Consumed,
             _ => SaveAction::Consumed,
         }
     }
