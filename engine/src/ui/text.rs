@@ -101,7 +101,7 @@ impl Font {
 
     pub fn string_width(&self, text: &str) -> u32 {
         let mut w = 0u32;
-        for ch in text.chars().map(|c| c.to_ascii_uppercase()) {
+        for ch in text.chars() {
             match ch {
                 ' ' => w += 4,
                 '$' => w += 5,
@@ -127,7 +127,7 @@ impl Font {
         color: u8,
     ) {
         let mut px = x;
-        for ch in text.chars().map(|c| c.to_ascii_uppercase()) {
+        for ch in text.chars() {
             match ch {
                 ' ' => px += 4,
                 '$' => px += 5,

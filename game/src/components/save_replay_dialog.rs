@@ -200,6 +200,64 @@ impl SaveReplayDialog {
         els
     }
 
+    fn activate_item(&self, selected: usize) -> SaveAction {
+        match selected {
+            0 => {
+                self.cursor_blink.reset();
+                *self.state.borrow_mut() = SaveDialogState::EditField {
+                    field: SaveField::Author,
+                    editor: TextEditState::new(self.author.borrow().clone(), 130),
+                };
+                SaveAction::Consumed
+            }
+            1 => {
+                self.cursor_blink.reset();
+                *self.state.borrow_mut() = SaveDialogState::EditField {
+                    field: SaveField::Name,
+                    editor: TextEditState::new(self.name.borrow().clone(), 130),
+                };
+                SaveAction::Consumed
+            }
+            2 => {
+                self.cursor_blink.reset();
+                *self.state.borrow_mut() = SaveDialogState::EditField {
+                    field: SaveField::Filename,
+                    editor: TextEditState::new(self.filename.borrow().clone(), 8),
+                };
+                SaveAction::Consumed
+            }
+            3 => {
+                *self.state.borrow_mut() = SaveDialogState::Inactive;
+                SaveAction::Consumed
+            }
+            4 => {
+                let filename = self.filename.borrow().clone();
+                if Path::new(&format!("{}.SJR", filename)).exists() {
+                    *self.state.borrow_mut() = SaveDialogState::ConfirmOverwrite { filename };
+                } else {
+                    return SaveAction::SaveReplay;
+                }
+                SaveAction::Consumed
+            }
+            _ => SaveAction::Consumed,
+        }
+    }
+
+    fn handle_browse_digit(&self, c: char) -> SaveAction {
+        match c.to_digit(10) {
+            Some(d) if (1..=5).contains(&d) => {
+                let idx = d as usize - 1;
+                *self.state.borrow_mut() = SaveDialogState::Browse { selected: idx };
+                self.activate_item(idx)
+            }
+            Some(0) => {
+                // EXIT: same as Escape
+                SaveAction::Consumed
+            }
+            _ => SaveAction::Consumed,
+        }
+    }
+
     pub fn handle_event(&self, event: Event) -> SaveAction {
         let state = self.state.borrow().clone();
         match state {
@@ -226,47 +284,10 @@ impl SaveReplayDialog {
                     *self.state.borrow_mut() = SaveDialogState::Browse { selected: 0 };
                     SaveAction::Consumed
                 }
-                Event::Keyboard(Key::Enter) | Event::Keyboard(Key::Char(' ')) => match selected {
-                    0 => {
-                        self.cursor_blink.reset();
-                        *self.state.borrow_mut() = SaveDialogState::EditField {
-                            field: SaveField::Author,
-                            editor: TextEditState::new(self.author.borrow().clone(), 130),
-                        };
-                        SaveAction::Consumed
-                    }
-                    1 => {
-                        self.cursor_blink.reset();
-                        *self.state.borrow_mut() = SaveDialogState::EditField {
-                            field: SaveField::Name,
-                            editor: TextEditState::new(self.name.borrow().clone(), 130),
-                        };
-                        SaveAction::Consumed
-                    }
-                    2 => {
-                        self.cursor_blink.reset();
-                        *self.state.borrow_mut() = SaveDialogState::EditField {
-                            field: SaveField::Filename,
-                            editor: TextEditState::new(self.filename.borrow().clone(), 8),
-                        };
-                        SaveAction::Consumed
-                    }
-                    3 => {
-                        *self.state.borrow_mut() = SaveDialogState::Inactive;
-                        SaveAction::Consumed
-                    }
-                    4 => {
-                        let filename = self.filename.borrow().clone();
-                        if Path::new(&format!("{}.SJR", filename)).exists() {
-                            *self.state.borrow_mut() =
-                                SaveDialogState::ConfirmOverwrite { filename };
-                        } else {
-                            return SaveAction::SaveReplay;
-                        }
-                        SaveAction::Consumed
-                    }
-                    _ => SaveAction::Consumed,
-                },
+                Event::Keyboard(Key::Enter) | Event::Keyboard(Key::Char(' ')) => {
+                    self.activate_item(selected)
+                }
+                Event::Keyboard(Key::Char(c)) => self.handle_browse_digit(c),
                 _ => SaveAction::Consumed,
             },
             SaveDialogState::EditField { field, mut editor } => match event {
