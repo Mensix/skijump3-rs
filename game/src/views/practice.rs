@@ -161,7 +161,7 @@ impl View<RouteTarget> for PracticeView {
             ));
         }
 
-        let y = self.exit_row() as i32 * 8 + 10;
+        let y = (self.exit_row() - 1) as i32 * 8 + 10;
         els.push(Element::text_color_right("0.", 130, y, FONT_DEFAULT));
         els.push(Element::text_color(
             self.resources.langbase.lstr(154),
