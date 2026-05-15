@@ -61,6 +61,10 @@ pub(crate) fn elements(frame: &JumpRenderFrame, ctx: &JumpPresentationContext<'_
         els.push(Element::sprite(66, jumper_x + 60, jumper_y - 10));
     }
 
+    if let Some((hr_x, hr_y)) = frame.hill_record_marker {
+        els.push(Element::sprite(67, hr_x - frame.sx, hr_y - frame.sy));
+    }
+
     els.push(Element::sprite(
         frame.body_anim,
         frame.body_x - frame.sx,

@@ -20,4 +20,5 @@ pub(crate) struct JumpRenderFrame {
     pub(crate) score: i32,
     pub(crate) style_points: [i32; 5],
     pub(crate) style_revealed: [bool; 5],
+    pub(crate) hill_record_marker: Option<(i32, i32)>,
 }

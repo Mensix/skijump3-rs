@@ -1,6 +1,7 @@
 use crate::data::hill_profile::HillTerrain;
 use crate::data::records::HillInfo;
 use crate::jump::frame::JumpRenderFrame;
+use crate::jump::math::pascal_round;
 use crate::jump::policy::JumpPolicy;
 use crate::jump::replay::{ReplayMeta, ReplayRecorder, ReplayTrace};
 use crate::jump::types::{FlightWind, JumpInput, JumpOutcome, JumpPhase};
@@ -8,6 +9,28 @@ use crate::jump::JumpState;
 use crate::pascal_random::PascalRandom;
 use crate::snow::SnowSystem;
 use crate::wind::PascalWind;
+
+fn find_hill_record_marker(
+    terrain: &HillTerrain,
+    pk: f64,
+    record_distance: i32,
+) -> Option<(i32, i32)> {
+    if record_distance <= 0 {
+        return None;
+    }
+    let keula_x = terrain.keula_x;
+    let keula_y = terrain.profiili(keula_x);
+    for x in keula_x..1024 {
+        let dx = (x - keula_x) as f64;
+        let dy = (terrain.profiili(x) - keula_y) as f64;
+        let hp = pascal_round((dx * dx + dy * dy).sqrt() * pk * 0.5) * 5;
+        if hp >= record_distance {
+            let kor = terrain.profiili(x);
+            return Some((x, kor - 9));
+        }
+    }
+    None
+}
 
 #[derive(Debug)]
 pub(crate) struct JumpSession {
@@ -22,9 +45,12 @@ pub(crate) struct JumpSession {
     replay_name: String,
     last_phase: Option<JumpPhase>,
     policy: JumpPolicy,
+    record_distance: i32,
+    record_marker: Option<(i32, i32)>,
 }
 
 impl JumpSession {
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         terrain: Result<HillTerrain, String>,
         hill: Option<&HillInfo>,
@@ -33,6 +59,7 @@ impl JumpSession {
         snow: SnowSystem,
         replay_name: String,
         policy: JumpPolicy,
+        record_distance: i32,
     ) -> Self {
         let state = match (&terrain, hill) {
             (Ok(terrain), Some(hill)) => Some(JumpState::new(
@@ -60,6 +87,11 @@ impl JumpSession {
             ));
         }
 
+        let mut record_marker = None;
+        if let (Ok(terrain), Some(hill)) = (&terrain, hill) {
+            record_marker = find_hill_record_marker(terrain, hill.pk(), record_distance);
+        }
+
         Self {
             terrain,
             state,
@@ -72,6 +104,8 @@ impl JumpSession {
             replay_name,
             last_phase,
             policy,
+            record_distance,
+            record_marker,
         }
     }
 
@@ -127,7 +161,7 @@ impl JumpSession {
         self.policy
     }
 
-    pub(crate) fn reset_state(&mut self, hill: &HillInfo, start_gate: i32) {
+    pub(crate) fn reset_state(&mut self, hill: &HillInfo, start_gate: i32, record_distance: i32) {
         self.state = self.terrain.as_ref().ok().map(|terrain| {
             JumpState::new(
                 terrain,
@@ -138,6 +172,11 @@ impl JumpSession {
                 start_gate,
             )
         });
+        self.record_distance = record_distance;
+        self.record_marker = match (&self.terrain, &self.state) {
+            (Ok(terrain), Some(_)) => find_hill_record_marker(terrain, hill.pk(), record_distance),
+            _ => None,
+        };
         self.prev_camera = self
             .state
             .as_ref()
@@ -237,7 +276,13 @@ impl JumpSession {
     pub(crate) fn draws_snow(&self) -> bool {
         matches!(
             self.phase(),
-            Some(JumpPhase::Info | JumpPhase::OnBar | JumpPhase::Inrun | JumpPhase::Flight)
+            Some(
+                JumpPhase::Info
+                    | JumpPhase::OnBar
+                    | JumpPhase::Inrun
+                    | JumpPhase::Flight
+                    | JumpPhase::Landing
+            )
         )
     }
 
@@ -275,6 +320,7 @@ impl JumpSession {
                 score: state.score,
                 style_points: state.style_points,
                 style_revealed: state.style_revealed,
+                hill_record_marker: self.record_marker,
             };
             (frame, current_pos, body_anim, ski_anim)
         };

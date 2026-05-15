@@ -63,6 +63,12 @@ impl JumpView {
         }
 
         let jumper_name = "TRAINEE".to_string();
+        let record_distance = store
+            .records
+            .borrow()
+            .hill_record(hill_idx)
+            .map(|r| r.len as i32)
+            .unwrap_or(0);
         let session = JumpSession::new(
             terrain,
             hill,
@@ -71,6 +77,7 @@ impl JumpView {
             snow,
             jumper_name.clone(),
             JumpPolicy::training(),
+            record_distance,
         );
 
         Self {
@@ -85,9 +92,18 @@ impl JumpView {
     fn reset_jump_state(&self) {
         if let Some(hill) = self.resources.hills.hill(self.hill_idx) {
             // Pascal: wind continues between jumps, NOT re-initialized (only F5 resets it)
-            self.session
-                .borrow_mut()
-                .reset_state(hill, *self.store.start_gate.borrow());
+            let record_distance = self
+                .store
+                .records
+                .borrow()
+                .hill_record(self.hill_idx)
+                .map(|r| r.len as i32)
+                .unwrap_or(0);
+            self.session.borrow_mut().reset_state(
+                hill,
+                *self.store.start_gate.borrow(),
+                record_distance,
+            );
         }
     }
 
