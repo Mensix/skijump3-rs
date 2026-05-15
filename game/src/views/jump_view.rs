@@ -9,7 +9,7 @@ use crate::views::training_jump_controller::{TrainingJumpAction, TrainingJumpCon
 use engine::consts::{HEIGHT, WIDTH};
 use engine::palette::Palette;
 use engine::ui::{Element, Event, Key, View};
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::path::Path;
 
 #[derive(Debug, Clone)]
@@ -47,6 +47,7 @@ pub struct JumpView {
     save_author: RefCell<String>,
     save_name: RefCell<String>,
     save_filename: RefCell<String>,
+    cursor_blink: Cell<u32>,
 }
 
 impl JumpView {
@@ -121,6 +122,7 @@ impl JumpView {
             save_author: RefCell::new(String::new()),
             save_name: RefCell::new(String::new()),
             save_filename: RefCell::new("TEMP".to_string()),
+            cursor_blink: Cell::new(0),
         }
     }
 
@@ -444,7 +446,6 @@ impl JumpView {
                     if i < 3 {
                         let is_editing = editing && editing_field == Some(i);
                         let value = if is_editing {
-                            // During editing, read from the EditField state, not from persistent storage
                             match *self.save_dialog.borrow() {
                                 SaveDialogState::EditField { ref value, .. } => value.clone(),
                                 _ => String::new(),
@@ -458,8 +459,9 @@ impl JumpView {
                             }
                         };
                         if is_editing {
-                            // Pascal getstr: fillbox background with bkcolor=242 around the text
-                            els.push(Element::fillbox(146, final_yy - 2, 134, 11, 242));
+                            // Pascal getstr: fillbox(xx-2,yy-2,xx+maxlength+2,yy+7,bkcolor)
+                            // xx=148, maxlength=130, yy=final_yy
+                            els.push(Element::fillbox(146, final_yy - 2, 134, 10, 242));
                         }
                         els.push(Element::text_color(&value, 148, final_yy, FONT_GOLD));
 
@@ -468,13 +470,24 @@ impl JumpView {
                                 ref value, cursor, ..
                             } = *self.save_dialog.borrow()
                             {
-                                let cursor_x = 148
+                                // Cursor: Pascal givech 5x1 horizontal line at (xx+cx, yy+6), white, blinks 11on/10off
+                                let cx = 148
                                     + self
                                         .resources
                                         .font
                                         .string_width(&value[..cursor.min(value.len())])
                                         as i32;
-                                els.push(Element::box_(cursor_x, final_yy - 1, 1, 9, FONT_GOLD));
+                                let blink = self.cursor_blink.get();
+                                self.cursor_blink.set(blink + 1);
+                                if blink % 21 <= 10 {
+                                    els.push(Element::fillbox(
+                                        cx,
+                                        final_yy + 6,
+                                        5,
+                                        1,
+                                        FONT_DEFAULT,
+                                    ));
+                                }
                             }
                         }
                     }
