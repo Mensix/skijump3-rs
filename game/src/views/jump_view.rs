@@ -212,7 +212,8 @@ impl JumpView {
     }
 
     fn handle_save_dialog_event(&self, event: Event) -> Option<RouteTarget> {
-        match self.save_dialog.borrow().clone() {
+        let state = self.save_dialog.borrow().clone();
+        match state {
             SaveDialogState::Browse { selected } => match event {
                 Event::Keyboard(Key::Escape) => {
                     *self.save_dialog.borrow_mut() = SaveDialogState::Inactive;
@@ -371,17 +372,15 @@ fn field_idx(field: &SaveField) -> usize {
 
 impl JumpView {
     fn save_dialog_elements(&self) -> Vec<Element> {
-        let mut els = Vec::new();
-
-        // Pascal newscreen(1,0): screen cleared, top strip 245 on rows 0..18, main area 243
-        els.push(Element::fillbox(0, 0, WIDTH as i32, 18, 245));
-        els.push(Element::fillbox(
-            0,
-            18,
-            WIDTH as i32,
-            HEIGHT as i32 - 18,
-            BG_LEFT,
-        ));
+        // Background with panel fills, dither, and logo (like WelcomeScreenView/language choice)
+        let mut els = vec![
+            Element::fillbox(0, 0, WIDTH as i32, HEIGHT as i32, 0),
+            Element::fillbox(0, 0, 51, HEIGHT as i32, 245),
+            Element::fillbox(52, 0, (WIDTH - 104) as i32, HEIGHT as i32, 243),
+            Element::fillbox((WIDTH - 52) as i32, 0, 51, HEIGHT as i32, 245),
+            Element::FillArea { thing: 63 },
+            Element::sprite(61, 80, 6),
+        ];
 
         match self.save_dialog.borrow().clone() {
             SaveDialogState::Browse { .. } | SaveDialogState::EditField { .. } => {
@@ -414,7 +413,8 @@ impl JumpView {
 
                 // Header: Pascal writefont(30,6,lstr(25)+': '+txtp(hp)+' at '+hillname+' K'+txt(hillkr))
                 els.push(Element::text_color(
-                    format!("{}: {} at {}",
+                    format!(
+                        "{}: {}m at {}",
                         self.resources.langbase.lstr(25),
                         distance,
                         hill_name
@@ -452,10 +452,20 @@ impl JumpView {
                         els.push(Element::text_color(&value, 148, final_yy, FONT_GOLD));
 
                         if editing && editing_field == Some(i) {
-                            if let SaveDialogState::EditField { ref value, cursor, .. } = *self.save_dialog.borrow() {
+                            if let SaveDialogState::EditField {
+                                ref value, cursor, ..
+                            } = *self.save_dialog.borrow()
+                            {
                                 if cursor < value.len() {
-                                    let cursor_x = 148 + self.resources.font.string_width(&value[..cursor]) as i32;
-                                    els.push(Element::box_(cursor_x, final_yy - 1, 1, 9, FONT_GOLD));
+                                    let cursor_x = 148
+                                        + self.resources.font.string_width(&value[..cursor]) as i32;
+                                    els.push(Element::box_(
+                                        cursor_x,
+                                        final_yy - 1,
+                                        1,
+                                        9,
+                                        FONT_GOLD,
+                                    ));
                                 }
                             }
                         }
@@ -587,6 +597,9 @@ impl View<RouteTarget> for JumpView {
     }
 
     fn render_snow(&self, framebuffer: &mut [u8]) {
+        if !matches!(*self.save_dialog.borrow(), SaveDialogState::Inactive) {
+            return;
+        }
         if let Ok(mut session) = self.session.try_borrow_mut() {
             let wind = self.store.wind.borrow().value;
             let draw = session.draws_snow();

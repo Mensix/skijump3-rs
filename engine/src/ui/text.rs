@@ -150,6 +150,7 @@ impl Font {
     fn char_to_index(c: char) -> Option<usize> {
         match c {
             'A'..='Z' => Some((c as usize) - ('A' as usize)),
+            'a'..='z' => Some((c as usize) - ('a' as usize)),
             'Å' | 'å' => Some(26),
             'Ä' | 'ä' => Some(27),
             'Ö' | 'ö' => Some(28),
