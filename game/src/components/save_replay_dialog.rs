@@ -1,7 +1,7 @@
+use crate::components::screen;
 use crate::jump::replay::ReplayTrace;
 use crate::palette_consts::*;
 use crate::store::ResourcesRef;
-use engine::consts::{HEIGHT, WIDTH};
 use engine::ui::{Blinker, Element, Event, Key, TextEditState};
 use std::cell::RefCell;
 use std::path::Path;
@@ -74,14 +74,8 @@ impl SaveReplayDialog {
     }
 
     pub fn elements(&self, distance: &str, hill_name: &str) -> Vec<Element> {
-        // Pascal replayinfo: newscreen(1,0) + logo sprite
-        let mut els = vec![
-            Element::fillbox(0, 0, WIDTH as i32, HEIGHT as i32, 0),
-            Element::fillbox(0, 0, WIDTH as i32, 19, 245),
-            Element::fillbox(0, 20, WIDTH as i32, (HEIGHT - 20) as i32, 243),
-            Element::FillArea { thing: 63 },
-            Element::sprite(61, 80, 6),
-        ];
+        // Pascal replayinfo: newscreen(1,0) with logo at (5,2)
+        let mut els = screen::new_screen(1);
 
         match self.state.borrow().clone() {
             SaveDialogState::Browse { .. } | SaveDialogState::EditField { .. } => {
