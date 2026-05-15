@@ -77,98 +77,104 @@ impl SaveReplayDialog {
         // Pascal replayinfo: newscreen(1,0) with logo at (5,2)
         let mut els = screen::new_screen(1);
 
-        match self.state.borrow().clone() {
-            SaveDialogState::Browse { .. } | SaveDialogState::EditField { .. } => {
-                let selected_idx = match *self.state.borrow() {
-                    SaveDialogState::Browse { selected } => selected,
-                    SaveDialogState::EditField { ref field, .. } => field_idx(field),
-                    _ => 0,
+        // Render the save‑dialog form for Browse / EditField / ConfirmOverwrite.
+        // ConfirmOverwrite adds an alertbox overlay on top (Pascal alertbox / getch).
+        let overlay = matches!(
+            *self.state.borrow(),
+            SaveDialogState::ConfirmOverwrite { .. }
+        );
+        if overlay
+            || matches!(*self.state.borrow(), SaveDialogState::Browse { .. })
+            || matches!(*self.state.borrow(), SaveDialogState::EditField { .. })
+        {
+            let selected_idx = match *self.state.borrow() {
+                SaveDialogState::Browse { selected } => selected,
+                SaveDialogState::EditField { ref field, .. } => field_idx(field),
+                SaveDialogState::ConfirmOverwrite { .. } => {
+                    // Restore selection from the last Browse state
+                    4
+                }
+                _ => 0,
+            };
+            let editing = matches!(*self.state.borrow(), SaveDialogState::EditField { .. });
+            let editing_field = match *self.state.borrow() {
+                SaveDialogState::EditField { ref field, .. } => Some(field_idx(field)),
+                _ => None,
+            };
+
+            // Header
+            els.push(Element::text_color(
+                format!(
+                    "{}: {}m at {}",
+                    self.resources.langbase.lstr(25),
+                    distance,
+                    hill_name
+                ),
+                30,
+                6,
+                FONT_DEFAULT,
+            ));
+
+            // Pascal: for temp:=1 to 5 do
+            for i in 0..5 {
+                let yy = (i * 16 + 42) as i32;
+                let final_yy = if i == 4 { yy + 16 } else { yy };
+
+                let label_color = if i < 4 { FONT_DEFAULT } else { FONT_GOLD };
+
+                let label = match i {
+                    0..=2 => format!("{}. {}", i + 1, self.resources.langbase.lstr(291 + i)),
+                    3 => format!("4. {}", self.resources.langbase.lstr(295)),
+                    4 => format!("5. {}", self.resources.langbase.lstr(296)),
+                    _ => String::new(),
                 };
-                let editing = matches!(*self.state.borrow(), SaveDialogState::EditField { .. });
-                let editing_field = match *self.state.borrow() {
-                    SaveDialogState::EditField { ref field, .. } => Some(field_idx(field)),
-                    _ => None,
-                };
+                els.push(Element::text_color(&label, 18, final_yy, label_color));
 
-                // Header
-                els.push(Element::text_color(
-                    format!(
-                        "{}: {}m at {}",
-                        self.resources.langbase.lstr(25),
-                        distance,
-                        hill_name
-                    ),
-                    30,
-                    6,
-                    FONT_DEFAULT,
-                ));
-
-                // Pascal: for temp:=1 to 5 do
-                for i in 0..5 {
-                    let yy = (i * 16 + 42) as i32;
-                    let final_yy = if i == 4 { yy + 16 } else { yy };
-
-                    let label_color = if i < 4 { FONT_DEFAULT } else { FONT_GOLD };
-
-                    let label = match i {
-                        0..=2 => format!("{}. {}", i + 1, self.resources.langbase.lstr(291 + i)),
-                        3 => format!("4. {}", self.resources.langbase.lstr(295)),
-                        4 => format!("5. {}", self.resources.langbase.lstr(296)),
-                        _ => String::new(),
-                    };
-                    els.push(Element::text_color(&label, 18, final_yy, label_color));
-
-                    if i < 3 {
-                        let is_editing = editing && editing_field == Some(i);
-                        let value = if is_editing {
-                            match *self.state.borrow() {
-                                SaveDialogState::EditField { ref editor, .. } => {
-                                    editor.buffer().to_string()
-                                }
-                                _ => String::new(),
+                if i < 3 {
+                    let is_editing = editing && editing_field == Some(i);
+                    let value = if is_editing {
+                        match *self.state.borrow() {
+                            SaveDialogState::EditField { ref editor, .. } => {
+                                editor.buffer().to_string()
                             }
-                        } else {
-                            match i {
-                                0 => self.author.borrow().clone(),
-                                1 => self.name.borrow().clone(),
-                                2 => self.filename.borrow().clone(),
-                                _ => String::new(),
-                            }
-                        };
-
-                        if is_editing {
-                            let (fw, fh) = match editing_field {
-                                Some(2) => (60, 11),
-                                _ => (134, 10),
-                            };
-                            els.push(Element::fillbox(146, final_yy - 2, fw, fh, 242));
+                            _ => String::new(),
                         }
-                        els.push(Element::text_color(&value, 148, final_yy, FONT_GOLD));
+                    } else {
+                        match i {
+                            0 => self.author.borrow().clone(),
+                            1 => self.name.borrow().clone(),
+                            2 => self.filename.borrow().clone(),
+                            _ => String::new(),
+                        }
+                    };
 
-                        if is_editing {
-                            if let SaveDialogState::EditField { ref editor, .. } =
-                                *self.state.borrow()
-                            {
-                                let cx = 148
-                                    + self
-                                        .resources
-                                        .font
-                                        .string_width(&editor.buffer()[..editor.cursor_byte()])
-                                        as i32;
-                                if self.cursor_blink.visible(11, 10) {
-                                    els.push(Element::fillbox(
-                                        cx,
-                                        final_yy + 6,
-                                        5,
-                                        1,
-                                        FONT_DEFAULT,
-                                    ));
-                                }
+                    if is_editing {
+                        let (fw, fh) = match editing_field {
+                            Some(2) => (60, 11),
+                            _ => (134, 10),
+                        };
+                        els.push(Element::fillbox(146, final_yy - 2, fw, fh, 242));
+                    }
+                    els.push(Element::text_color(&value, 148, final_yy, FONT_GOLD));
+
+                    if is_editing {
+                        if let SaveDialogState::EditField { ref editor, .. } = *self.state.borrow()
+                        {
+                            let cx = 148
+                                + self
+                                    .resources
+                                    .font
+                                    .string_width(&editor.buffer()[..editor.cursor_byte()])
+                                    as i32;
+                            if self.cursor_blink.visible(11, 10) {
+                                els.push(Element::fillbox(cx, final_yy + 6, 5, 1, FONT_DEFAULT));
                             }
                         }
                     }
                 }
+            }
 
+            if !overlay {
                 let box_y = if selected_idx < 4 {
                     36 + selected_idx * 16
                 } else {
@@ -176,25 +182,26 @@ impl SaveReplayDialog {
                 };
                 els.push(Element::box_(9, box_y as i32, 135, 17, FONT_DEFAULT));
             }
-            SaveDialogState::ConfirmOverwrite { ref filename } => {
-                els.push(Element::fillbox(59, 79, 203, 53, 242));
-                els.push(Element::fillbox(60, 80, 201, 51, 244));
-                els.push(Element::FillArea { thing: 63 });
+        }
 
-                els.push(Element::text_color(
-                    format!("{}.SJR {}", filename, self.resources.langbase.lstr(345)),
-                    80,
-                    90,
-                    FONT_DEFAULT,
-                ));
-                els.push(Element::text_color(
-                    format!("{} (Y/N):", self.resources.langbase.lstr(346)),
-                    80,
-                    110,
-                    FONT_DEFAULT,
-                ));
-            }
-            SaveDialogState::Inactive => {}
+        // Confirm‑overwrite alertbox on top (Pascal alertbox + getch)
+        if let SaveDialogState::ConfirmOverwrite { ref filename } = *self.state.borrow() {
+            els.push(Element::fillbox(59, 79, 203, 53, 242));
+            els.push(Element::fillbox(60, 80, 201, 51, 244));
+            els.push(Element::FillArea { thing: 63 });
+
+            els.push(Element::text_color(
+                format!("{}.SJR {}", filename, self.resources.langbase.lstr(345)),
+                80,
+                90,
+                FONT_DEFAULT,
+            ));
+            els.push(Element::text_color(
+                format!("{} (Y/N):", self.resources.langbase.lstr(346)),
+                80,
+                110,
+                FONT_DEFAULT,
+            ));
         }
 
         els
@@ -328,7 +335,8 @@ impl SaveReplayDialog {
             },
             SaveDialogState::ConfirmOverwrite { .. } => match event {
                 Event::Keyboard(Key::Escape) => {
-                    *self.state.borrow_mut() = SaveDialogState::Browse { selected: 3 };
+                    // Pascal: Escape in alertbox acts like 'N' → back to Filename
+                    *self.state.borrow_mut() = SaveDialogState::Browse { selected: 2 };
                     SaveAction::Consumed
                 }
                 Event::Keyboard(Key::Char('y') | Key::Char('Y')) => SaveAction::SaveReplay,
