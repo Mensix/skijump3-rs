@@ -7,8 +7,35 @@ use crate::snow::SnowSystem;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::views::training_jump_controller::{TrainingJumpAction, TrainingJumpController};
 use engine::consts::{HEIGHT, WIDTH};
-use engine::ui::{Element, Event, View};
+use engine::palette::Palette;
+use engine::ui::{Element, Event, Key, View};
 use std::cell::RefCell;
+use std::path::Path;
+
+#[derive(Debug, Clone)]
+enum SaveField {
+    Author,
+    Name,
+    Filename,
+}
+
+#[derive(Debug, Clone)]
+enum SaveDialogState {
+    Inactive,
+    Browse {
+        selected: usize,
+    },
+    EditField {
+        field: SaveField,
+        value: String,
+        cursor: usize,
+    },
+    ConfirmOverwrite {
+        filename: String,
+        _author: String,
+        _name: String,
+    },
+}
 
 pub struct JumpView {
     resources: ResourcesRef,
@@ -16,6 +43,10 @@ pub struct JumpView {
     hill_idx: usize,
     session: RefCell<JumpSession>,
     jumper_name: String,
+    save_dialog: RefCell<SaveDialogState>,
+    save_author: RefCell<String>,
+    save_name: RefCell<String>,
+    save_filename: RefCell<String>,
 }
 
 impl JumpView {
@@ -86,7 +117,33 @@ impl JumpView {
             hill_idx,
             session: RefCell::new(session),
             jumper_name,
+            save_dialog: RefCell::new(SaveDialogState::Inactive),
+            save_author: RefCell::new(String::new()),
+            save_name: RefCell::new(String::new()),
+            save_filename: RefCell::new("TEMP".to_string()),
         }
+    }
+
+    fn enter_save_dialog(&self) {
+        let hill_name = self
+            .resources
+            .hills
+            .hill(self.hill_idx)
+            .map(|h| h.name.clone())
+            .unwrap_or_default();
+        *self.save_author.borrow_mut() = self.jumper_name.clone();
+        *self.save_name.borrow_mut() = format!("Huge Jump in {}", hill_name);
+        *self.save_filename.borrow_mut() = "TEMP".to_string();
+        *self.save_dialog.borrow_mut() = SaveDialogState::Browse { selected: 0 };
+    }
+
+    fn do_save_replay(&self) {
+        let session = self.session.borrow();
+        if let Some(trace) = session.replay_trace() {
+            let filename = format!("{}.SJR", self.save_filename.borrow());
+            let _ = std::fs::write(&filename, trace.to_sjr_bytes());
+        }
+        *self.save_dialog.borrow_mut() = SaveDialogState::Inactive;
     }
 
     fn reset_jump_state(&self) {
@@ -114,9 +171,305 @@ impl JumpView {
             wind.initialize(&mut rng, *self.store.wind_place.borrow());
         }
     }
+
+    fn handle_jump_event(&mut self, event: Event) -> Option<RouteTarget> {
+        match TrainingJumpController.handle_event(event, self.session.get_mut()) {
+            TrainingJumpAction::None => None,
+            TrainingJumpAction::RoutePractice => Some(RouteTarget::Practice),
+            TrainingJumpAction::ResetWind => {
+                self.reset_wind();
+                None
+            }
+            TrainingJumpAction::ResetJump => {
+                let _ = self.session.get_mut().outcome();
+                let _ = self.session.get_mut().replay_trace();
+                self.reset_jump_state();
+                None
+            }
+            TrainingJumpAction::PersistStartGate(start_gate) => {
+                *self.store.start_gate.borrow_mut() = start_gate;
+                None
+            }
+            TrainingJumpAction::SaveReplay => {
+                self.enter_save_dialog();
+                None
+            }
+        }
+    }
+
+    fn handle_save_dialog_event(&self, event: Event) -> Option<RouteTarget> {
+        match self.save_dialog.borrow().clone() {
+            SaveDialogState::Browse { selected } => match event {
+                Event::Keyboard(Key::Escape) => {
+                    *self.save_dialog.borrow_mut() = SaveDialogState::Inactive;
+                    None
+                }
+                Event::Keyboard(Key::Up) if selected > 0 => {
+                    *self.save_dialog.borrow_mut() = SaveDialogState::Browse {
+                        selected: selected - 1,
+                    };
+                    None
+                }
+                Event::Keyboard(Key::Up) => {
+                    *self.save_dialog.borrow_mut() = SaveDialogState::Browse { selected: 3 };
+                    None
+                }
+                Event::Keyboard(Key::Down) if selected < 3 => {
+                    *self.save_dialog.borrow_mut() = SaveDialogState::Browse {
+                        selected: selected + 1,
+                    };
+                    None
+                }
+                Event::Keyboard(Key::Down) => {
+                    *self.save_dialog.borrow_mut() = SaveDialogState::Browse { selected: 0 };
+                    None
+                }
+                Event::Keyboard(Key::Enter) | Event::Keyboard(Key::Char(' ')) => match selected {
+                    0 => {
+                        let v = self.save_author.borrow().clone();
+                        let len = v.len();
+                        *self.save_dialog.borrow_mut() = SaveDialogState::EditField {
+                            field: SaveField::Author,
+                            value: v,
+                            cursor: len,
+                        };
+                        None
+                    }
+                    1 => {
+                        let v = self.save_name.borrow().clone();
+                        let len = v.len();
+                        *self.save_dialog.borrow_mut() = SaveDialogState::EditField {
+                            field: SaveField::Name,
+                            value: v,
+                            cursor: len,
+                        };
+                        None
+                    }
+                    2 => {
+                        let v = self.save_filename.borrow().clone();
+                        let len = v.len();
+                        *self.save_dialog.borrow_mut() = SaveDialogState::EditField {
+                            field: SaveField::Filename,
+                            value: v,
+                            cursor: len,
+                        };
+                        None
+                    }
+                    3 => {
+                        let filename = self.save_filename.borrow().clone();
+                        if Path::new(&format!("{}.SJR", filename)).exists() {
+                            let author = self.save_author.borrow().clone();
+                            let name = self.save_name.borrow().clone();
+                            *self.save_dialog.borrow_mut() = SaveDialogState::ConfirmOverwrite {
+                                filename,
+                                _author: author,
+                                _name: name,
+                            };
+                        } else {
+                            self.do_save_replay();
+                        }
+                        None
+                    }
+                    _ => None,
+                },
+                _ => None,
+            },
+            SaveDialogState::EditField {
+                field,
+                mut value,
+                cursor,
+            } => match event {
+                Event::Keyboard(Key::Escape) => {
+                    *self.save_dialog.borrow_mut() = SaveDialogState::Browse {
+                        selected: field_idx(&field),
+                    };
+                    None
+                }
+                Event::Keyboard(Key::Enter) => {
+                    match field {
+                        SaveField::Author => *self.save_author.borrow_mut() = value,
+                        SaveField::Name => *self.save_name.borrow_mut() = value,
+                        SaveField::Filename => *self.save_filename.borrow_mut() = value,
+                    }
+                    *self.save_dialog.borrow_mut() = SaveDialogState::Browse {
+                        selected: field_idx(&field),
+                    };
+                    None
+                }
+                Event::Keyboard(Key::Backspace) if cursor > 0 => {
+                    value.remove(cursor - 1);
+                    *self.save_dialog.borrow_mut() = SaveDialogState::EditField {
+                        field,
+                        value,
+                        cursor: cursor - 1,
+                    };
+                    None
+                }
+                Event::Keyboard(Key::Char(c)) => {
+                    let limit = match field {
+                        SaveField::Filename => 8,
+                        _ => 130,
+                    };
+                    if value.len() >= limit {
+                        return None;
+                    }
+                    value.insert(cursor, c);
+                    *self.save_dialog.borrow_mut() = SaveDialogState::EditField {
+                        field,
+                        value,
+                        cursor: cursor + 1,
+                    };
+                    None
+                }
+                _ => None,
+            },
+            SaveDialogState::ConfirmOverwrite { .. } => match event {
+                Event::Keyboard(Key::Escape) => {
+                    *self.save_dialog.borrow_mut() = SaveDialogState::Browse { selected: 3 };
+                    None
+                }
+                Event::Keyboard(Key::Char('y') | Key::Char('Y')) => {
+                    self.do_save_replay();
+                    None
+                }
+                Event::Keyboard(Key::Char('n') | Key::Char('N')) => {
+                    *self.save_dialog.borrow_mut() = SaveDialogState::Browse { selected: 2 };
+                    None
+                }
+                _ => None,
+            },
+            SaveDialogState::Inactive => None,
+        }
+    }
+}
+
+fn field_idx(field: &SaveField) -> usize {
+    match field {
+        SaveField::Author => 0,
+        SaveField::Name => 1,
+        SaveField::Filename => 2,
+    }
 }
 
 impl JumpView {
+    fn save_dialog_elements(&self) -> Vec<Element> {
+        let mut els = Vec::new();
+
+        els.push(Element::fillbox(0, 0, WIDTH as i32, HEIGHT as i32, 0));
+        els.push(Element::FillArea { thing: 63 });
+
+        match self.save_dialog.borrow().clone() {
+            SaveDialogState::Browse { .. } | SaveDialogState::EditField { .. } => {
+                let selected_idx = match *self.save_dialog.borrow() {
+                    SaveDialogState::Browse { selected } => selected,
+                    SaveDialogState::EditField { ref field, .. } => field_idx(field),
+                    _ => 0,
+                };
+                let editing = matches!(
+                    *self.save_dialog.borrow(),
+                    SaveDialogState::EditField { .. }
+                );
+                let editing_field = match *self.save_dialog.borrow() {
+                    SaveDialogState::EditField { ref field, .. } => Some(field_idx(field)),
+                    _ => None,
+                };
+
+                let distance = self
+                    .session
+                    .borrow()
+                    .outcome()
+                    .map(|o| format!("{:.1}", o.distance as f64 / 10.0))
+                    .unwrap_or_default();
+                let hill_name = self
+                    .resources
+                    .hills
+                    .hill(self.hill_idx)
+                    .map(|h| format!("{} K{}", h.name, h.kr))
+                    .unwrap_or_default();
+
+                els.push(Element::text_color(
+                    format!(
+                        "{}: {}m at {}",
+                        self.resources.langbase.lstr(25),
+                        distance,
+                        hill_name
+                    ),
+                    30,
+                    6,
+                    FONT_DEFAULT,
+                ));
+
+                for i in 0..4 {
+                    let yy = (i * 16 + 26) as i32;
+                    let label = self.resources.langbase.lstr(291 + i);
+                    let color = if editing_field == Some(i) {
+                        FONT_GOLD
+                    } else {
+                        FONT_DEFAULT
+                    };
+                    els.push(Element::text_color(
+                        format!("{}. {}", i + 1, label),
+                        18,
+                        yy,
+                        color,
+                    ));
+
+                    if i < 3 {
+                        let value = match i {
+                            0 => self.save_author.borrow().clone(),
+                            1 => self.save_name.borrow().clone(),
+                            2 => self.save_filename.borrow().clone(),
+                            _ => String::new(),
+                        };
+                        let val_color = if i == selected_idx {
+                            FONT_GOLD
+                        } else {
+                            FONT_GREET
+                        };
+                        els.push(Element::text_color(&value, 148, yy, val_color));
+
+                        if editing && editing_field == Some(i) {
+                            if let SaveDialogState::EditField {
+                                ref value, cursor, ..
+                            } = *self.save_dialog.borrow()
+                            {
+                                if cursor < value.len() {
+                                    let cursor_x = 148
+                                        + self.resources.font.string_width(&value[..cursor]) as i32;
+                                    els.push(Element::box_(cursor_x, yy - 1, 1, 9, FONT_GOLD));
+                                }
+                            }
+                        }
+                    }
+                }
+
+                let bx = 9i32;
+                let by = (23 + selected_idx * 16) as i32;
+                els.push(Element::box_(bx, by, 231, 17, FONT_DEFAULT));
+            }
+            SaveDialogState::ConfirmOverwrite { ref filename, .. } => {
+                els.push(Element::text_color(
+                    format!("{}.SJR {}", filename, self.resources.langbase.lstr(345)),
+                    80,
+                    90,
+                    FONT_DEFAULT,
+                ));
+                els.push(Element::text_color(
+                    format!("{} (Y/N):", self.resources.langbase.lstr(346)),
+                    80,
+                    110,
+                    FONT_DEFAULT,
+                ));
+            }
+            SaveDialogState::Inactive => {}
+        }
+
+        els
+    }
+}
+
+impl JumpView {
+    #[allow(unused_mut)]
     fn build_elements(&self) -> Vec<Element> {
         let mut session = self.session.borrow_mut();
         let Err(err) = session.terrain() else {
@@ -189,33 +542,18 @@ impl JumpView {
 
 impl View<RouteTarget> for JumpView {
     fn elements(&self) -> Vec<Element> {
-        self.build_elements()
+        match *self.save_dialog.borrow() {
+            SaveDialogState::Inactive => self.build_elements(),
+            _ => self.save_dialog_elements(),
+        }
     }
 
     fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {
-        match TrainingJumpController.handle_event(event, self.session.get_mut()) {
-            TrainingJumpAction::None => None,
-            TrainingJumpAction::RoutePractice => Some(RouteTarget::Practice),
-            TrainingJumpAction::ResetWind => {
-                self.reset_wind();
-                None
-            }
-            TrainingJumpAction::ResetJump => {
-                let _ = self.session.get_mut().outcome();
-                let _ = self.session.get_mut().replay_trace();
-                self.reset_jump_state();
-                None
-            }
-            TrainingJumpAction::PersistStartGate(start_gate) => {
-                *self.store.start_gate.borrow_mut() = start_gate;
-                None
-            }
-            TrainingJumpAction::SaveReplay => {
-                if let Some(trace) = self.session.get_mut().replay_trace() {
-                    let _ = std::fs::write("TEMP.SJR", trace.to_sjr_bytes());
-                }
-                None
-            }
+        let dialog_active = !matches!(*self.save_dialog.borrow(), SaveDialogState::Inactive);
+        if dialog_active {
+            self.handle_save_dialog_event(event)
+        } else {
+            self.handle_jump_event(event)
         }
     }
 
@@ -227,12 +565,13 @@ impl View<RouteTarget> for JumpView {
         }
     }
 
-    fn apply_palette(&self, palette: &mut engine::palette::Palette) {
-        if let Ok(terrain) = self.session.borrow().terrain() {
-            terrain.apply_hill_palette(palette);
+    fn apply_palette(&self, palette: &mut Palette) {
+        if let SaveDialogState::Inactive = *self.save_dialog.borrow() {
+            if let Ok(terrain) = self.session.borrow().terrain() {
+                terrain.apply_hill_palette(palette);
+            }
+            palette.set(253, [10, 54, 10]);
+            palette.set(254, [0, 47, 0]);
         }
-        // Pascal MuutaLogo(6) — green traffic light (overrides palette 253,254)
-        palette.set(253, [10, 54, 10]);
-        palette.set(254, [0, 47, 0]);
     }
 }
