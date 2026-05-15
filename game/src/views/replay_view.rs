@@ -1,3 +1,4 @@
+use crate::components::replay_playback::ReplayPlayback;
 use crate::data::hill_profile::HillTerrain;
 use crate::jump::math::pascal_round;
 use crate::jump::presentation::{self, WindGaugePosition};
@@ -28,9 +29,7 @@ pub struct ReplayView {
     active_intro_box: RefCell<Option<u8>>,
     shown_intro_boxes: RefCell<[bool; 11]>,
     cursor_blink: Blinker,
-    mode: Cell<u8>,
-    speed: Cell<u8>,
-    place_counter: Cell<u32>,
+    playback: ReplayPlayback,
 }
 
 impl ReplayView {
@@ -56,9 +55,7 @@ impl ReplayView {
             active_intro_box: RefCell::new(None),
             shown_intro_boxes: RefCell::new([false; 11]),
             cursor_blink: Blinker::new(),
-            mode: Cell::new(3),
-            speed: Cell::new(3),
-            place_counter: Cell::new(0),
+            playback: ReplayPlayback::new(),
         }
     }
 
@@ -107,82 +104,8 @@ impl ReplayView {
         }
     }
 
-    fn advance_replay_mode(&self, session: &mut ReplaySession) {
-        let mode = self.mode.get();
-        if mode == 0 {
-            return;
-        }
-
-        if mode == 3 {
-            self.mode.set(0);
-            return;
-        }
-
-        if mode == 4 {
-            self.mode.set(3);
-            return;
-        }
-
-        let frame = session.frame_index();
-        let speed = self.speed.get();
-        if matches!(mode, 1 | 2) {
-            self.place_counter
-                .set(self.place_counter.get().wrapping_add(1));
-            if self.place_counter.get() > 999 {
-                self.place_counter.set(0);
-            }
-        }
-        let place = self.place_counter.get();
-        let advance_by = match speed {
-            0 => {
-                let flight_start = session.trace().meta.flight_start;
-                let flight_stop = session.trace().meta.flight_stop;
-                let dist_to_start = (frame as i32 - flight_start as i32).unsigned_abs();
-                let dist_to_stop = (frame as i32 - flight_stop as i32).unsigned_abs();
-                let effective = if dist_to_start < 20 {
-                    1
-                } else if dist_to_start < 40 || dist_to_stop < 40 {
-                    2
-                } else {
-                    3
-                };
-                match effective {
-                    1 => i32::from(place.is_multiple_of(4)),
-                    2 => (place % 2) as i32,
-                    _ => 1,
-                }
-            }
-            1 => i32::from(place.is_multiple_of(4)),
-            2 => (place % 2) as i32,
-            3 => 1,
-            4 => 1 + (place % 2) as i32,
-            5 => 2,
-            _ => 1,
-        };
-        match mode {
-            1 | 3 | 5 => {
-                for _ in 0..advance_by {
-                    session.step_forward();
-                }
-            }
-            2 => {
-                for _ in 0..advance_by {
-                    session.step_back();
-                }
-            }
-            _ => {}
-        }
-        if session.frame_index() != frame {
-            self.snow_advance.set(true);
-        }
-        if mode == 5 {
-            self.mode.set(3);
-        }
-        if (mode == 1 && session.frame_index() + 1 >= session.trace().frames.len())
-            || (mode == 2 && session.frame_index() == 0)
-        {
-            self.mode.set(3);
-        }
+    fn advance(&self, session: &mut ReplaySession) -> bool {
+        self.playback.advance(session)
     }
 }
 
@@ -312,7 +235,7 @@ impl View<RouteTarget> for ReplayView {
                 format!(
                     "{} {}",
                     self.resources.langbase.lstr(342),
-                    replay_speed_text(self.speed.get(), &self.resources.langbase)
+                    replay_speed_text(self.playback.speed(), &self.resources.langbase)
                 ),
                 309,
                 49,
@@ -339,8 +262,8 @@ impl View<RouteTarget> for ReplayView {
             } else {
                 session.auto_step_forward();
             }
-        } else {
-            self.advance_replay_mode(session);
+        } else if self.advance(session) {
+            self.snow_advance.set(true);
         }
         els
     }
@@ -352,39 +275,41 @@ impl View<RouteTarget> for ReplayView {
         match event {
             Event::Keyboard(Key::Escape | Key::Delete) => Some(RouteTarget::Replays),
             Event::Keyboard(Key::Char('+') | Key::Up) => {
-                let s = self.speed.get();
+                let s = self.playback.speed();
                 if s < 5 {
-                    self.speed.set(s + 1);
-                    if self.mode.get() == 0 {
-                        self.mode.set(4);
+                    self.playback.set_speed(s + 1);
+                    if self.playback.mode() == 0 {
+                        self.playback.set_mode(4);
                     }
                 }
                 None
             }
             Event::Keyboard(Key::Char('-') | Key::Down) => {
-                let s = self.speed.get();
+                let s = self.playback.speed();
                 if s > 0 {
-                    self.speed.set(s - 1);
-                    if self.mode.get() == 0 {
-                        self.mode.set(4);
+                    self.playback.set_speed(s - 1);
+                    if self.playback.mode() == 0 {
+                        self.playback.set_mode(4);
                     }
                 }
                 None
             }
             Event::Keyboard(Key::Right) => {
-                self.mode.set(if self.mode.get() == 1 { 3 } else { 1 });
+                self.playback
+                    .set_mode(if self.playback.mode() == 1 { 3 } else { 1 });
                 None
             }
             Event::Keyboard(Key::Left) => {
-                self.mode.set(if self.mode.get() == 2 { 3 } else { 2 });
+                self.playback
+                    .set_mode(if self.playback.mode() == 2 { 3 } else { 2 });
                 None
             }
-            Event::Keyboard(Key::Char(' ')) if self.mode.get() == 0 => {
-                self.mode.set(5);
+            Event::Keyboard(Key::Char(' ')) if self.playback.mode() == 0 => {
+                self.playback.set_mode(5);
                 None
             }
             Event::Keyboard(Key::Char('p') | Key::Char('P')) => {
-                self.mode.set(3);
+                self.playback.set_mode(3);
                 None
             }
             _ => None,
@@ -395,7 +320,7 @@ impl View<RouteTarget> for ReplayView {
         if let Ok(terrain) = &self.terrain {
             terrain.apply_hill_palette(palette);
         }
-        muuta_replay(palette, self.mode.get());
+        muuta_replay(palette, self.playback.mode());
     }
 }
 
