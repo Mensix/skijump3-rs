@@ -202,6 +202,11 @@ impl SaveReplayDialog {
                 110,
                 FONT_GOLD,
             ));
+            // Pascal getch(190,110,243): fillbox + blinking cursor
+            els.push(Element::fillbox(188, 108, 9, 11, 243));
+            if self.cursor_blink.visible(11, 10) {
+                els.push(Element::fillbox(190, 116, 5, 1, FONT_DEFAULT));
+            }
         }
 
         els
@@ -238,6 +243,7 @@ impl SaveReplayDialog {
                 SaveAction::Consumed
             }
             4 => {
+                self.cursor_blink.reset();
                 let filename = self.filename.borrow().clone();
                 if Path::new(&format!("{}.SJR", filename)).exists() {
                     *self.state.borrow_mut() = SaveDialogState::ConfirmOverwrite { filename };
