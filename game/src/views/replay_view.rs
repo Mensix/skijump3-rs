@@ -8,7 +8,7 @@ use crate::snow::SnowSystem;
 use crate::store::{ResourcesRef, StoreRef};
 use engine::consts::{HEIGHT, WIDTH};
 use engine::palette::Palette;
-use engine::ui::{Element, Event, ImageRegion, Key, View};
+use engine::ui::{Blinker, Element, Event, ImageRegion, Key, View};
 use std::cell::{Cell, RefCell};
 use std::collections::VecDeque;
 use std::rc::Rc;
@@ -27,7 +27,7 @@ pub struct ReplayView {
     intro_boxes: RefCell<VecDeque<u8>>,
     active_intro_box: RefCell<Option<u8>>,
     shown_intro_boxes: RefCell<[bool; 11]>,
-    cursor_blink: Cell<u32>,
+    cursor_blink: Blinker,
     mode: Cell<u8>,
     speed: Cell<u8>,
     place_counter: Cell<u32>,
@@ -55,7 +55,7 @@ impl ReplayView {
             intro_boxes: RefCell::new(VecDeque::new()),
             active_intro_box: RefCell::new(None),
             shown_intro_boxes: RefCell::new([false; 11]),
-            cursor_blink: Cell::new(0),
+            cursor_blink: Blinker::new(),
             mode: Cell::new(3),
             speed: Cell::new(3),
             place_counter: Cell::new(0),
@@ -91,7 +91,7 @@ impl ReplayView {
         }
         if self.active_intro_box.borrow().is_none() {
             *self.active_intro_box.borrow_mut() = queue.pop_front();
-            self.cursor_blink.set(0);
+            self.cursor_blink.reset();
         }
     }
 
@@ -99,7 +99,7 @@ impl ReplayView {
         let was_last = *self.active_intro_box.borrow() == Some(10);
         let next = self.intro_boxes.borrow_mut().pop_front();
         *self.active_intro_box.borrow_mut() = next;
-        self.cursor_blink.set(0);
+        self.cursor_blink.reset();
         if was_last && self.active_intro_box.borrow().is_none() {
             Some(RouteTarget::Replays)
         } else {
@@ -332,9 +332,8 @@ impl View<RouteTarget> for ReplayView {
                 intro_box_elements(&mut els, &self.resources.langbase, phase);
                 let ix = 30;
                 let iy = if phase <= 3 { 140 } else { 30 };
-                let blink = self.cursor_blink.get();
-                self.cursor_blink.set(blink + 1);
-                if blink % 21 <= 10 {
+                let blink = self.cursor_blink.visible(11, 10);
+                if blink {
                     els.push(Element::fillbox(ix + 247, iy + 27, 5, 1, FONT_DEFAULT));
                 }
             } else {
