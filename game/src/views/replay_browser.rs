@@ -118,6 +118,10 @@ impl View<RouteTarget> for ReplayBrowserView {
         els.extend(self.menu.elements());
         els.extend(self.layout.footer());
 
+        // Pascal clearscreen: right panel background with dither + labels
+        els.push(Element::fillbox(145, 50, 174, 149, 243));
+        els.push(Element::fillbox(128, 70, 17, 129, 243));
+        els.push(Element::FillArea { thing: 64 });
         els.push(Element::text_color(
             format!("{}:", self.resources.langbase.lstr(25)),
             170,
@@ -136,7 +140,7 @@ impl View<RouteTarget> for ReplayBrowserView {
                 self.resources.langbase.lstr(290),
                 170,
                 80,
-                FONT_HELP,
+                FONT_GOLD,
             ));
             return els;
         }
@@ -154,10 +158,6 @@ impl View<RouteTarget> for ReplayBrowserView {
             71,
             FONT_HELP,
         ));
-        els.push(Element::fillbox(163, 78, 95, 21, 248));
-        els.push(Element::fillbox(164, 79, 93, 19, BG_LEFT));
-        els.push(Element::text_color(&entry.filename, 170, 85, FONT_GOLD));
-
         els.push(Element::text_color(
             self.resources.langbase.lstr(291),
             150,
@@ -176,6 +176,9 @@ impl View<RouteTarget> for ReplayBrowserView {
             146,
             FONT_HELP,
         ));
+        els.push(Element::fillbox(163, 78, 95, 21, 248));
+        els.push(Element::fillbox(164, 79, 93, 19, 243));
+        els.push(Element::text_color(&entry.filename, 170, 85, FONT_GOLD));
 
         if let Some(trace) = &entry.trace {
             let hill = self

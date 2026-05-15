@@ -131,7 +131,21 @@ impl JumpView {
             .hill(self.hill_idx)
             .map(|h| h.name.clone())
             .unwrap_or_default();
-        *self.save_author.borrow_mut() = String::new();
+        let pb = self.store.profiles.borrow();
+        let author_name = pb
+            .active_order
+            .first()
+            .and_then(|&idx| {
+                let p = pb.profiles.get(idx)?;
+                let name = if p.real_name.is_empty() {
+                    p.name.clone()
+                } else {
+                    p.real_name.clone()
+                };
+                Some(name)
+            })
+            .unwrap_or_default();
+        *self.save_author.borrow_mut() = author_name;
         *self.save_name.borrow_mut() = format!("Huge Jump in {}", hill_name);
         *self.save_filename.borrow_mut() = "TEMP".to_string();
         *self.save_dialog.borrow_mut() = SaveDialogState::Browse { selected: 0 };
