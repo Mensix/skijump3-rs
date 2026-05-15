@@ -37,7 +37,7 @@ impl PracticeView {
         let total = resources.hills.len();
         let selected = store
             .selected_hill
-            .borrow()
+            .get()
             .saturating_sub(1)
             .min(total.saturating_sub(1));
         let start = if total > 20 { selected / 20 * 20 } else { 0 };
@@ -109,7 +109,7 @@ impl PracticeView {
             self.menu = self.rebuild_menu();
             None
         } else {
-            *self.store.selected_hill.borrow_mut() = self.start + sel + 1;
+            self.store.selected_hill.set(self.start + sel + 1);
             Some(RouteTarget::Jump)
         }
     }
