@@ -184,9 +184,9 @@ fn result_elements(
         FONT_GOLD,
     ));
     els.push(Element::text_color_right(
-        format!("{:.1}m", f64::from(frame.distance) / 10.0),
+        ctx.langbase.lstr(298),
         308,
-        33,
+        73,
         FONT_GREET,
     ));
 }
