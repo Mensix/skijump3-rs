@@ -220,7 +220,8 @@ impl Game {
             vec![
                 (RouteTarget::MainMenu, {
                     let l = layout.clone();
-                    Box::new(move || Box::new(MainMenuView::new(l.clone())))
+                    let s = store.clone();
+                    Box::new(move || Box::new(MainMenuView::new(l.clone(), s.clone())))
                 }),
                 (RouteTarget::JumpMenu, {
                     let l = layout.clone();
@@ -261,16 +262,18 @@ impl Game {
                 }),
                 (RouteTarget::HillRecords, {
                     let r = resources.clone();
-                    let s = store;
+                    let s = store.clone();
                     Box::new(move || Box::new(HillRecordsView::new(r.clone(), s.clone())))
                 }),
                 (RouteTarget::OptionsMenu, {
                     let l = layout.clone();
-                    Box::new(move || Box::new(MainMenuView::new(l.clone())))
+                    let s = store.clone();
+                    Box::new(move || Box::new(MainMenuView::new(l.clone(), s.clone())))
                 }),
                 (RouteTarget::Quit, {
                     let l = layout;
-                    Box::new(move || Box::new(MainMenuView::new(l.clone())))
+                    let s = store;
+                    Box::new(move || Box::new(MainMenuView::new(l.clone(), s.clone())))
                 }),
                 (RouteTarget::Welcome, {
                     let r = resources;

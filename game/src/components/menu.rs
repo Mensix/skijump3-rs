@@ -10,7 +10,6 @@ pub struct MenuItem {
 
 pub struct Menu {
     selected: usize,
-    navigable: usize,
     x: i32,
     y: i32,
     item_w: i32,
@@ -21,6 +20,9 @@ pub struct Menu {
     boxcolor: u8,
     show_labels: bool,
     show_box: bool,
+    exit_item: bool,
+    exit_label_idx: usize,
+    exit_y_off: i32,
 }
 
 impl Menu {
@@ -35,10 +37,8 @@ impl Menu {
         fontcolor: u8,
         boxcolor: u8,
     ) -> Self {
-        let navigable = items.len();
         Self {
             selected: 0,
-            navigable,
             x,
             y,
             item_w,
@@ -49,12 +49,10 @@ impl Menu {
             boxcolor,
             show_labels: true,
             show_box: true,
+            exit_item: false,
+            exit_label_idx: 0,
+            exit_y_off: 0,
         }
-    }
-
-    pub fn with_navigable(mut self, n: usize) -> Self {
-        self.navigable = n;
-        self
     }
 
     pub fn with_labels(mut self, show: bool) -> Self {
@@ -67,6 +65,13 @@ impl Menu {
         self
     }
 
+    pub fn with_exit(mut self, label_idx: usize, y_off: i32) -> Self {
+        self.exit_item = true;
+        self.exit_label_idx = label_idx;
+        self.exit_y_off = y_off;
+        self
+    }
+
     pub fn selected(&self) -> usize {
         self.selected
     }
@@ -76,11 +81,20 @@ impl Menu {
     }
 
     pub fn set_selected(&mut self, idx: usize) {
-        self.selected = idx.min(self.items.len().saturating_sub(1));
+        let max = if self.exit_item {
+            self.items.len()
+        } else {
+            self.items.len().saturating_sub(1)
+        };
+        self.selected = idx.min(max);
     }
 
     pub fn item_count(&self) -> usize {
         self.items.len()
+    }
+
+    pub fn has_exit(&self) -> bool {
+        self.exit_item
     }
 }
 
@@ -100,12 +114,26 @@ impl Component for Menu {
                     self.fontcolor,
                 ));
             }
+            if self.exit_item {
+                let iy = self.y + 1 + (self.items.len() as i32) * self.item_h + self.exit_y_off;
+                els.push(Element::text_color(
+                    format!("0. {}", self.langbase.lstr(self.exit_label_idx)),
+                    self.x,
+                    iy,
+                    self.fontcolor,
+                ));
+            }
         }
 
         if self.show_box {
             let bx = self.x - 6;
-            let idx = self.selected.min(self.items.len() - 1);
-            let by = self.y - 3 + (idx as i32) * self.item_h + self.items[idx].y_off;
+            let (row, y_off) = if self.exit_item && self.selected == self.items.len() {
+                (self.items.len() as i32, self.exit_y_off)
+            } else {
+                let idx = self.selected.min(self.items.len().saturating_sub(1));
+                (idx as i32, self.items[idx].y_off)
+            };
+            let by = self.y - 3 + row * self.item_h + y_off;
             els.push(Element::box_(
                 bx,
                 by,
@@ -119,16 +147,17 @@ impl Component for Menu {
     }
 
     fn handle_event(&mut self, event: &Event) -> Option<usize> {
+        let total = self.items.len() + self.exit_item as usize;
         match event {
             Event::Keyboard(Key::Up) if self.selected > 0 => {
                 self.selected -= 1;
                 None
             }
             Event::Keyboard(Key::Up) => {
-                self.selected = self.navigable - 1;
+                self.selected = total - 1;
                 None
             }
-            Event::Keyboard(Key::Down) if self.selected + 1 < self.navigable => {
+            Event::Keyboard(Key::Down) if self.selected + 1 < total => {
                 self.selected += 1;
                 None
             }
@@ -137,16 +166,22 @@ impl Component for Menu {
                 None
             }
             Event::Keyboard(Key::Enter) | Event::Keyboard(Key::Char(' ')) => {
-                // return 1-shifted: Some(0) = back sentinel, Some(1..) = selected + 1
-                Some(self.selected + 1)
+                if self.exit_item && self.selected == self.items.len() {
+                    Some(0)
+                } else {
+                    Some(self.selected + 1)
+                }
             }
             Event::Keyboard(Key::Char(c)) => {
                 if let Some(d) = c.to_digit(10) {
                     let n = d as usize;
-                    if n >= 1 && n <= self.navigable {
+                    if n >= 1 && n <= total {
                         self.selected = n - 1;
                         Some(n)
                     } else if n == 0 {
+                        if self.exit_item {
+                            self.selected = self.items.len();
+                        }
                         Some(0)
                     } else {
                         None

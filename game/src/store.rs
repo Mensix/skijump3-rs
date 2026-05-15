@@ -5,7 +5,7 @@ use crate::parsers::langbase::LangBase;
 use crate::pascal_random::PascalRandom;
 use crate::wind::PascalWind;
 use engine::ui::Font;
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
 #[derive(Debug, Clone)]
@@ -45,6 +45,7 @@ pub struct Store {
     pub start_gate: RefCell<i32>,
     pub eka: RefCell<bool>,
     pub selected_replay: RefCell<Option<ReplayTrace>>,
+    pub selected_main_menu: Cell<usize>,
 }
 
 impl Default for Store {
@@ -65,6 +66,7 @@ impl Store {
             start_gate: RefCell::new(15),
             eka: RefCell::new(true),
             selected_replay: RefCell::new(None),
+            selected_main_menu: Cell::new(0),
         }
     }
 }

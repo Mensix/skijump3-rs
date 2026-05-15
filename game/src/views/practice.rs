@@ -61,7 +61,8 @@ impl PracticeView {
             FONT_DEFAULT,
         )
         .with_labels(false)
-        .with_box(false);
+        .with_box(false)
+        .with_exit(154, 16);
         menu.set_selected(selected.saturating_sub(start).min(page_n.saturating_sub(1)));
 
         Self {
@@ -95,10 +96,14 @@ impl PracticeView {
         )
         .with_labels(false)
         .with_box(false)
+        .with_exit(154, 16)
     }
 
     fn confirm(&mut self) -> Option<RouteTarget> {
         let sel = self.menu.selected();
+        if self.menu.has_exit() && sel == self.menu.item_count() {
+            return Some(RouteTarget::MainMenu);
+        }
         if self.has_more() && sel == self.page_items() {
             self.start = (self.start + 20) % self.total;
             self.menu = self.rebuild_menu();
@@ -165,9 +170,18 @@ impl View<RouteTarget> for PracticeView {
             FONT_DEFAULT,
         ));
 
-        // Selection box at the correct screen row
+        // Selection box at the correct screen row.
+        // Pascal MakeMenu positions EXIT box at index items+2 (1-based)
+        // which is row items+1 (0-based). Our exit_row = items+2 (0-based),
+        // so subtract 1 for the box to match Pascal.
         let bx = 104;
-        let by = 8 + self.item_row(self.menu.selected()) as i32 * 8;
+        let sel = self.menu.selected();
+        let sel_row = if self.menu.has_exit() && sel == self.menu.item_count() {
+            self.exit_row() - 1
+        } else {
+            self.item_row(sel)
+        };
+        let by = 8 + sel_row as i32 * 8;
         els.push(Element::box_(bx, by, 171, 9, FONT_DEFAULT));
 
         els
@@ -175,7 +189,7 @@ impl View<RouteTarget> for PracticeView {
 
     fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {
         match &event {
-            Event::Keyboard(Key::Escape) | Event::Keyboard(Key::Char('0')) => {
+            Event::Keyboard(Key::Escape) => {
                 return Some(RouteTarget::MainMenu);
             }
             Event::Keyboard(Key::Char(ch)) if '1' <= *ch && *ch <= '9' => {

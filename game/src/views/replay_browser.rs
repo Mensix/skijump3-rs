@@ -218,7 +218,10 @@ impl View<RouteTarget> for ReplayBrowserView {
 
     fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {
         match event {
-            Event::Keyboard(Key::Escape) => Some(RouteTarget::MainMenu),
+            Event::Keyboard(Key::Escape) => {
+                self.store.selected_main_menu.set(5);
+                Some(RouteTarget::MainMenu)
+            }
             Event::Keyboard(Key::Right | Key::Down | Key::Char(' ') | Key::Char('+')) => {
                 self.move_next();
                 None

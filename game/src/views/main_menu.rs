@@ -2,6 +2,7 @@ use crate::components::layout::{self, MainLayout};
 use crate::components::menu::{Menu, MenuItem};
 use crate::palette_consts::*;
 use crate::route::RouteTarget;
+use crate::store::StoreRef;
 use engine::ui::{Component, Element, Event, View};
 
 pub struct MainMenuView {
@@ -10,7 +11,7 @@ pub struct MainMenuView {
 }
 
 impl MainMenuView {
-    pub fn new(layout: MainLayout) -> Self {
+    pub fn new(layout: MainLayout, store: StoreRef) -> Self {
         let items = vec![
             MenuItem {
                 num: 1,
@@ -48,19 +49,22 @@ impl MainMenuView {
                 y_off: 12,
             },
         ];
-        Self {
-            menu: Menu::new(
-                11,
-                97,
-                108,
-                12,
-                items,
-                &layout.langbase,
-                FONT_DEFAULT,
-                FONT_DEFAULT,
-            ),
-            layout,
-        }
+        let selection = store
+            .selected_main_menu
+            .get()
+            .min(items.len().saturating_sub(1));
+        let mut menu = Menu::new(
+            11,
+            97,
+            108,
+            12,
+            items,
+            &layout.langbase,
+            FONT_DEFAULT,
+            FONT_DEFAULT,
+        );
+        menu.set_selected(selection);
+        Self { menu, layout }
     }
 }
 

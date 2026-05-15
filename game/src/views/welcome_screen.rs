@@ -23,8 +23,6 @@ impl WelcomeScreenView {
                 y_off: 0,
             });
         }
-        // phase=3: navigable = count-1, exit slot wraps to last language
-        let navigable = if count > 1 { count - 1 } else { 1 };
         Self {
             menu: Menu::new(
                 112,
@@ -36,7 +34,6 @@ impl WelcomeScreenView {
                 FONT_DEFAULT,
                 FONT_DEFAULT,
             )
-            .with_navigable(navigable)
             .with_labels(false),
             languages,
         }
