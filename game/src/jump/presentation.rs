@@ -183,12 +183,12 @@ fn result_elements(
         45,
         FONT_GOLD,
     ));
-    els.push(Element::text_color_right(
-        ctx.langbase.lstr(298),
-        308,
-        73,
-        FONT_GREET,
-    ));
+            els.push(Element::text_color_right(
+                format!("{:.1}", f64::from(frame.distance) / 10.0),
+                308,
+                33,
+                FONT_GREET,
+            ));
 }
 
 fn landing_elements(

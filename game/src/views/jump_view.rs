@@ -414,8 +414,7 @@ impl JumpView {
 
                 // Header: Pascal writefont(30,6,lstr(25)+': '+txtp(hp)+' at '+hillname+' K'+txt(hillkr))
                 els.push(Element::text_color(
-                    format!(
-                        "{}: {}m at {}",
+                    format!("{}: {} at {}",
                         self.resources.langbase.lstr(25),
                         distance,
                         hill_name
@@ -425,9 +424,9 @@ impl JumpView {
                     FONT_DEFAULT,
                 ));
 
-                // Pascal: for temp:=1 to 5 do
+                // Pascal: for temp:=1 to 5 do, yy:=(temp*16)+26 → i*16+42 for 0-based i
                 for i in 0..5 {
-                    let yy = (i * 16 + 26) as i32;
+                    let yy = (i * 16 + 42) as i32;
                     let final_yy = if i == 4 { yy + 16 } else { yy };
 
                     // Label color: temp<5 → FONT_DEFAULT(240), temp=5 → FONT_GOLD(246, stays from prev)
@@ -450,24 +449,13 @@ impl JumpView {
                             2 => self.save_filename.borrow().clone(),
                             _ => String::new(),
                         };
-                        let val_color = FONT_GOLD;
-                        els.push(Element::text_color(&value, 148, final_yy, val_color));
+                        els.push(Element::text_color(&value, 148, final_yy, FONT_GOLD));
 
                         if editing && editing_field == Some(i) {
-                            if let SaveDialogState::EditField {
-                                ref value, cursor, ..
-                            } = *self.save_dialog.borrow()
-                            {
+                            if let SaveDialogState::EditField { ref value, cursor, .. } = *self.save_dialog.borrow() {
                                 if cursor < value.len() {
-                                    let cursor_x = 148
-                                        + self.resources.font.string_width(&value[..cursor]) as i32;
-                                    els.push(Element::box_(
-                                        cursor_x,
-                                        final_yy - 1,
-                                        1,
-                                        9,
-                                        FONT_GOLD,
-                                    ));
+                                    let cursor_x = 148 + self.resources.font.string_width(&value[..cursor]) as i32;
+                                    els.push(Element::box_(cursor_x, final_yy - 1, 1, 9, FONT_GOLD));
                                 }
                             }
                         }
