@@ -270,7 +270,7 @@ impl View<RouteTarget> for ReplayView {
             return self.dismiss_intro_box();
         }
         match event {
-            Event::Keyboard(Key::Escape | Key::Delete) => Some(RouteTarget::Replays),
+            Event::Keyboard(Key::Escape | Key::Delete) => Some(RouteTarget::Back),
             Event::Keyboard(Key::Char('+') | Key::Up) => {
                 let s = self.playback.speed();
                 if s < 5 {

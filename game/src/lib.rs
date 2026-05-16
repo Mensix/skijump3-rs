@@ -309,7 +309,13 @@ impl Game {
 
     fn handle_input(&mut self) {
         for event in self.input.drain_events() {
-            self.router.handle_event(&event);
+            if let Some(target) = self.router.current_view_mut().handle_event(event) {
+                if target == RouteTarget::Back {
+                    self.router.back();
+                } else {
+                    self.router.navigate(target);
+                }
+            }
         }
     }
 

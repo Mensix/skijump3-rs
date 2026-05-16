@@ -143,7 +143,7 @@ impl JumpView {
         };
         match action {
             TrainingJumpAction::None => None,
-            TrainingJumpAction::RoutePractice => Some(RouteTarget::Practice),
+            TrainingJumpAction::RouteBack => Some(RouteTarget::Back),
             TrainingJumpAction::ResetWind => {
                 self.reset_wind();
                 None

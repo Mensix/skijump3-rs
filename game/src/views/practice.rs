@@ -194,7 +194,7 @@ impl View<RouteTarget> for PracticeView {
     fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {
         match &event {
             Event::Keyboard(Key::Escape) => {
-                return Some(RouteTarget::MainMenu);
+                return Some(RouteTarget::Back);
             }
             Event::Keyboard(Key::Char(ch)) if '1' <= *ch && *ch <= '9' => {
                 let n = *ch as usize - '0' as usize;

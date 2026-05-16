@@ -13,4 +13,5 @@ pub enum RouteTarget {
     HillRecords,
     OptionsMenu,
     ProfilesList,
+    Back,
 }

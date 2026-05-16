@@ -221,7 +221,7 @@ impl View<RouteTarget> for ReplayBrowserView {
         match event {
             Event::Keyboard(Key::Escape) => {
                 self.store.selected_main_menu.set(5);
-                Some(RouteTarget::MainMenu)
+                Some(RouteTarget::Back)
             }
             Event::Keyboard(Key::Right | Key::Down | Key::Char(' ' | '+')) => {
                 self.move_next();

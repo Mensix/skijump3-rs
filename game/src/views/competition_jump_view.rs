@@ -79,7 +79,7 @@ impl View<RouteTarget> for CompetitionJumpView {
 
     fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {
         match event {
-            Event::Keyboard(Key::Escape) => Some(RouteTarget::JumpMenu),
+            Event::Keyboard(Key::Escape) => Some(RouteTarget::Back),
             Event::Keyboard(_) => None,
         }
     }

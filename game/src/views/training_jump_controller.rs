@@ -4,7 +4,7 @@ use engine::ui::{Event, Key};
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum TrainingJumpAction {
     None,
-    RoutePractice,
+    RouteBack,
     ResetWind,
     ResetJump,
     PersistStartGate(i32),
@@ -21,7 +21,7 @@ impl TrainingJumpController {
         session: &mut JumpSession,
     ) -> TrainingJumpAction {
         match event {
-            Event::Keyboard(Key::Escape) => TrainingJumpAction::RoutePractice,
+            Event::Keyboard(Key::Escape) => TrainingJumpAction::RouteBack,
             Event::Keyboard(Key::F5) => {
                 if session.policy().allow_wind_reset {
                     TrainingJumpAction::ResetWind

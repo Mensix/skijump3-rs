@@ -60,7 +60,7 @@ fn handle_page_event(event: Event, page: &mut usize, pages: usize) -> Option<Pag
 
 fn apply_page_action(action: PageAction, page: &mut usize, pages: usize) -> Option<RouteTarget> {
     match action {
-        PageAction::Back => Some(RouteTarget::MainMenu),
+        PageAction::Back => Some(RouteTarget::Back),
         PageAction::First => {
             *page = 0;
             None

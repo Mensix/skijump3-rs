@@ -730,7 +730,7 @@ impl View<RouteTarget> for ProfilesView {
                     self.handle_list_delete();
                     None
                 }
-                Event::Keyboard(Key::Escape) => Some(RouteTarget::MainMenu),
+                Event::Keyboard(Key::Escape) => Some(RouteTarget::Back),
                 Event::Keyboard(_) => None,
             };
         }
