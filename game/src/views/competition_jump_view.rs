@@ -5,8 +5,9 @@ use crate::jump::{JumpPolicy, JumpRunner};
 use crate::palette_consts::FONT_DEFAULT;
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
+use crate::views::training_jump_controller::{TrainingJumpAction, TrainingJumpController};
 use engine::palette::Palette;
-use engine::ui::{Element, Event, Key, View};
+use engine::ui::{Element, Event, View};
 use std::cell::{Cell, RefCell};
 
 pub(crate) struct CompetitionJumpView {
@@ -202,9 +203,14 @@ impl View<RouteTarget> for CompetitionJumpView {
     }
 
     fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {
-        match event {
-            Event::Keyboard(Key::Escape) => Some(RouteTarget::Back),
-            Event::Keyboard(_) => None,
+        let action = {
+            let mut runner = self.runner.borrow_mut();
+            TrainingJumpController.handle_event(event, runner.session_mut())
+        };
+        match action {
+            TrainingJumpAction::RouteBack => Some(RouteTarget::Back),
+            // Training-only actions are no-ops in competition
+            _ => None,
         }
     }
 
