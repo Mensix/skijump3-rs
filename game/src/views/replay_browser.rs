@@ -236,7 +236,7 @@ impl View<RouteTarget> for ReplayBrowserView {
                 *self.store.selected_replay.borrow_mut() = Some(trace);
                 Some(RouteTarget::ReplayPlayback)
             }
-            _ => None,
+            Event::Keyboard(_) => None,
         }
     }
 }

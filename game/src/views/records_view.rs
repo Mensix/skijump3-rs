@@ -49,7 +49,7 @@ fn handle_page_event(event: Event, page: &mut usize, pages: usize) -> Option<Pag
         Event::Keyboard(Key::Right | Key::PageDown | Key::Enter | Key::Char(' ')) => {
             Some(PageAction::Next)
         }
-        _ => {
+        Event::Keyboard(_) => {
             if *page >= pages {
                 *page = pages.saturating_sub(1);
             }
@@ -238,7 +238,6 @@ impl View<RouteTarget> for HallOfFameView {
     fn elements(&self) -> Vec<Element> {
         let mut els = match self.page {
             1 => new_screen(4),
-            2 => new_screen(1),
             _ => new_screen(1),
         };
 

@@ -34,7 +34,7 @@ pub struct ReplayView {
 }
 
 impl ReplayView {
-    pub fn new(resources: ResourcesRef, store: StoreRef) -> Self {
+    pub fn new(resources: ResourcesRef, store: &StoreRef) -> Self {
         let trace = store.selected_replay.borrow().clone();
         let terrain = trace
             .as_ref().map_or_else(|| Err("Replay hill not found".to_string()), |trace| resources.hill_terrain(trace.meta.hill_idx).map(|t| (*t).clone()));
@@ -308,7 +308,7 @@ impl View<RouteTarget> for ReplayView {
                 self.playback.set_mode(3);
                 None
             }
-            _ => None,
+            Event::Keyboard(_) => None,
         }
     }
 
@@ -385,7 +385,6 @@ fn replay_speed_text(speed: u8, langbase: &LangBase) -> String {
         0 => langbase.lstr(343).to_string(),
         1 => "50%".to_string(),
         2 => "75%".to_string(),
-        3 => "100%".to_string(),
         4 => "150%".to_string(),
         5 => "200%".to_string(),
         _ => "100%".to_string(),

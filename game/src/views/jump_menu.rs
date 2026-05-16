@@ -85,14 +85,10 @@ impl View<RouteTarget> for JumpMenuView {
 
     fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {
         match self.menu.handle_event(&event) {
-            Some(0) => Some(RouteTarget::MainMenu),
-            Some(1) => Some(RouteTarget::MainMenu),
-            Some(2) => Some(RouteTarget::MainMenu),
-            Some(3) => Some(RouteTarget::MainMenu),
-            Some(4) => Some(RouteTarget::MainMenu),
-            Some(5) => Some(RouteTarget::MainMenu),
             Some(6) => Some(RouteTarget::Practice),
-            Some(7) => Some(RouteTarget::MainMenu),
+            Some(0) | Some(1) | Some(2) | Some(3) | Some(4) | Some(5) | Some(7) => {
+                Some(RouteTarget::MainMenu)
+            }
             _ => None,
         }
     }

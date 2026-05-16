@@ -29,10 +29,10 @@ impl TrainingJumpController {
                     TrainingJumpAction::None
                 }
             }
-            Event::Keyboard(Key::Enter) => self.enter(session),
-            Event::Keyboard(Key::Right) => self.right(session),
-            Event::Keyboard(Key::Char('+')) => self.adjust_gate(session, 1),
-            Event::Keyboard(Key::Char('-')) => self.adjust_gate(session, -1),
+            Event::Keyboard(Key::Enter) => Self::enter(session),
+            Event::Keyboard(Key::Right) => Self::right(session),
+            Event::Keyboard(Key::Char('+')) => Self::adjust_gate(session, 1),
+            Event::Keyboard(Key::Char('-')) => Self::adjust_gate(session, -1),
             Event::Keyboard(Key::Left) => {
                 if session.phase() == Some(JumpPhase::Flight) {
                     session.handle_input(JumpInput::LeanBack);
@@ -64,11 +64,11 @@ impl TrainingJumpController {
                     TrainingJumpAction::None
                 }
             }
-            _ => TrainingJumpAction::None,
+            Event::Keyboard(_) => TrainingJumpAction::None,
         }
     }
 
-    fn enter(self, session: &mut JumpSession) -> TrainingJumpAction {
+    fn enter(session: &mut JumpSession) -> TrainingJumpAction {
         match session.phase() {
             Some(JumpPhase::Result) => TrainingJumpAction::ResetJump,
             Some(JumpPhase::Info) => {
@@ -87,7 +87,7 @@ impl TrainingJumpController {
         }
     }
 
-    fn right(self, session: &mut JumpSession) -> TrainingJumpAction {
+    fn right(session: &mut JumpSession) -> TrainingJumpAction {
         match session.phase() {
             Some(JumpPhase::Info) => {
                 let start_gate = session.start_gate().unwrap_or_default();
@@ -105,7 +105,7 @@ impl TrainingJumpController {
         }
     }
 
-    fn adjust_gate(self, session: &mut JumpSession, delta: i32) -> TrainingJumpAction {
+    fn adjust_gate(session: &mut JumpSession, delta: i32) -> TrainingJumpAction {
         if session.phase() != Some(JumpPhase::Info) {
             return TrainingJumpAction::None;
         }

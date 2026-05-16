@@ -112,7 +112,7 @@ pub fn pascal_decode(bytes: &[u8]) -> String {
             0x95 => '\u{00F2}',
             0x96 => '\u{00FB}',
             0x97 => '\u{00F9}',
-            0x98 => '\u{00FF}',
+            0x98 | 0xFF => '\u{00FF}',
             0x99 => '\u{00D6}',
             0x9A => '\u{00DC}',
             0x9B => '\u{00F8}',
@@ -131,7 +131,6 @@ pub fn pascal_decode(bytes: &[u8]) -> String {
             0xA8 => '\u{00BF}',
             0xE1 => '\u{00DF}',
             0xE6 => '\u{00B5}',
-            0xFF => '\u{00FF}',
             _ => {
                 if b.is_ascii() {
                     b as char

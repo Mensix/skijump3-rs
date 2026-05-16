@@ -14,7 +14,7 @@ pub struct WelcomeScreenView {
 
 impl WelcomeScreenView {
     #[must_use] 
-    pub fn new(languages: Vec<String>, langbase: Rc<LangBase>) -> Self {
+    pub fn new(languages: Vec<String>, langbase: &Rc<LangBase>) -> Self {
         let count = languages.len();
         let mut items = Vec::with_capacity(count);
         for (i, _) in languages.iter().enumerate() {
@@ -31,7 +31,7 @@ impl WelcomeScreenView {
                 100,
                 8,
                 items,
-                &langbase,
+                langbase,
                 FONT_DEFAULT,
                 FONT_DEFAULT,
             )

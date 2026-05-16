@@ -217,13 +217,13 @@ impl Game {
             RouteTarget::Welcome,
             Box::new(WelcomeScreenView::new(
                 resources.langbase.languages.clone(),
-                Rc::clone(&resources.langbase),
+                &resources.langbase,
             )),
             vec![
                 (RouteTarget::MainMenu, {
                     let l = layout.clone();
                     let s = store.clone();
-                    Box::new(move || Box::new(MainMenuView::new(l.clone(), s.clone())))
+                    Box::new(move || Box::new(MainMenuView::new(l.clone(), &s)))
                 }),
                 (RouteTarget::JumpMenu, {
                     let l = layout.clone();
@@ -255,7 +255,7 @@ impl Game {
                 (RouteTarget::ReplayPlayback, {
                     let r = resources.clone();
                     let s = store.clone();
-                    Box::new(move || Box::new(ReplayView::new(r.clone(), s.clone())))
+                    Box::new(move || Box::new(ReplayView::new(r.clone(), &s)))
                 }),
                 (RouteTarget::ProfilesList, {
                     let r = resources.clone();
@@ -275,19 +275,19 @@ impl Game {
                 (RouteTarget::OptionsMenu, {
                     let l = layout.clone();
                     let s = store.clone();
-                    Box::new(move || Box::new(MainMenuView::new(l.clone(), s.clone())))
+                    Box::new(move || Box::new(MainMenuView::new(l.clone(), &s)))
                 }),
                 (RouteTarget::Quit, {
                     let l = layout;
                     let s = store;
-                    Box::new(move || Box::new(MainMenuView::new(l.clone(), s.clone())))
+                    Box::new(move || Box::new(MainMenuView::new(l.clone(), &s)))
                 }),
                 (RouteTarget::Welcome, {
                     let r = resources;
                     Box::new(move || {
                         Box::new(WelcomeScreenView::new(
                             r.langbase.languages.clone(),
-                            Rc::clone(&r.langbase),
+                            &r.langbase,
                         ))
                     })
                 }),

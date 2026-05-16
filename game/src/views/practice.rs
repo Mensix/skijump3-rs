@@ -204,7 +204,7 @@ impl View<RouteTarget> for PracticeView {
                 }
                 return None;
             }
-            _ => {}
+            Event::Keyboard(_) => {}
         }
         if let Some(_idx) = self.menu.handle_event(&event) {
             self.confirm()

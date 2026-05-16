@@ -65,6 +65,18 @@ pub struct ProfilesView {
     mode: Mode,
 }
 
+enum Pending {
+    EditEnter(usize, usize),
+    TextCommit(usize, TextField, String),
+    TextCancel(usize, TextField),
+    ColorCommit(usize, ColorField),
+    ColorCancel(usize, ColorField),
+    ReplaceCommit(usize, usize),
+    ReplaceCancel(usize),
+    QuestionYes(QuestionAction),
+    QuestionNo(QuestionAction),
+}
+
 impl ProfilesView {
     pub fn new(resources: ResourcesRef, store: StoreRef) -> Self {
         Self {
@@ -241,7 +253,7 @@ impl ProfilesView {
         }
     }
 
-    fn draw_empty_edit(&self, els: &mut Vec<Element>) {
+    fn draw_empty_edit(els: &mut Vec<Element>) {
         els.push(Element::fillbox(166, 4, 154, 195, BG_RIGHT));
         els.push(Element::FillArea { thing: 63 });
     }
@@ -287,13 +299,10 @@ impl ProfilesView {
     }
 
     fn draw_profile(&self, els: &mut Vec<Element>, profile_index: usize, edit_phase: bool) {
-        self.draw_empty_edit(els);
+        Self::draw_empty_edit(els);
 
         let store = self.store.profiles.borrow();
-        let profile = match store.profiles.get(profile_index) {
-            Some(p) => p,
-            None => return,
-        };
+        let Some(profile) = store.profiles.get(profile_index) else { return };
         let label_color = if edit_phase { FONT_DEFAULT } else { FONT_HELP };
         let value_color = FONT_NEW;
 
@@ -566,7 +575,7 @@ impl ProfilesView {
         };
     }
 
-    fn commit_text_input(&mut self, profile: usize, field: TextField, buf: String) {
+    fn commit_text_input(&mut self, profile: usize, field: TextField, buf: &str) {
         let value = buf.trim().to_ascii_uppercase();
         if value.is_empty() {
             self.mode = Mode::Edit {
@@ -647,7 +656,7 @@ impl View<RouteTarget> for ProfilesView {
                 self.draw_help(&mut els, Some(profile));
             }
         } else {
-            self.draw_empty_edit(&mut els);
+            Self::draw_empty_edit(&mut els);
             self.draw_help(&mut els, None);
         }
 
@@ -722,20 +731,8 @@ impl View<RouteTarget> for ProfilesView {
                     None
                 }
                 Event::Keyboard(Key::Escape) => Some(RouteTarget::MainMenu),
-                _ => None,
+                Event::Keyboard(_) => None,
             };
-        }
-
-        enum Pending {
-            EditEnter(usize, usize),
-            TextCommit(usize, TextField, String),
-            TextCancel(usize, TextField),
-            ColorCommit(usize, ColorField),
-            ColorCancel(usize, ColorField),
-            ReplaceCommit(usize, usize),
-            ReplaceCancel(usize),
-            QuestionYes(QuestionAction),
-            QuestionNo(QuestionAction),
         }
 
         let mut pending = None;
@@ -757,7 +754,7 @@ impl View<RouteTarget> for ProfilesView {
                     }
                 }
                 Event::Keyboard(Key::Escape) => *selected = EDIT_MENU_ITEMS - 1,
-                _ => {}
+                Event::Keyboard(_) => {}
             },
             Mode::TextInput {
                 profile,
@@ -822,7 +819,7 @@ impl View<RouteTarget> for ProfilesView {
                 self.handle_edit_enter(profile, selected);
             }
             Some(Pending::TextCommit(profile, field, value)) => {
-                self.commit_text_input(profile, field, value);
+                self.commit_text_input(profile, field, &value);
             }
             Some(Pending::TextCancel(profile, field)) => {
                 self.mode = Mode::Edit {
@@ -833,16 +830,8 @@ impl View<RouteTarget> for ProfilesView {
                     },
                 };
             }
-            Some(Pending::ColorCommit(profile, field)) => {
-                self.mode = Mode::Edit {
-                    profile,
-                    selected: match field {
-                        ColorField::Suit => 2,
-                        ColorField::Ski => 3,
-                    },
-                };
-            }
-            Some(Pending::ColorCancel(profile, field)) => {
+            Some(Pending::ColorCommit(profile, field))
+            | Some(Pending::ColorCancel(profile, field)) => {
                 self.mode = Mode::Edit {
                     profile,
                     selected: match field {

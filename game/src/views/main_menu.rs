@@ -11,7 +11,7 @@ pub struct MainMenuView {
 }
 
 impl MainMenuView {
-    pub fn new(layout: MainLayout, store: StoreRef) -> Self {
+    pub fn new(layout: MainLayout, store: &StoreRef) -> Self {
         let items = vec![
             MenuItem {
                 num: 1,
@@ -87,14 +87,13 @@ impl View<RouteTarget> for MainMenuView {
 
     fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {
         match self.menu.handle_event(&event) {
-            Some(0) => Some(RouteTarget::Quit),
             Some(1) => Some(RouteTarget::JumpMenu),
             Some(2) => Some(RouteTarget::ProfilesList),
             Some(3) => Some(RouteTarget::OptionsMenu),
             Some(4) => Some(RouteTarget::HallOfFame),
             Some(5) => Some(RouteTarget::HillRecords),
             Some(6) => Some(RouteTarget::Replays),
-            Some(7) => Some(RouteTarget::Quit),
+            Some(0) | Some(7) => Some(RouteTarget::Quit),
             _ => None,
         }
     }
