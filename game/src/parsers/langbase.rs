@@ -19,17 +19,7 @@ impl LangBase {
     }
 }
 
-fn trim_ascii(bytes: &[u8]) -> &[u8] {
-    let start = bytes
-        .iter()
-        .position(|&b| b != b' ' && b != b'\r')
-        .unwrap_or(bytes.len());
-    let end = bytes
-        .iter()
-        .rposition(|&b| b != b' ' && b != b'\r')
-        .map_or(0, |p| p + 1);
-    &bytes[start..end]
-}
+use crate::utils;
 
 fn parse_num(bytes: &[u8]) -> Option<usize> {
     let s = std::str::from_utf8(bytes).ok()?;
@@ -44,7 +34,7 @@ fn parse_language_names(data: &[u8]) -> Vec<String> {
     let mut names = Vec::new();
     let mut expect_name = false;
     for line in data.split(|&b| b == b'\n') {
-        let trimmed = trim_ascii(line);
+        let trimmed = utils::trim_ascii(line);
         if trimmed.is_empty() {
             expect_name = false;
             continue;
@@ -71,7 +61,7 @@ impl AssetParser<LangBase> for LangBaseParser {
         let mut in_english = false;
 
         for line in data.split(|&b| b == b'\n') {
-            let trimmed = trim_ascii(line);
+            let trimmed = utils::trim_ascii(line);
 
             if trimmed.is_empty() {
                 continue;

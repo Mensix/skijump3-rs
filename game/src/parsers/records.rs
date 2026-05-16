@@ -7,20 +7,10 @@ const NUM_HILL_RECORDS: usize = 20;
 
 pub struct RecordsParser;
 
-fn trim_ascii(bytes: &[u8]) -> &[u8] {
-    let start = bytes
-        .iter()
-        .position(|&b| b != b' ' && b != b'\r')
-        .unwrap_or(bytes.len());
-    let end = bytes
-        .iter()
-        .rposition(|&b| b != b' ' && b != b'\r')
-        .map_or(0, |p| p + 1);
-    &bytes[start..end]
-}
+use crate::utils;
 
 fn decode_line(bytes: &[u8]) -> String {
-    pascal_decode(trim_ascii(bytes))
+    pascal_decode(utils::trim_ascii(bytes))
 }
 
 fn uncrypt(input: &str, order: usize) -> i64 {

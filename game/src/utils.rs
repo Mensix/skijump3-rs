@@ -3,6 +3,19 @@ use crate::parsers::langbase::LangBase;
 use engine::ui::Font;
 
 const LABEL_OFFSET: i32 = 170;
+
+#[must_use]
+pub(crate) fn trim_ascii(bytes: &[u8]) -> &[u8] {
+    let start = bytes
+        .iter()
+        .position(|&b| b != b' ' && b != b'\r')
+        .unwrap_or(bytes.len());
+    let end = bytes
+        .iter()
+        .rposition(|&b| b != b' ' && b != b'\r')
+        .map_or(0, |p| p + 1);
+    &bytes[start..end]
+}
 const RIGHT_EDGE: i32 = 316;
 
 #[must_use] 
