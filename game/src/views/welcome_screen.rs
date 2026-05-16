@@ -2,10 +2,9 @@ use crate::components::menu::{Menu, MenuItem};
 use crate::palette_consts::{FONT_DEFAULT, FONT_GOLD, FONT_GREET, apply_logo_tint};
 use crate::parsers::langbase::LangBase;
 use crate::route::RouteTarget;
+use crate::sprites;
 use engine::ui::{Component, Element, Event, View};
 use std::rc::Rc;
-
-const LOGO_SPRITE: u16 = 61;
 
 pub struct WelcomeScreenView {
     menu: Menu,
@@ -49,7 +48,7 @@ impl View<RouteTarget> for WelcomeScreenView {
             Element::fillbox(52, 0, 216, 200, 243),
             Element::fillbox(269, 0, 51, 200, 245),
             Element::FillArea { thing: 63 },
-            Element::sprite(LOGO_SPRITE, 80, 6),
+            Element::sprite(sprites::LOGO_SPRITE, 80, 6),
             Element::text_color_right("WELCOME!", 240, 6, FONT_DEFAULT),
             Element::text_color_right("TERVETULOA!", 240, 16, FONT_GOLD),
             Element::text_color_right("WILLKOMMEN!", 240, 26, FONT_GREET),

@@ -81,12 +81,6 @@ impl<T: Clone + PartialEq + 'static> Router<T> {
         &mut *self.current
     }
 
-    pub fn handle_event(&mut self, event: &Event) {
-        if let Some(target) = self.current.handle_event(*event) {
-            self.navigate(target);
-        }
-    }
-
     pub fn current_route(&self) -> Option<&T> {
         self.current_route.as_ref()
     }
