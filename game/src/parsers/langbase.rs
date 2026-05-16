@@ -1,25 +1,27 @@
 use crate::parsers::{AssetParser, ParseError};
+use crate::utils;
+use std::cell::Cell;
 
 const NUM_STR: usize = 599;
 
 #[derive(Debug, Clone)]
 pub struct LangBase {
-    strings: Vec<String>,
+    all_strings: Vec<Vec<String>>,
     pub languages: Vec<String>,
+    pub selected: Cell<usize>,
 }
 
 impl LangBase {
-    #[must_use] 
+    #[must_use]
     pub fn lstr(&self, index: usize) -> &str {
-        if index < self.strings.len() {
-            &self.strings[index]
+        let lang = self.selected.get();
+        if lang < self.all_strings.len() && index < self.all_strings[lang].len() {
+            &self.all_strings[lang][index]
         } else {
             "?"
         }
     }
 }
-
-use crate::utils;
 
 fn parse_num(bytes: &[u8]) -> Option<usize> {
     let s = std::str::from_utf8(bytes).ok()?;
@@ -56,9 +58,12 @@ pub struct LangBaseParser;
 impl AssetParser<LangBase> for LangBaseParser {
     fn parse(data: &[u8]) -> Result<LangBase, ParseError> {
         let languages = parse_language_names(data);
+        let num_languages = languages.len();
 
-        let mut strings: Vec<String> = (0..=NUM_STR).map(|_| "?".to_string()).collect();
-        let mut in_english = false;
+        let mut all_strings: Vec<Vec<String>> = (0..num_languages)
+            .map(|_| (0..=NUM_STR).map(|_| "?".to_string()).collect())
+            .collect();
+        let mut current_lang: Option<usize> = None;
 
         for line in data.split(|&b| b == b'\n') {
             let trimmed = utils::trim_ascii(line);
@@ -68,31 +73,40 @@ impl AssetParser<LangBase> for LangBaseParser {
             }
 
             if trimmed[0] == b'*' {
-                if in_english {
-                    break;
-                }
-                if trimmed.len() > 1 && trimmed[1] == b'A' {
-                    in_english = true;
+                current_lang = None;
+                if trimmed.len() > 1 {
+                    let letter = trimmed[1];
+                    if letter.is_ascii_uppercase() {
+                        let idx = (letter - b'A') as usize;
+                        if idx < num_languages {
+                            current_lang = Some(idx);
+                        }
+                    }
                 }
                 continue;
             }
 
-            if !in_english || trimmed[0] == b'/' {
+            if trimmed[0] == b'/' {
                 continue;
             }
 
-            if let Some(colon) = trimmed.iter().position(|&b| b == b':') {
-                let num_str = &trimmed[..colon];
-                let val = &trimmed[colon + 1..];
-                if let Some(index) = parse_num(num_str) {
-                    if index <= NUM_STR {
-                        strings[index] = decode_val(val);
+            if let Some(lang_idx) = current_lang {
+                if let Some(colon) = trimmed.iter().position(|&b| b == b':') {
+                    let num_str = &trimmed[..colon];
+                    let val = &trimmed[colon + 1..];
+                    if let Some(index) = parse_num(num_str) {
+                        if index <= NUM_STR {
+                            all_strings[lang_idx][index] = decode_val(val);
+                        }
                     }
                 }
             }
         }
 
-        Ok(LangBase { strings, languages })
+        Ok(LangBase {
+            all_strings,
+            languages,
+            selected: Cell::new(0),
+        })
     }
-
 }

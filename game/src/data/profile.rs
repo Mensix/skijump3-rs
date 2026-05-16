@@ -16,13 +16,40 @@ pub struct Profile {
     pub world_cups: usize,
     pub legs_won: usize,
     pub world_cups_won: usize,
+
+    // Pascal bestresult / best4result — display strings e.g. "2 (-)"
     pub best_result: String,
     pub best_4h_result: String,
+
+    // Pascal bestwcjump — longest WC jump distance
     pub best_wc_jump: usize,
-    pub best_wc_hill: String,
+
+    // Pascal default (Pascal bestwchill: byte) — hill index for best WC jump
+    // Display name looked up from hill catalog at render time
+    pub bestwchill: usize,
+
+    // Pascal bestjump — overall longest jump distance
     pub best_jump: usize,
-    pub best_hill: String,
+
+    // Pascal default (Pascal besthill: byte) — hill index for overall best jump
+    // Display name looked up from hill catalog at render time
+    pub besthill_idx: usize,
+
+    // Pascal besthillfile — hill file/landscape name e.g. "HILLBASE"
+    pub besthillfile: String,
+
+    // Pascal bestpoints / best4points (word) — points for best result and best 4H result
+    pub bestpoints: usize,
+    pub best4points: usize,
+
+    // Pascal kothlevel (byte)
     pub koth_level: usize,
+
+    // Display names populated from hill indices for render convenience.
+    // These are NOT part of the Pascal file format — they are derived
+    // from bestwchill / besthill_idx and the hill catalog at load time.
+    pub best_wc_hill_display: String,
+    pub best_hill_display: String,
 }
 
 impl Default for Profile {
@@ -42,10 +69,15 @@ impl Default for Profile {
             best_result: "-".to_string(),
             best_4h_result: "-".to_string(),
             best_wc_jump: 0,
-            best_wc_hill: String::new(),
+            bestwchill: 0,
             best_jump: 0,
-            best_hill: String::new(),
+            besthill_idx: 0,
+            besthillfile: String::new(),
+            bestpoints: 0,
+            best4points: 0,
             koth_level: 0,
+            best_wc_hill_display: String::new(),
+            best_hill_display: String::new(),
         }
     }
 }

@@ -4,6 +4,7 @@ use crate::components::value_selector::{ValueSelector, ValueSelectorAction};
 use crate::data::profile::{Profile, NUM_SKIS, NUM_SUITS};
 use crate::palette_consts::{BG_LEFT, BG_RIGHT, FONT_HELP, BG_ORDER, FONT_NEW, FONT_NAME, FONT_BACK, FONT_DEFAULT, apply_suit_palette, apply_ski_palette, apply_suit_palette_at, apply_ski_palette_at};
 use crate::route::RouteTarget;
+use crate::save::SaveRef;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::utils::{format_profile_value, replace_display_name};
 use engine::palette::Palette;
@@ -61,6 +62,7 @@ enum Mode {
 pub struct ProfilesView {
     resources: ResourcesRef,
     store: StoreRef,
+    save_manager: SaveRef,
     selected: usize,
     mode: Mode,
 }
@@ -78,13 +80,18 @@ enum Pending {
 }
 
 impl ProfilesView {
-    pub fn new(resources: ResourcesRef, store: StoreRef) -> Self {
+    pub fn new(resources: ResourcesRef, store: StoreRef, save_manager: SaveRef) -> Self {
         Self {
             resources,
             store,
+            save_manager,
             selected: 0,
             mode: Mode::List,
         }
+    }
+
+    fn save_players(&self) {
+        self.save_manager.save_players(&self.store.profiles.borrow());
     }
 
     fn y_for(temp: usize) -> i32 {
@@ -370,6 +377,8 @@ impl ProfilesView {
             let mut store = self.store.profiles.borrow_mut();
             store.profiles.push(profile);
             let profile_index = store.num_profiles() - 1;
+            drop(store);
+            self.save_players();
             self.selected = profile_index;
             self.mode = Mode::Edit {
                 profile: profile_index,
@@ -391,6 +400,7 @@ impl ProfilesView {
             };
         } else {
             self.store.profiles.borrow_mut().add_to_order(self.selected);
+            self.save_players();
         }
         None
     }

@@ -11,10 +11,12 @@ pub mod sprites;
 pub mod store;
 pub mod utils;
 pub mod views;
+pub mod save;
 pub mod wind;
 
 use crate::components::layout::MainLayout;
 use crate::data::records::{HillCatalog, RecordStore};
+use crate::save::{SaveManager, SaveRef};
 use crate::store::{Resources, ResourcesRef, Store, StoreRef};
 use engine::consts::{FONT_GLYPH_COUNT, HEIGHT, WIDTH};
 use engine::input::Input;
@@ -150,13 +152,24 @@ impl Game {
         apply_standard_ui_palette(&mut base_palette);
         renderer.set_palette(base_palette.clone());
 
+        let save_manager: SaveRef = Rc::new(SaveManager::new(
+            std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from(".")),
+            Rc::clone(&langbase),
+        ));
+
+        let start_route = if save_manager.config.borrow().languagenumber != 255 {
+            RouteTarget::MainMenu
+        } else {
+            RouteTarget::Welcome
+        };
+
         let player_names = load_player_names(&assets);
         let hills = Self::load_hills(&assets)?;
         let records = Self::load_records(&assets)?;
         let resources: ResourcesRef =
-            Rc::new(Resources::new(font.clone(), langbase, player_names, hills, assets));
+            Rc::new(Resources::new(font.clone(), Rc::clone(&langbase), player_names, hills, assets));
         let store: StoreRef = Rc::new(Store::new(records));
-        let router = Self::create_router(resources, pixels, store);
+        let router = Self::create_router(resources, pixels, store, start_route, save_manager);
 
         Ok(Self {
             _sdl: sdl,
@@ -205,6 +218,8 @@ impl Game {
         resources: ResourcesRef,
         background: Vec<u8>,
         store: StoreRef,
+        start_route: RouteTarget,
+        save_manager: SaveRef,
     ) -> Router<RouteTarget> {
         let layout = MainLayout::new(
             Rc::clone(&resources.langbase),
@@ -212,12 +227,17 @@ impl Game {
             background,
             store.clone(),
         );
-        Router::new(
-            RouteTarget::Welcome,
-            Box::new(WelcomeScreenView::new(
+        let initial_view: Box<dyn engine::ui::View<RouteTarget>> = match &start_route {
+            RouteTarget::Welcome => Box::new(WelcomeScreenView::new(
                 resources.langbase.languages.clone(),
-                &resources.langbase,
+                Rc::clone(&resources.langbase),
+                save_manager.clone(),
             )),
+            _ => Box::new(MainMenuView::new(layout.clone(), store.clone())),
+        };
+        Router::new(
+            start_route,
+            initial_view,
             vec![
                 (RouteTarget::MainMenu, {
                     let l = layout.clone();
@@ -259,7 +279,8 @@ impl Game {
                 (RouteTarget::ProfilesList, {
                     let r = resources.clone();
                     let s = store.clone();
-                    Box::new(move || Box::new(ProfilesView::new(r.clone(), s.clone())))
+                    let sm = save_manager.clone();
+                    Box::new(move || Box::new(ProfilesView::new(r.clone(), s.clone(), sm.clone())))
                 }),
                 (RouteTarget::HallOfFame, {
                     let r = resources.clone();
@@ -283,10 +304,12 @@ impl Game {
                 }),
                 (RouteTarget::Welcome, {
                     let r = resources;
+                    let sm = save_manager;
                     Box::new(move || {
                         Box::new(WelcomeScreenView::new(
                             r.langbase.languages.clone(),
-                            &r.langbase,
+                            Rc::clone(&r.langbase),
+                            sm.clone(),
                         ))
                     })
                 }),

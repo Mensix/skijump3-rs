@@ -13,7 +13,7 @@ fn decode_line(bytes: &[u8]) -> String {
     pascal_decode(utils::trim_ascii(bytes))
 }
 
-fn uncrypt(input: &str, order: usize) -> i64 {
+pub(crate) fn uncrypt(input: &str, order: usize) -> i64 {
     let mut bytes = input.as_bytes().to_vec();
     if bytes.len() < 8 {
         return 0;

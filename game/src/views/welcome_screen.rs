@@ -2,6 +2,7 @@ use crate::components::menu::{Menu, MenuItem};
 use crate::palette_consts::{FONT_DEFAULT, FONT_GOLD, FONT_GREET, apply_logo_tint};
 use crate::parsers::langbase::LangBase;
 use crate::route::RouteTarget;
+use crate::save::SaveRef;
 use crate::sprites;
 use engine::ui::{Component, Element, Event, View};
 use std::rc::Rc;
@@ -9,11 +10,12 @@ use std::rc::Rc;
 pub struct WelcomeScreenView {
     menu: Menu,
     languages: Vec<String>,
+    save_manager: SaveRef,
 }
 
 impl WelcomeScreenView {
-    #[must_use] 
-    pub fn new(languages: Vec<String>, langbase: &Rc<LangBase>) -> Self {
+    #[must_use]
+    pub fn new(languages: Vec<String>, langbase: Rc<LangBase>, save_manager: SaveRef) -> Self {
         let count = languages.len();
         let mut items = Vec::with_capacity(count);
         for (i, _) in languages.iter().enumerate() {
@@ -30,12 +32,13 @@ impl WelcomeScreenView {
                 100,
                 8,
                 items,
-                langbase,
+                &langbase,
                 FONT_DEFAULT,
                 FONT_DEFAULT,
             )
             .with_labels(false),
             languages,
+            save_manager,
         }
     }
 }
@@ -70,12 +73,9 @@ impl View<RouteTarget> for WelcomeScreenView {
 
     fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {
         match self.menu.handle_event(&event) {
-            Some(0) => {
-                // wrap: index=0 selects last language
-                Some(RouteTarget::MainMenu)
-            }
-            Some(_n) => {
-                // language n selected (1-indexed)
+            Some(0) => Some(RouteTarget::MainMenu),
+            Some(n) => {
+                self.save_manager.set_language(n - 1);
                 Some(RouteTarget::MainMenu)
             }
             _ => None,
