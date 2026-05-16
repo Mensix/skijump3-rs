@@ -6,21 +6,6 @@ const LABEL_OFFSET: i32 = 170;
 const RIGHT_EDGE: i32 = 316;
 
 #[must_use] 
-pub fn truncate_to_fit(s: &str, font: &Font, max_width: i32) -> String {
-    if max_width <= 0 {
-        return String::new();
-    }
-    if font.string_width(s) as i32 <= max_width {
-        return s.to_string();
-    }
-    let mut n = s.to_string();
-    while font.string_width(&n) as i32 > max_width && n.len() > 1 {
-        n.pop();
-    }
-    n
-}
-
-#[must_use] 
 pub fn shorten_name(s: &str, font: &Font, max_width: i32) -> String {
     if max_width <= 0 {
         return String::new();

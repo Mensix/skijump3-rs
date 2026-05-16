@@ -63,7 +63,7 @@ impl Renderer {
     pub fn present(&mut self) -> Result<(), String> {
         for i in 0..self.indexed_pixels.len().min(self.rgb_pixels.len() / 3) {
             let idx = self.indexed_pixels[i] as usize;
-            let clamped_idx = idx.min(255);
+            let clamped_idx = idx;
             let [r, g, b] = self.palette.color(clamped_idx);
             let pos = i * 3;
             self.rgb_pixels[pos] = ((r as u32) * 255 / 63) as u8;

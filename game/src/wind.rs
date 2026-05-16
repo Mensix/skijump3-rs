@@ -1,3 +1,4 @@
+use crate::jump::math::pascal_round;
 use crate::pascal_random::PascalRandom;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -52,7 +53,7 @@ impl PascalWind {
 
     pub fn sample(&mut self, rng: &mut PascalRandom) -> i32 {
         self.shift(rng);
-        self.value = pascal_round((self.angle.to_radians()).cos() * self.strength as f32);
+        self.value = pascal_round(((self.angle.to_radians()).cos() * self.strength as f32) as f64);
         self.value
     }
 
@@ -110,14 +111,6 @@ impl PascalWind {
         } else {
             self.angle -= delta;
         }
-    }
-}
-
-fn pascal_round(value: f32) -> i32 {
-    if value >= 0.0 {
-        (value + 0.5).floor() as i32
-    } else {
-        (value - 0.5).ceil() as i32
     }
 }
 

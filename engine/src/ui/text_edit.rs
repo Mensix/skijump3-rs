@@ -33,10 +33,6 @@ impl TextEditState {
 
     /// Byte index of the cursor position, for slicing the buffer.
     pub fn cursor_byte(&self) -> usize {
-        self.byte_idx()
-    }
-
-    fn byte_idx(&self) -> usize {
         self.buffer
             .char_indices()
             .nth(self.cursor)
@@ -50,7 +46,7 @@ impl TextEditState {
         if self.char_count() >= self.max_chars {
             return false;
         }
-        let byte_idx = self.byte_idx();
+        let byte_idx = self.cursor_byte();
         self.buffer.insert(byte_idx, c);
         self.cursor += 1;
         true

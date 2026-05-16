@@ -3,24 +3,6 @@ fn rust_sprite(pascal_anim: u16) -> u16 {
 }
 
 #[must_use] 
-pub fn landing_height(slope_angle: i32) -> i32 {
-    match slope_angle {
-        0..=24 => 50,
-        25 => 48,
-        26 => 45,
-        27 => 40,
-        28 => 36,
-        29 => 32,
-        30 => 28,
-        31 => 24,
-        32 => 22,
-        33..=39 => 20,
-        40..=60 => 15,
-        _ => 25,
-    }
-}
-
-#[must_use] 
 pub fn crash_risk(slope_angle: i32) -> i64 {
     let extra = match slope_angle {
         31 => 1,
@@ -43,38 +25,6 @@ pub fn crash_risk(slope_angle: i32) -> i64 {
         _ => 0,
     };
     1 + extra
-}
-
-pub fn bar_anim(counter: &mut i32) -> u16 {
-    let mut anim = match *counter {
-        1000..=1012 => 169,
-        1013..=1033 => 170,
-        1034..=1046 => 169,
-        1047..=1059 => 164,
-        1060..=1072 => 171,
-        1073..=1093 => 172,
-        1094..=1106 => 171,
-        2000..=2012 => 173,
-        2013..=2025 => 174,
-        2026..=2036 => 175,
-        2037..=2047 => 174,
-        2048..=2058 => 175,
-        2059..=2071 => 174,
-        2072..=2082 => 173,
-        3000..=3024 => 176,
-        3025..=3037 => 177,
-        3038..=3200 => 164,
-        _ => 164,
-    };
-
-    if matches!(*counter, 1107 | 2083 | 3201) {
-        *counter = 0;
-        anim = 164;
-    }
-    if *counter == 0 {
-        anim = 164;
-    }
-    rust_sprite(anim)
 }
 
 #[must_use] 
@@ -311,11 +261,32 @@ mod tests {
         assert_eq!(flight_ski_anim(20), 71);
     }
 
+    fn landing_height(slope_angle: i32) -> i32 {
+        match slope_angle {
+            0..=24 => 50,
+            25 => 48,
+            26 => 45,
+            27 => 40,
+            28 => 36,
+            29 => 32,
+            30 => 28,
+            31 => 24,
+            32 => 22,
+            33..=39 => 20,
+            40..=60 => 15,
+            _ => 25,
+        }
+    }
+
     #[test]
-    fn maps_landing_thresholds_and_risk() {
+    fn maps_landing_height() {
         assert_eq!(landing_height(24), 50);
         assert_eq!(landing_height(25), 48);
         assert_eq!(landing_height(60), 15);
+    }
+
+    #[test]
+    fn maps_landing_thresholds_and_risk() {
         assert_eq!(crash_risk(31), 2);
         assert_eq!(crash_risk(16), 701);
         assert_eq!(crash_risk(15), 951);

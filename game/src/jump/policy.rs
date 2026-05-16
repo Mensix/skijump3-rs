@@ -1,9 +1,7 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[allow(dead_code)]
 pub(crate) enum JumperControl {
     Human,
     Computer,
-    Replay,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

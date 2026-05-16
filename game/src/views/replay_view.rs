@@ -7,6 +7,7 @@ use crate::jump::replay_player::ReplaySession;
 use crate::palette_consts::{FONT_DEFAULT, FONT_HELP, FONT_GOLD, FONT_GREET};
 use crate::route::RouteTarget;
 use crate::snow::SnowSystem;
+use crate::sprites;
 use crate::store::{ResourcesRef, StoreRef};
 use engine::consts::{HEIGHT, WIDTH};
 use engine::palette::Palette;
@@ -14,10 +15,6 @@ use engine::ui::{Blinker, Element, Event, ImageRegion, Key, View};
 use std::cell::{Cell, RefCell};
 use std::collections::VecDeque;
 use std::rc::Rc;
-
-const ANIM_REPLAY_PANEL: u16 = 63; // Pascal Anim[64]
-const ANIM_HILL_RECORD_MARKER: u16 = 67; // Pascal Anim[68]
-const ANIM_REPLAY_MODE: u16 = 68; // Pascal Anim[69]
 
 pub struct ReplayView {
     resources: ResourcesRef,
@@ -163,7 +160,7 @@ impl View<RouteTarget> for ReplayView {
 
         if let Some((hr_x, hr_y)) = session.trace().meta.hill_record_marker {
             els.push(Element::sprite(
-                ANIM_HILL_RECORD_MARKER,
+                sprites::HILL_RECORD_MARKER,
                 hr_x - sx,
                 hr_y - sy,
             ));
@@ -182,7 +179,7 @@ impl View<RouteTarget> for ReplayView {
         let wind_pos = WindGaugePosition { x: 10, y: 180 };
 
         if !session.trace().meta.intro {
-            els.push(Element::sprite(ANIM_REPLAY_PANEL, 227, 2));
+            els.push(Element::sprite(sprites::INFO_PANEL, 227, 2));
             if session.frame_index() % 30 > 15 {
                 els.push(Element::text_color("R", 2, 2, FONT_GOLD));
             }
@@ -197,7 +194,7 @@ impl View<RouteTarget> for ReplayView {
                 19,
                 FONT_DEFAULT,
             ));
-            els.push(Element::sprite(ANIM_REPLAY_MODE, 150, 30));
+            els.push(Element::sprite(sprites::REPLAY_MODE_ICON, 150, 30));
             els.push(Element::text_color_right(
                 format!(
                     "{} {}",

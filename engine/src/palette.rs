@@ -1,28 +1,4 @@
-use std::ops::{Index, IndexMut};
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Color([u8; 3]);
-
-impl Color {
-    pub fn new(r: u8, g: u8, b: u8) -> Self {
-        Self([r, g, b])
-    }
-    pub fn r(&self) -> u8 {
-        self.0[0]
-    }
-    pub fn g(&self) -> u8 {
-        self.0[1]
-    }
-    pub fn b(&self) -> u8 {
-        self.0[2]
-    }
-}
-
-impl From<[u8; 3]> for Color {
-    fn from(arr: [u8; 3]) -> Self {
-        Self(arr)
-    }
-}
+use std::ops::Index;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Palette {
@@ -66,12 +42,6 @@ impl Index<usize> for Palette {
     type Output = [u8; 3];
     fn index(&self, index: usize) -> &[u8; 3] {
         &self.colors[index]
-    }
-}
-
-impl IndexMut<usize> for Palette {
-    fn index_mut(&mut self, index: usize) -> &mut [u8; 3] {
-        &mut self.colors[index]
     }
 }
 
