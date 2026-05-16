@@ -2,7 +2,7 @@ use crate::competition::machine::Competition;
 use crate::competition::types::{CupStyle, Participant, QualificationStatus};
 use crate::data::profile::ProfileStore;
 
-const TOTAL_SLOTS: usize = 50;
+const TOTAL_SLOTS: usize = 75;
 
 /// Build a Competition from game state.
 pub fn build_competition(
@@ -70,11 +70,11 @@ mod tests {
     use crate::data::profile::ProfileStore;
 
     #[test]
-    fn builds_50_participants() {
+    fn builds_75_participants() {
         let profiles = ProfileStore::new();
         let names = vec!["AAA".into(), "BBB".into()];
         let comp = build_competition(CupStyle::WorldCup, &profiles, &names, 20, 2);
-        assert_eq!(comp.field.len(), 50);
+        assert_eq!(comp.field.len(), 75);
     }
 
     #[test]
