@@ -27,11 +27,7 @@ pub struct Competition {
 }
 
 impl Competition {
-    pub fn new(
-        style: CupStyle,
-        participants: Vec<Participant>,
-        hill_order: Vec<usize>,
-    ) -> Self {
+    pub fn new(style: CupStyle, participants: Vec<Participant>, hill_order: Vec<usize>) -> Self {
         Self {
             field: CompetitionField::new(participants),
             style,
@@ -166,6 +162,20 @@ impl Competition {
             _ => {}
         }
         self.start_pos += 1;
+    }
+
+    /// Prepare standings for a result-list screen without entering the next phase.
+    pub fn prepare_display_list(&mut self) {
+        if self.current_jumper().is_some() {
+            return;
+        }
+
+        match self.phase {
+            CompetitionPhase::Qualification => self.resolve_qualification(),
+            CompetitionPhase::Round1 => self.cut_to_round2(),
+            CompetitionPhase::Round2 => self.field.sort_field(SortBy::EventPoints),
+            _ => {}
+        }
     }
 
     // ── internal ───────────────────────────────────────────────

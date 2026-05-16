@@ -1,5 +1,6 @@
 use crate::competition::types::CompetitionPhase;
 use crate::jump::JumpRunner;
+use crate::palette_consts::apply_menu_tint;
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::views::competition_jump_controller::{
@@ -49,8 +50,8 @@ impl View<RouteTarget> for CompetitionJumpView {
                     return vec![Element::fillbox(0, 0, 320, 200, 0)];
                 };
                 let page_data = competition_results::build_results_page(c, self.display_page.get());
-                let mut els = competition_results::render_header(c, &self.resources);
-                els.extend(competition_results::render_results_page(&page_data));
+                let mut els = competition_results::render_results_page(&page_data, &self.resources);
+                els.extend(competition_results::render_header(c, &self.resources));
                 els
             }
         }
@@ -69,18 +70,14 @@ impl View<RouteTarget> for CompetitionJumpView {
         ) || self.display_page.get() > 0
             || {
                 // Check if we're in a displayable jump phase with no current jumper
-                self.store
-                    .competition
-                    .borrow()
-                    .as_ref()
-                    .is_some_and(|c| {
-                        matches!(
-                            c.phase,
-                            CompetitionPhase::Qualification
-                                | CompetitionPhase::Round1
-                                | CompetitionPhase::Round2
-                        ) && c.current_jumper().is_none()
-                    })
+                self.store.competition.borrow().as_ref().is_some_and(|c| {
+                    matches!(
+                        c.phase,
+                        CompetitionPhase::Qualification
+                            | CompetitionPhase::Round1
+                            | CompetitionPhase::Round2
+                    ) && c.current_jumper().is_none()
+                })
             }
         {
             // We're in a display phase — handle pagination
@@ -89,9 +86,13 @@ impl View<RouteTarget> for CompetitionJumpView {
                     let page = self.display_page.get();
                     let total = {
                         let comp = self.store.competition.borrow();
-                        let Some(c) = comp.as_ref() else { return None; };
+                        let Some(c) = comp.as_ref() else {
+                            return None;
+                        };
                         let standings = c.event_standings();
-                        (standings.len() + 21) / 22
+                        ((standings.len() + competition_results::QUALIFICATION_ITEMS_PER_PAGE - 1)
+                            / competition_results::QUALIFICATION_ITEMS_PER_PAGE)
+                            .max(1)
                     };
                     if page + 1 < total {
                         self.display_page.set(page + 1);
@@ -133,8 +134,35 @@ impl View<RouteTarget> for CompetitionJumpView {
     }
 
     fn apply_palette(&self, palette: &mut Palette) {
+        if self.is_displaying_results() {
+            apply_menu_tint(palette, 3, 0);
+            return;
+        }
+
         if let Ok(runner) = self.runner.try_borrow() {
             runner.apply_palette(palette);
         }
+    }
+}
+
+impl CompetitionJumpView {
+    fn is_displaying_results(&self) -> bool {
+        if self.display_page.get() > 0 {
+            return true;
+        }
+
+        self.store.competition.borrow().as_ref().is_some_and(|c| {
+            matches!(
+                c.phase,
+                CompetitionPhase::Results
+                    | CompetitionPhase::EventComplete
+                    | CompetitionPhase::SeasonComplete
+            ) || matches!(
+                c.phase,
+                CompetitionPhase::Qualification
+                    | CompetitionPhase::Round1
+                    | CompetitionPhase::Round2
+            ) && c.current_jumper().is_none()
+        })
     }
 }

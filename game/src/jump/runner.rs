@@ -86,6 +86,10 @@ impl JumpRunner {
         self.config.hill_idx
     }
 
+    pub(crate) fn participant_id(&self) -> usize {
+        self.config.participant.id
+    }
+
     pub(crate) fn session_mut(&mut self) -> &mut JumpSession {
         &mut self.session
     }

@@ -99,15 +99,24 @@ impl CompetitionJumpController {
             }
 
             // Jump phase ended (no current jumper) — show results for jump phases,
-            // auto-advance for training (no results shown for training rounds)
+            // auto-advance for training and setup (no results for those)
             if c.current_jumper().is_none() {
-                let is_training = matches!(c.phase, CompetitionPhase::Training(_));
+                let auto = matches!(
+                    c.phase,
+                    CompetitionPhase::Training(_) | CompetitionPhase::Setup
+                );
                 drop(comp);
-                if is_training {
+                if auto {
                     store.competition.borrow_mut().as_mut().unwrap().advance();
                     continue;
                 }
-                // Non-training phase ended → show results
+                // Jump phase ended → show results
+                store
+                    .competition
+                    .borrow_mut()
+                    .as_mut()
+                    .unwrap()
+                    .prepare_display_list();
                 return false;
             }
 
@@ -193,21 +202,43 @@ impl CompetitionJumpController {
         let comp = store.competition.borrow();
         let Some(c) = comp.as_ref() else {
             return JumpRunner::new_with_env(
-                0, 15, JumpParticipant::trainee(), JumpPolicy::competition(), resources, store,
+                0,
+                15,
+                JumpParticipant::trainee(),
+                JumpPolicy::competition(),
+                resources,
+                store,
             );
         };
         let Some(&hill_idx) = c.hill_order.get(c.current_event) else {
             return JumpRunner::new_with_env(
-                0, 15, JumpParticipant::trainee(), JumpPolicy::competition(), resources, store,
+                0,
+                15,
+                JumpParticipant::trainee(),
+                JumpPolicy::competition(),
+                resources,
+                store,
             );
         };
         let Some(jumper_idx) = c.current_jumper() else {
             return JumpRunner::new_with_env(
-                hill_idx, 15, JumpParticipant::trainee(), JumpPolicy::competition(), resources, store,
+                hill_idx,
+                15,
+                JumpParticipant::trainee(),
+                JumpPolicy::competition(),
+                resources,
+                store,
             );
         };
         let participant = to_jump_participant(c.field.get(jumper_idx));
-        JumpRunner::new_with_env(hill_idx, 15, participant, JumpPolicy::competition(), resources, store)
+        JumpRunner::new_with_env(
+            hill_idx,
+            15,
+            participant,
+            JumpPolicy::competition(),
+            resources,
+            store,
+        )
     }
 
     fn phase_label(resources: &ResourcesRef, phase: CompetitionPhase) -> String {

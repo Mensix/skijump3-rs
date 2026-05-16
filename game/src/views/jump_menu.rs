@@ -100,7 +100,7 @@ impl View<RouteTarget> for JumpMenuView {
                     &profiles,
                     &self.resources.player_names,
                     self.resources.hills.len(),
-                    2,
+                    0,
                 );
                 drop(profiles);
                 *self.store.competition.borrow_mut() = Some(comp);
