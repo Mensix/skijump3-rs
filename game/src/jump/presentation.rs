@@ -68,12 +68,15 @@ pub(crate) fn elements(frame: &JumpRenderFrame, ctx: &JumpPresentationContext<'_
         els.push(Element::sprite(sprites::HILL_RECORD_MARKER, hr_x - frame.sx, hr_y - frame.sy));
     }
 
-    els.push(Element::sprite(
-        frame.body_anim,
-        frame.body_x - frame.sx,
-        frame.body_y - frame.sy - 2,
-    ));
-    els.push(Element::sprite(frame.ski_anim, jumper_x, jumper_y - 1));
+    // Pascal: jumper not drawn during Info phase (only hill + info panel)
+    if frame.phase != JumpPhase::Info {
+        els.push(Element::sprite(
+            frame.body_anim,
+            frame.body_x - frame.sx,
+            frame.body_y - frame.sy - 2,
+        ));
+        els.push(Element::sprite(frame.ski_anim, jumper_x, jumper_y - 1));
+    }
     els
 }
 
