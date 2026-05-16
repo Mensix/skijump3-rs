@@ -23,6 +23,8 @@ pub(crate) struct JumpPresentationContext<'a> {
     pub(crate) hill_name_k: &'a str,
     pub(crate) hill_record: Option<&'a HillRecord>,
     pub(crate) wind_position: WindGaugePosition,
+    pub(crate) phase_label: &'a str,
+    pub(crate) allow_gate_adjust: bool,
 }
 
 pub(crate) fn elements(frame: &JumpRenderFrame, ctx: &JumpPresentationContext<'_>) -> Vec<Element> {
@@ -108,22 +110,24 @@ fn info_elements(
 
     let label56 = ctx.langbase.lstr(56);
     let label_w = ctx.font.string_width(label56) as i32;
-    let label58 = ctx.langbase.lstr(58);
-    let label58_w = ctx.font.string_width(label58) as i32;
-    els.push(Element::text_color(label58, 64, 19, FONT_DEFAULT));
-    els.push(Element::text_color(
-        format!("{}", frame.start_gate),
-        70 + label58_w,
-        19,
-        FONT_GOLD,
-    ));
-    els.push(Element::text_color("(+/-)", 67 + label58_w, 27, FONT_GREET));
-    els.push(Element::text_color(
-        ctx.langbase.lstr(51),
-        12,
-        160,
-        FONT_GREET,
-    ));
+    if ctx.allow_gate_adjust {
+        let label58 = ctx.langbase.lstr(58);
+        let label58_w = ctx.font.string_width(label58) as i32;
+        els.push(Element::text_color(label58, 64, 19, FONT_DEFAULT));
+        els.push(Element::text_color(
+            format!("{}", frame.start_gate),
+            70 + label58_w,
+            19,
+            FONT_GOLD,
+        ));
+        els.push(Element::text_color("(+/-)", 67 + label58_w, 27, FONT_GREET));
+    }
+    let phase_label = if ctx.phase_label.is_empty() {
+        ctx.langbase.lstr(51)
+    } else {
+        ctx.phase_label
+    };
+    els.push(Element::text_color(phase_label, 12, 160, FONT_GREET));
     els.push(Element::text_color(label56, 12, 172, FONT_GREET));
     els.push(Element::text_color(
         ctx.jumper_name,

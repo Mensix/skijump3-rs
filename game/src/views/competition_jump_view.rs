@@ -105,10 +105,20 @@ impl CompetitionJumpView {
                 continue;
             }
 
-            // Human jumper — set up runner and let `elements()` render
+            // Human jumper — set up runner with correct phase label
             if c.is_human_current() {
+                let label = match c.phase {
+                    CompetitionPhase::Training(n) => {
+                        format!("{} {}", self.resources.langbase.lstr(52), n)
+                    }
+                    CompetitionPhase::Qualification => self.resources.langbase.lstr(53).to_string(),
+                    CompetitionPhase::Round1 => self.resources.langbase.lstr(54).to_string(),
+                    CompetitionPhase::Round2 => self.resources.langbase.lstr(55).to_string(),
+                    _ => self.resources.langbase.lstr(51).to_string(),
+                };
                 drop(comp);
                 self.rebuild_runner();
+                self.runner.borrow_mut().set_phase_label(label);
                 return true;
             }
 

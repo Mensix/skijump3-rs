@@ -67,6 +67,7 @@ impl JumpRunner {
             participant,
             policy,
             record_distance,
+            phase_label: String::new(),
         })
     }
 
@@ -129,8 +130,14 @@ impl JumpRunner {
         }
     }
 
+    /// Set the phase label shown in the info panel (e.g. "Qualification", "Round 1").
+    /// Training mode shows the default langbase string; competition sets it explicitly.
+    pub(crate) fn set_phase_label(&mut self, label: String) {
+        self.config.phase_label = label;
+    }
+
     /// Swap participant without recreating snow/wind state.
-    /// Used by competition mode to reuse one runner across jumpers (Phase B).
+    /// Used by competition mode to reuse one runner across jumpers.
     #[allow(dead_code)]
     pub(crate) fn set_participant(&mut self, participant: JumpParticipant) {
         self.config.participant = participant;
@@ -192,6 +199,8 @@ impl JumpRunner {
                 x: wind_pos.x,
                 y: wind_pos.y,
             },
+            phase_label: &self.config.phase_label,
+            allow_gate_adjust: self.config.policy.allow_start_gate_adjust,
         };
         presentation::elements(&frame, &ctx)
     }

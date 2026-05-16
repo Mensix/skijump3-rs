@@ -61,6 +61,7 @@ impl JumpSession {
             participant,
             policy,
             record_distance,
+            ..
         } = config;
         let state = match (&terrain, hill.as_ref()) {
             (Ok(terrain), Some(hill)) => Some(JumpState::new(
