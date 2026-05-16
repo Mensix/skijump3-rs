@@ -105,7 +105,7 @@ impl SaveReplayDialog {
             // Header
             els.push(Element::text_color(
                 format!(
-                    "{}: {}m at {}",
+                    "{}: {}µ at {}",
                     self.resources.langbase.lstr(25),
                     distance,
                     hill_name
