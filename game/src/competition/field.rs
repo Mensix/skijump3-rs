@@ -72,12 +72,11 @@ impl CompetitionField {
             SortBy::WcPoints | SortBy::FourHillsPoints => &mut self.master_order,
             SortBy::EventPoints => &mut self.event_order,
         };
-        *target = order;
-        self.calculate_ranks_from(&scores);
+        *target = order.clone();
+        self.calculate_ranks_from(&scores, &order);
     }
 
-    fn calculate_ranks_from(&mut self, scores: &[i32]) {
-        let order = &self.master_order;
+    fn calculate_ranks_from(&mut self, scores: &[i32], order: &[usize]) {
         let mut rank = 1;
         for i in 0..order.len() {
             if i > 0 && scores[order[i]] < scores[order[i - 1]] {
