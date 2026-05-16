@@ -11,7 +11,8 @@ pub struct MainMenuView {
 }
 
 impl MainMenuView {
-    pub fn new(layout: MainLayout, store: &StoreRef) -> Self {
+    #[allow(clippy::needless_pass_by_value)]
+    pub fn new(layout: MainLayout, store: StoreRef) -> Self {
         let items = vec![
             MenuItem {
                 num: 1,

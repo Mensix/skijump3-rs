@@ -1,11 +1,10 @@
 use crate::pascal_random::PascalRandom;
+use engine::consts::{HEIGHT, WIDTH};
 
 const LUMI_MAX: usize = 256;
 const SINE_LENGTH: usize = 512;
 const BG_MIN: u8 = 64;
 const BG_MAX: u8 = 215;
-const SCREEN_W: u32 = 320;
-const SCREEN_H: u32 = 200;
 
 #[derive(Debug, Clone)]
 struct Snowflake {
@@ -81,8 +80,8 @@ impl SnowSystem {
         // Pascal: always initializes all LumiMax (256) flakes regardless of Max
         self.flakes = (0..LUMI_MAX)
             .map(|_| {
-                let x = i64::from(rng.random_i32(SCREEN_W as i32)) << 10;
-                let y = i64::from(rng.random_i32(SCREEN_H as i32)) << 10;
+                let x = i64::from(rng.random_i32(WIDTH as i32)) << 10;
+                let y = i64::from(rng.random_i32(HEIGHT as i32)) << 10;
                 let sin_pos = rng.random_i32(SINE_LENGTH as i32) as usize;
                 let gravity = i64::from(rng.random_i32(i32::from(self.g_variation))) + i64::from(self.perus_g)
                     - i64::from(self.g_variation);
@@ -124,9 +123,9 @@ impl SnowSystem {
 
             let x = ((flake.x as i32 as u32) >> 10) as u16;
             let y = ((flake.y as i32 as u32) >> 10) as u16;
-            let offset = x.wrapping_add(y.wrapping_mul(SCREEN_W as u16)) as usize;
+            let offset = x.wrapping_add(y.wrapping_mul(WIDTH as u16)) as usize;
             if offset < 63_679
-                && offset + (SCREEN_W as usize) + 1 < buffer.len()
+                && offset + (WIDTH as usize) + 1 < buffer.len()
                 && buffer[offset] >= BG_MIN
                 && buffer[offset + 1] >= BG_MIN
                 && buffer[offset] < BG_MAX
@@ -135,8 +134,8 @@ impl SnowSystem {
                 if flake.style == 1 && offset + 1 < buffer.len() {
                     buffer[offset] = flake.c1 as u8;
                     buffer[offset + 1] = (flake.c1 >> 8) as u8;
-                    buffer[offset + (SCREEN_W as usize)] = flake.c2 as u8;
-                    buffer[offset + (SCREEN_W as usize) + 1] = (flake.c2 >> 8) as u8;
+                    buffer[offset + (WIDTH as usize)] = flake.c2 as u8;
+                    buffer[offset + (WIDTH as usize) + 1] = (flake.c2 >> 8) as u8;
                 } else {
                     buffer[offset] = flake.c1 as u8;
                 }
@@ -173,7 +172,7 @@ mod tests {
         snow.flakes = vec![flake_at(0, 205_i64 << 10, 233)];
         snow.max = 0;
 
-        let mut buffer = vec![BG_MIN; (SCREEN_W * SCREEN_H) as usize];
+        let mut buffer = vec![BG_MIN; (WIDTH * HEIGHT) as usize];
         snow.update(&mut buffer, 0, 0, 0, false);
 
         assert_eq!(buffer[64], 233);
@@ -188,10 +187,10 @@ mod tests {
         ];
         snow.max = 0;
 
-        let mut buffer = vec![BG_MIN; (SCREEN_W * SCREEN_H) as usize];
+        let mut buffer = vec![BG_MIN; (WIDTH * HEIGHT) as usize];
         snow.update(&mut buffer, 0, 0, 0, false);
 
-        assert_eq!(buffer[10 + 10 * SCREEN_W as usize], 233);
-        assert_eq!(buffer[20 + 10 * SCREEN_W as usize], BG_MIN);
+        assert_eq!(buffer[10 + 10 * WIDTH as usize], 233);
+        assert_eq!(buffer[20 + 10 * WIDTH as usize], BG_MIN);
     }
 }

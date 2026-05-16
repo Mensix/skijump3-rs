@@ -1,6 +1,7 @@
 use crate::components::menu::{Menu, MenuItem};
 use crate::palette_consts::{FONT_DEFAULT, FONT_GOLD, FONT_GREET, apply_menu_tint};
 use crate::route::RouteTarget;
+use crate::sprites;
 use crate::store::{ResourcesRef, StoreRef};
 use engine::ui::{Component, Element, Event, Key, View};
 
@@ -126,7 +127,7 @@ impl View<RouteTarget> for PracticeView {
             Element::fillbox(12, 0, 296, 200, 243),
             Element::fillbox(309, 0, 11, 200, 245),
             Element::FillArea { thing: 63 },
-            Element::sprite(61, 30, 8),
+            Element::sprite(sprites::LOGO_SPRITE, 30, 8),
             Element::text_color(self.resources.langbase.lstr(151), 30, 31, FONT_DEFAULT),
             Element::text_color(self.resources.langbase.lstr(152), 30, 41, FONT_DEFAULT),
             Element::text_color(self.resources.langbase.lstr(153), 30, 51, FONT_DEFAULT),

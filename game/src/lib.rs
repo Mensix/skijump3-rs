@@ -9,6 +9,7 @@ pub mod parsers;
 pub mod pascal_random;
 pub mod route;
 pub mod snow;
+pub mod sprites;
 pub mod store;
 pub mod utils;
 pub mod views;
@@ -223,7 +224,7 @@ impl Game {
                 (RouteTarget::MainMenu, {
                     let l = layout.clone();
                     let s = store.clone();
-                    Box::new(move || Box::new(MainMenuView::new(l.clone(), &s)))
+                    Box::new(move || Box::new(MainMenuView::new(l.clone(), s.clone())))
                 }),
                 (RouteTarget::JumpMenu, {
                     let l = layout.clone();
@@ -255,7 +256,7 @@ impl Game {
                 (RouteTarget::ReplayPlayback, {
                     let r = resources.clone();
                     let s = store.clone();
-                    Box::new(move || Box::new(ReplayView::new(r.clone(), &s)))
+                    Box::new(move || Box::new(ReplayView::new(r.clone(), s.clone())))
                 }),
                 (RouteTarget::ProfilesList, {
                     let r = resources.clone();
@@ -275,12 +276,12 @@ impl Game {
                 (RouteTarget::OptionsMenu, {
                     let l = layout.clone();
                     let s = store.clone();
-                    Box::new(move || Box::new(MainMenuView::new(l.clone(), &s)))
+                    Box::new(move || Box::new(MainMenuView::new(l.clone(), s.clone())))
                 }),
                 (RouteTarget::Quit, {
                     let l = layout;
                     let s = store;
-                    Box::new(move || Box::new(MainMenuView::new(l.clone(), &s)))
+                    Box::new(move || Box::new(MainMenuView::new(l.clone(), s.clone())))
                 }),
                 (RouteTarget::Welcome, {
                     let r = resources;
