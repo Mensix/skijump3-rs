@@ -22,6 +22,7 @@ const OTHER_DISTANCE: u8 = 252;
 const INJURY_COLOR: u8 = 249;
 
 pub(crate) struct ResultsPage {
+    pub(crate) phase: CompetitionPhase,
     pub(crate) page: usize,
     pub(crate) total_pages: usize,
     pub(crate) items: Vec<ResultsEntry>,
@@ -33,12 +34,13 @@ pub(crate) struct ResultsEntry {
     pub(crate) name: String,
     pub(crate) points: i32,
     pub(crate) distance: i32,
+    pub(crate) distance2: i32,
     pub(crate) qual: QualificationStatus,
     pub(crate) injury: u8,
 }
 
 pub(crate) fn build_results_page(competition: &Competition, page: usize) -> ResultsPage {
-    let standings = competition.event_standings();
+    let standings = standings_for_phase(competition);
     let total_pages = ((standings.len() + QUALIFICATION_ITEMS_PER_PAGE - 1)
         / QUALIFICATION_ITEMS_PER_PAGE)
         .max(1);
@@ -48,27 +50,57 @@ pub(crate) fn build_results_page(competition: &Competition, page: usize) -> Resu
 
     let mut items = Vec::with_capacity(end - start);
     for &p in &standings[start..end] {
-        let dist = match competition.phase {
-            CompetitionPhase::Qualification => p.qual_len,
-            CompetitionPhase::Round1 => p.round1_len,
-            CompetitionPhase::Round2 => p.round2_len,
-            _ => 0,
+        let (points, dist, dist2) = match competition.phase {
+            CompetitionPhase::QualificationResults => (p.points, p.qual_len, 0),
+            CompetitionPhase::Round1Results => (p.points, p.round1_len, 0),
+            CompetitionPhase::Round2Results => (p.points, p.round1_len, p.round2_len),
+            CompetitionPhase::WorldCupStandings => (p.wc_points, 0, 0),
+            _ => (p.points, 0, 0),
         };
         items.push(ResultsEntry {
             is_own: !p.is_computer,
             rank: p.rank,
             name: p.display_name().to_string(),
-            points: p.points,
+            points,
             distance: dist,
+            distance2: dist2,
             qual: p.qual,
             injury: p.injury,
         });
     }
 
     ResultsPage {
+        phase: competition.phase,
         page,
         total_pages,
         items,
+    }
+}
+
+pub(crate) fn total_pages(competition: &Competition) -> usize {
+    ((standings_for_phase(competition).len() + QUALIFICATION_ITEMS_PER_PAGE - 1)
+        / QUALIFICATION_ITEMS_PER_PAGE)
+        .max(1)
+}
+
+fn standings_for_phase(competition: &Competition) -> Vec<&crate::competition::types::Participant> {
+    match competition.phase {
+        CompetitionPhase::WorldCupStandings => competition
+            .overall_standings()
+            .into_iter()
+            .filter(|p| p.wc_points > 0)
+            .collect(),
+        CompetitionPhase::Round1Results => competition
+            .event_standings()
+            .into_iter()
+            .filter(|p| p.points != -5555)
+            .collect(),
+        CompetitionPhase::Round2Results => competition
+            .event_standings()
+            .into_iter()
+            .filter(|p| p.qual.can_jump())
+            .collect(),
+        _ => competition.event_standings(),
     }
 }
 
@@ -88,7 +120,7 @@ pub(crate) fn render_header(competition: &Competition, resources: &ResourcesRef)
         .unwrap_or_default();
 
     let header = match competition.phase {
-        CompetitionPhase::Qualification => {
+        CompetitionPhase::QualificationResults => {
             format!(
                 "{} {} {} {} - {}",
                 lang.lstr(82),
@@ -98,10 +130,35 @@ pub(crate) fn render_header(competition: &Competition, resources: &ResourcesRef)
                 hill_str
             )
         }
+        CompetitionPhase::Round1Results => {
+            round_header(lang.lstr(81), event, lang.lstr(8), total, &hill_str, 1)
+        }
+        CompetitionPhase::Round2Results => {
+            round_header(lang.lstr(81), event, lang.lstr(8), total, &hill_str, 2)
+        }
+        CompetitionPhase::WorldCupStandings => format!(
+            "{} {} {} {} {}",
+            lang.lstr(27),
+            lang.lstr(87),
+            event,
+            lang.lstr(8),
+            total
+        ),
         _ => String::new(),
     };
 
     vec![Element::text_color(header, 30, 6, FONT_DEFAULT)]
+}
+
+fn round_header(
+    prefix: &str,
+    event: usize,
+    of: &str,
+    total: usize,
+    hill: &str,
+    round: usize,
+) -> String {
+    format!("{prefix} {event} {of} {total} - {hill} - R {round}")
 }
 
 pub(crate) fn render_results_page(page: &ResultsPage, resources: &ResourcesRef) -> Vec<Element> {
@@ -145,28 +202,34 @@ pub(crate) fn render_results_page(page: &ResultsPage, resources: &ResourcesRef) 
             col_text,
         ));
 
-        els.push(Element::text_color_right(
-            format_tenths(entry.points),
-            COL_POINTS,
-            y,
-            col_text,
-        ));
+        let points = if entry.distance == 0 && entry.distance2 == 0 {
+            entry.points.to_string()
+        } else {
+            format_tenths(entry.points)
+        };
+        els.push(Element::text_color_right(points, COL_POINTS, y, col_text));
 
         if entry.distance > 0 {
             els.push(Element::text_color(
-                format_distance(entry.distance),
+                format_distance(entry.distance, entry.distance2),
                 COL_DISTANCE,
                 y,
                 col_dist,
             ));
         }
 
-        match entry.qual {
-            QualificationStatus::Qualified => {
+        match page.phase {
+            CompetitionPhase::QualificationResults => match entry.qual {
+                QualificationStatus::Qualified => {
+                    els.push(Element::text_color("Q", COL_QUAL, y, col_rank));
+                }
+                QualificationStatus::PreQualified => {
+                    els.push(Element::text_color("Q WC", COL_QUAL, y, col_dist));
+                }
+                _ => {}
+            },
+            CompetitionPhase::Round1Results if entry.rank <= 30 => {
                 els.push(Element::text_color("Q", COL_QUAL, y, col_rank));
-            }
-            QualificationStatus::PreQualified => {
-                els.push(Element::text_color("Q WC", COL_QUAL, y, col_dist));
             }
             _ => {}
         }
@@ -203,10 +266,18 @@ fn format_tenths(value: i32) -> String {
     format!("{}{}.{}", sign, abs / 10, abs % 10)
 }
 
-fn format_distance(value: i32) -> String {
+fn format_distance(value: i32, value2: i32) -> String {
     let mut length = format_tenths(value);
     while length.len() < 5 {
         length.insert(0, '$');
     }
-    format!("({length}µ)")
+    if value2 == 0 {
+        return format!("({length}µ)");
+    }
+
+    let mut second = format_tenths(value2);
+    while second.len() < 5 {
+        second.insert(0, '$');
+    }
+    format!("({length}-{second}µ)")
 }

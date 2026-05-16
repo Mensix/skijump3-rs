@@ -109,7 +109,7 @@ impl CompetitionField {
     /// - **Training**: reverse `master_order`, only non-injured.
     pub fn build_start_list(&self, phase: CompetitionPhase) -> Vec<usize> {
         match phase {
-            CompetitionPhase::Training(_) | CompetitionPhase::Setup => self
+            CompetitionPhase::Training(_) => self
                 .master_order
                 .iter()
                 .rev()
@@ -124,8 +124,7 @@ impl CompetitionField {
                 .copied()
                 .filter(|&idx| {
                     self.participants[idx].injury == 0
-                        && self.participants[idx].qual
-                            != QualificationStatus::PreQualified
+                        && self.participants[idx].qual != QualificationStatus::PreQualified
                 })
                 .collect(),
 
@@ -135,12 +134,15 @@ impl CompetitionField {
                 .rev()
                 .copied()
                 .filter(|&idx| {
-                    self.participants[idx].injury == 0
-                        && self.participants[idx].qual.can_jump()
+                    self.participants[idx].injury == 0 && self.participants[idx].qual.can_jump()
                 })
                 .collect(),
 
-            CompetitionPhase::Results
+            CompetitionPhase::Setup
+            | CompetitionPhase::QualificationResults
+            | CompetitionPhase::Round1Results
+            | CompetitionPhase::Round2Results
+            | CompetitionPhase::WorldCupStandings
             | CompetitionPhase::EventComplete
             | CompetitionPhase::SeasonComplete => Vec::new(),
         }

@@ -13,9 +13,12 @@ pub enum CompetitionPhase {
     Setup,
     Training(usize),
     Qualification,
+    QualificationResults,
     Round1,
+    Round1Results,
     Round2,
-    Results,
+    Round2Results,
+    WorldCupStandings,
     EventComplete,
     SeasonComplete,
 }
@@ -43,7 +46,7 @@ impl QualificationStatus {
     }
 }
 
-/// One jumper in the competition field (50 total: user profiles + computer opponents).
+/// One jumper in the competition field (75 total: user profiles + computer opponents).
 #[derive(Debug, Clone)]
 pub struct Participant {
     pub id: usize,

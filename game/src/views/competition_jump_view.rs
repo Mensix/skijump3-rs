@@ -63,8 +63,10 @@ impl View<RouteTarget> for CompetitionJumpView {
         if matches!(
             comp_phase,
             Some(
-                CompetitionPhase::Results
-                    | CompetitionPhase::EventComplete
+                CompetitionPhase::QualificationResults
+                    | CompetitionPhase::Round1Results
+                    | CompetitionPhase::Round2Results
+                    | CompetitionPhase::WorldCupStandings
                     | CompetitionPhase::SeasonComplete
             )
         ) || self.display_page.get() > 0
@@ -89,10 +91,7 @@ impl View<RouteTarget> for CompetitionJumpView {
                         let Some(c) = comp.as_ref() else {
                             return None;
                         };
-                        let standings = c.event_standings();
-                        ((standings.len() + competition_results::QUALIFICATION_ITEMS_PER_PAGE - 1)
-                            / competition_results::QUALIFICATION_ITEMS_PER_PAGE)
-                            .max(1)
+                        competition_results::total_pages(c)
                     };
                     if page + 1 < total {
                         self.display_page.set(page + 1);
@@ -154,8 +153,10 @@ impl CompetitionJumpView {
         self.store.competition.borrow().as_ref().is_some_and(|c| {
             matches!(
                 c.phase,
-                CompetitionPhase::Results
-                    | CompetitionPhase::EventComplete
+                CompetitionPhase::QualificationResults
+                    | CompetitionPhase::Round1Results
+                    | CompetitionPhase::Round2Results
+                    | CompetitionPhase::WorldCupStandings
                     | CompetitionPhase::SeasonComplete
             ) || matches!(
                 c.phase,

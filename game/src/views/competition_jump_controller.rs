@@ -91,8 +91,10 @@ impl CompetitionJumpController {
             // Display phases — let the view render results
             if matches!(
                 c.phase,
-                CompetitionPhase::Results
-                    | CompetitionPhase::EventComplete
+                CompetitionPhase::QualificationResults
+                    | CompetitionPhase::Round1Results
+                    | CompetitionPhase::Round2Results
+                    | CompetitionPhase::WorldCupStandings
                     | CompetitionPhase::SeasonComplete
             ) {
                 return false;
@@ -103,20 +105,17 @@ impl CompetitionJumpController {
             if c.current_jumper().is_none() {
                 let auto = matches!(
                     c.phase,
-                    CompetitionPhase::Training(_) | CompetitionPhase::Setup
+                    CompetitionPhase::Training(_)
+                        | CompetitionPhase::Setup
+                        | CompetitionPhase::EventComplete
                 );
                 drop(comp);
                 if auto {
                     store.competition.borrow_mut().as_mut().unwrap().advance();
                     continue;
                 }
-                // Jump phase ended → show results
-                store
-                    .competition
-                    .borrow_mut()
-                    .as_mut()
-                    .unwrap()
-                    .prepare_display_list();
+                // Jump phase ended → enter the matching Pascal result-list phase.
+                store.competition.borrow_mut().as_mut().unwrap().advance();
                 return false;
             }
 

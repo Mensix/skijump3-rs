@@ -109,23 +109,35 @@ impl Competition {
             CompetitionPhase::Qualification => {
                 if self.start_pos >= self.start_list.len() {
                     self.resolve_qualification();
-                    self.enter_phase(CompetitionPhase::Round1);
+                    self.enter_phase(CompetitionPhase::QualificationResults);
                 }
+            }
+            CompetitionPhase::QualificationResults => {
+                self.prepare_round1_scores();
+                self.enter_phase(CompetitionPhase::Round1);
             }
             CompetitionPhase::Round1 => {
                 if self.start_pos >= self.start_list.len() {
-                    self.cut_to_round2();
-                    self.enter_phase(CompetitionPhase::Round2);
+                    self.field.sort_field(SortBy::EventPoints);
+                    self.enter_phase(CompetitionPhase::Round1Results);
                 }
+            }
+            CompetitionPhase::Round1Results => {
+                self.cut_to_round2();
+                self.enter_phase(CompetitionPhase::Round2);
             }
             CompetitionPhase::Round2 => {
                 if self.start_pos >= self.start_list.len() {
                     self.field.sort_field(SortBy::EventPoints);
-                    self.enter_phase(CompetitionPhase::Results);
+                    self.enter_phase(CompetitionPhase::Round2Results);
                 }
             }
-            CompetitionPhase::Results => {
+            CompetitionPhase::Round2Results => {
                 self.award_points();
+                self.field.sort_field(SortBy::WcPoints);
+                self.enter_phase(CompetitionPhase::WorldCupStandings);
+            }
+            CompetitionPhase::WorldCupStandings => {
                 self.enter_phase(CompetitionPhase::EventComplete);
             }
             CompetitionPhase::EventComplete => {
@@ -172,7 +184,7 @@ impl Competition {
 
         match self.phase {
             CompetitionPhase::Qualification => self.resolve_qualification(),
-            CompetitionPhase::Round1 => self.cut_to_round2(),
+            CompetitionPhase::Round1 => self.field.sort_field(SortBy::EventPoints),
             CompetitionPhase::Round2 => self.field.sort_field(SortBy::EventPoints),
             _ => {}
         }
@@ -186,7 +198,7 @@ impl Competition {
         self.start_list = self.field.build_start_list(phase);
 
         // Only jump phases can be skipped when there is nobody to jump.
-        // Non-jump phases (Results/EventComplete) must be observable by UI.
+        // Result-list phases must be observable by UI.
         if self.start_list.is_empty()
             && matches!(
                 phase,
@@ -245,6 +257,17 @@ impl Competition {
                 self.field.get_mut(idx).qual = QualificationStatus::Eliminated;
             }
         }
+    }
+
+    fn prepare_round1_scores(&mut self) {
+        for idx in 0..self.field.len() {
+            if self.field.get(idx).qual.can_jump() {
+                self.field.get_mut(idx).points = 0;
+            } else {
+                self.field.get_mut(idx).points = -5555;
+            }
+        }
+        self.field.sort_field(SortBy::EventPoints);
     }
 
     fn cut_to_round2(&mut self) {
@@ -385,7 +408,7 @@ mod tests {
         let mut total_r2 = 0usize;
 
         let mut guard = 0;
-        while m.phase != CompetitionPhase::Results {
+        while m.phase != CompetitionPhase::Round2Results {
             guard += 1;
             assert!(guard < 20, "competition did not reach results");
 
@@ -409,5 +432,33 @@ mod tests {
 
         assert_eq!(total_r1, 50);
         assert_eq!(total_r2, 30);
+    }
+
+    #[test]
+    fn result_phases_match_pascal_round_flow() {
+        let mut m = make_season(1);
+        m.advance();
+        while m.current_jumper().is_some() {
+            m.record_jump(100, 80);
+        }
+
+        m.advance();
+        assert_eq!(m.phase, CompetitionPhase::QualificationResults);
+
+        m.advance();
+        assert_eq!(m.phase, CompetitionPhase::Round1);
+        assert!((0..m.field.len()).all(|i| m.field.get(i).points == 0));
+
+        while m.current_jumper().is_some() {
+            let score = 200 - m.start_pos as i32;
+            m.record_jump(score, 90);
+        }
+        m.advance();
+        assert_eq!(m.phase, CompetitionPhase::Round1Results);
+        assert_eq!(m.field.num_qualified(), 50);
+
+        m.advance();
+        assert_eq!(m.phase, CompetitionPhase::Round2);
+        assert_eq!(m.field.num_qualified(), 30);
     }
 }
