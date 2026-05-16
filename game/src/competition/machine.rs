@@ -73,6 +73,24 @@ impl Competition {
         self.hill_order.len()
     }
 
+    /// Participants in event-points order (for results lists).
+    pub fn event_standings(&self) -> Vec<&Participant> {
+        self.field
+            .event_order
+            .iter()
+            .map(|&idx| self.field.get(idx))
+            .collect()
+    }
+
+    /// Participants in season-points order (for WC standings).
+    pub fn overall_standings(&self) -> Vec<&Participant> {
+        self.field
+            .master_order
+            .iter()
+            .map(|&idx| self.field.get(idx))
+            .collect()
+    }
+
     // ── drive ──────────────────────────────────────────────────
 
     /// Advance to the next state. Call after recording a jump or
@@ -135,6 +153,7 @@ impl Competition {
         match self.phase {
             CompetitionPhase::Training(_) | CompetitionPhase::Qualification => {
                 self.field.get_mut(idx).points = jump_points;
+                self.field.get_mut(idx).qual_len = length;
             }
             CompetitionPhase::Round1 => {
                 self.field.get_mut(idx).points = jump_points;

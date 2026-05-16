@@ -65,6 +65,7 @@ pub struct Participant {
     pub qual: QualificationStatus,
     pub round1_len: i32,
     pub round2_len: i32,
+    pub qual_len: i32,
 }
 
 impl Participant {
@@ -85,6 +86,7 @@ impl Participant {
             qual: QualificationStatus::NotQualified,
             round1_len: 0,
             round2_len: 0,
+            qual_len: 0,
         }
     }
 
@@ -102,6 +104,7 @@ impl Participant {
         self.qual = QualificationStatus::NotQualified;
         self.round1_len = 0;
         self.round2_len = 0;
+        self.qual_len = 0;
     }
 }
 

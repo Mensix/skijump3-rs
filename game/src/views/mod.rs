@@ -1,4 +1,6 @@
+mod competition_jump_controller;
 pub(crate) mod competition_jump_view;
+mod competition_results;
 pub mod jump_menu;
 pub mod jump_view;
 pub mod main_menu;

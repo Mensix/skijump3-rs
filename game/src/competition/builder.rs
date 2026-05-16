@@ -49,6 +49,7 @@ fn build_participants(
             qual: QualificationStatus::NotQualified,
             round1_len: 0,
             round2_len: 0,
+            qual_len: 0,
         });
     }
 
