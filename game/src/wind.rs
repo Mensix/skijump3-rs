@@ -88,6 +88,7 @@ impl PascalWind {
         };
     }
 
+    #[must_use] 
     pub fn position(&self) -> WindPosition {
         self.position
     }

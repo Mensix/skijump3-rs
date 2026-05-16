@@ -1,5 +1,5 @@
 use crate::components::menu::{Menu, MenuItem};
-use crate::palette_consts::*;
+use crate::palette_consts::{FONT_DEFAULT, FONT_GOLD, FONT_GREET, apply_logo_tint};
 use crate::parsers::langbase::LangBase;
 use crate::route::RouteTarget;
 use engine::ui::{Component, Element, Event, View};
@@ -13,6 +13,7 @@ pub struct WelcomeScreenView {
 }
 
 impl WelcomeScreenView {
+    #[must_use] 
     pub fn new(languages: Vec<String>, langbase: Rc<LangBase>) -> Self {
         let count = languages.len();
         let mut items = Vec::with_capacity(count);

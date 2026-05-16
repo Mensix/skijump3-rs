@@ -49,8 +49,7 @@ impl CompetitionJumpView {
             .records
             .borrow()
             .hill_record(hill_idx)
-            .map(|r| r.len as i32)
-            .unwrap_or(0);
+            .map_or(0, |r| r.len as i32);
 
         Some(JumpRunner::new(JumpConfig {
             hill_idx,

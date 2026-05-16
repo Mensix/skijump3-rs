@@ -96,10 +96,12 @@ impl HillTerrain {
         Ok(Self::from_pcxs(front, back, info.kr, info.pk()))
     }
 
+    #[must_use] 
     pub fn from_front_pcx(pcx: DecodedPcx, kr: i64, pk: f64) -> Self {
         Self::from_pcxs(pcx.clone(), pcx, kr, pk)
     }
 
+    #[must_use] 
     pub fn from_pcxs(front: DecodedPcx, back: DecodedPcx, kr: i64, pk: f64) -> Self {
         let width = front.width as usize;
         let height = front.height as usize;
@@ -136,6 +138,7 @@ impl HillTerrain {
         }
     }
 
+    #[must_use] 
     pub fn viewport_pixels(&self, scroll_x: i32, scroll_y: i32, w: u32, h: u32) -> Rc<[u8]> {
         let mut out = vec![0; w as usize * h as usize];
         for dy in 0..h as i32 {
@@ -156,7 +159,7 @@ impl HillTerrain {
     }
 
     fn is_front_pixel(&self, x: i32, y: i32) -> bool {
-        if x < 0 || y < 0 || x >= self.width as i32 || y >= self.height as i32 {
+        if x < 0 || y < 0 || x >= i32::from(self.width) || y >= i32::from(self.height) {
             return false;
         }
         (x as usize)
@@ -173,7 +176,7 @@ impl HillTerrain {
     }
 
     fn back_pixel(&self, x: i32, y: i32) -> u8 {
-        if x < 0 || y < 0 || x >= self.back_width as i32 || y >= self.back_height as i32 {
+        if x < 0 || y < 0 || x >= i32::from(self.back_width) || y >= i32::from(self.back_height) {
             return 0;
         }
         let idx = y as usize * self.back_width as usize + x as usize;
@@ -187,6 +190,7 @@ impl HillTerrain {
         }
     }
 
+    #[must_use] 
     pub fn profiili(&self, x: i32) -> i32 {
         if x > 0 {
             self.profile_y.get(x as usize).copied().unwrap_or(0)
@@ -195,6 +199,7 @@ impl HillTerrain {
         }
     }
 
+    #[must_use] 
     pub fn maki_kulma(&self, x: i32) -> i32 {
         let value = self.profiili(x + 9)
             + self.profiili(x + 8)
@@ -262,8 +267,8 @@ impl HillTerrain {
         let keula_idx = keula_x.max(0) as usize;
         let drawable_width = width.min(profile_y.len());
         for x in keula_idx..drawable_width.saturating_sub(10) {
-            let x2 = x as i64 - keula_x as i64;
-            let y2 = profile_y[x] as i64 - profile_y[keula_idx] as i64;
+            let x2 = x as i64 - i64::from(keula_x);
+            let y2 = i64::from(profile_y[x]) - i64::from(profile_y[keula_idx]);
             let hp = ((((x2 * x2 + y2 * y2) as f64).sqrt() * pk * 0.5).round() as i64) * 5;
             if hp >= (2 * kr * 10) / 3 && hp <= kr * 12 {
                 let color = if hp < kr * 10 { 238 } else { 239 };

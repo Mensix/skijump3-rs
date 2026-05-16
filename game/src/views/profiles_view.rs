@@ -2,7 +2,7 @@ use crate::components::confirm_dialog::{ConfirmAction, ConfirmDialog};
 use crate::components::text_input::{TextInput, TextInputAction};
 use crate::components::value_selector::{ValueSelector, ValueSelectorAction};
 use crate::data::profile::{Profile, NUM_SKIS, NUM_SUITS};
-use crate::palette_consts::*;
+use crate::palette_consts::{BG_LEFT, BG_RIGHT, FONT_HELP, BG_ORDER, FONT_NEW, FONT_NAME, FONT_BACK, FONT_DEFAULT, apply_suit_palette, apply_ski_palette, apply_suit_palette_at, apply_ski_palette_at};
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::utils::{format_profile_value, replace_display_name};
@@ -111,7 +111,7 @@ impl ProfilesView {
         let mut profile = Profile::default();
         let mut counter = 2;
         while store.profiles.iter().any(|p| p.name == profile.name) {
-            profile.name = format!("SKI JUMPER {}", counter);
+            profile.name = format!("SKI JUMPER {counter}");
             counter += 1;
         }
         profile
@@ -496,7 +496,7 @@ impl ProfilesView {
                     display,
                 );
                 if value > 0 {
-                    selector.set_right_text(&format!("#{}", value));
+                    selector.set_right_text(&format!("#{value}"));
                 }
                 selector.set_wrap(false);
                 self.mode = Mode::ReplaceSelect { profile, selector };
@@ -670,14 +670,14 @@ impl View<RouteTarget> for ProfilesView {
                         );
                         els.push(Element::text_color(n, x, 44, FONT_DEFAULT));
                         els.push(Element::text_color_right(
-                            format!("#{}", value),
+                            format!("#{value}"),
                             316,
                             44,
                             FONT_DEFAULT,
                         ));
                     } else {
                         els.push(Element::text_color(
-                            format!("#{}", value),
+                            format!("#{value}"),
                             x,
                             44,
                             FONT_DEFAULT,
@@ -751,9 +751,9 @@ impl View<RouteTarget> for ProfilesView {
                 Event::Keyboard(Key::Down) => *selected = (*selected + 1) % EDIT_MENU_ITEMS,
                 Event::Keyboard(Key::Enter | Key::Char(' ')) => {
                     if *selected < 8 {
-                        pending = Some(Pending::EditEnter(*profile, *selected))
+                        pending = Some(Pending::EditEnter(*profile, *selected));
                     } else {
-                        self.mode = Mode::List
+                        self.mode = Mode::List;
                     }
                 }
                 Event::Keyboard(Key::Escape) => *selected = EDIT_MENU_ITEMS - 1,
@@ -819,10 +819,10 @@ impl View<RouteTarget> for ProfilesView {
 
         match pending {
             Some(Pending::EditEnter(profile, selected)) => {
-                self.handle_edit_enter(profile, selected)
+                self.handle_edit_enter(profile, selected);
             }
             Some(Pending::TextCommit(profile, field, value)) => {
-                self.commit_text_input(profile, field, value)
+                self.commit_text_input(profile, field, value);
             }
             Some(Pending::TextCancel(profile, field)) => {
                 self.mode = Mode::Edit {

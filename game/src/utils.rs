@@ -5,6 +5,7 @@ use engine::ui::Font;
 const LABEL_OFFSET: i32 = 170;
 const RIGHT_EDGE: i32 = 316;
 
+#[must_use] 
 pub fn truncate_to_fit(s: &str, font: &Font, max_width: i32) -> String {
     if max_width <= 0 {
         return String::new();
@@ -19,6 +20,7 @@ pub fn truncate_to_fit(s: &str, font: &Font, max_width: i32) -> String {
     n
 }
 
+#[must_use] 
 pub fn shorten_name(s: &str, font: &Font, max_width: i32) -> String {
     if max_width <= 0 {
         return String::new();
@@ -46,20 +48,24 @@ pub fn shorten_name(s: &str, font: &Font, max_width: i32) -> String {
     chars[..1].iter().collect()
 }
 
+#[must_use] 
 pub fn replace_label_x(label_width: i32) -> i32 {
     LABEL_OFFSET + label_width
 }
 
+#[must_use] 
 pub fn replace_right_text(value: usize) -> String {
-    format!("#{}", value)
+    format!("#{value}")
 }
 
+#[must_use] 
 pub fn replace_max_width(value: usize, font: &Font, x: i32) -> i32 {
     RIGHT_EDGE
         .saturating_sub(x + font.string_width(&replace_right_text(value)) as i32 + 4)
         .max(0)
 }
 
+#[must_use] 
 pub fn replace_display_name(value: usize, player_names: &[String], font: &Font, x: i32) -> String {
     if value == 0 || value > player_names.len() {
         return String::new();
@@ -78,6 +84,7 @@ fn lang_str(langbase: &LangBase, index: usize, fallback: &str) -> String {
     }
 }
 
+#[must_use] 
 pub fn pascal_decode(bytes: &[u8]) -> String {
     fn cp850_to_char(b: u8) -> char {
         match b {
@@ -141,10 +148,12 @@ pub fn pascal_decode(bytes: &[u8]) -> String {
     out
 }
 
+#[must_use] 
 pub fn is_computer_name(name: &str) -> bool {
     name.ends_with('\u{00FF}')
 }
 
+#[must_use] 
 pub fn format_profile_value(
     profile: &Profile,
     temp: usize,

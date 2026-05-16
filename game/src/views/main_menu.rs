@@ -1,6 +1,6 @@
 use crate::components::layout::{self, MainLayout};
 use crate::components::menu::{Menu, MenuItem};
-use crate::palette_consts::*;
+use crate::palette_consts::{FONT_DEFAULT, FONT_HEADER, BG_ERASE, apply_logo_tint};
 use crate::route::RouteTarget;
 use crate::store::StoreRef;
 use engine::ui::{Component, Element, Event, View};

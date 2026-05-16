@@ -22,8 +22,8 @@ fn find_hill_record_marker(
     let keula_x = terrain.keula_x;
     let keula_y = terrain.profiili(keula_x);
     for x in keula_x..1024 {
-        let dx = (x - keula_x) as f64;
-        let dy = (terrain.profiili(x) - keula_y) as f64;
+        let dx = f64::from(x - keula_x);
+        let dy = f64::from(terrain.profiili(x) - keula_y);
         let hp = pascal_round((dx * dx + dy * dy).sqrt() * pk * 0.5) * 5;
         if hp >= record_distance {
             let kor = terrain.profiili(x);

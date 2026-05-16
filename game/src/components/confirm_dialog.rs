@@ -17,6 +17,7 @@ pub struct ConfirmDialog {
 }
 
 impl ConfirmDialog {
+    #[must_use] 
     pub fn new(message: String, langbase: Rc<LangBase>, font: Font) -> Self {
         Self {
             message,
@@ -61,8 +62,8 @@ impl Component for ConfirmDialog {
     fn handle_event(&mut self, event: &Event) -> Option<Self::Action> {
         self.blinker.reset();
         match event {
-            Event::Keyboard(Key::Char('y') | Key::Char('Y')) => Some(ConfirmAction::Yes),
-            Event::Keyboard(Key::Char('n') | Key::Char('N') | Key::Escape) => {
+            Event::Keyboard(Key::Char('y' | 'Y')) => Some(ConfirmAction::Yes),
+            Event::Keyboard(Key::Char('n' | 'N') | Key::Escape) => {
                 Some(ConfirmAction::No)
             }
             _ => None,

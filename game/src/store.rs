@@ -23,6 +23,7 @@ pub struct Resources {
 }
 
 impl Resources {
+    #[must_use] 
     pub fn new(
         font: Font,
         langbase: Rc<LangBase>,
@@ -48,7 +49,7 @@ impl Resources {
         let info = self
             .hills
             .hill(hill_idx)
-            .ok_or_else(|| format!("Hill {} not found", hill_idx))?;
+            .ok_or_else(|| format!("Hill {hill_idx} not found"))?;
         let terrain = Rc::new(HillTerrain::load(&self.assets, info)?);
         cache.insert(hill_idx, Rc::clone(&terrain));
         Ok(terrain)
@@ -95,6 +96,7 @@ impl Default for Store {
 }
 
 impl Store {
+    #[must_use] 
     pub fn new(records: RecordStore) -> Self {
         Self {
             profiles: RefCell::new(ProfileStore::new()),

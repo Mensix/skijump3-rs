@@ -48,9 +48,9 @@ pub fn apply_suit_palette_at(palette: &mut Palette, col: usize, target_base: usi
         palette.set(
             idx,
             [
-                (fd * suit[1] as f32).round().min(63.0) as u8,
-                (fd * suit[2] as f32).round().min(63.0) as u8,
-                (fd * suit[3] as f32).round().min(63.0) as u8,
+                (fd * f32::from(suit[1])).round().min(63.0) as u8,
+                (fd * f32::from(suit[2])).round().min(63.0) as u8,
+                (fd * f32::from(suit[3])).round().min(63.0) as u8,
             ],
         );
     }
@@ -69,7 +69,7 @@ pub fn apply_ski_palette(palette: &mut Palette, col: usize) {
     apply_ski_palette_at(palette, col, SKI_PALETTE_INDEX);
 }
 
-/// Maps to Pascal `ReplaceMenu` — colour pairs for MuutaMenu.
+/// Maps to Pascal `ReplaceMenu` — colour pairs for `MuutaMenu`.
 /// Each colour `col` provides two RGB triples: upper (pairs 242+index..) and lower (247+index..).
 const REPLACE_MENU: [[u8; 3]; 12] = [
     [20, 20, 20], // col 0 upper — gray

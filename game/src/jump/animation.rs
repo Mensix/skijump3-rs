@@ -2,6 +2,7 @@ fn rust_sprite(pascal_anim: u16) -> u16 {
     pascal_anim.saturating_sub(1)
 }
 
+#[must_use] 
 pub fn landing_height(slope_angle: i32) -> i32 {
     match slope_angle {
         0..=24 => 50,
@@ -19,6 +20,7 @@ pub fn landing_height(slope_angle: i32) -> i32 {
     }
 }
 
+#[must_use] 
 pub fn crash_risk(slope_angle: i32) -> i64 {
     let extra = match slope_angle {
         31 => 1,
@@ -75,6 +77,7 @@ pub fn bar_anim(counter: &mut i32) -> u16 {
     rust_sprite(anim)
 }
 
+#[must_use] 
 pub fn slope_ski_anim(slope_angle: i32) -> u16 {
     let value = match slope_angle {
         4..=6 => 1,
@@ -94,6 +97,7 @@ pub fn slope_ski_anim(slope_angle: i32) -> u16 {
     rust_sprite(value + 71)
 }
 
+#[must_use] 
 pub fn inrun_body_anim(ski_anim: u16) -> u16 {
     let ski = ski_anim.saturating_sub(rust_sprite(71));
     let value = match ski {
@@ -106,10 +110,12 @@ pub fn inrun_body_anim(ski_anim: u16) -> u16 {
     rust_sprite(value + 101)
 }
 
+#[must_use] 
 pub fn inrun_transition_body_anim(counter: i32) -> u16 {
     rust_sprite((165 + counter / 7) as u16)
 }
 
+#[must_use] 
 pub fn landing_body_anim(mut ski_anim: u16, landing_style: u8) -> u16 {
     if ski_anim >= rust_sprite(71) {
         ski_anim -= rust_sprite(71);
@@ -130,11 +136,12 @@ pub fn landing_body_anim(mut ski_anim: u16, landing_style: u8) -> u16 {
 fn landing_loop_body_anim(counter: i32, slope_ski_anim: u16, landing_style: u8) -> u16 {
     // Pascal: if (laskuri<7) and (landing>0) then JumperAnim:=113+landing;
     if counter < 7 && landing_style > 0 {
-        return rust_sprite(113 + landing_style as u16);
+        return rust_sprite(113 + u16::from(landing_style));
     }
     landing_body_anim(slope_ski_anim, landing_style)
 }
 
+#[must_use] 
 pub fn post_landing_body_anim(
     counter: i32,
     start_anim: i32,
@@ -171,6 +178,7 @@ pub fn post_landing_body_anim(
     rust_sprite(pascal_anim as u16)
 }
 
+#[must_use] 
 pub fn fall_body_anim(
     fall_type: u8,
     counter: i32,
@@ -237,6 +245,7 @@ pub fn takeoff_body_anim(phase: &mut u8) -> u16 {
     rust_sprite(value)
 }
 
+#[must_use] 
 pub fn flight_body_anim(body_angle: i32) -> u16 {
     let value = match body_angle {
         50..=61 => 1,
@@ -251,6 +260,7 @@ pub fn flight_body_anim(body_angle: i32) -> u16 {
     rust_sprite(value + 106)
 }
 
+#[must_use] 
 pub fn flight_ski_anim(ski_angle: i32) -> u16 {
     let value = match ski_angle {
         -900..=-258 => 19,

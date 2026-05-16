@@ -340,11 +340,11 @@ pub fn run() {
     let mut game = match Game::new() {
         Ok(g) => g,
         Err(e) => {
-            eprintln!("{}", e);
+            eprintln!("{e}");
             std::process::exit(1);
         }
     };
     if let Err(e) = game.run() {
-        eprintln!("{}", e);
+        eprintln!("{e}");
     }
 }

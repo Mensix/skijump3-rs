@@ -1,6 +1,6 @@
 use crate::components::screen::{new_screen, page_hints};
 use crate::data::records::{HillRecord, Hiscore};
-use crate::palette_consts::*;
+use crate::palette_consts::{FONT_DEFAULT, FONT_NEW, FONT_GREET, FONT_HELP, apply_menu_tint};
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::utils::{is_computer_name, shorten_name};
@@ -38,7 +38,7 @@ fn txtp(value: i64) -> String {
     if out.len() < 3 {
         out.insert(0, '0');
     }
-    format!("{}{}", sign, out)
+    format!("{sign}{out}")
 }
 
 fn handle_page_event(event: Event, page: &mut usize, pages: usize) -> Option<PageAction> {
@@ -163,7 +163,7 @@ impl HallOfFameView {
         } else {
             FONT_DEFAULT
         };
-        table.push(Cell::right(format!("{}.", place), 24, y, FONT_NEW));
+        table.push(Cell::right(format!("{place}."), 24, y, FONT_NEW));
         table.push(Cell::left(
             shorten_name(&hi.name, &self.resources.font, 110),
             col[0],
@@ -405,7 +405,7 @@ fn format_ahi(sum: i64, total: i64) -> String {
     let mut out = value.to_string();
     let pos = out.len().saturating_sub(1);
     out.insert(pos, '.');
-    format!("{} %", out)
+    format!("{out} %")
 }
 
 impl View<RouteTarget> for HillRecordsView {

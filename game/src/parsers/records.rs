@@ -15,8 +15,7 @@ fn trim_ascii(bytes: &[u8]) -> &[u8] {
     let end = bytes
         .iter()
         .rposition(|&b| b != b' ' && b != b'\r')
-        .map(|p| p + 1)
-        .unwrap_or(0);
+        .map_or(0, |p| p + 1);
     &bytes[start..end]
 }
 

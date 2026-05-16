@@ -14,6 +14,7 @@ pub struct ReplayPlayback {
 }
 
 impl ReplayPlayback {
+    #[must_use] 
     pub fn new() -> Self {
         Self {
             mode: Cell::new(3),

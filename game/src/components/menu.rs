@@ -27,6 +27,7 @@ pub struct Menu {
 
 impl Menu {
     #[allow(clippy::too_many_arguments)]
+    #[must_use] 
     pub fn new(
         x: i32,
         y: i32,
@@ -55,25 +56,29 @@ impl Menu {
         }
     }
 
+    #[must_use] 
     pub fn with_labels(mut self, show: bool) -> Self {
         self.show_labels = show;
         self
     }
 
+    #[must_use] 
     pub fn with_box(mut self, show: bool) -> Self {
         self.show_box = show;
         self
     }
 
+    #[must_use] 
     pub fn with_exit(mut self, label_idx: usize, y_off: i32) -> Self {
         self.exit_item = true;
         self.exit_label_idx = label_idx;
         self.exit_y_off = y_off;
         self.selection
-            .resize(self.items.len() + self.exit_item as usize);
+            .resize(self.items.len() + usize::from(self.exit_item));
         self
     }
 
+    #[must_use] 
     pub fn selected(&self) -> usize {
         self.selection.selected()
     }
@@ -86,10 +91,12 @@ impl Menu {
         self.selection.set_selected(idx);
     }
 
+    #[must_use] 
     pub fn item_count(&self) -> usize {
         self.items.len()
     }
 
+    #[must_use] 
     pub fn has_exit(&self) -> bool {
         self.exit_item
     }
@@ -145,7 +152,7 @@ impl Component for Menu {
     }
 
     fn handle_event(&mut self, event: &Event) -> Option<usize> {
-        let total = self.items.len() + self.exit_item as usize;
+        let total = self.items.len() + usize::from(self.exit_item);
         match event {
             Event::Keyboard(Key::Up) => {
                 self.selection.up();
@@ -155,7 +162,7 @@ impl Component for Menu {
                 self.selection.down();
                 None
             }
-            Event::Keyboard(Key::Enter) | Event::Keyboard(Key::Char(' ')) => {
+            Event::Keyboard(Key::Enter | Key::Char(' ')) => {
                 let sel = self.selection.selected();
                 if self.exit_item && sel == self.items.len() {
                     Some(0)

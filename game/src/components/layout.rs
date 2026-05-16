@@ -1,10 +1,11 @@
-use crate::palette_consts::*;
+use crate::palette_consts::{FONT_DEFAULT, FONT_HELP, FONT_NEW};
 use crate::parsers::langbase::LangBase;
 use crate::store::StoreRef;
 use engine::consts::{HEIGHT, WIDTH};
 use engine::ui::Element;
 use std::rc::Rc;
 
+#[must_use] 
 pub fn header_elements(text: &str, x: i32, y: i32, color: u8, bg: u8) -> Vec<Element> {
     vec![
         Element::fillbox(x, y, 100, 6, bg),
@@ -35,6 +36,7 @@ impl MainLayout {
         }
     }
 
+    #[must_use] 
     pub fn background(&self) -> Vec<Element> {
         vec![
             self.background_element(),
@@ -42,10 +44,12 @@ impl MainLayout {
         ]
     }
 
+    #[must_use] 
     pub fn background_element(&self) -> Element {
         Element::image(Rc::clone(&self.background), WIDTH, HEIGHT)
     }
 
+    #[must_use] 
     pub fn jumpers(&self) -> Vec<Element> {
         let mut els = Vec::new();
         let pb = self.store.profiles.borrow();
@@ -66,6 +70,7 @@ impl MainLayout {
         els
     }
 
+    #[must_use] 
     pub fn registration(&self) -> Vec<Element> {
         vec![
             Element::fillbox(128, 155, 185, 1, 9),
@@ -80,6 +85,7 @@ impl MainLayout {
         ]
     }
 
+    #[must_use] 
     pub fn footer(&self) -> Vec<Element> {
         vec![
             Element::text_color_right("SKI JUMP", 308, 6, FONT_DEFAULT),

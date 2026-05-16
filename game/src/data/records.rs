@@ -20,16 +20,19 @@ pub struct RecordStore {
 }
 
 impl RecordStore {
+    #[must_use] 
     pub fn new(top: Vec<Hiscore>, hill_records: Vec<HillRecord>) -> Self {
         Self { top, hill_records }
     }
 
+    #[must_use] 
     pub fn top(&self, pascal_index: usize) -> Option<&Hiscore> {
         pascal_index
             .checked_sub(1)
             .and_then(|idx| self.top.get(idx))
     }
 
+    #[must_use] 
     pub fn hill_record(&self, pascal_index: usize) -> Option<&HillRecord> {
         pascal_index
             .checked_sub(1)
@@ -54,10 +57,12 @@ pub struct HillInfo {
 }
 
 impl HillInfo {
+    #[must_use] 
     pub fn pk(&self) -> f64 {
         self.pk_hundred as f64 / 100.0
     }
 
+    #[must_use] 
     pub fn pl_save(&self) -> f64 {
         self.pl_save_ten_thousand as f64 / 10_000.0
     }
@@ -69,18 +74,22 @@ pub struct HillCatalog {
 }
 
 impl HillCatalog {
+    #[must_use] 
     pub fn new(hills: Vec<HillInfo>) -> Self {
         Self { hills }
     }
 
+    #[must_use] 
     pub fn len(&self) -> usize {
         self.hills.len()
     }
 
+    #[must_use] 
     pub fn is_empty(&self) -> bool {
         self.hills.is_empty()
     }
 
+    #[must_use] 
     pub fn hill(&self, pascal_index: usize) -> Option<&HillInfo> {
         pascal_index
             .checked_sub(1)

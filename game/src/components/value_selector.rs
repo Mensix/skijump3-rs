@@ -30,6 +30,7 @@ pub struct ValueSelector {
 }
 
 impl ValueSelector {
+    #[must_use] 
     pub fn color_bars(
         x: i32,
         y: i32,
@@ -57,6 +58,7 @@ impl ValueSelector {
     }
 
     #[allow(clippy::too_many_arguments)]
+    #[must_use] 
     pub fn numeric(
         x: i32,
         y: i32,
@@ -84,6 +86,7 @@ impl ValueSelector {
         }
     }
 
+    #[must_use] 
     pub fn value(&self) -> usize {
         self.value
     }

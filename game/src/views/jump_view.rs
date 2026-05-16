@@ -61,8 +61,7 @@ impl JumpView {
             .records
             .borrow()
             .hill_record(hill_idx)
-            .map(|r| r.len as i32)
-            .unwrap_or(0);
+            .map_or(0, |r| r.len as i32);
         let config = JumpConfig {
             hill_idx,
             hill,
@@ -103,7 +102,7 @@ impl JumpView {
             })
             .unwrap_or_default();
         self.save_dialog
-            .open(author_name, format!("Huge Jump in {}", hill_name));
+            .open(author_name, format!("Huge Jump in {hill_name}"));
     }
 
     fn do_save_replay(&self) {
@@ -123,8 +122,7 @@ impl JumpView {
             .records
             .borrow()
             .hill_record(hill_idx)
-            .map(|r| r.len as i32)
-            .unwrap_or(0);
+            .map_or(0, |r| r.len as i32);
         self.runner
             .borrow_mut()
             .reset_state(self.store.practice.start_gate.get(), record_distance);
@@ -176,7 +174,7 @@ impl View<RouteTarget> for JumpView {
                 .runner
                 .borrow()
                 .outcome()
-                .map(|o| format!("{:.1}", o.distance as f64 / 10.0))
+                .map(|o| format!("{:.1}", f64::from(o.distance) / 10.0))
                 .unwrap_or_default();
             let hill_name = self
                 .resources

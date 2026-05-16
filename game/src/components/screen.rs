@@ -1,8 +1,9 @@
-use crate::palette_consts::*;
+use crate::palette_consts::FONT_HELP;
 use engine::ui::Element;
 
 const MENU_LOGO_SPRITE: u16 = 61;
 
+#[must_use] 
 pub fn new_screen(style: u8) -> Vec<Element> {
     let mut els = vec![Element::fillbox(0, 0, 320, 200, 0)];
 
@@ -37,11 +38,12 @@ pub fn new_screen(style: u8) -> Vec<Element> {
     els
 }
 
+#[must_use] 
 pub fn page_hints(page: usize, pages: usize, prev: &str, next: &str, end: &str) -> Vec<Element> {
     let mut els = Vec::with_capacity(2);
     if page > 0 {
         els.push(Element::text_color_right(
-            format!("(-{}", prev),
+            format!("(-{prev}"),
             319,
             5,
             FONT_HELP,
@@ -49,7 +51,7 @@ pub fn page_hints(page: usize, pages: usize, prev: &str, next: &str, end: &str) 
     }
     let text = if page + 1 == pages { end } else { next };
     els.push(Element::text_color_right(
-        format!("{}-)", text),
+        format!("{text}-)"),
         319,
         13,
         FONT_HELP,

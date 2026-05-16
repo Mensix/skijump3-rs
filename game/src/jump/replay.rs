@@ -104,6 +104,7 @@ impl ReplayRecorder {
         }
     }
 
+    #[must_use] 
     pub fn finish(&self) -> Option<ReplayTrace> {
         let mut meta = self.meta.clone()?;
         meta.frame_count = self.frames.len().saturating_sub(1);
@@ -201,6 +202,7 @@ impl ReplayTrace {
         })
     }
 
+    #[must_use] 
     pub fn to_sjr_bytes(&self) -> Vec<u8> {
         let max_turns = self.meta.frame_count.min(REPLAY_FRAME_CAPACITY - 1);
         let hill_record = self.meta.hill_record_marker.unwrap_or((0, 0));
@@ -223,7 +225,7 @@ impl ReplayTrace {
         let mut out = String::new();
         writeln!(&mut out, "{}", self.meta.start_x).expect("write string");
         writeln!(&mut out, "{}", self.meta.start_y).expect("write string");
-        writeln!(&mut out, "{}", max_turns).expect("write string");
+        writeln!(&mut out, "{max_turns}").expect("write string");
         writeln!(&mut out, "{}", self.meta.hill_idx).expect("write string");
         writeln!(&mut out, "{}", self.meta.hill_filename).expect("write string");
         writeln!(&mut out, "{}", self.meta.hill_profile).expect("write string");
@@ -240,7 +242,7 @@ impl ReplayTrace {
         writeln!(&mut out, "{}", self.meta.saved_at).expect("write string");
         writeln!(&mut out, "{}", i32::from(self.meta.has_bib)).expect("write string");
         writeln!(&mut out, "{}", self.meta.start_gate_or_competition).expect("write string");
-        writeln!(&mut out, "{}", checksum).expect("write string");
+        writeln!(&mut out, "{checksum}").expect("write string");
         out.push_str("0\n\n--- Replay Data --- \n");
 
         let mut bytes = out.into_bytes();
@@ -273,12 +275,12 @@ fn replay_checksum(input: ReplayChecksumInput<'_>) -> i32 {
     if input.hill_idx <= NUM_WC_HILLS {
         check += smallint(input.hill_idx as i32 * 131);
     }
-    check += word(valuestr(input.hill_filename, 3) as i32 * 3) as i32;
+    check += i32::from(word(i32::from(valuestr(input.hill_filename, 3)) * 3));
     check += input.hill_profile;
     check += smallint((input.distance + 2) * 69);
     check += smallint((input.flight_start + input.flight_stop) as i32);
     check += smallint((input.hill_record_x + input.hill_record_y) * 2);
-    check += valuestr(input.author, 2) as i32;
+    check += i32::from(valuestr(input.author, 2));
     check += smallint(input.start_gate_or_competition * 1412);
     check ^ REPLAY_CHECK_XOR
 }

@@ -4,7 +4,7 @@ use crate::jump::math::pascal_round;
 use crate::parsers::langbase::LangBase;
 use crate::jump::presentation::{self, WindGaugePosition};
 use crate::jump::replay_player::ReplaySession;
-use crate::palette_consts::*;
+use crate::palette_consts::{FONT_DEFAULT, FONT_HELP, FONT_GOLD, FONT_GREET};
 use crate::route::RouteTarget;
 use crate::snow::SnowSystem;
 use crate::store::{ResourcesRef, StoreRef};
@@ -37,9 +37,7 @@ impl ReplayView {
     pub fn new(resources: ResourcesRef, store: StoreRef) -> Self {
         let trace = store.selected_replay.borrow().clone();
         let terrain = trace
-            .as_ref()
-            .map(|trace| resources.hill_terrain(trace.meta.hill_idx).map(|t| (*t).clone()))
-            .unwrap_or_else(|| Err("Replay hill not found".to_string()));
+            .as_ref().map_or_else(|| Err("Replay hill not found".to_string()), |trace| resources.hill_terrain(trace.meta.hill_idx).map(|t| (*t).clone()));
         let mut snow = SnowSystem::new();
         if let Some(trace) = &trace {
             snow.set_count(trace.meta.snow_count, &mut store.rng.borrow_mut());
@@ -190,9 +188,7 @@ impl View<RouteTarget> for ReplayView {
             let hill_text = self
                 .resources
                 .hills
-                .hill(session.trace().meta.hill_idx)
-                .map(|hill| format!("{} K{}", hill.name, hill.kr))
-                .unwrap_or_else(|| "?".to_string());
+                .hill(session.trace().meta.hill_idx).map_or_else(|| "?".to_string(), |hill| format!("{} K{}", hill.name, hill.kr));
             els.push(Element::text_color_right(hill_text, 308, 9, FONT_DEFAULT));
             els.push(Element::text_color_right(
                 &session.trace().meta.author,
@@ -224,7 +220,7 @@ impl View<RouteTarget> for ReplayView {
                         self.resources
                             .hills
                             .hill(session.trace().meta.hill_idx)
-                            .map_or(1.0, |hill| hill.pk()),
+                            .map_or(1.0, super::super::data::records::HillInfo::pk),
                     )
                 ),
                 309,
@@ -308,7 +304,7 @@ impl View<RouteTarget> for ReplayView {
                 self.playback.set_mode(5);
                 None
             }
-            Event::Keyboard(Key::Char('p') | Key::Char('P')) => {
+            Event::Keyboard(Key::Char('p' | 'P')) => {
                 self.playback.set_mode(3);
                 None
             }

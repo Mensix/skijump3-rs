@@ -21,8 +21,8 @@ impl AssetParser<Vec<SpriteData>> for AnimParser {
                 break;
             }
 
-            let x = data[pos] as u16;
-            let y = data[pos + 1] as u16;
+            let x = u16::from(data[pos]);
+            let y = u16::from(data[pos + 1]);
             pos += 2;
 
             if x == 255 && y == 255 {

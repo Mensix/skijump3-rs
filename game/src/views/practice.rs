@@ -1,5 +1,5 @@
 use crate::components::menu::{Menu, MenuItem};
-use crate::palette_consts::*;
+use crate::palette_consts::{FONT_DEFAULT, FONT_GOLD, FONT_GREET, apply_menu_tint};
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use engine::ui::{Component, Element, Event, Key, View};
@@ -43,7 +43,7 @@ impl PracticeView {
             .min(total.saturating_sub(1));
         let start = if total > 20 { selected / 20 * 20 } else { 0 };
         let page_n = (total.saturating_sub(start)).min(20);
-        let n = page_n + if total > 20 { 1 } else { 0 };
+        let n = page_n + usize::from(total > 20);
         let items = (0..n)
             .map(|_| MenuItem {
                 num: 0,
@@ -67,9 +67,9 @@ impl PracticeView {
         menu.set_selected(selected.saturating_sub(start).min(page_n.saturating_sub(1)));
 
         Self {
-            menu,
             resources,
             store,
+            menu,
             start,
             total,
         }
@@ -77,7 +77,7 @@ impl PracticeView {
 
     fn rebuild_menu(&self) -> Menu {
         let page_n = self.page_items();
-        let n = page_n + if self.has_more() { 1 } else { 0 };
+        let n = page_n + usize::from(self.has_more());
         let items = (0..n)
             .map(|_| MenuItem {
                 num: 0,

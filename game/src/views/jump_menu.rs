@@ -1,6 +1,6 @@
 use crate::components::layout::{self, MainLayout};
 use crate::components::menu::{Menu, MenuItem};
-use crate::palette_consts::*;
+use crate::palette_consts::{FONT_DEFAULT, BG_LIST, FONT_HEADER, BG_ERASE};
 use crate::route::RouteTarget;
 use engine::ui::{Component, Element, Event, View};
 
@@ -10,6 +10,7 @@ pub struct JumpMenuView {
 }
 
 impl JumpMenuView {
+    #[must_use] 
     pub fn new(layout: MainLayout) -> Self {
         let items = vec![
             MenuItem {

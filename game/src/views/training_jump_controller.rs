@@ -45,19 +45,19 @@ impl TrainingJumpController {
                 }
                 TrainingJumpAction::None
             }
-            Event::Keyboard(Key::Char('t') | Key::Char('T')) => {
+            Event::Keyboard(Key::Char('t' | 'T')) => {
                 if session.phase() == Some(JumpPhase::Flight) {
                     session.handle_input(JumpInput::Telemark);
                 }
                 TrainingJumpAction::None
             }
-            Event::Keyboard(Key::Char('r') | Key::Char('R')) => {
+            Event::Keyboard(Key::Char('r' | 'R')) => {
                 if session.phase() == Some(JumpPhase::Flight) {
                     session.handle_input(JumpInput::TwoFooted);
                 }
                 TrainingJumpAction::None
             }
-            Event::Keyboard(Key::Char('s') | Key::Char('S')) => {
+            Event::Keyboard(Key::Char('s' | 'S')) => {
                 if session.phase() == Some(JumpPhase::Result) {
                     TrainingJumpAction::SaveReplay
                 } else {

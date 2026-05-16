@@ -20,6 +20,7 @@ pub struct TextInput {
 }
 
 impl TextInput {
+    #[must_use] 
     pub fn new(x: i32, y: i32, max_width: i32, old: String, bg: u8, fg: u8, font: Font) -> Self {
         Self {
             x,

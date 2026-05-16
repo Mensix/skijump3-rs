@@ -1,7 +1,7 @@
 use crate::components::layout::{self, MainLayout};
 use crate::components::menu::{Menu, MenuItem};
 use crate::jump::replay::ReplayTrace;
-use crate::palette_consts::*;
+use crate::palette_consts::{FONT_DEFAULT, FONT_HEADER, BG_ERASE, FONT_HELP, FONT_GOLD};
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use engine::ui::{Component, Element, Event, Key, View};
@@ -184,9 +184,7 @@ impl View<RouteTarget> for ReplayBrowserView {
             let hill = self
                 .resources
                 .hills
-                .hill(trace.meta.hill_idx)
-                .map(|hill| format!("{} K{}", hill.name, hill.kr))
-                .unwrap_or_else(|| "?".to_string());
+                .hill(trace.meta.hill_idx).map_or_else(|| "?".to_string(), |hill| format!("{} K{}", hill.name, hill.kr));
             els.push(Element::text_color(
                 &trace.meta.author,
                 170,
@@ -225,7 +223,7 @@ impl View<RouteTarget> for ReplayBrowserView {
                 self.store.selected_main_menu.set(5);
                 Some(RouteTarget::MainMenu)
             }
-            Event::Keyboard(Key::Right | Key::Down | Key::Char(' ') | Key::Char('+')) => {
+            Event::Keyboard(Key::Right | Key::Down | Key::Char(' ' | '+')) => {
                 self.move_next();
                 None
             }

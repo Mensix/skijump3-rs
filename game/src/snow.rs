@@ -31,6 +31,7 @@ pub struct SnowSystem {
 }
 
 impl SnowSystem {
+    #[must_use] 
     pub fn new() -> Self {
         let mut system = Self {
             flakes: vec![],
@@ -49,7 +50,7 @@ impl SnowSystem {
     fn compute_sine(&mut self) {
         for i in 0..=SINE_LENGTH {
             let angle = i as f64 * std::f64::consts::PI * 2.0 / SINE_LENGTH as f64;
-            self.sine[i] = (angle.sin() * self.side_movement as f64).round() as i64;
+            self.sine[i] = (angle.sin() * f64::from(self.side_movement)).round() as i64;
         }
     }
 
@@ -70,6 +71,7 @@ impl SnowSystem {
         self.reset(rng);
     }
 
+    #[must_use] 
     pub fn count(&self) -> u16 {
         self.count
     }
@@ -79,11 +81,11 @@ impl SnowSystem {
         // Pascal: always initializes all LumiMax (256) flakes regardless of Max
         self.flakes = (0..LUMI_MAX)
             .map(|_| {
-                let x = (rng.random_i32(SCREEN_W as i32) as i64) << 10;
-                let y = (rng.random_i32(SCREEN_H as i32) as i64) << 10;
+                let x = i64::from(rng.random_i32(SCREEN_W as i32)) << 10;
+                let y = i64::from(rng.random_i32(SCREEN_H as i32)) << 10;
                 let sin_pos = rng.random_i32(SINE_LENGTH as i32) as usize;
-                let gravity = rng.random_i32(self.g_variation as i32) as i64 + self.perus_g as i64
-                    - self.g_variation as i64;
+                let gravity = i64::from(rng.random_i32(i32::from(self.g_variation))) + i64::from(self.perus_g)
+                    - i64::from(self.g_variation);
                 let style = rng.random_i32(2) as u16;
                 let style = if self.sleet && style == 1 {
                     rng.random_i32(2) as u16
@@ -95,11 +97,11 @@ impl SnowSystem {
                 Snowflake {
                     x,
                     y,
-                    sin_pos,
                     gravity,
-                    style,
+                    sin_pos,
                     c1,
                     c2,
+                    style,
                 }
             })
             .collect();
@@ -115,9 +117,9 @@ impl SnowSystem {
         let max = self.max.min(LUMI_MAX - 1);
         for flake in self.flakes.iter_mut().take(max + 1) {
             if draw {
-                flake.x += self.sine[flake.sin_pos] + (delta_x as i64) * 512 + wind as i64;
+                flake.x += self.sine[flake.sin_pos] + i64::from(delta_x) * 512 + i64::from(wind);
                 flake.sin_pos = (flake.sin_pos + 1) & (SINE_LENGTH - 1);
-                flake.y += flake.gravity + (delta_y as i64) * 256;
+                flake.y += flake.gravity + i64::from(delta_y) * 256;
             }
 
             let x = ((flake.x as i32 as u32) >> 10) as u16;

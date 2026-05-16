@@ -1,6 +1,6 @@
 use crate::components::screen;
 use crate::jump::replay::ReplayTrace;
-use crate::palette_consts::*;
+use crate::palette_consts::{FONT_DEFAULT, FONT_GOLD};
 use crate::store::ResourcesRef;
 use engine::ui::{Blinker, Element, Event, Key, TextEditState};
 use std::cell::RefCell;
@@ -245,7 +245,7 @@ impl SaveReplayDialog {
             4 => {
                 self.cursor_blink.reset();
                 let filename = self.filename.borrow().clone();
-                if Path::new(&format!("{}.SJR", filename)).exists() {
+                if Path::new(&format!("{filename}.SJR")).exists() {
                     *self.state.borrow_mut() = SaveDialogState::ConfirmOverwrite { filename };
                 } else {
                     return SaveAction::SaveReplay;
@@ -296,7 +296,7 @@ impl SaveReplayDialog {
                     *self.state.borrow_mut() = SaveDialogState::Browse { selected: 0 };
                     SaveAction::Consumed
                 }
-                Event::Keyboard(Key::Enter) | Event::Keyboard(Key::Char(' ')) => {
+                Event::Keyboard(Key::Enter | Key::Char(' ')) => {
                     self.activate_item(selected)
                 }
                 Event::Keyboard(Key::Char(c)) => self.handle_browse_digit(c),
@@ -345,8 +345,8 @@ impl SaveReplayDialog {
                     *self.state.borrow_mut() = SaveDialogState::Browse { selected: 2 };
                     SaveAction::Consumed
                 }
-                Event::Keyboard(Key::Char('y') | Key::Char('Y')) => SaveAction::SaveReplay,
-                Event::Keyboard(Key::Char('n') | Key::Char('N')) => {
+                Event::Keyboard(Key::Char('y' | 'Y')) => SaveAction::SaveReplay,
+                Event::Keyboard(Key::Char('n' | 'N')) => {
                     *self.state.borrow_mut() = SaveDialogState::Browse { selected: 2 };
                     SaveAction::Consumed
                 }
