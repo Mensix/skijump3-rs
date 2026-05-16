@@ -1,7 +1,6 @@
 use crate::components::save_replay_dialog::{SaveAction, SaveReplayDialog};
-use crate::jump::{JumpConfig, JumpParticipant, JumpPolicy, JumpRunner};
+use crate::jump::{JumpParticipant, JumpPolicy, JumpRunner};
 use crate::route::RouteTarget;
-use crate::snow::SnowSystem;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::views::training_jump_controller::{TrainingJumpAction, TrainingJumpController};
 use engine::palette::Palette;
@@ -18,65 +17,21 @@ pub struct JumpView {
 impl JumpView {
     pub fn new(resources: ResourcesRef, store: StoreRef) -> Self {
         let hill_idx = store.practice.selected_hill.get();
-        let hill = resources.hills.hill(hill_idx).cloned();
-        let terrain = resources.hill_terrain(hill_idx).map(|t| (*t).clone());
-
-        let mut snow = SnowSystem::new();
-
-        // Pascal: each new practice/competition round resets eka=true
         store.eka.set(true);
 
-        if terrain.is_ok() && hill.is_some() {
-            let mut rng = store.rng.borrow_mut();
-            let mut wind = store.wind.borrow_mut();
-            wind.initialize(&mut rng, store.wind_place.get());
-
-            if store.eka.get() {
-                // Pascal lines 1127-1131: snow LMaara calc + VieLmaara on first jump
-                let lmaara = rng.random_i32(2) * rng.random_i32(256);
-                let lmaara = if lmaara > 0 && lmaara < 40 {
-                    lmaara + rng.random_i32(150)
-                } else {
-                    lmaara
-                };
-                let lmaara = if lmaara > 0 && rng.random_i32(4) == 0 {
-                    lmaara + 1000
-                } else {
-                    lmaara
-                };
-                snow.set_count(lmaara as u16, &mut rng);
-
-                // Pascal line 1149: Tuuli.Hae inside eka block (first wind shift)
-                wind.sample(&mut rng);
-
-                store.eka.set(false);
-            } else {
-                // Pascal: on subsequent jumps, snow persists (no re-init).
-                // Initialize with fixed count so snow stays visible.
-                snow.set_count(50, &mut rng);
-            }
-        }
-
-        let record_distance = store
-            .records
-            .borrow()
-            .hill_record(hill_idx)
-            .map_or(0, |r| r.len as i32);
-        let config = JumpConfig {
+        let runner = JumpRunner::new_with_env(
             hill_idx,
-            hill,
-            terrain,
-            start_gate: store.practice.start_gate.get(),
-            snow,
-            participant: JumpParticipant::trainee(),
-            policy: JumpPolicy::training(),
-            record_distance,
-        };
+            store.practice.start_gate.get(),
+            JumpParticipant::trainee(),
+            JumpPolicy::training(),
+            &resources,
+            &store,
+        );
 
         Self {
             resources: ResourcesRef::clone(&resources),
             store,
-            runner: RefCell::new(JumpRunner::new(config)),
+            runner: RefCell::new(runner),
             save_dialog: SaveReplayDialog::new(resources),
         }
     }

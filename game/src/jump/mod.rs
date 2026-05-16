@@ -14,7 +14,7 @@ pub(crate) mod state;
 pub(crate) mod types;
 
 pub(crate) use ai::{ComputerInputProvider, JumpInputProvider};
-pub(crate) use config::{JumpConfig, JumpParticipant};
+pub(crate) use config::JumpParticipant;
 pub(crate) use policy::{JumpPolicy, JumperControl};
 pub(crate) use presentation::{JumpPresentationContext, WindGaugePosition};
 pub(crate) use runner::JumpRunner;

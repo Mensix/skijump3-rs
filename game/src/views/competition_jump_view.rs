@@ -1,10 +1,8 @@
 use crate::competition::types::Participant;
 use crate::jump::config::JumpParticipant;
 use crate::jump::policy::JumperControl;
-use crate::jump::{JumpConfig, JumpPolicy, JumpRunner};
-use crate::palette_consts::FONT_DEFAULT;
+use crate::jump::{JumpPolicy, JumpRunner};
 use crate::route::RouteTarget;
-use crate::snow::SnowSystem;
 use crate::store::{ResourcesRef, StoreRef};
 use engine::palette::Palette;
 use engine::ui::{Element, Event, Key, View};
@@ -13,7 +11,7 @@ use std::cell::RefCell;
 pub(crate) struct CompetitionJumpView {
     resources: ResourcesRef,
     store: StoreRef,
-    runner: Option<RefCell<JumpRunner>>,
+    runner: RefCell<JumpRunner>,
 }
 
 fn to_jump_participant(p: &Participant) -> JumpParticipant {
@@ -34,61 +32,40 @@ fn to_jump_participant(p: &Participant) -> JumpParticipant {
 
 impl CompetitionJumpView {
     pub(crate) fn new(resources: ResourcesRef, store: StoreRef) -> Self {
-        let runner = Self::build_runner(&resources, &store).map(RefCell::new);
+        store.eka.set(true);
+        let runner = Self::build_runner(&resources, &store);
         Self {
             resources,
             store,
-            runner,
+            runner: RefCell::new(runner),
         }
     }
 
-    fn build_runner(resources: &ResourcesRef, store: &StoreRef) -> Option<JumpRunner> {
+    fn build_runner(resources: &ResourcesRef, store: &StoreRef) -> JumpRunner {
         let comp = store.competition.borrow();
-        let c = comp.as_ref()?;
-        let hill_idx = c.hill_order.get(c.current_event).copied()?;
-        let jumper_idx = c.current_jumper()?;
+        let Some(c) = comp.as_ref() else {
+            return JumpRunner::new_with_env(
+                0, 15, JumpParticipant::trainee(), JumpPolicy::competition(), resources, store,
+            );
+        };
+        let Some(&hill_idx) = c.hill_order.get(c.current_event) else {
+            return JumpRunner::new_with_env(
+                0, 15, JumpParticipant::trainee(), JumpPolicy::competition(), resources, store,
+            );
+        };
+        let Some(jumper_idx) = c.current_jumper() else {
+            return JumpRunner::new_with_env(
+                hill_idx, 15, JumpParticipant::trainee(), JumpPolicy::competition(), resources, store,
+            );
+        };
         let participant = to_jump_participant(c.field.get(jumper_idx));
-
-        let hill = resources.hills.hill(hill_idx).cloned();
-        let terrain = resources.hill_terrain(hill_idx).map(|t| (*t).clone());
-        let mut snow = SnowSystem::new();
-        if terrain.is_ok() && hill.is_some() {
-            let mut rng = store.rng.borrow_mut();
-            let mut wind = store.wind.borrow_mut();
-            wind.initialize(&mut rng, store.wind_place.get());
-            snow.set_count(0, &mut rng);
-            wind.sample(&mut rng);
-        }
-        let record_distance = store
-            .records
-            .borrow()
-            .hill_record(hill_idx)
-            .map_or(0, |r| r.len as i32);
-
-        Some(JumpRunner::new(JumpConfig {
-            hill_idx,
-            hill,
-            terrain,
-            start_gate: 15,
-            snow,
-            participant,
-            policy: JumpPolicy::competition(),
-            record_distance,
-        }))
+        JumpRunner::new_with_env(hill_idx, 15, participant, JumpPolicy::competition(), resources, store)
     }
 }
 
 impl View<RouteTarget> for CompetitionJumpView {
     fn elements(&self) -> Vec<Element> {
-        if let Some(runner) = &self.runner {
-            return runner.borrow_mut().elements(&self.resources, &self.store);
-        }
-
-        vec![
-            Element::fillbox(0, 0, 320, 200, 0),
-            Element::text_color("World Cup state not available", 20, 80, FONT_DEFAULT),
-            Element::text_color("PRESS ESC", 20, 95, FONT_DEFAULT),
-        ]
+        self.runner.borrow_mut().elements(&self.resources, &self.store)
     }
 
     fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {
@@ -99,19 +76,15 @@ impl View<RouteTarget> for CompetitionJumpView {
     }
 
     fn render_snow(&self, framebuffer: &mut [u8]) {
-        if let Some(runner) = &self.runner {
-            if let Ok(mut runner) = runner.try_borrow_mut() {
-                let wind = self.store.wind.borrow().value;
-                runner.render_snow(framebuffer, wind);
-            }
+        if let Ok(mut runner) = self.runner.try_borrow_mut() {
+            let wind = self.store.wind.borrow().value;
+            runner.render_snow(framebuffer, wind);
         }
     }
 
     fn apply_palette(&self, palette: &mut Palette) {
-        if let Some(runner) = &self.runner {
-            if let Ok(runner) = runner.try_borrow() {
-                runner.apply_palette(palette);
-            }
+        if let Ok(runner) = self.runner.try_borrow() {
+            runner.apply_palette(palette);
         }
     }
 }

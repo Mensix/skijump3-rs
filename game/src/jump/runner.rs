@@ -1,4 +1,5 @@
 use crate::jump::config::JumpConfig;
+use crate::jump::policy::JumpPolicy;
 use crate::jump::presentation;
 use crate::jump::replay::ReplayTrace;
 use crate::jump::types::JumpOutcome;
@@ -6,7 +7,9 @@ use crate::jump::{
     ComputerInputProvider, JumpInputProvider, JumpPresentationContext, JumpSession, JumperControl,
     WindGaugePosition,
 };
+use crate::jump::JumpParticipant;
 use crate::palette_consts::FONT_DEFAULT;
+use crate::snow::SnowSystem;
 use crate::store::{ResourcesRef, StoreRef};
 use engine::consts::{HEIGHT, WIDTH};
 use engine::palette::Palette;
@@ -20,6 +23,51 @@ pub(crate) struct JumpRunner {
 }
 
 impl JumpRunner {
+    /// Create a runner with shared environment initialization:
+    /// hill/terrain loading, wind init, Pascal snow init (eka gate), record distance.
+    pub(crate) fn new_with_env(
+        hill_idx: usize,
+        start_gate: i32,
+        participant: JumpParticipant,
+        policy: JumpPolicy,
+        resources: &ResourcesRef,
+        store: &StoreRef,
+    ) -> Self {
+        let hill = resources.hills.hill(hill_idx).cloned();
+        let terrain = resources.hill_terrain(hill_idx).map(|t| (*t).clone());
+        let mut snow = SnowSystem::new();
+
+        if terrain.is_ok() && hill.is_some() {
+            let mut rng = store.rng.borrow_mut();
+            let mut wind = store.wind.borrow_mut();
+            wind.initialize(&mut rng, store.wind_place.get());
+
+            if store.eka.get() {
+                let lmaara = crate::snow::calculate_lmaara(&mut rng);
+                snow.set_count(lmaara, &mut rng);
+                wind.sample(&mut rng);
+                store.eka.set(false);
+            }
+        }
+
+        let record_distance = store
+            .records
+            .borrow()
+            .hill_record(hill_idx)
+            .map_or(0, |r| r.len as i32);
+
+        Self::new(JumpConfig {
+            hill_idx,
+            hill,
+            terrain,
+            start_gate,
+            snow,
+            participant,
+            policy,
+            record_distance,
+        })
+    }
+
     pub(crate) fn new(config: JumpConfig) -> Self {
         let session = JumpSession::new(config.clone());
         let computer_input = (config.participant.control == JumperControl::Computer)
@@ -53,6 +101,15 @@ impl JumpRunner {
         if let Some(hill) = &self.config.hill {
             self.session.reset_state(hill, start_gate, record_distance);
         }
+        self.computer_input = (self.config.participant.control == JumperControl::Computer)
+            .then(ComputerInputProvider::new);
+    }
+
+    /// Swap participant without recreating snow/wind state.
+    /// Used by competition mode to reuse one runner across jumpers (Phase B).
+    #[allow(dead_code)]
+    pub(crate) fn set_participant(&mut self, participant: JumpParticipant) {
+        self.config.participant = participant;
         self.computer_input = (self.config.participant.control == JumperControl::Computer)
             .then(ComputerInputProvider::new);
     }
