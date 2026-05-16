@@ -325,9 +325,13 @@ impl JumpSession {
             (frame, current_pos, body_anim, ski_anim)
         };
         let previous = self.replay_prev_pos.unwrap_or(current_pos);
-        self.replay
-            .record_frame(previous, current_pos, body_anim, ski_anim, wind.value);
-        self.replay_prev_pos = Some(current_pos);
+        if frame.phase == JumpPhase::Result {
+            self.replay.stop();
+        } else {
+            self.replay
+                .record_frame(previous, current_pos, body_anim, ski_anim, wind.value);
+            self.replay_prev_pos = Some(current_pos);
+        }
         Ok(frame)
     }
 

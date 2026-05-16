@@ -55,6 +55,7 @@ pub(crate) struct JumpState {
     pub(crate) frame: i32,
     pub(crate) info_counter: i32,
     pub(crate) start_gate: i32,
+    result_pending: bool,
     pub(crate) takeoff_counter: u8,
     pub(crate) takeoff_phase: u8,
 }
@@ -119,6 +120,7 @@ impl JumpState {
             frame: 0,
             info_counter: 0,
             start_gate,
+            result_pending: false,
             takeoff_counter: 0,
             takeoff_phase: 0,
         }
@@ -376,6 +378,12 @@ impl JumpState {
     }
 
     fn tick_landing(&mut self, terrain: &HillTerrain, rng: &mut PascalRandom) {
+        if self.result_pending {
+            self.phase = JumpPhase::Result;
+            self.result_pending = false;
+            return;
+        }
+
         let fx = self.x;
         let fy = self.y;
 
@@ -402,13 +410,13 @@ impl JumpState {
             if self.detached_px < 0.0 {
                 self.detached_px = 0.0;
                 if self.skis_stuck {
-                    self.phase = JumpPhase::Result;
+                    self.result_pending = true;
                 }
             }
         }
 
         if self.x > 1050 {
-            self.phase = JumpPhase::Result;
+            self.result_pending = true;
         }
 
         self.update_camera(fx, fy);
@@ -447,6 +455,7 @@ impl JumpState {
         self.style_points = score.style_points;
         self.score = score.score;
         self.style_revealed = [false; 5];
+        self.result_pending = false;
 
         if self.fall_type > 0 {
             self.grade = i32::from(self.fall_type);

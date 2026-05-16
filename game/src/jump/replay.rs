@@ -49,12 +49,18 @@ pub struct ReplayTrace {
 pub struct ReplayRecorder {
     meta: Option<ReplayMeta>,
     frames: Vec<ReplayFrame>,
+    stopped: bool,
 }
 
 impl ReplayRecorder {
     pub fn start(&mut self, meta: ReplayMeta) {
         self.meta = Some(meta);
         self.frames.clear();
+        self.stopped = false;
+    }
+
+    pub fn stop(&mut self) {
+        self.stopped = true;
     }
 
     pub fn record_frame(
@@ -65,7 +71,7 @@ impl ReplayRecorder {
         ski_anim: u16,
         wind: i32,
     ) {
-        if self.meta.is_none() || self.frames.len() >= REPLAY_FRAME_CAPACITY {
+        if self.stopped || self.meta.is_none() || self.frames.len() >= REPLAY_FRAME_CAPACITY {
             return;
         }
 
@@ -100,7 +106,7 @@ impl ReplayRecorder {
 
     pub fn finish(&self) -> Option<ReplayTrace> {
         let mut meta = self.meta.clone()?;
-        meta.frame_count = self.frames.len();
+        meta.frame_count = self.frames.len().saturating_sub(1);
         Some(ReplayTrace {
             meta,
             frames: self.frames.clone(),
@@ -545,5 +551,36 @@ mod tests {
             start_gate_or_competition: 85,
         };
         assert_eq!(replay_checksum(input), 3_755_229);
+    }
+
+    #[test]
+    fn recorder_frame_count_is_pascal_last_frame_index() {
+        let mut recorder = ReplayRecorder::default();
+        recorder.start(trace().meta);
+        recorder.record_frame((10, 20), (11, 22), 163, 72, -2);
+        recorder.record_frame((11, 22), (14, 25), 164, 73, -1);
+
+        let trace = recorder.finish().expect("trace");
+        let bytes = trace.to_sjr_bytes();
+        let parsed = ReplayTrace::from_sjr_bytes(&bytes, false).expect("valid replay");
+
+        assert_eq!(trace.meta.frame_count, 1);
+        assert_eq!(parsed.frames.len(), 2);
+        assert_eq!(parsed.frames[1].body_anim, 164);
+        assert_eq!(parsed.frames[1].ski_anim, 73);
+    }
+
+    #[test]
+    fn recorder_ignores_frames_after_result_stop() {
+        let mut recorder = ReplayRecorder::default();
+        recorder.start(trace().meta);
+        recorder.record_frame((10, 20), (11, 22), 163, 72, -2);
+        recorder.stop();
+        recorder.record_frame((11, 22), (11, 22), 136, 90, -2);
+
+        let trace = recorder.finish().expect("trace");
+
+        assert_eq!(trace.frames.len(), 1);
+        assert_eq!(trace.frames[0].body_anim, 163);
     }
 }
