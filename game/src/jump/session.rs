@@ -1,10 +1,11 @@
 use crate::data::hill_profile::HillTerrain;
 use crate::data::records::HillInfo;
+use crate::jump::config::{JumpConfig, JumpParticipant};
 use crate::jump::frame::JumpRenderFrame;
 use crate::jump::math::pascal_round;
 use crate::jump::policy::JumpPolicy;
 use crate::jump::replay::{ReplayMeta, ReplayRecorder, ReplayTrace};
-use crate::jump::types::{FlightWind, JumpInput, JumpOutcome, JumpPhase};
+use crate::jump::types::{FlightWind, JumpInput, JumpOutcome, JumpPhase, JumpSnapshot};
 use crate::jump::JumpState;
 use crate::pascal_random::PascalRandom;
 use crate::snow::SnowSystem;
@@ -42,7 +43,7 @@ pub(crate) struct JumpSession {
     replay: ReplayRecorder,
     hill_idx: usize,
     snow_count: u16,
-    replay_name: String,
+    participant: JumpParticipant,
     last_phase: Option<JumpPhase>,
     policy: JumpPolicy,
     record_distance: i32,
@@ -50,18 +51,18 @@ pub(crate) struct JumpSession {
 }
 
 impl JumpSession {
-    #[allow(clippy::too_many_arguments)]
-    pub(crate) fn new(
-        terrain: Result<HillTerrain, String>,
-        hill: Option<&HillInfo>,
-        hill_idx: usize,
-        start_gate: i32,
-        snow: SnowSystem,
-        replay_name: String,
-        policy: JumpPolicy,
-        record_distance: i32,
-    ) -> Self {
-        let state = match (&terrain, hill) {
+    pub(crate) fn new(config: JumpConfig) -> Self {
+        let JumpConfig {
+            terrain,
+            hill,
+            hill_idx,
+            start_gate,
+            snow,
+            participant,
+            policy,
+            record_distance,
+        } = config;
+        let state = match (&terrain, hill.as_ref()) {
             (Ok(terrain), Some(hill)) => Some(JumpState::new(
                 terrain,
                 hill.vx_final as f64,
@@ -82,13 +83,13 @@ impl JumpSession {
                 state,
                 hill_idx,
                 snow_count,
-                &replay_name,
+                &participant,
                 start_gate,
             ));
         }
 
         let mut record_marker = None;
-        if let (Ok(terrain), Some(hill)) = (&terrain, hill) {
+        if let (Ok(terrain), Some(hill)) = (&terrain, hill.as_ref()) {
             record_marker = find_hill_record_marker(terrain, hill.pk(), record_distance);
         }
 
@@ -101,7 +102,7 @@ impl JumpSession {
             replay,
             hill_idx,
             snow_count,
-            replay_name,
+            participant,
             last_phase,
             policy,
             record_distance,
@@ -113,7 +114,7 @@ impl JumpSession {
         state: &JumpState,
         hill_idx: usize,
         snow_count: u16,
-        replay_name: &str,
+        participant: &JumpParticipant,
         start_gate: i32,
     ) -> ReplayMeta {
         ReplayMeta {
@@ -127,12 +128,12 @@ impl JumpSession {
             hill_record_marker: None,
             hill_filename: "HILLBASE".to_string(),
             hill_profile: 0,
-            suit_color: 0,
-            ski_color: 0,
+            suit_color: participant.suit_color,
+            ski_color: participant.ski_color,
             saved_at: String::new(),
             has_bib: false,
             author: String::new(),
-            name: replay_name.to_string(),
+            name: participant.display_name().to_string(),
             start_gate_or_competition: 100 - start_gate,
             frame_count: 0,
             checksum: 0,
@@ -147,6 +148,10 @@ impl JumpSession {
 
     pub(crate) fn state(&self) -> Option<&JumpState> {
         self.state.as_ref()
+    }
+
+    pub(crate) fn snapshot(&self) -> Option<JumpSnapshot> {
+        self.state.as_ref().map(JumpState::snapshot)
     }
 
     pub(crate) fn phase(&self) -> Option<JumpPhase> {
@@ -188,7 +193,7 @@ impl JumpSession {
                 state,
                 self.hill_idx,
                 self.snow_count,
-                &self.replay_name,
+                &self.participant,
                 start_gate,
             ));
         }

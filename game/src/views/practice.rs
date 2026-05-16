@@ -36,6 +36,7 @@ impl PracticeView {
     pub fn new(resources: ResourcesRef, store: StoreRef) -> Self {
         let total = resources.hills.len();
         let selected = store
+            .practice
             .selected_hill
             .get()
             .saturating_sub(1)
@@ -109,7 +110,9 @@ impl PracticeView {
             self.menu = self.rebuild_menu();
             None
         } else {
-            self.store.selected_hill.set(self.start + sel + 1);
+            let hill_idx = self.start + sel + 1;
+            self.store.practice.selected_hill.set(hill_idx);
+            self.store.selected_hill.set(hill_idx);
             Some(RouteTarget::Jump)
         }
     }

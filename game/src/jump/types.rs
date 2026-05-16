@@ -37,3 +37,17 @@ pub(crate) struct JumpOutcome {
     pub(crate) fall_type: u8,
     pub(crate) aborted: bool,
 }
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(crate) struct JumpSnapshot {
+    pub(crate) phase: JumpPhase,
+    pub(crate) frame: i32,
+    pub(crate) x: i32,
+    pub(crate) y: i32,
+    pub(crate) height: i32,
+    pub(crate) distance: i32,
+    pub(crate) body_angle: i32,
+    pub(crate) ski_angle: i32,
+    pub(crate) speed: f64,
+    pub(crate) start_gate: i32,
+}

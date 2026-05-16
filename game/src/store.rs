@@ -1,5 +1,6 @@
 use crate::data::profile::ProfileStore;
 use crate::data::records::{HillCatalog, RecordStore};
+use crate::data::world_cup::WorldCupState;
 use crate::jump::replay::ReplayTrace;
 use crate::parsers::langbase::LangBase;
 use crate::pascal_random::PascalRandom;
@@ -35,12 +36,29 @@ impl Resources {
 pub type ResourcesRef = Rc<Resources>;
 
 #[derive(Debug, Clone)]
+pub struct PracticeState {
+    pub selected_hill: Cell<usize>,
+    pub start_gate: Cell<i32>,
+}
+
+impl Default for PracticeState {
+    fn default() -> Self {
+        Self {
+            selected_hill: Cell::new(1),
+            start_gate: Cell::new(15),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct Store {
     pub profiles: RefCell<ProfileStore>,
     pub records: RefCell<RecordStore>,
     pub rng: RefCell<PascalRandom>,
     pub wind: RefCell<PascalWind>,
     pub wind_place: Cell<u8>,
+    pub practice: PracticeState,
+    pub(crate) world_cup: RefCell<Option<WorldCupState>>,
     pub selected_hill: Cell<usize>,
     pub start_gate: Cell<i32>,
     pub eka: Cell<bool>,
@@ -62,6 +80,8 @@ impl Store {
             rng: RefCell::new(PascalRandom::default()),
             wind: RefCell::new(PascalWind::default()),
             wind_place: Cell::new(0),
+            practice: PracticeState::default(),
+            world_cup: RefCell::new(None),
             selected_hill: Cell::new(1),
             start_gate: Cell::new(15),
             eka: Cell::new(true),

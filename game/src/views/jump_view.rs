@@ -1,13 +1,10 @@
 use crate::components::save_replay_dialog::{SaveAction, SaveReplayDialog};
 use crate::data::hill_profile::HillTerrain;
-use crate::jump::presentation;
-use crate::jump::{JumpPolicy, JumpPresentationContext, JumpSession, WindGaugePosition};
-use crate::palette_consts::*;
+use crate::jump::{JumpConfig, JumpParticipant, JumpPolicy, JumpRunner};
 use crate::route::RouteTarget;
 use crate::snow::SnowSystem;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::views::training_jump_controller::{TrainingJumpAction, TrainingJumpController};
-use engine::consts::{HEIGHT, WIDTH};
 use engine::palette::Palette;
 use engine::ui::{Element, Event, View};
 use std::cell::RefCell;
@@ -15,17 +12,16 @@ use std::cell::RefCell;
 pub struct JumpView {
     resources: ResourcesRef,
     store: StoreRef,
-    hill_idx: usize,
-    session: RefCell<JumpSession>,
-    jumper_name: String,
+    runner: RefCell<JumpRunner>,
     save_dialog: SaveReplayDialog,
 }
 
 impl JumpView {
     pub fn new(resources: ResourcesRef, store: StoreRef) -> Self {
-        let hill_idx = store.selected_hill.get();
-        let hill = resources.hills.hill(hill_idx);
+        let hill_idx = store.practice.selected_hill.get();
+        let hill = resources.hills.hill(hill_idx).cloned();
         let terrain = hill
+            .as_ref()
             .ok_or_else(|| format!("Hill {} not found", hill_idx))
             .and_then(HillTerrain::load);
 
@@ -65,30 +61,27 @@ impl JumpView {
             }
         }
 
-        let jumper_name = "TRAINEE".to_string();
         let record_distance = store
             .records
             .borrow()
             .hill_record(hill_idx)
             .map(|r| r.len as i32)
             .unwrap_or(0);
-        let session = JumpSession::new(
-            terrain,
-            hill,
+        let config = JumpConfig {
             hill_idx,
-            store.start_gate.get(),
+            hill,
+            terrain,
+            start_gate: store.practice.start_gate.get(),
             snow,
-            jumper_name.clone(),
-            JumpPolicy::training(),
+            participant: JumpParticipant::trainee(),
+            policy: JumpPolicy::training(),
             record_distance,
-        );
+        };
 
         Self {
             resources: ResourcesRef::clone(&resources),
             store,
-            hill_idx,
-            session: RefCell::new(session),
-            jumper_name,
+            runner: RefCell::new(JumpRunner::new(config)),
             save_dialog: SaveReplayDialog::new(resources),
         }
     }
@@ -97,7 +90,7 @@ impl JumpView {
         let hill_name = self
             .resources
             .hills
-            .hill(self.hill_idx)
+            .hill(self.runner.borrow().hill_idx())
             .map(|h| h.name.clone())
             .unwrap_or_default();
         let pb = self.store.profiles.borrow();
@@ -118,8 +111,8 @@ impl JumpView {
     }
 
     fn do_save_replay(&self) {
-        let session = self.session.borrow();
-        if let Some(trace) = session.replay_trace() {
+        let runner = self.runner.borrow();
+        if let Some(trace) = runner.replay_trace() {
             self.save_dialog.write_replay(&trace);
         } else {
             // Session vanished; just close the dialog
@@ -127,21 +120,18 @@ impl JumpView {
     }
 
     fn reset_jump_state(&self) {
-        if let Some(hill) = self.resources.hills.hill(self.hill_idx) {
-            // Pascal: wind continues between jumps, NOT re-initialized (only F5 resets it)
-            let record_distance = self
-                .store
-                .records
-                .borrow()
-                .hill_record(self.hill_idx)
-                .map(|r| r.len as i32)
-                .unwrap_or(0);
-            self.session.borrow_mut().reset_state(
-                hill,
-                self.store.start_gate.get(),
-                record_distance,
-            );
-        }
+        // Pascal: wind continues between jumps, NOT re-initialized (only F5 resets it)
+        let hill_idx = self.runner.borrow().hill_idx();
+        let record_distance = self
+            .store
+            .records
+            .borrow()
+            .hill_record(hill_idx)
+            .map(|r| r.len as i32)
+            .unwrap_or(0);
+        self.runner
+            .borrow_mut()
+            .reset_state(self.store.practice.start_gate.get(), record_distance);
     }
 
     fn reset_wind(&self) {
@@ -153,7 +143,11 @@ impl JumpView {
     }
 
     fn handle_jump_event(&mut self, event: Event) -> Option<RouteTarget> {
-        match TrainingJumpController.handle_event(event, self.session.get_mut()) {
+        let action = {
+            let mut runner = self.runner.borrow_mut();
+            TrainingJumpController.handle_event(event, runner.session_mut())
+        };
+        match action {
             TrainingJumpAction::None => None,
             TrainingJumpAction::RoutePractice => Some(RouteTarget::Practice),
             TrainingJumpAction::ResetWind => {
@@ -161,12 +155,13 @@ impl JumpView {
                 None
             }
             TrainingJumpAction::ResetJump => {
-                let _ = self.session.get_mut().outcome();
-                let _ = self.session.get_mut().replay_trace();
+                let _ = self.runner.borrow().outcome();
+                let _ = self.runner.borrow().replay_trace();
                 self.reset_jump_state();
                 None
             }
             TrainingJumpAction::PersistStartGate(start_gate) => {
+                self.store.practice.start_gate.set(start_gate);
                 self.store.start_gate.set(start_gate);
                 None
             }
@@ -178,83 +173,11 @@ impl JumpView {
     }
 }
 
-impl JumpView {
-    #[allow(unused_mut)]
-    fn build_elements(&self) -> Vec<Element> {
-        let mut session = self.session.borrow_mut();
-        let Err(err) = session.terrain() else {
-            if session.state().is_some() {
-                return self.elements_for_loaded_session(&mut session);
-            }
-            let mut els = vec![Element::fillbox(0, 0, WIDTH as i32, HEIGHT as i32, 0)];
-            els.push(Element::text_color(
-                "jump state not available",
-                20,
-                80,
-                FONT_DEFAULT,
-            ));
-            els.push(Element::text_color("PRESS ESC", 20, 95, FONT_HELP));
-            return els;
-        };
-
-        let mut els = vec![Element::fillbox(0, 0, WIDTH as i32, HEIGHT as i32, 0)];
-        els.push(Element::text_color(err, 20, 80, FONT_DEFAULT));
-        els.push(Element::text_color("PRESS ESC", 20, 95, FONT_HELP));
-        els
-    }
-}
-
-impl JumpView {
-    fn elements_for_loaded_session(&self, session: &mut JumpSession) -> Vec<Element> {
-        if session.phase().is_none() {
-            let mut els = vec![Element::fillbox(0, 0, WIDTH as i32, HEIGHT as i32, 0)];
-            els.push(Element::text_color(
-                "jump state not available",
-                20,
-                80,
-                FONT_DEFAULT,
-            ));
-            els.push(Element::text_color("PRESS ESC", 20, 95, FONT_HELP));
-            return els;
-        }
-
-        let mut rng = self.store.rng.borrow_mut();
-        let mut wind_store = self.store.wind.borrow_mut();
-        let wind = session.tick_with_wind(&mut rng, &mut wind_store);
-        drop(wind_store);
-        drop(rng);
-
-        let hill_name_k = self
-            .resources
-            .hills
-            .hill(self.hill_idx)
-            .map(|h| format!("{} K{}", h.name, h.kr))
-            .unwrap_or_default();
-        let wind_pos = self.store.wind.borrow().position();
-        let records = self.store.records.borrow();
-        let frame = session
-            .render_frame(wind, WIDTH, HEIGHT)
-            .expect("loaded jump render frame");
-        let ctx = JumpPresentationContext {
-            font: &self.resources.font,
-            langbase: &self.resources.langbase,
-            jumper_name: &self.jumper_name,
-            hill_name_k: &hill_name_k,
-            hill_record: records.hill_record(self.hill_idx),
-            wind_position: WindGaugePosition {
-                x: wind_pos.x,
-                y: wind_pos.y,
-            },
-        };
-        presentation::elements(&frame, &ctx)
-    }
-}
-
 impl View<RouteTarget> for JumpView {
     fn elements(&self) -> Vec<Element> {
         if self.save_dialog.is_active() {
             let distance = self
-                .session
+                .runner
                 .borrow()
                 .outcome()
                 .map(|o| format!("{:.1}", o.distance as f64 / 10.0))
@@ -262,12 +185,14 @@ impl View<RouteTarget> for JumpView {
             let hill_name = self
                 .resources
                 .hills
-                .hill(self.hill_idx)
+                .hill(self.runner.borrow().hill_idx())
                 .map(|h| format!("{} K{}", h.name, h.kr))
                 .unwrap_or_default();
             return self.save_dialog.elements(&distance, &hill_name);
         }
-        self.build_elements()
+        self.runner
+            .borrow_mut()
+            .elements(&self.resources, &self.store)
     }
 
     fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {
@@ -286,10 +211,9 @@ impl View<RouteTarget> for JumpView {
         if self.save_dialog.is_active() {
             return;
         }
-        if let Ok(mut session) = self.session.try_borrow_mut() {
+        if let Ok(mut runner) = self.runner.try_borrow_mut() {
             let wind = self.store.wind.borrow().value;
-            let draw = session.draws_snow();
-            session.render_snow(framebuffer, wind, draw);
+            runner.render_snow(framebuffer, wind);
         }
     }
 
@@ -297,10 +221,8 @@ impl View<RouteTarget> for JumpView {
         if self.save_dialog.is_active() {
             return;
         }
-        if let Ok(terrain) = self.session.borrow().terrain() {
-            terrain.apply_hill_palette(palette);
+        if let Ok(runner) = self.runner.try_borrow() {
+            runner.apply_palette(palette);
         }
-        palette.set(253, [10, 54, 10]);
-        palette.set(254, [0, 47, 0]);
     }
 }

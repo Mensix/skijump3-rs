@@ -5,7 +5,7 @@ use crate::jump::animation::{
 };
 use crate::jump::math::{nsqrt, pascal_round};
 use crate::jump::scoring;
-use crate::jump::types::{FlightWind, JumpInput, JumpOutcome, JumpPhase};
+use crate::jump::types::{FlightWind, JumpInput, JumpOutcome, JumpPhase, JumpSnapshot};
 use crate::pascal_random::PascalRandom;
 
 #[derive(Debug, Clone)]
@@ -156,6 +156,21 @@ impl JumpState {
             fall_type: self.fall_type,
             aborted: false,
         })
+    }
+
+    pub(crate) fn snapshot(&self) -> JumpSnapshot {
+        JumpSnapshot {
+            phase: self.phase,
+            frame: self.frame,
+            x: self.x,
+            y: self.y,
+            height: self.height,
+            distance: self.distance,
+            body_angle: self.body_angle,
+            ski_angle: self.ski_angle,
+            speed: self.px,
+            start_gate: self.start_gate,
+        }
     }
 
     fn adjust_start_gate(&mut self, delta: i32) {

@@ -25,4 +25,14 @@ impl JumpPolicy {
             control: JumperControl::Human,
         }
     }
+
+    pub(crate) const fn competition() -> Self {
+        Self {
+            allow_start_gate_adjust: false,
+            allow_wind_reset: false,
+            count_onbar_frames: true,
+            save_hill_records: true,
+            control: JumperControl::Human,
+        }
+    }
 }
