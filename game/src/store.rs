@@ -1,12 +1,15 @@
+use crate::data::hill_profile::HillTerrain;
 use crate::data::profile::ProfileStore;
 use crate::data::records::{HillCatalog, RecordStore};
 use crate::data::world_cup::WorldCupState;
 use crate::jump::replay::ReplayTrace;
+use crate::loaders::assets::AssetStore;
 use crate::parsers::langbase::LangBase;
 use crate::pascal_random::PascalRandom;
 use crate::wind::PascalWind;
 use engine::ui::Font;
 use std::cell::{Cell, RefCell};
+use std::collections::HashMap;
 use std::rc::Rc;
 
 #[derive(Debug, Clone)]
@@ -15,6 +18,8 @@ pub struct Resources {
     pub langbase: Rc<LangBase>,
     pub player_names: Vec<String>,
     pub hills: HillCatalog,
+    assets: AssetStore,
+    hill_cache: RefCell<HashMap<usize, Rc<HillTerrain>>>,
 }
 
 impl Resources {
@@ -23,13 +28,30 @@ impl Resources {
         langbase: Rc<LangBase>,
         player_names: Vec<String>,
         hills: HillCatalog,
+        assets: AssetStore,
     ) -> Self {
         Self {
             font,
             langbase,
             player_names,
             hills,
+            assets,
+            hill_cache: RefCell::new(HashMap::new()),
         }
+    }
+
+    pub fn hill_terrain(&self, hill_idx: usize) -> Result<Rc<HillTerrain>, String> {
+        let mut cache = self.hill_cache.borrow_mut();
+        if let Some(terrain) = cache.get(&hill_idx) {
+            return Ok(Rc::clone(terrain));
+        }
+        let info = self
+            .hills
+            .hill(hill_idx)
+            .ok_or_else(|| format!("Hill {} not found", hill_idx))?;
+        let terrain = Rc::new(HillTerrain::load(&self.assets, info)?);
+        cache.insert(hill_idx, Rc::clone(&terrain));
+        Ok(terrain)
     }
 }
 

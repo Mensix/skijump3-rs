@@ -62,9 +62,6 @@ impl AssetParser<HillCatalog> for HillBaseParser {
         Ok(HillCatalog::new(hills))
     }
 
-    fn validate(data: &[u8]) -> bool {
-        data.starts_with(b"-HILLBASE.SKI-")
-    }
 }
 
 fn parse_i64(lines: &[String], idx: usize) -> i64 {

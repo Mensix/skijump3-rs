@@ -26,5 +26,4 @@ impl std::error::Error for ParseError {}
 
 pub trait AssetParser<T> {
     fn parse(data: &[u8]) -> Result<T, ParseError>;
-    fn validate(data: &[u8]) -> bool;
 }

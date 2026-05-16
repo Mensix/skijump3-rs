@@ -1,5 +1,4 @@
 use crate::components::save_replay_dialog::{SaveAction, SaveReplayDialog};
-use crate::data::hill_profile::HillTerrain;
 use crate::jump::{JumpConfig, JumpParticipant, JumpPolicy, JumpRunner};
 use crate::route::RouteTarget;
 use crate::snow::SnowSystem;
@@ -20,10 +19,7 @@ impl JumpView {
     pub fn new(resources: ResourcesRef, store: StoreRef) -> Self {
         let hill_idx = store.practice.selected_hill.get();
         let hill = resources.hills.hill(hill_idx).cloned();
-        let terrain = hill
-            .as_ref()
-            .ok_or_else(|| format!("Hill {} not found", hill_idx))
-            .and_then(HillTerrain::load);
+        let terrain = resources.hill_terrain(hill_idx).map(|t| (*t).clone());
 
         let mut snow = SnowSystem::new();
 

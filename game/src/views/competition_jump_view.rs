@@ -1,4 +1,3 @@
-use crate::data::hill_profile::HillTerrain;
 use crate::jump::{JumpConfig, JumpParticipant, JumpPolicy, JumpRunner};
 use crate::palette_consts::FONT_DEFAULT;
 use crate::route::RouteTarget;
@@ -37,10 +36,7 @@ impl CompetitionJumpView {
             .cloned()
             .unwrap_or_else(JumpParticipant::trainee);
         let hill = resources.hills.hill(hill_idx).cloned();
-        let terrain = hill
-            .as_ref()
-            .ok_or_else(|| format!("Hill {} not found", hill_idx))
-            .and_then(HillTerrain::load);
+        let terrain = resources.hill_terrain(hill_idx).map(|t| (*t).clone());
         let mut snow = SnowSystem::new();
         if terrain.is_ok() && hill.is_some() {
             let mut rng = store.rng.borrow_mut();

@@ -78,10 +78,4 @@ impl AssetParser<DecodedPcx> for PcxParser {
         })
     }
 
-    fn validate(data: &[u8]) -> bool {
-        if data.len() < PCX_HEADER_SIZE + 769 {
-            return false;
-        }
-        data[0] == 10 && data[2] == 1 && (data[3] & 0x80) != 0
-    }
 }

@@ -88,7 +88,4 @@ impl AssetParser<Vec<SpriteData>> for AnimParser {
         Ok(sprites)
     }
 
-    fn validate(data: &[u8]) -> bool {
-        data.len() > 4
-    }
 }

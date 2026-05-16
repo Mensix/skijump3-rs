@@ -58,10 +58,4 @@ impl AssetParser<Vec<String>> for NamesParser {
         Ok(names)
     }
 
-    fn validate(data: &[u8]) -> bool {
-        if data.len() < 10 {
-            return false;
-        }
-        data.starts_with(b"***")
-    }
 }

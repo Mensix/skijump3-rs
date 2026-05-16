@@ -1,6 +1,7 @@
 use crate::components::replay_playback::ReplayPlayback;
 use crate::data::hill_profile::HillTerrain;
 use crate::jump::math::pascal_round;
+use crate::parsers::langbase::LangBase;
 use crate::jump::presentation::{self, WindGaugePosition};
 use crate::jump::replay_player::ReplaySession;
 use crate::palette_consts::*;
@@ -37,9 +38,8 @@ impl ReplayView {
         let trace = store.selected_replay.borrow().clone();
         let terrain = trace
             .as_ref()
-            .and_then(|trace| resources.hills.hill(trace.meta.hill_idx))
-            .ok_or_else(|| "Replay hill not found".to_string())
-            .and_then(HillTerrain::load);
+            .map(|trace| resources.hill_terrain(trace.meta.hill_idx).map(|t| (*t).clone()))
+            .unwrap_or_else(|| Err("Replay hill not found".to_string()));
         let mut snow = SnowSystem::new();
         if let Some(trace) = &trace {
             snow.set_count(trace.meta.snow_count, &mut store.rng.borrow_mut());
@@ -376,7 +376,7 @@ fn replay_distance(session: &ReplaySession, hill_pk: f64) -> String {
     format_distance(raw)
 }
 
-fn replay_gate_text(langbase: &crate::parsers::langbase::LangBase, gate: i32) -> Option<String> {
+fn replay_gate_text(langbase: &LangBase, gate: i32) -> Option<String> {
     match gate {
         1..=5 => Some(langbase.lstr((26 + gate) as usize).to_string()),
         11.. => Some(format!("{} {}", langbase.lstr(58), 100 - gate)),
@@ -384,7 +384,7 @@ fn replay_gate_text(langbase: &crate::parsers::langbase::LangBase, gate: i32) ->
     }
 }
 
-fn replay_speed_text(speed: u8, langbase: &crate::parsers::langbase::LangBase) -> String {
+fn replay_speed_text(speed: u8, langbase: &LangBase) -> String {
     match speed {
         0 => langbase.lstr(343).to_string(),
         1 => "50%".to_string(),
@@ -398,7 +398,7 @@ fn replay_speed_text(speed: u8, langbase: &crate::parsers::langbase::LangBase) -
 
 fn intro_box_elements(
     els: &mut Vec<Element>,
-    langbase: &crate::parsers::langbase::LangBase,
+    langbase: &LangBase,
     phase: u8,
 ) {
     let ix = 30;

@@ -83,11 +83,11 @@ mod tests {
 }
 
 impl HillTerrain {
-    pub fn load(info: &HillInfo) -> Result<Self, String> {
-        let front_data = AssetStore::read(&format!("FRONT{}.PCX", info.front_index))
+    pub fn load(assets: &AssetStore, info: &HillInfo) -> Result<Self, String> {
+        let front_data = assets.read(&format!("FRONT{}.PCX", info.front_index))
             .map_err(|e| e.to_string())?;
         let back_data =
-            AssetStore::read(&format!("BACK{}.PCX", info.back_index)).map_err(|e| e.to_string())?;
+            assets.read(&format!("BACK{}.PCX", info.back_index)).map_err(|e| e.to_string())?;
         let front = PcxParser::parse(&front_data).map_err(|e| e.to_string())?;
         let mut back = PcxParser::parse(&back_data).map_err(|e| e.to_string())?;
         if info.back_mirror != 0 {

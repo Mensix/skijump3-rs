@@ -105,7 +105,4 @@ impl AssetParser<LangBase> for LangBaseParser {
         Ok(LangBase { strings, languages })
     }
 
-    fn validate(data: &[u8]) -> bool {
-        data.len() > 10
-    }
 }

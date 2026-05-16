@@ -15,6 +15,7 @@ pub mod views;
 pub mod wind;
 
 use crate::components::layout::MainLayout;
+use crate::data::records::{HillCatalog, RecordStore};
 use crate::store::{Resources, ResourcesRef, Store, StoreRef};
 use engine::consts::{FONT_GLYPH_COUNT, HEIGHT, WIDTH};
 use engine::input::Input;
@@ -114,10 +115,10 @@ fn load_font(sprites: &[SpriteData]) -> Font {
     font
 }
 
-fn load_player_names() -> Vec<String> {
+fn load_player_names(assets: &AssetStore) -> Vec<String> {
     let mut all_names = Vec::new();
     for &filename in NAMES_FILES {
-        if let Ok(data) = AssetStore::read(filename) {
+        if let Ok(data) = assets.read(filename) {
             if let Ok(names) = NamesParser::parse(&data) {
                 all_names.extend(names);
             }
@@ -140,7 +141,8 @@ pub struct Game {
 impl Game {
     pub fn new() -> Result<Self, String> {
         let (sdl, mut renderer, input) = Self::init_sdl()?;
-        let (pixels, pcx_palette, sprites, langbase) = Self::load_assets()?;
+        let assets = AssetStore::new("game/assets");
+        let (pixels, pcx_palette, sprites, langbase) = Self::load_assets(&assets)?;
 
         let font = load_font(&sprites);
         let framebuffer = vec![0u8; (WIDTH * HEIGHT) as usize];
@@ -149,11 +151,11 @@ impl Game {
         apply_standard_ui_palette(&mut base_palette);
         renderer.set_palette(base_palette.clone());
 
-        let player_names = load_player_names();
-        let hills = Self::load_hills()?;
-        let records = Self::load_records()?;
+        let player_names = load_player_names(&assets);
+        let hills = Self::load_hills(&assets)?;
+        let records = Self::load_records(&assets)?;
         let resources: ResourcesRef =
-            Rc::new(Resources::new(font.clone(), langbase, player_names, hills));
+            Rc::new(Resources::new(font.clone(), langbase, player_names, hills, assets));
         let store: StoreRef = Rc::new(Store::new(records));
         let router = Self::create_router(resources, pixels, store);
 
@@ -177,26 +179,26 @@ impl Game {
     }
 
     #[allow(clippy::type_complexity)]
-    fn load_assets() -> Result<(Vec<u8>, Palette, Vec<SpriteData>, Rc<LangBase>), String> {
-        let pcx_data = AssetStore::read(MAIN_PCX).map_err(|e| e.to_string())?;
+    fn load_assets(assets: &AssetStore) -> Result<(Vec<u8>, Palette, Vec<SpriteData>, Rc<LangBase>), String> {
+        let pcx_data = assets.read(MAIN_PCX).map_err(|e| e.to_string())?;
         let decoded = PcxParser::parse(&pcx_data).map_err(|e| e.to_string())?;
 
-        let anim_data = AssetStore::read(ANIM_SKI).map_err(|e| e.to_string())?;
+        let anim_data = assets.read(ANIM_SKI).map_err(|e| e.to_string())?;
         let sprites: Vec<SpriteData> = AnimParser::parse(&anim_data).map_err(|e| e.to_string())?;
 
-        let langbase_data = AssetStore::read(LANGBASE_SKI).map_err(|e| e.to_string())?;
+        let langbase_data = assets.read(LANGBASE_SKI).map_err(|e| e.to_string())?;
         let langbase = Rc::new(LangBaseParser::parse(&langbase_data).map_err(|e| e.to_string())?);
 
         Ok((decoded.pixels, decoded.palette, sprites, langbase))
     }
 
-    fn load_hills() -> Result<crate::data::records::HillCatalog, String> {
-        let data = AssetStore::read(HILLBASE_SKI).map_err(|e| e.to_string())?;
+    fn load_hills(assets: &AssetStore) -> Result<HillCatalog, String> {
+        let data = assets.read(HILLBASE_SKI).map_err(|e| e.to_string())?;
         HillBaseParser::parse(&data).map_err(|e| e.to_string())
     }
 
-    fn load_records() -> Result<crate::data::records::RecordStore, String> {
-        let data = AssetStore::read(HISCORE_SKI).map_err(|e| e.to_string())?;
+    fn load_records(assets: &AssetStore) -> Result<RecordStore, String> {
+        let data = assets.read(HISCORE_SKI).map_err(|e| e.to_string())?;
         RecordsParser::parse(&data).map_err(|e| e.to_string())
     }
 

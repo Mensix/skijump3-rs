@@ -111,7 +111,4 @@ impl AssetParser<RecordStore> for RecordsParser {
         Ok(RecordStore::new(top, hill_records))
     }
 
-    fn validate(data: &[u8]) -> bool {
-        data.starts_with(b"HISCORE.SKI")
-    }
 }

@@ -1,8 +1,15 @@
-pub struct AssetStore;
+#[derive(Debug, Clone)]
+pub struct AssetStore {
+    base: std::path::PathBuf,
+}
 
 impl AssetStore {
-    pub fn read(name: &str) -> Result<Vec<u8>, std::io::Error> {
-        let path = std::path::Path::new("game/assets").join(name);
+    pub fn new(base: impl Into<std::path::PathBuf>) -> Self {
+        Self { base: base.into() }
+    }
+
+    pub fn read(&self, name: &str) -> Result<Vec<u8>, std::io::Error> {
+        let path = self.base.join(name);
         std::fs::read(path)
     }
 }
