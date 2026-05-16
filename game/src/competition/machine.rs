@@ -13,6 +13,7 @@ const ROUND2_SPOTS: usize = 30;
 /// 3. `record_jump(points, length)` → store result
 /// 4. `advance()` → move to next jumper or next phase
 /// 5. `is_over()` → season finished?
+#[derive(Debug, Clone)]
 pub struct Competition {
     pub field: CompetitionField,
     pub style: CupStyle,
@@ -171,25 +172,18 @@ impl Competition {
     }
 
     fn enter_setup(&mut self) {
-        let previous_top10: Vec<usize> = if self.current_event > 0 {
-            (0..self.field.len())
-                .filter(|&idx| self.field.get(idx).rank <= 10 && self.field.get(idx).rank > 0)
-                .collect()
-        } else {
-            Vec::new()
-        };
-
         self.field.reset_event();
         self.field.tick_injuries();
+        self.field.sort_field(SortBy::WcPoints);
 
-        // Pre-qualify top 10 from last event
-        for idx in previous_top10 {
-            if self.field.get(idx).injury == 0 {
-                self.field.get_mut(idx).qual = QualificationStatus::PreQualified;
+        // Top 10 in overall WC classification skip qualification
+        if self.current_event > 0 {
+            for idx in 0..self.field.len() {
+                if self.field.get(idx).rank <= 10 && self.field.get(idx).injury == 0 {
+                    self.field.get_mut(idx).qual = QualificationStatus::PreQualified;
+                }
             }
         }
-
-        self.field.sort_field(SortBy::WcPoints);
 
         if self.trainrounds > 0 {
             self.enter_phase(CompetitionPhase::Training(1));

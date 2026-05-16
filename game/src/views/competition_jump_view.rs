@@ -1,4 +1,7 @@
-use crate::jump::{JumpConfig, JumpParticipant, JumpPolicy, JumpRunner};
+use crate::competition::types::Participant;
+use crate::jump::config::JumpParticipant;
+use crate::jump::policy::JumperControl;
+use crate::jump::{JumpConfig, JumpPolicy, JumpRunner};
 use crate::palette_consts::FONT_DEFAULT;
 use crate::route::RouteTarget;
 use crate::snow::SnowSystem;
@@ -13,6 +16,22 @@ pub(crate) struct CompetitionJumpView {
     runner: Option<RefCell<JumpRunner>>,
 }
 
+fn to_jump_participant(p: &Participant) -> JumpParticipant {
+    JumpParticipant {
+        id: p.id,
+        name: p.name.clone(),
+        real_name: p.real_name.clone(),
+        suit_color: p.suit_color,
+        ski_color: p.ski_color,
+        team: p.team,
+        control: if p.is_computer {
+            JumperControl::Computer
+        } else {
+            JumperControl::Human
+        },
+    }
+}
+
 impl CompetitionJumpView {
     pub(crate) fn new(resources: ResourcesRef, store: StoreRef) -> Self {
         let runner = Self::build_runner(&resources, &store).map(RefCell::new);
@@ -24,17 +43,12 @@ impl CompetitionJumpView {
     }
 
     fn build_runner(resources: &ResourcesRef, store: &StoreRef) -> Option<JumpRunner> {
-        let world_cup = store.world_cup.borrow();
-        let cup = world_cup.as_ref()?;
-        let hill_idx = cup
-            .competition
-            .as_ref()
-            .map_or_else(|| cup.hill_order.first().copied(), |c| Some(c.hill_idx))?;
-        let participant = cup
-            .participants
-            .first()
-            .cloned()
-            .unwrap_or_else(JumpParticipant::trainee);
+        let comp = store.competition.borrow();
+        let c = comp.as_ref()?;
+        let hill_idx = c.hill_order.get(c.current_event).copied()?;
+        let jumper_idx = c.current_jumper()?;
+        let participant = to_jump_participant(c.field.get(jumper_idx));
+
         let hill = resources.hills.hill(hill_idx).cloned();
         let terrain = resources.hill_terrain(hill_idx).map(|t| (*t).clone());
         let mut snow = SnowSystem::new();

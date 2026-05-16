@@ -1,7 +1,7 @@
+use crate::competition::machine::Competition;
 use crate::data::hill_profile::HillTerrain;
 use crate::data::profile::ProfileStore;
 use crate::data::records::{HillCatalog, RecordStore};
-use crate::data::world_cup::WorldCupState;
 use crate::jump::replay::ReplayTrace;
 use crate::loaders::assets::AssetStore;
 use crate::parsers::langbase::LangBase;
@@ -81,7 +81,7 @@ pub struct Store {
     pub wind: RefCell<PascalWind>,
     pub wind_place: Cell<u8>,
     pub practice: PracticeState,
-    pub(crate) world_cup: RefCell<Option<WorldCupState>>,
+    pub(crate) competition: RefCell<Option<Competition>>,
     pub selected_hill: Cell<usize>,
     pub start_gate: Cell<i32>,
     pub eka: Cell<bool>,
@@ -105,7 +105,7 @@ impl Store {
             wind: RefCell::new(PascalWind::default()),
             wind_place: Cell::new(0),
             practice: PracticeState::default(),
-            world_cup: RefCell::new(None),
+            competition: RefCell::new(None),
             selected_hill: Cell::new(1),
             start_gate: Cell::new(15),
             eka: Cell::new(true),

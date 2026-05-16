@@ -13,6 +13,7 @@ pub enum SortBy {
 /// Maintains two orderings independently:
 /// - `master_order` — sorted by season points (World Cup / Four Hills)
 /// - `event_order`  — sorted by current event points
+#[derive(Debug, Clone)]
 pub struct CompetitionField {
     participants: Vec<Participant>,
     pub master_order: Vec<usize>,
