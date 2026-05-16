@@ -1,17 +1,22 @@
+use crate::competition::builder::build_competition;
+use crate::competition::types::CupStyle;
 use crate::components::layout::{self, MainLayout};
 use crate::components::menu::{Menu, MenuItem};
 use crate::palette_consts::{FONT_DEFAULT, BG_LIST, FONT_HEADER, BG_ERASE};
 use crate::route::RouteTarget;
+use crate::store::{ResourcesRef, StoreRef};
 use engine::ui::{Component, Element, Event, View};
 
 pub struct JumpMenuView {
     menu: Menu,
     layout: MainLayout,
+    store: StoreRef,
+    resources: ResourcesRef,
 }
 
 impl JumpMenuView {
     #[must_use] 
-    pub fn new(layout: MainLayout) -> Self {
+    pub fn new(layout: MainLayout, store: StoreRef, resources: ResourcesRef) -> Self {
         let items = vec![
             MenuItem {
                 num: 1,
@@ -61,6 +66,8 @@ impl JumpMenuView {
                 FONT_DEFAULT,
             ),
             layout,
+            store,
+            resources,
         }
     }
 }
@@ -86,7 +93,20 @@ impl View<RouteTarget> for JumpMenuView {
     fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {
         match self.menu.handle_event(&event) {
             Some(6) => Some(RouteTarget::Practice),
-            Some(0) | Some(1) | Some(2) | Some(3) | Some(4) | Some(5) | Some(7) => {
+            Some(1) => {
+                let profiles = self.store.profiles.borrow();
+                let comp = build_competition(
+                    CupStyle::WorldCup,
+                    &profiles,
+                    &self.resources.player_names,
+                    self.resources.hills.len(),
+                    2,
+                );
+                drop(profiles);
+                *self.store.competition.borrow_mut() = Some(comp);
+                Some(RouteTarget::CompetitionJump)
+            }
+            Some(0) | Some(2) | Some(3) | Some(4) | Some(5) | Some(7) => {
                 Some(RouteTarget::MainMenu)
             }
             _ => None,

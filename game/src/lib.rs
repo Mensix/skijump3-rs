@@ -247,7 +247,9 @@ impl Game {
                 }),
                 (RouteTarget::JumpMenu, {
                     let l = layout.clone();
-                    Box::new(move || Box::new(JumpMenuView::new(l.clone())))
+                    let r = resources.clone();
+                    let s = store.clone();
+                    Box::new(move || Box::new(JumpMenuView::new(l.clone(), s.clone(), r.clone())))
                 }),
                 (RouteTarget::Practice, {
                     let r = resources.clone();

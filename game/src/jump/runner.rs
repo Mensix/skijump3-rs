@@ -8,7 +8,9 @@ use crate::jump::{
     WindGaugePosition,
 };
 use crate::jump::JumpParticipant;
+use crate::pascal_random::PascalRandom;
 use crate::palette_consts::FONT_DEFAULT;
+use crate::wind::PascalWind;
 use crate::snow::SnowSystem;
 use crate::store::{ResourcesRef, StoreRef};
 use engine::consts::{HEIGHT, WIDTH};
@@ -103,6 +105,28 @@ impl JumpRunner {
         }
         self.computer_input = (self.config.participant.control == JumperControl::Computer)
             .then(ComputerInputProvider::new);
+    }
+
+    /// Fast-forward computer jump simulation to completion without rendering.
+    /// Drives computer AI inputs and ticks physics until outcome is available.
+    pub(crate) fn simulate_to_completion(
+        &mut self,
+        rng: &mut PascalRandom,
+        wind: &mut PascalWind,
+    ) -> JumpOutcome {
+        loop {
+            if let Some(outcome) = self.session.outcome() {
+                return outcome;
+            }
+            if let Some(snapshot) = self.session.snapshot() {
+                if let Some(input) = &mut self.computer_input {
+                    for inp in input.inputs(&snapshot, rng) {
+                        self.session.handle_input(inp);
+                    }
+                }
+            }
+            self.session.tick_with_wind(rng, wind);
+        }
     }
 
     /// Swap participant without recreating snow/wind state.
