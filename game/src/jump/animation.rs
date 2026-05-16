@@ -2,7 +2,7 @@ fn rust_sprite(pascal_anim: u16) -> u16 {
     pascal_anim.saturating_sub(1)
 }
 
-#[must_use] 
+#[must_use]
 pub fn crash_risk(slope_angle: i32) -> i64 {
     let extra = match slope_angle {
         31 => 1,
@@ -27,7 +27,7 @@ pub fn crash_risk(slope_angle: i32) -> i64 {
     1 + extra
 }
 
-#[must_use] 
+#[must_use]
 pub fn slope_ski_anim(slope_angle: i32) -> u16 {
     let value = match slope_angle {
         4..=6 => 1,
@@ -47,7 +47,7 @@ pub fn slope_ski_anim(slope_angle: i32) -> u16 {
     rust_sprite(value + 71)
 }
 
-#[must_use] 
+#[must_use]
 pub fn inrun_body_anim(ski_anim: u16) -> u16 {
     let ski = ski_anim.saturating_sub(rust_sprite(71));
     let value = match ski {
@@ -60,12 +60,12 @@ pub fn inrun_body_anim(ski_anim: u16) -> u16 {
     rust_sprite(value + 101)
 }
 
-#[must_use] 
+#[must_use]
 pub fn inrun_transition_body_anim(counter: i32) -> u16 {
     rust_sprite((165 + counter / 7) as u16)
 }
 
-#[must_use] 
+#[must_use]
 pub fn landing_body_anim(mut ski_anim: u16, landing_style: u8) -> u16 {
     if ski_anim >= rust_sprite(71) {
         ski_anim -= rust_sprite(71);
@@ -91,7 +91,7 @@ fn landing_loop_body_anim(counter: i32, slope_ski_anim: u16, landing_style: u8) 
     landing_body_anim(slope_ski_anim, landing_style)
 }
 
-#[must_use] 
+#[must_use]
 pub fn post_landing_body_anim(
     counter: i32,
     start_anim: i32,
@@ -128,7 +128,7 @@ pub fn post_landing_body_anim(
     rust_sprite(pascal_anim as u16)
 }
 
-#[must_use] 
+#[must_use]
 pub fn fall_body_anim(
     fall_type: u8,
     counter: i32,
@@ -195,7 +195,7 @@ pub fn takeoff_body_anim(phase: &mut u8) -> u16 {
     rust_sprite(value)
 }
 
-#[must_use] 
+#[must_use]
 pub fn flight_body_anim(body_angle: i32) -> u16 {
     let value = match body_angle {
         50..=61 => 1,
@@ -210,7 +210,7 @@ pub fn flight_body_anim(body_angle: i32) -> u16 {
     rust_sprite(value + 106)
 }
 
-#[must_use] 
+#[must_use]
 pub fn flight_ski_anim(ski_angle: i32) -> u16 {
     let value = match ski_angle {
         -900..=-258 => 19,
@@ -229,6 +229,24 @@ pub fn flight_ski_anim(ski_angle: i32) -> u16 {
         _ => 0,
     };
     rust_sprite(value + 71)
+}
+
+#[must_use]
+pub(crate) fn landing_height(slope_angle: i32) -> i32 {
+    match slope_angle {
+        0..=24 => 50,
+        25 => 48,
+        26 => 45,
+        27 => 40,
+        28 => 36,
+        29 => 32,
+        30 => 28,
+        31 => 24,
+        32 => 22,
+        33..=39 => 20,
+        40..=60 => 15,
+        _ => 25,
+    }
 }
 
 #[cfg(test)]
@@ -259,23 +277,6 @@ mod tests {
         assert_eq!(flight_body_anim(187), 112);
         assert_eq!(flight_ski_anim(-258), 89);
         assert_eq!(flight_ski_anim(20), 71);
-    }
-
-    fn landing_height(slope_angle: i32) -> i32 {
-        match slope_angle {
-            0..=24 => 50,
-            25 => 48,
-            26 => 45,
-            27 => 40,
-            28 => 36,
-            29 => 32,
-            30 => 28,
-            31 => 24,
-            32 => 22,
-            33..=39 => 20,
-            40..=60 => 15,
-            _ => 25,
-        }
     }
 
     #[test]

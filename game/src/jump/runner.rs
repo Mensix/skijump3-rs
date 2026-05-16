@@ -3,16 +3,16 @@ use crate::jump::policy::JumpPolicy;
 use crate::jump::presentation;
 use crate::jump::replay::ReplayTrace;
 use crate::jump::types::JumpOutcome;
+use crate::jump::JumpParticipant;
 use crate::jump::{
     ComputerInputProvider, JumpInputProvider, JumpPresentationContext, JumpSession, JumperControl,
     WindGaugePosition,
 };
-use crate::jump::JumpParticipant;
-use crate::pascal_random::PascalRandom;
 use crate::palette_consts::FONT_DEFAULT;
-use crate::wind::PascalWind;
+use crate::pascal_random::PascalRandom;
 use crate::snow::SnowSystem;
 use crate::store::{ResourcesRef, StoreRef};
+use crate::wind::PascalWind;
 use engine::consts::{HEIGHT, WIDTH};
 use engine::palette::Palette;
 use engine::ui::Element;
@@ -74,7 +74,7 @@ impl JumpRunner {
     pub(crate) fn new(config: JumpConfig) -> Self {
         let session = JumpSession::new(config.clone());
         let computer_input = (config.participant.control == JumperControl::Computer)
-            .then(ComputerInputProvider::new);
+            .then(|| ComputerInputProvider::new(config.participant.id));
         Self {
             session,
             config,
@@ -109,7 +109,7 @@ impl JumpRunner {
             self.session.reset_state(hill, start_gate, record_distance);
         }
         self.computer_input = (self.config.participant.control == JumperControl::Computer)
-            .then(ComputerInputProvider::new);
+            .then(|| ComputerInputProvider::new(self.config.participant.id));
     }
 
     /// Fast-forward computer jump simulation to completion without rendering.
@@ -146,7 +146,7 @@ impl JumpRunner {
     pub(crate) fn set_participant(&mut self, participant: JumpParticipant) {
         self.config.participant = participant;
         self.computer_input = (self.config.participant.control == JumperControl::Computer)
-            .then(ComputerInputProvider::new);
+            .then(|| ComputerInputProvider::new(self.config.participant.id));
     }
 
     pub(crate) fn elements(&mut self, resources: &ResourcesRef, store: &StoreRef) -> Vec<Element> {

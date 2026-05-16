@@ -152,7 +152,11 @@ impl JumpSession {
     }
 
     pub(crate) fn snapshot(&self) -> Option<JumpSnapshot> {
-        self.state.as_ref().map(JumpState::snapshot)
+        match (&self.terrain, &self.state) {
+            (Ok(terrain), Some(state)) => Some(state.snapshot_with_terrain(terrain)),
+            (_, Some(state)) => Some(state.snapshot()),
+            _ => None,
+        }
     }
 
     pub(crate) fn phase(&self) -> Option<JumpPhase> {

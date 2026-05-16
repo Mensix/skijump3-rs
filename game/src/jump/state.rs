@@ -163,14 +163,23 @@ impl JumpState {
             phase: self.phase,
             frame: self.frame,
             x: self.x,
+            table_distance: self.matka,
             y: self.y,
             height: self.height,
+            delta_height_sum: self.delta_height[0] + self.delta_height[1] + self.delta_height[2],
+            slope_angle: 0,
             distance: self.distance,
             body_angle: self.body_angle,
             ski_angle: self.ski_angle,
             speed: self.px,
             start_gate: self.start_gate,
         }
+    }
+
+    pub(crate) fn snapshot_with_terrain(&self, terrain: &HillTerrain) -> JumpSnapshot {
+        let mut snapshot = self.snapshot();
+        snapshot.slope_angle = terrain.maki_kulma(self.x);
+        snapshot
     }
 
     fn adjust_start_gate(&mut self, delta: i32) {
