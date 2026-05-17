@@ -75,11 +75,11 @@ impl WorldCupJumpView {
         hill_idx: usize,
         phase_label: String,
     ) {
-        self.result_acknowledged.set(false);
         let needs_rebuild = self.scene.participant_id() != participant.id
             || self.scene.hill_idx() != hill_idx
-            || self.scene.outcome().is_some();
+            || (self.scene.outcome().is_some() && self.result_acknowledged.get());
         if needs_rebuild {
+            self.result_acknowledged.set(false);
             self.scene
                 .rebuild_for_competition(hill_idx, 15, participant, phase_label);
         } else {

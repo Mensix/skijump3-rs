@@ -127,9 +127,22 @@ impl JumpScene {
     /// Does not mutate the visible runner — safe to call from a `&self`
     /// context alongside the view's own `&self` scene usage.
     pub fn simulate_hidden(&self, participant: JumpParticipant, hill_idx: usize) -> JumpOutcome {
-        let (hill, terrain, record_distance) =
-            Self::load_hill_data(&self.resources, &self.store, hill_idx);
-        let mut runner = JumpRunner::new(
+        let mut runner =
+            Self::build_hidden_runner(&self.resources, &self.store, participant, hill_idx);
+        let mut rng = self.store.rng.borrow_mut();
+        let mut wind = self.store.wind.borrow_mut();
+        runner.simulate_to_completion(&mut rng, &mut wind)
+    }
+
+    /// Build a hidden computer-runner (no snow, no wind init).
+    fn build_hidden_runner(
+        resources: &ResourcesRef,
+        store: &StoreRef,
+        participant: JumpParticipant,
+        hill_idx: usize,
+    ) -> JumpRunner {
+        let (hill, terrain, record_distance) = Self::load_hill_data(resources, store, hill_idx);
+        JumpRunner::new(
             JumpConfig {
                 hill_idx,
                 hill,
@@ -142,10 +155,7 @@ impl JumpScene {
                 phase_label: String::new(),
             },
             SnowSystem::new(),
-        );
-        let mut rng = self.store.rng.borrow_mut();
-        let mut wind = self.store.wind.borrow_mut();
-        runner.simulate_to_completion(&mut rng, &mut wind)
+        )
     }
 
     pub fn elements(&self) -> Vec<Element> {
