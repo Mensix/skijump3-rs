@@ -3,6 +3,7 @@ use crate::jump::animation::{
     fall_body_anim, flight_body_anim, flight_ski_anim, inrun_body_anim, inrun_transition_body_anim,
     landing_body_anim, post_landing_body_anim, slope_ski_anim, takeoff_body_anim,
 };
+use crate::gfx::sprites::Sprite;
 use crate::jump::math::{self, nsqrt};
 use crate::jump::scoring;
 use crate::jump::types::{FallType, FlightWind, JumpInput, JumpOutcome, JumpPhase, JumpSnapshot};
@@ -666,8 +667,8 @@ impl JumpState {
 
     pub(crate) fn anims(&mut self, terrain: &HillTerrain) -> (u16, u16) {
         match self.phase {
-            JumpPhase::Info => (163, slope_ski_anim(terrain.hill_angle(self.x))),
-            JumpPhase::OnBar => (163, slope_ski_anim(terrain.hill_angle(self.x))),
+            JumpPhase::Info => (Sprite::IdleBody as u16, slope_ski_anim(terrain.hill_angle(self.x))),
+            JumpPhase::OnBar => (Sprite::IdleBody as u16, slope_ski_anim(terrain.hill_angle(self.x))),
             JumpPhase::Inrun => {
                 let ski = slope_ski_anim(terrain.hill_angle(self.x));
                 if self.takeoff_counter > 0 {

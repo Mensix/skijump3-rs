@@ -26,10 +26,10 @@ pub fn new_screen(style: u8) -> Vec<Element> {
     els.push(Element::FillArea { thing: 63 });
 
     match style {
-        1 => els.push(Element::sprite(sprites::LOGO_SPRITE, 5, 2)),
+        1 => els.push(Element::sprite(sprites::Sprite::Logo as u16, 5, 2)),
         4 => {
-            els.push(Element::sprite(sprites::LOGO_SPRITE, 5, 2));
-            els.push(Element::sprite(sprites::LOGO_SPRITE, 5, 122));
+            els.push(Element::sprite(sprites::Sprite::Logo as u16, 5, 2));
+            els.push(Element::sprite(sprites::Sprite::Logo as u16, 5, 122));
         }
         _ => {}
     }

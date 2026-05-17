@@ -126,7 +126,7 @@ impl View<RouteTarget> for PracticeView {
             Element::fillbox(12, 0, 296, 200, 243),
             Element::fillbox(309, 0, 11, 200, 245),
             Element::FillArea { thing: 63 },
-            Element::sprite(sprites::LOGO_SPRITE, 30, 8),
+            Element::sprite(sprites::Sprite::Logo as u16, 30, 8),
             Element::text_color(self.resources.langbase.lstr(151), 30, 31, FONT_DEFAULT),
             Element::text_color(self.resources.langbase.lstr(152), 30, 41, FONT_DEFAULT),
             Element::text_color(self.resources.langbase.lstr(153), 30, 51, FONT_DEFAULT),

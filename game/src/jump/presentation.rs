@@ -61,11 +61,11 @@ pub fn elements(frame: &JumpRenderFrame, ctx: &JumpPresentationContext<'_>) -> V
     if frame.phase == JumpPhase::OnBar
         && (frame.frame_counter < 350 || (frame.frame_counter % 40) > 19)
     {
-        els.push(Element::sprite(sprites::START_LIGHT, jumper_x + 60, jumper_y - 10));
+        els.push(Element::sprite(sprites::Sprite::StartLight as u16, jumper_x + 60, jumper_y - 10));
     }
 
     if let Some((hr_x, hr_y)) = frame.hill_record_marker {
-        els.push(Element::sprite(sprites::HILL_RECORD_MARKER, hr_x - frame.sx, hr_y - frame.sy));
+        els.push(Element::sprite(sprites::Sprite::HillRecordMarker as u16, hr_x - frame.sx, hr_y - frame.sy));
     }
 
     // Pascal: jumper not drawn during Info phase (only hill + info panel)
@@ -85,8 +85,8 @@ fn info_elements(
     frame: &JumpRenderFrame,
     ctx: &JumpPresentationContext<'_>,
 ) {
-    els.push(Element::sprite(sprites::INFO_PANEL, 227, 2));
-    els.push(Element::sprite(sprites::JUMPER_INFO_BOX, 3, 150));
+    els.push(Element::sprite(sprites::Sprite::InfoPanel as u16, 227, 2));
+    els.push(Element::sprite(sprites::Sprite::JumperInfoBox as u16, 3, 150));
     els.push(Element::text_color_right(
         ctx.hill_name_k,
         308,
@@ -151,7 +151,7 @@ fn result_elements(
     frame: &JumpRenderFrame,
     ctx: &JumpPresentationContext<'_>,
 ) {
-    els.push(Element::sprite(sprites::INFO_PANEL, 227, 2));
+    els.push(Element::sprite(sprites::Sprite::InfoPanel as u16, 227, 2));
     els.push(Element::text_color_right(
         ctx.jumper_name,
         308,
@@ -200,7 +200,7 @@ fn landing_elements(
     frame: &JumpRenderFrame,
     ctx: &JumpPresentationContext<'_>,
 ) {
-    els.push(Element::sprite(sprites::INFO_PANEL, 227, 2));
+    els.push(Element::sprite(sprites::Sprite::InfoPanel as u16, 227, 2));
     els.push(Element::text_color_right(
         ctx.jumper_name,
         308,

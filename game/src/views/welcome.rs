@@ -51,7 +51,7 @@ impl View<RouteTarget> for WelcomeScreenView {
             Element::fillbox(52, 0, 216, 200, 243),
             Element::fillbox(269, 0, 51, 200, 245),
             Element::FillArea { thing: 63 },
-            Element::sprite(sprites::LOGO_SPRITE, 80, 6),
+            Element::sprite(sprites::Sprite::Logo as u16, 80, 6),
             Element::text_color_right("WELCOME!", 240, 6, FONT_DEFAULT),
             Element::text_color_right("TERVETULOA!", 240, 16, FONT_GOLD),
             Element::text_color_right("WILLKOMMEN!", 240, 26, FONT_GREET),

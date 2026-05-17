@@ -161,7 +161,7 @@ impl View<RouteTarget> for ReplayView {
 
         if let Some((hr_x, hr_y)) = session.trace().meta.hill_record_marker {
             els.push(Element::sprite(
-                sprites::HILL_RECORD_MARKER,
+                sprites::Sprite::HillRecordMarker as u16,
                 hr_x - sx,
                 hr_y - sy,
             ));
@@ -180,7 +180,7 @@ impl View<RouteTarget> for ReplayView {
         let wind_pos = WindGaugePosition { x: 10, y: 180 };
 
         if !session.trace().meta.intro {
-            els.push(Element::sprite(sprites::INFO_PANEL, 227, 2));
+            els.push(Element::sprite(sprites::Sprite::InfoPanel as u16, 227, 2));
             if session.frame_index() % 30 > 15 {
                 els.push(Element::text_color("R", 2, 2, FONT_GOLD));
             }
@@ -195,7 +195,7 @@ impl View<RouteTarget> for ReplayView {
                 19,
                 FONT_DEFAULT,
             ));
-            els.push(Element::sprite(sprites::REPLAY_MODE_ICON, 150, 30));
+            els.push(Element::sprite(sprites::Sprite::ReplayModeIcon as u16, 150, 30));
             els.push(Element::text_color_right(
                 format!(
                     "{} {}",
