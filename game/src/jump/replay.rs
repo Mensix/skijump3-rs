@@ -275,17 +275,17 @@ fn replay_checksum(input: ReplayChecksumInput<'_>) -> i32 {
     if input.hill_idx <= NUM_WC_HILLS {
         check += smallint(input.hill_idx as i32 * 131);
     }
-    check += i32::from(word(i32::from(valuestr(input.hill_filename, 3)) * 3));
+    check += i32::from(word(i32::from(str_checksum(input.hill_filename, 3)) * 3));
     check += input.hill_profile;
     check += smallint((input.distance + 2) * 69);
     check += smallint((input.flight_start + input.flight_stop) as i32);
     check += smallint((input.hill_record_x + input.hill_record_y) * 2);
-    check += i32::from(valuestr(input.author, 2));
+    check += i32::from(str_checksum(input.author, 2));
     check += smallint(input.start_gate_or_competition * 1412);
     check ^ REPLAY_CHECK_XOR
 }
 
-fn valuestr(bytes: &[u8], arvo: i32) -> u16 {
+fn str_checksum(bytes: &[u8], value: i32) -> u16 {
     let mut word1 = 0_u16;
     for (idx, byte) in bytes.iter().enumerate() {
         let index = idx as u16 + 1;
@@ -293,8 +293,8 @@ fn valuestr(bytes: &[u8], arvo: i32) -> u16 {
         word1 = word1.wrapping_add(u16::from(*byte).wrapping_mul(multiplier));
     }
     word1
-        .wrapping_mul((arvo.rem_euclid(7) as u16).wrapping_add(1))
-        .wrapping_add(arvo as u16)
+        .wrapping_mul((value.rem_euclid(7) as u16).wrapping_add(1))
+        .wrapping_add(value as u16)
 }
 
 fn smallint(value: i32) -> i32 {

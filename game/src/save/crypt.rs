@@ -48,10 +48,7 @@ pub fn crypt_str(value: i64, order: usize) -> String {
     String::from_utf8(bytes).expect("crypt output should be valid UTF-8 for this value range")
 }
 
-/// Pascal `valuestr` — simple string hash used by `ProfileCode`.
-/// Strings are index-adjusted for Pascal 1-based indexing (hence `idx + 1`).
-/// Uses wrapping 16-bit arithmetic matching Pascal `word` type.
-fn valuestr(text: &str, seed: u32) -> u32 {
+fn str_hash(text: &str, seed: u32) -> u32 {
     let mut running_hash = 0u16;
     for (idx, ch) in text.chars().enumerate() {
         let ord_val = ch as u16;
@@ -90,7 +87,7 @@ pub fn profile_code(
     totaljumps: i32,
 ) -> i32 {
     let concat = format!("{name}{bestresult}{best4result}");
-    let mut code: i32 = valuestr(&concat, 11) as i32;
+    let mut code: i32 = str_hash(&concat, 11) as i32;
 
     code += i32::from(suitcolor ^ 31);
     code += i32::from(skicolor ^ 53);
@@ -133,7 +130,7 @@ mod tests {
 
     #[test]
     fn valuestr_matches_pascal() {
-        let r = valuestr("SKI JUMPER0 (-)-", 11);
+        let r = str_hash("SKI JUMPER0 (-)-", 11);
         assert_eq!(r, 13468);
     }
 
