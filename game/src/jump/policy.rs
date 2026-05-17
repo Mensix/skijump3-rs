@@ -1,11 +1,11 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum JumperControl {
+pub enum JumperControl {
     Human,
     Computer,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct JumpPolicy {
+pub struct JumpPolicy {
     pub(crate) allow_start_gate_adjust: bool,
     pub(crate) allow_wind_reset: bool,
     pub(crate) count_onbar_frames: bool,

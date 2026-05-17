@@ -24,7 +24,7 @@ fn find_hill_record_marker(
     for x in tip_x..1024 {
         let dx = f64::from(x - tip_x);
         let dy = f64::from(terrain.height_at(x) - tip_y);
-        let hp = math::round((dx * dx + dy * dy).sqrt() * pk * 0.5) * 5;
+        let hp = math::round(dx.hypot(dy) * pk * 0.5) * 5;
         if hp >= record_distance {
             let ground_y = terrain.height_at(x);
             return Some((x, ground_y - 9));
@@ -34,7 +34,7 @@ fn find_hill_record_marker(
 }
 
 #[derive(Debug)]
-pub(crate) struct JumpSession {
+pub struct JumpSession {
     terrain: Result<HillTerrain, String>,
     state: Option<JumpState>,
     snow: SnowSystem,
@@ -143,11 +143,11 @@ impl JumpSession {
         }
     }
 
-    pub(crate) fn terrain(&self) -> &Result<HillTerrain, String> {
+    pub(crate) const fn terrain(&self) -> &Result<HillTerrain, String> {
         &self.terrain
     }
 
-    pub(crate) fn state(&self) -> Option<&JumpState> {
+    pub(crate) const fn state(&self) -> Option<&JumpState> {
         self.state.as_ref()
     }
 
@@ -167,7 +167,7 @@ impl JumpSession {
         self.state.as_ref().map(|state| state.start_gate)
     }
 
-    pub(crate) fn policy(&self) -> JumpPolicy {
+    pub(crate) const fn policy(&self) -> JumpPolicy {
         self.policy
     }
 

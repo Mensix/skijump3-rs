@@ -21,7 +21,7 @@ pub struct RecordStore {
 
 impl RecordStore {
     #[must_use] 
-    pub fn new(top: Vec<Hiscore>, hill_records: Vec<HillRecord>) -> Self {
+    pub const fn new(top: Vec<Hiscore>, hill_records: Vec<HillRecord>) -> Self {
         Self { top, hill_records }
     }
 
@@ -75,17 +75,17 @@ pub struct HillCatalog {
 
 impl HillCatalog {
     #[must_use] 
-    pub fn new(hills: Vec<HillInfo>) -> Self {
+    pub const fn new(hills: Vec<HillInfo>) -> Self {
         Self { hills }
     }
 
     #[must_use] 
-    pub fn len(&self) -> usize {
+    pub const fn len(&self) -> usize {
         self.hills.len()
     }
 
     #[must_use] 
-    pub fn is_empty(&self) -> bool {
+    pub const fn is_empty(&self) -> bool {
         self.hills.is_empty()
     }
 

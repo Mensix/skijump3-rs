@@ -59,7 +59,7 @@ impl ReplayRecorder {
         self.stopped = false;
     }
 
-    pub fn stop(&mut self) {
+    pub const fn stop(&mut self) {
         self.stopped = true;
     }
 
@@ -84,7 +84,7 @@ impl ReplayRecorder {
         });
     }
 
-    pub fn mark_flight_start(&mut self) {
+    pub const fn mark_flight_start(&mut self) {
         if let Some(meta) = &mut self.meta {
             if meta.flight_start == 0 {
                 meta.flight_start = self.frames.len();
@@ -92,13 +92,13 @@ impl ReplayRecorder {
         }
     }
 
-    pub fn mark_flight_stop(&mut self) {
+    pub const fn mark_flight_stop(&mut self) {
         if let Some(meta) = &mut self.meta {
             meta.flight_stop = self.frames.len();
         }
     }
 
-    pub fn set_distance(&mut self, distance: i32) {
+    pub const fn set_distance(&mut self, distance: i32) {
         if let Some(meta) = &mut self.meta {
             meta.distance = distance;
         }
@@ -301,7 +301,7 @@ fn smallint(value: i32) -> i32 {
     i32::from(value as i16)
 }
 
-fn word(value: i32) -> u16 {
+const fn word(value: i32) -> u16 {
     value as u16
 }
 
@@ -352,7 +352,7 @@ struct ReplayParser<'a> {
 }
 
 impl<'a> ReplayParser<'a> {
-    fn new(data: &'a [u8]) -> Self {
+    const fn new(data: &'a [u8]) -> Self {
         Self {
             data,
             pos: 0,
@@ -360,7 +360,7 @@ impl<'a> ReplayParser<'a> {
         }
     }
 
-    fn previous_raw_line(&self) -> &'a [u8] {
+    const fn previous_raw_line(&self) -> &'a [u8] {
         self.previous_raw_line
     }
 

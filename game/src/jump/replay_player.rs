@@ -37,7 +37,7 @@ impl ReplaySession {
     }
 
     #[must_use]
-    pub fn frame_index(&self) -> usize {
+    pub const fn frame_index(&self) -> usize {
         self.frame
     }
 
@@ -82,23 +82,23 @@ impl ReplaySession {
     }
 
     #[must_use]
-    pub fn trace(&self) -> &ReplayTrace {
+    pub const fn trace(&self) -> &ReplayTrace {
         &self.trace
     }
 
-    pub fn step_forward(&mut self) {
+    pub const fn step_forward(&mut self) {
         if self.frame + 1 < self.trace.frames.len() {
             self.frame += 1;
         }
     }
 
-    pub fn auto_step_forward(&mut self) {
+    pub const fn auto_step_forward(&mut self) {
         if self.trace.meta.intro {
             self.step_forward();
         }
     }
 
-    pub fn step_back(&mut self) {
+    pub const fn step_back(&mut self) {
         self.frame = self.frame.saturating_sub(1);
     }
 }

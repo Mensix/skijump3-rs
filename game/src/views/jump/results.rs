@@ -5,7 +5,7 @@ use crate::gfx::palette::{FONT_DEFAULT, FONT_GREET, FONT_HEADER};
 use crate::store::ResourcesRef;
 use engine::ui::Element;
 
-pub(crate) const QUALIFICATION_ITEMS_PER_PAGE: usize = 25;
+pub const QUALIFICATION_ITEMS_PER_PAGE: usize = 25;
 
 const START_Y: i32 = 23;
 const ROW_STEP_QUALIFICATION: i32 = 7;
@@ -21,14 +21,14 @@ const OTHER_RANK: u8 = 251;
 const OTHER_DISTANCE: u8 = 252;
 const INJURY_COLOR: u8 = 249;
 
-pub(crate) struct ResultsPage {
+pub struct ResultsPage {
     pub(crate) phase: CompetitionPhase,
     pub(crate) page: usize,
     pub(crate) total_pages: usize,
     pub(crate) items: Vec<ResultsEntry>,
 }
 
-pub(crate) struct ResultsEntry {
+pub struct ResultsEntry {
     pub(crate) is_own: bool,
     pub(crate) rank: usize,
     pub(crate) name: String,
@@ -39,7 +39,7 @@ pub(crate) struct ResultsEntry {
     pub(crate) injury: u8,
 }
 
-pub(crate) fn build_results_page(competition: &Competition, page: usize) -> ResultsPage {
+pub fn build_results_page(competition: &Competition, page: usize) -> ResultsPage {
     let standings = standings_for_phase(competition);
     let total_pages = standings.len().div_ceil(QUALIFICATION_ITEMS_PER_PAGE)
         .max(1);
@@ -76,7 +76,7 @@ pub(crate) fn build_results_page(competition: &Competition, page: usize) -> Resu
     }
 }
 
-pub(crate) fn total_pages(competition: &Competition) -> usize {
+pub fn total_pages(competition: &Competition) -> usize {
     standings_for_phase(competition).len().div_ceil(QUALIFICATION_ITEMS_PER_PAGE)
         .max(1)
 }
@@ -102,7 +102,7 @@ fn standings_for_phase(competition: &Competition) -> Vec<&Participant> {
     }
 }
 
-pub(crate) fn render_header(competition: &Competition, resources: &ResourcesRef) -> Vec<Element> {
+pub fn render_header(competition: &Competition, resources: &ResourcesRef) -> Vec<Element> {
     let lang = &resources.langbase;
     let event = competition.current_event + 1;
     let total = competition.total_events().max(1);
@@ -159,7 +159,7 @@ fn round_header(
     format!("{prefix} {event} {of} {total} - {hill} - R {round}")
 }
 
-pub(crate) fn render_results_page(page: &ResultsPage, resources: &ResourcesRef) -> Vec<Element> {
+pub fn render_results_page(page: &ResultsPage, resources: &ResourcesRef) -> Vec<Element> {
     let mut els = new_screen(1);
 
     els.extend(page_hints(

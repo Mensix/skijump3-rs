@@ -64,13 +64,13 @@ impl Competition {
     }
 
     #[must_use] 
-    pub fn phase_progress(&self) -> (usize, usize) {
+    pub const fn phase_progress(&self) -> (usize, usize) {
         (self.start_pos, self.start_list.len())
     }
 
     /// Number of events in the season.
     #[must_use] 
-    pub fn total_events(&self) -> usize {
+    pub const fn total_events(&self) -> usize {
         self.hill_order.len()
     }
 

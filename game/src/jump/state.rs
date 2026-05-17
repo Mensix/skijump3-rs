@@ -9,7 +9,7 @@ use crate::jump::types::{FlightWind, JumpInput, JumpOutcome, JumpPhase, JumpSnap
 use crate::rng::Random;
 
 #[derive(Debug, Clone)]
-pub(crate) struct JumpState {
+pub struct JumpState {
     pub(crate) phase: JumpPhase,
     pub(crate) travel: f64,
     pub(crate) px: f64,
@@ -160,7 +160,7 @@ impl JumpState {
         })
     }
 
-    pub(crate) fn snapshot(&self) -> JumpSnapshot {
+    pub(crate) const fn snapshot(&self) -> JumpSnapshot {
         JumpSnapshot {
             phase: self.phase,
             frame: self.frame,
@@ -203,7 +203,7 @@ impl JumpState {
         }
     }
 
-    fn start_takeoff(&mut self) {
+    const fn start_takeoff(&mut self) {
         self.takeoff_requested = true;
     }
 
@@ -351,11 +351,10 @@ impl JumpState {
         if self.body_angle < 50 {
             self.lift += 0.0001 - f64::from(self.body_angle - 50) / 18_000.0;
         }
+        self.lift -= (1.0 - f64::from(self.body_angle) / 900.0) / 1875.0;
         if wind.value > 0 {
-            self.lift -= (1.0 - f64::from(self.body_angle) / 900.0) / 1875.0;
             self.lift += f64::from(2 * wind.value).sqrt().sqrt() / 65_500.0;
         } else {
-            self.lift -= (1.0 - f64::from(self.body_angle) / 900.0) / 1875.0;
             self.lift -= f64::from(-2 * wind.value).sqrt().sqrt() / 65_500.0;
         }
         self.px -= (f64::from(self.body_angle) / 900.0) / 20.0;
@@ -383,8 +382,7 @@ impl JumpState {
 
         self.lift = self.lift.max(0.105);
 
-        self.vertical_pos += (self.flight_time * self.flight_time * self.lift)
-            - ((self.vertical_speed - 8.0) / 100.0);
+        self.vertical_pos += (self.flight_time * self.flight_time).mul_add(self.lift, -((self.vertical_speed - 8.0) / 100.0));
         self.y = math::round(self.vertical_pos);
 
         self.update_ski_swing(&mut rng);
@@ -602,21 +600,21 @@ impl JumpState {
     fn distance(&self, _terrain: &HillTerrain) -> i32 {
         let vertical_delta = self.vertical_pos - f64::from(self.ramp_y);
         math::round(
-            (self.travel * self.travel + vertical_delta * vertical_delta).sqrt()
+            self.travel.hypot(vertical_delta)
                 * self.distance_factor
                 * 0.5,
         ) * 5
     }
 
-    fn lean_forward(&mut self) {
+    const fn lean_forward(&mut self) {
         self.lean_forward_requested = true;
     }
 
-    fn lean_back(&mut self) {
+    const fn lean_back(&mut self) {
         self.lean_back_requested = true;
     }
 
-    fn set_landing(&mut self, style: u8) {
+    const fn set_landing(&mut self, style: u8) {
         self.landing_requested = Some(style);
     }
 

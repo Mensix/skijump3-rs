@@ -234,7 +234,7 @@ impl HillTerrain {
             let y = line_lengths
                 .iter()
                 .position(|&line_len| line_len > x)
-                .unwrap_or(height.saturating_sub(1));
+                .unwrap_or_else(|| height.saturating_sub(1));
             *y_out = y as i32;
         }
         let last = profile[width.saturating_sub(1).min(HILL_PROFILE_LEN - 1)];

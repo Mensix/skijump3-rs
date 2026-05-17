@@ -2,7 +2,7 @@ use crate::jump::{JumpInput, JumpPhase, JumpSession};
 use engine::ui::{Event, Key};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum TrainingJumpAction {
+pub enum TrainingJumpAction {
     None,
     RouteBack,
     ResetWind,
@@ -12,7 +12,7 @@ pub(crate) enum TrainingJumpAction {
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct TrainingJumpController;
+pub struct TrainingJumpController;
 
 impl TrainingJumpController {
     pub(crate) fn handle_event(

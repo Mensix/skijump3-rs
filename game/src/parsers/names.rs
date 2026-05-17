@@ -1,5 +1,6 @@
 use crate::parsers::{AssetParser, ParseError};
 use crate::text::encoding;
+use crate::text::layout;
 
 pub struct NamesParser;
 
@@ -9,19 +10,7 @@ impl AssetParser<Vec<String>> for NamesParser {
         let mut in_names = false;
 
         for line_bytes in data.split(|&b| b == b'\n') {
-            let trimmed: Vec<u8> = line_bytes
-                .iter()
-                .copied()
-                .skip_while(|&b| b == b' ' || b == b'\r')
-                .collect();
-            let trimmed: Vec<u8> = trimmed
-                .into_iter()
-                .rev()
-                .skip_while(|&b| b == b' ' || b == b'\r')
-                .collect::<Vec<_>>()
-                .into_iter()
-                .rev()
-                .collect();
+            let trimmed = layout::trim_ascii(line_bytes);
 
             if trimmed.is_empty() {
                 continue;
@@ -49,7 +38,7 @@ impl AssetParser<Vec<String>> for NamesParser {
                 continue;
             }
 
-            let name = encoding::decode(&trimmed).trim().to_string();
+            let name = encoding::decode(trimmed).trim().to_string();
             if !name.is_empty() {
                 names.push(name);
             }

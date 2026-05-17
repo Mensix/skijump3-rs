@@ -12,7 +12,7 @@ use engine::palette::Palette;
 use engine::ui::{Element, Event, Key, View};
 use std::cell::{Cell, RefCell};
 
-pub(crate) struct CompetitionJumpView {
+pub struct CompetitionJumpView {
     resources: ResourcesRef,
     store: StoreRef,
     runner: RefCell<JumpRunner>,
@@ -88,9 +88,7 @@ impl View<RouteTarget> for CompetitionJumpView {
                     let page = self.display_page.get();
                     let total = {
                         let comp = self.store.competition.borrow();
-                        let Some(c) = comp.as_ref() else {
-                            return None;
-                        };
+                        let c = comp.as_ref()?;
                         competition_results::total_pages(c)
                     };
                     if page + 1 < total {

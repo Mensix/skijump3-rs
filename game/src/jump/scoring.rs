@@ -4,7 +4,7 @@ use crate::jump::math;
 use crate::rng::Random;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct LandingRisk {
+pub struct LandingRisk {
     pub(crate) quality: i32,
     pub(crate) risk: i32,
     pub(crate) fall_type: u8,
@@ -12,13 +12,13 @@ pub(crate) struct LandingRisk {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct ScoreResult {
+pub struct ScoreResult {
     pub(crate) style_base: i32,
     pub(crate) style_points: [i32; 5],
     pub(crate) score: i32,
 }
 
-pub(crate) fn landing_risk(
+pub fn landing_risk(
     terrain: &HillTerrain,
     x: i32,
     distance: i32,
@@ -27,7 +27,7 @@ pub(crate) fn landing_risk(
     landing_style: u8,
 ) -> LandingRisk {
     let slope_angle = terrain.hill_angle(x);
-    let quality = math::round(f64::from(slope_angle) * 1.34 + f64::from(body_angle) / 10.0);
+    let quality = math::round(f64::from(slope_angle).mul_add(1.34, f64::from(body_angle) / 10.0));
     let mut risk = crash_risk(slope_angle) as i32;
     if f64::from(distance) < (20.0 / 3.0) * f64::from(hill_kr) {
         risk = 1;
@@ -59,7 +59,7 @@ pub(crate) fn landing_risk(
     }
 }
 
-pub(crate) fn calculate_score(
+pub fn calculate_score(
     style_base: i32,
     hill_kr: i32,
     distance: i32,

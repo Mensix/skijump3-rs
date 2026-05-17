@@ -44,33 +44,34 @@ fn profile_to_lines(profile: &Profile) -> Vec<u8> {
     //   wcs, legswon, wcswon, bestwcjump, bestwchill, bestjump, besthill,
     //   besthillfile, bestresult, bestpoints, best4result, best4points,
     //   totaljumps, skipquali, realname, 0, 0, profilecode, \n, \n
-    let mut lines = Vec::new();
-    lines.push(profile.name.clone());
-    lines.push(profile.suit_color.to_string());
-    lines.push(profile.ski_color.to_string());
-    lines.push(profile.coach_style.to_string());
-    lines.push(profile.koth_level.to_string());
-    lines.push(profile.replace.to_string());
-    lines.push(profile.world_cups.to_string());
-    lines.push(profile.legs_won.to_string());
-    lines.push(profile.world_cups_won.to_string());
-    lines.push(profile.best_wc_jump.to_string());
-    lines.push(profile.bestwchill.to_string());
-    lines.push(profile.best_jump.to_string());
-    lines.push(profile.besthill_idx.to_string());
-    lines.push(profile.besthillfile.clone());
-    lines.push(profile.best_result.clone());
-    lines.push(profile.bestpoints.to_string());
-    lines.push(profile.best_4h_result.clone());
-    lines.push(profile.best4points.to_string());
-    lines.push(profile.total_jumps.to_string());
-    lines.push(profile.skip_quali.to_string());
-    lines.push(profile.real_name.clone());
-    lines.push("0".to_string());
-    lines.push("0".to_string());
-    lines.push(code.to_string());
-    lines.push(String::new());  // empty line
-    lines.push(String::new());  // empty line
+    let lines = vec![
+        profile.name.clone(),
+        profile.suit_color.to_string(),
+        profile.ski_color.to_string(),
+        profile.coach_style.to_string(),
+        profile.koth_level.to_string(),
+        profile.replace.to_string(),
+        profile.world_cups.to_string(),
+        profile.legs_won.to_string(),
+        profile.world_cups_won.to_string(),
+        profile.best_wc_jump.to_string(),
+        profile.bestwchill.to_string(),
+        profile.best_jump.to_string(),
+        profile.besthill_idx.to_string(),
+        profile.besthillfile.clone(),
+        profile.best_result.clone(),
+        profile.bestpoints.to_string(),
+        profile.best_4h_result.clone(),
+        profile.best4points.to_string(),
+        profile.total_jumps.to_string(),
+        profile.skip_quali.to_string(),
+        profile.real_name.clone(),
+        "0".to_string(),
+        "0".to_string(),
+        code.to_string(),
+        String::new(),
+        String::new(),
+    ];
 
     let mut out = Vec::new();
     write_lines(&mut out, &lines);

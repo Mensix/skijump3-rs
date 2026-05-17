@@ -3,12 +3,12 @@ use crate::jump::math::{self, nsqrt};
 use crate::jump::types::{JumpInput, JumpPhase, JumpSnapshot};
 use crate::rng::Random;
 
-pub(crate) trait JumpInputProvider {
+pub trait JumpInputProvider {
     fn inputs(&mut self, snapshot: &JumpSnapshot, rng: &mut Random) -> Vec<JumpInput>;
 }
 
 #[derive(Debug)]
-pub(crate) struct ComputerInputProvider {
+pub struct ComputerInputProvider {
     pascal_jumper: i32,
     started: bool,
     initialized: bool,
@@ -19,7 +19,7 @@ pub(crate) struct ComputerInputProvider {
 }
 
 impl ComputerInputProvider {
-    pub(crate) fn new(participant_id: usize) -> Self {
+    pub(crate) const fn new(participant_id: usize) -> Self {
         Self {
             pascal_jumper: participant_id as i32 + 1,
             started: false,

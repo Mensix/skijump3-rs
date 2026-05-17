@@ -42,7 +42,7 @@ pub struct SaveReplayDialog {
     cursor_blink: Blinker,
 }
 
-fn field_idx(field: &SaveField) -> usize {
+const fn field_idx(field: &SaveField) -> usize {
     match field {
         SaveField::Author => 0,
         SaveField::Name => 1,

@@ -1,5 +1,5 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum JumpPhase {
+pub enum JumpPhase {
     Info,
     OnBar,
     Inrun,
@@ -9,14 +9,14 @@ pub(crate) enum JumpPhase {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct FlightWind {
+pub struct FlightWind {
     pub(crate) value: i32,
     pub(crate) windy: i32,
     pub(crate) strength: i32,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum JumpInput {
+pub enum JumpInput {
     LeaveInfo,
     Start,
     Takeoff,
@@ -29,7 +29,7 @@ pub(crate) enum JumpInput {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct JumpOutcome {
+pub struct JumpOutcome {
     pub(crate) distance: i32,
     pub(crate) score: i32,
     pub(crate) style_points: [i32; 5],
@@ -39,7 +39,7 @@ pub(crate) struct JumpOutcome {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub(crate) struct JumpSnapshot {
+pub struct JumpSnapshot {
     pub(crate) phase: JumpPhase,
     pub(crate) frame: i32,
     pub(crate) x: i32,

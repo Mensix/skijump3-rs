@@ -2,7 +2,7 @@ use crate::jump::types::JumpPhase;
 use std::rc::Rc;
 
 #[derive(Debug, Clone)]
-pub(crate) struct JumpRenderFrame {
+pub struct JumpRenderFrame {
     pub(crate) viewport: Rc<[u8]>,
     pub(crate) phase: JumpPhase,
     pub(crate) x: i32,

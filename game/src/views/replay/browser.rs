@@ -88,13 +88,13 @@ impl ReplayBrowserView {
         self.entries.get(self.selected)
     }
 
-    fn move_next(&mut self) {
+    const fn move_next(&mut self) {
         if !self.entries.is_empty() {
             self.selected = (self.selected + 1) % self.entries.len();
         }
     }
 
-    fn move_prev(&mut self) {
+    const fn move_prev(&mut self) {
         if !self.entries.is_empty() {
             self.selected = if self.selected == 0 {
                 self.entries.len() - 1

@@ -15,7 +15,7 @@ pub struct ReplayPlayback {
 
 impl ReplayPlayback {
     #[must_use] 
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             mode: Cell::new(3),
             speed: Cell::new(3),
@@ -23,7 +23,7 @@ impl ReplayPlayback {
         }
     }
 
-    pub fn mode(&self) -> u8 {
+    pub const fn mode(&self) -> u8 {
         self.mode.get()
     }
 
@@ -31,7 +31,7 @@ impl ReplayPlayback {
         self.mode.set(mode);
     }
 
-    pub fn speed(&self) -> u8 {
+    pub const fn speed(&self) -> u8 {
         self.speed.get()
     }
 

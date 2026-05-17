@@ -18,7 +18,7 @@ impl PracticeView {
         (self.total.saturating_sub(self.start)).min(20)
     }
 
-    fn has_more(&self) -> bool {
+    const fn has_more(&self) -> bool {
         self.total > 20
     }
 
@@ -207,11 +207,7 @@ impl View<RouteTarget> for PracticeView {
             }
             Event::Keyboard(_) => {}
         }
-        if let Some(_idx) = self.menu.handle_event(&event) {
-            self.confirm()
-        } else {
-            None
-        }
+        self.menu.handle_event(&event).and_then(|_idx| self.confirm())
     }
 
     fn apply_palette(&self, palette: &mut engine::palette::Palette) {

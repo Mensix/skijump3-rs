@@ -104,12 +104,12 @@ impl ProfileStore {
     }
 
     #[must_use] 
-    pub fn num_profiles(&self) -> usize {
+    pub const fn num_profiles(&self) -> usize {
         self.profiles.len()
     }
 
     #[must_use] 
-    pub fn has_slot(&self) -> bool {
+    pub const fn has_slot(&self) -> bool {
         self.num_profiles() < MAX_PROFILES
     }
 

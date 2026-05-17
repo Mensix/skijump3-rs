@@ -61,7 +61,7 @@ impl Wind {
         self.shift(rng);
     }
 
-    pub fn set_place(&mut self, place: u8) {
+    pub const fn set_place(&mut self, place: u8) {
         self.place = place;
         self.position = match place {
             2 => WindPosition { x: 10, y: 97 },
@@ -75,7 +75,7 @@ impl Wind {
         };
     }
 
-    pub fn move_to_jumper(&mut self, x: i32, y: i32) {
+    pub const fn move_to_jumper(&mut self, x: i32, y: i32) {
         self.position = match self.place {
             11 => WindPosition {
                 x: x + 10,
@@ -94,7 +94,7 @@ impl Wind {
     }
 
     #[must_use]
-    pub fn position(&self) -> WindPosition {
+    pub const fn position(&self) -> WindPosition {
         self.position
     }
 

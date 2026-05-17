@@ -1,9 +1,9 @@
-fn rust_sprite(pascal_anim: u16) -> u16 {
+const fn rust_sprite(pascal_anim: u16) -> u16 {
     pascal_anim.saturating_sub(1)
 }
 
 #[must_use]
-pub fn crash_risk(slope_angle: i32) -> i64 {
+pub const fn crash_risk(slope_angle: i32) -> i64 {
     let extra = match slope_angle {
         31 => 1,
         30 => 2,
@@ -28,7 +28,7 @@ pub fn crash_risk(slope_angle: i32) -> i64 {
 }
 
 #[must_use]
-pub fn slope_ski_anim(slope_angle: i32) -> u16 {
+pub const fn slope_ski_anim(slope_angle: i32) -> u16 {
     let value = match slope_angle {
         4..=6 => 1,
         7..=9 => 2,
@@ -48,7 +48,7 @@ pub fn slope_ski_anim(slope_angle: i32) -> u16 {
 }
 
 #[must_use]
-pub fn inrun_body_anim(ski_anim: u16) -> u16 {
+pub const fn inrun_body_anim(ski_anim: u16) -> u16 {
     let ski = ski_anim.saturating_sub(rust_sprite(71));
     let value = match ski {
         2..=4 => 1,
@@ -61,12 +61,12 @@ pub fn inrun_body_anim(ski_anim: u16) -> u16 {
 }
 
 #[must_use]
-pub fn inrun_transition_body_anim(counter: i32) -> u16 {
+pub const fn inrun_transition_body_anim(counter: i32) -> u16 {
     rust_sprite((165 + counter / 7) as u16)
 }
 
 #[must_use]
-pub fn landing_body_anim(mut ski_anim: u16, landing_style: u8) -> u16 {
+pub const fn landing_body_anim(mut ski_anim: u16, landing_style: u8) -> u16 {
     if ski_anim >= rust_sprite(71) {
         ski_anim -= rust_sprite(71);
     }
@@ -180,7 +180,7 @@ pub fn fall_body_anim(
     rust_sprite(pascal_anim as u16)
 }
 
-pub fn takeoff_body_anim(phase: &mut u8) -> u16 {
+pub const fn takeoff_body_anim(phase: &mut u8) -> u16 {
     let value = match *phase {
         4..=6 => 118,
         7..=9 => 119,
@@ -196,7 +196,7 @@ pub fn takeoff_body_anim(phase: &mut u8) -> u16 {
 }
 
 #[must_use]
-pub fn flight_body_anim(body_angle: i32) -> u16 {
+pub const fn flight_body_anim(body_angle: i32) -> u16 {
     let value = match body_angle {
         50..=61 => 1,
         62..=76 => 2,
@@ -211,7 +211,7 @@ pub fn flight_body_anim(body_angle: i32) -> u16 {
 }
 
 #[must_use]
-pub fn flight_ski_anim(ski_angle: i32) -> u16 {
+pub const fn flight_ski_anim(ski_angle: i32) -> u16 {
     let value = match ski_angle {
         -900..=-258 => 19,
         -257..=-216 => 18,
@@ -232,7 +232,7 @@ pub fn flight_ski_anim(ski_angle: i32) -> u16 {
 }
 
 #[must_use]
-pub(crate) fn landing_height(slope_angle: i32) -> i32 {
+pub(crate) const fn landing_height(slope_angle: i32) -> i32 {
     match slope_angle {
         0..=24 => 50,
         25 => 48,

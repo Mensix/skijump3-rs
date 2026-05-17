@@ -82,7 +82,7 @@ pub(super) enum Pending {
 }
 
 impl ProfilesView {
-    pub fn new(resources: ResourcesRef, store: StoreRef, save_manager: SaveRef) -> Self {
+    pub const fn new(resources: ResourcesRef, store: StoreRef, save_manager: SaveRef) -> Self {
         Self {
             resources,
             store,
@@ -92,11 +92,11 @@ impl ProfilesView {
         }
     }
 
-    pub(super) fn y_for(row: usize) -> i32 {
+    pub(super) const fn y_for(row: usize) -> i32 {
         (row * 8 + 4) as i32
     }
 
-    pub(super) fn col_y(row: usize) -> i32 {
+    pub(super) const fn col_y(row: usize) -> i32 {
         match row {
             0..=9 => (row * 8 + 4) as i32,
             10..=15 => (row * 8 + 10) as i32,
@@ -125,7 +125,7 @@ impl ProfilesView {
         profile
     }
 
-    pub(super) fn menu_selected(&self) -> Option<usize> {
+    pub(super) const fn menu_selected(&self) -> Option<usize> {
         match self.mode {
             Mode::Edit { selected, .. } => Some(selected),
             _ => None,

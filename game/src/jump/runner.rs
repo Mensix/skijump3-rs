@@ -18,7 +18,7 @@ use engine::palette::Palette;
 use engine::ui::Element;
 
 #[derive(Debug)]
-pub(crate) struct JumpRunner {
+pub struct JumpRunner {
     session: JumpSession,
     config: JumpConfig,
     computer_input: Option<ComputerInputProvider>,
@@ -82,15 +82,15 @@ impl JumpRunner {
         }
     }
 
-    pub(crate) fn hill_idx(&self) -> usize {
+    pub(crate) const fn hill_idx(&self) -> usize {
         self.config.hill_idx
     }
 
-    pub(crate) fn participant_id(&self) -> usize {
+    pub(crate) const fn participant_id(&self) -> usize {
         self.config.participant.id
     }
 
-    pub(crate) fn session_mut(&mut self) -> &mut JumpSession {
+    pub(crate) const fn session_mut(&mut self) -> &mut JumpSession {
         &mut self.session
     }
 

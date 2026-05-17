@@ -86,7 +86,7 @@ impl Random {
     }
 }
 
-fn twist(u: u32, v: u32) -> u32 {
+const fn twist(u: u32, v: u32) -> u32 {
     (((u & UPPER_MASK) | (v & LOWER_MASK)) >> 1) ^ (0u32.wrapping_sub(v & 1) & MATRIX_A)
 }
 

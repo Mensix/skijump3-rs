@@ -84,7 +84,7 @@ impl SnowSystem {
     }
 
     #[must_use] 
-    pub fn count(&self) -> u16 {
+    pub const fn count(&self) -> u16 {
         self.count
     }
 

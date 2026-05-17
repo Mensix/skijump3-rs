@@ -32,7 +32,7 @@ fn txtp(value: i64) -> String {
     format!("{sign}{out}")
 }
 
-fn handle_page_event(event: Event, page: &mut usize, pages: usize) -> Option<PageAction> {
+const fn handle_page_event(event: Event, page: &mut usize, pages: usize) -> Option<PageAction> {
     match event {
         Event::Keyboard(Key::Escape) => Some(PageAction::Back),
         Event::Keyboard(Key::Home) => Some(PageAction::First),
@@ -49,7 +49,7 @@ fn handle_page_event(event: Event, page: &mut usize, pages: usize) -> Option<Pag
     }
 }
 
-fn apply_page_action(action: PageAction, page: &mut usize, pages: usize) -> Option<RouteTarget> {
+const fn apply_page_action(action: PageAction, page: &mut usize, pages: usize) -> Option<RouteTarget> {
     match action {
         PageAction::Back => Some(RouteTarget::Back),
         PageAction::First => {
@@ -79,7 +79,7 @@ pub struct HallOfFameView {
 }
 
 impl HallOfFameView {
-    pub fn new(resources: ResourcesRef, store: StoreRef) -> Self {
+    pub const fn new(resources: ResourcesRef, store: StoreRef) -> Self {
         Self {
             resources,
             store,
@@ -272,7 +272,7 @@ pub struct HillRecordsView {
 }
 
 impl HillRecordsView {
-    pub fn new(resources: ResourcesRef, store: StoreRef) -> Self {
+    pub const fn new(resources: ResourcesRef, store: StoreRef) -> Self {
         Self {
             resources,
             store,

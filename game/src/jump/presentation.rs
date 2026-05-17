@@ -11,12 +11,12 @@ use std::rc::Rc;
 const FONT_DIM_TURQUOISE: u8 = 252;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct WindGaugePosition {
+pub struct WindGaugePosition {
     pub(crate) x: i32,
     pub(crate) y: i32,
 }
 
-pub(crate) struct JumpPresentationContext<'a> {
+pub struct JumpPresentationContext<'a> {
     pub(crate) font: &'a Font,
     pub(crate) langbase: &'a LangBase,
     pub(crate) jumper_name: &'a str,
@@ -27,7 +27,7 @@ pub(crate) struct JumpPresentationContext<'a> {
     pub(crate) allow_gate_adjust: bool,
 }
 
-pub(crate) fn elements(frame: &JumpRenderFrame, ctx: &JumpPresentationContext<'_>) -> Vec<Element> {
+pub fn elements(frame: &JumpRenderFrame, ctx: &JumpPresentationContext<'_>) -> Vec<Element> {
     let mut els = vec![Element::image_region(ImageRegion {
         pixels: Rc::clone(&frame.viewport),
         src_w: WIDTH,
@@ -229,7 +229,7 @@ fn landing_elements(
     }
 }
 
-pub(crate) fn wind_elements(els: &mut Vec<Element>, position: WindGaugePosition, value: i32) {
+pub fn wind_elements(els: &mut Vec<Element>, position: WindGaugePosition, value: i32) {
     let x = position.x;
     let y = position.y;
     els.push(Element::fillbox(x + 4, y + 1, 35, 2, 248));

@@ -57,13 +57,13 @@ impl Menu {
     }
 
     #[must_use] 
-    pub fn with_labels(mut self, show: bool) -> Self {
+    pub const fn with_labels(mut self, show: bool) -> Self {
         self.show_labels = show;
         self
     }
 
     #[must_use] 
-    pub fn with_box(mut self, show: bool) -> Self {
+    pub const fn with_box(mut self, show: bool) -> Self {
         self.show_box = show;
         self
     }
@@ -92,12 +92,12 @@ impl Menu {
     }
 
     #[must_use] 
-    pub fn item_count(&self) -> usize {
+    pub const fn item_count(&self) -> usize {
         self.items.len()
     }
 
     #[must_use] 
-    pub fn has_exit(&self) -> bool {
+    pub const fn has_exit(&self) -> bool {
         self.exit_item
     }
 }

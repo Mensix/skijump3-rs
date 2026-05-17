@@ -1,4 +1,4 @@
-fn cp850_to_char(b: u8) -> char {
+const fn cp850_to_char(b: u8) -> char {
     match b {
         0x80 => '\u{00C7}',
         0x81 => '\u{00FC}',
@@ -62,7 +62,7 @@ pub fn decode(bytes: &[u8]) -> String {
     out
 }
 
-fn char_to_cp850(c: char) -> u8 {
+const fn char_to_cp850(c: char) -> u8 {
     match c {
         '\u{00C7}' => 0x80,
         '\u{00FC}' => 0x81,

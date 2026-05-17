@@ -5,17 +5,17 @@ use crate::jump::{JumpPolicy, JumpRunner};
 use crate::store::{ResourcesRef, StoreRef};
 use std::cell::{Cell, RefCell};
 
-pub(crate) enum CompetitionRenderState {
+pub enum CompetitionRenderState {
     HumanJump,
     DisplayList,
 }
 
-pub(crate) struct CompetitionJumpController {
+pub struct CompetitionJumpController {
     last_event: Cell<usize>,
 }
 
 impl CompetitionJumpController {
-    pub(crate) fn new() -> Self {
+    pub(crate) const fn new() -> Self {
         Self {
             last_event: Cell::new(0),
         }

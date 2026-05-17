@@ -1,4 +1,4 @@
-pub(crate) fn round(value: f64) -> i32 {
+pub fn round(value: f64) -> i32 {
     if value >= 0.0 {
         (value + 0.5).floor() as i32
     } else {
@@ -6,7 +6,7 @@ pub(crate) fn round(value: f64) -> i32 {
     }
 }
 
-pub(crate) fn nsqrt(value: f64) -> f64 {
+pub fn nsqrt(value: f64) -> f64 {
     let root = value.abs().sqrt();
     if value < 0.0 {
         -root

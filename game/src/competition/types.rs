@@ -36,13 +36,13 @@ pub enum QualificationStatus {
 
 impl QualificationStatus {
     #[must_use] 
-    pub fn can_jump(&self) -> bool {
+    pub const fn can_jump(&self) -> bool {
         matches!(
             self,
-            QualificationStatus::Qualified
-                | QualificationStatus::PreQualified
-                | QualificationStatus::LuckyLoser
-                | QualificationStatus::KoSeed(_)
+            Self::Qualified
+                | Self::PreQualified
+                | Self::LuckyLoser
+                | Self::KoSeed(_)
         )
     }
 }
@@ -74,7 +74,7 @@ pub struct Participant {
 
 impl Participant {
     #[must_use] 
-    pub fn computer(id: usize, name: String) -> Self {
+    pub const fn computer(id: usize, name: String) -> Self {
         Self {
             id,
             name,
@@ -104,7 +104,7 @@ impl Participant {
         }
     }
 
-    pub fn reset_event(&mut self) {
+    pub const fn reset_event(&mut self) {
         self.points = 0;
         self.rank = 0;
         self.qual = QualificationStatus::NotQualified;

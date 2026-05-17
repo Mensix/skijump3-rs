@@ -31,7 +31,7 @@ pub struct ValueSelector {
 
 impl ValueSelector {
     #[must_use] 
-    pub fn color_bars(
+    pub const fn color_bars(
         x: i32,
         y: i32,
         max: usize,
@@ -59,7 +59,7 @@ impl ValueSelector {
 
     #[allow(clippy::too_many_arguments)]
     #[must_use] 
-    pub fn numeric(
+    pub const fn numeric(
         x: i32,
         y: i32,
         width: i32,
@@ -87,7 +87,7 @@ impl ValueSelector {
     }
 
     #[must_use] 
-    pub fn value(&self) -> usize {
+    pub const fn value(&self) -> usize {
         self.value
     }
 
@@ -99,7 +99,7 @@ impl ValueSelector {
         self.right_text = Some(text.to_string());
     }
 
-    pub fn set_wrap(&mut self, wrap: bool) {
+    pub const fn set_wrap(&mut self, wrap: bool) {
         self.wrap = wrap;
     }
 }

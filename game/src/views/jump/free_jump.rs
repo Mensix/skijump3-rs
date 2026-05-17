@@ -91,7 +91,7 @@ impl JumpView {
         }
     }
 
-    fn handle_jump_event(&mut self, event: Event) -> Option<RouteTarget> {
+    fn handle_jump_event(&self, event: Event) -> Option<RouteTarget> {
         let action = {
             let mut runner = self.runner.borrow_mut();
             TrainingJumpController.handle_event(event, runner.session_mut())

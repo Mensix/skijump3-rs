@@ -4,7 +4,7 @@ use crate::jump::policy::{JumpPolicy, JumperControl};
 use crate::jump::snow::SnowSystem;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct JumpParticipant {
+pub struct JumpParticipant {
     pub(crate) id: usize,
     pub(crate) name: String,
     pub(crate) real_name: String,
@@ -37,7 +37,7 @@ impl JumpParticipant {
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct JumpConfig {
+pub struct JumpConfig {
     pub(crate) hill_idx: usize,
     pub(crate) hill: Option<HillInfo>,
     pub(crate) terrain: Result<HillTerrain, String>,
