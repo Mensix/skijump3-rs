@@ -5,18 +5,18 @@ const LOWER_MASK: u32 = 0x7fff_ffff;
 const MATRIX_A: u32 = 0x9908_b0df;
 
 #[derive(Debug, Clone)]
-pub struct PascalRandom {
+pub struct Random {
     state: [u32; MT_N],
     index: usize,
 }
 
-impl Default for PascalRandom {
+impl Default for Random {
     fn default() -> Self {
         Self::new(0)
     }
 }
 
-impl PascalRandom {
+impl Random {
     #[must_use] 
     pub fn new(seed: u32) -> Self {
         let mut rng = Self {
@@ -96,7 +96,7 @@ mod tests {
 
     #[test]
     fn matches_fpc_random_i32_for_seed_zero() {
-        let mut rng = PascalRandom::new(0);
+        let mut rng = Random::new(0);
         let actual: Vec<i32> = (0..10).map(|_| rng.random_i32(1_000_000)).collect();
         assert_eq!(
             actual,
@@ -109,7 +109,7 @@ mod tests {
 
     #[test]
     fn matches_fpc_random_i32_for_seed_one() {
-        let mut rng = PascalRandom::new(1);
+        let mut rng = Random::new(1);
         let actual: Vec<i32> = (0..10).map(|_| rng.random_i32(1_000_000)).collect();
         assert_eq!(
             actual,
@@ -122,7 +122,7 @@ mod tests {
 
     #[test]
     fn matches_fpc_random_i32_for_static_mt_seed() {
-        let mut rng = PascalRandom::new(5489);
+        let mut rng = Random::new(5489);
         let actual: Vec<i32> = (0..10).map(|_| rng.random_i32(1_000_000)).collect();
         assert_eq!(
             actual,
@@ -135,7 +135,7 @@ mod tests {
 
     #[test]
     fn verify_fpc_longint_overload_three_values() {
-        let mut rng = PascalRandom::new(0);
+        let mut rng = Random::new(0);
         assert_eq!(rng.random_i32(180), 98);
         assert_eq!(rng.random_i32(120), 71);
         assert_eq!(rng.random_i32(142), 101);
@@ -145,7 +145,7 @@ mod tests {
 
     #[test]
     fn matches_fpc_random_float_for_seed_one() {
-        let mut rng = PascalRandom::new(1);
+        let mut rng = Random::new(1);
         let actual: Vec<f64> = (0..5).map(|_| rng.random_f64()).collect();
         let expected = [
             0.417_021_998_437,
@@ -161,7 +161,7 @@ mod tests {
 
     #[test]
     fn random_i64_consumes_two_values_like_fpc() {
-        let mut rng = PascalRandom::new(0);
+        let mut rng = Random::new(0);
         assert_eq!(rng.random_i32(180), 98);
         assert_eq!(rng.random_i32(120), 71);
         assert_eq!(rng.random_i64(142), 101);

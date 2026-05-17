@@ -1,6 +1,6 @@
 use crate::competition::types::CompetitionPhase;
 use crate::jump::JumpRunner;
-use crate::palette_consts::apply_menu_tint;
+use crate::gfx::palette::apply_menu_tint;
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::controllers::competition_jump::{

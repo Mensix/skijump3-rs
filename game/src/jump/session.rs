@@ -7,9 +7,9 @@ use crate::jump::policy::JumpPolicy;
 use crate::jump::replay::{ReplayMeta, ReplayRecorder, ReplayTrace};
 use crate::jump::types::{FlightWind, JumpInput, JumpOutcome, JumpPhase, JumpSnapshot};
 use crate::jump::JumpState;
-use crate::pascal_random::PascalRandom;
-use crate::snow::SnowSystem;
-use crate::wind::PascalWind;
+use crate::rng::Random;
+use crate::jump::snow::SnowSystem;
+use crate::jump::wind::Wind;
 
 fn find_hill_record_marker(
     terrain: &HillTerrain,
@@ -227,7 +227,7 @@ impl JumpSession {
         self.start_gate()
     }
 
-    pub(crate) fn tick(&mut self, wind: FlightWind, rng: &mut PascalRandom) {
+    pub(crate) fn tick(&mut self, wind: FlightWind, rng: &mut Random) {
         let phase_change = if let (Ok(terrain), Some(state)) = (&self.terrain, &mut self.state) {
             let previous_phase = state.phase;
             state.tick(terrain, wind, rng, self.policy.count_onbar_frames);
@@ -242,8 +242,8 @@ impl JumpSession {
 
     pub(crate) fn tick_with_wind(
         &mut self,
-        rng: &mut PascalRandom,
-        wind: &mut PascalWind,
+        rng: &mut Random,
+        wind: &mut Wind,
     ) -> FlightWind {
         let phase = self.phase();
         let wind_value = if matches!(phase, Some(JumpPhase::Info | JumpPhase::Result)) {

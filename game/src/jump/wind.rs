@@ -1,5 +1,5 @@
 use crate::jump::math::pascal_round;
-use crate::pascal_random::PascalRandom;
+use crate::rng::Random;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct WindPosition {
@@ -8,7 +8,7 @@ pub struct WindPosition {
 }
 
 #[derive(Debug, Clone)]
-pub struct PascalWind {
+pub struct Wind {
     pub strength: i32,
     pub windy: i32,
     pub value: i32,
@@ -20,7 +20,7 @@ pub struct PascalWind {
     position: WindPosition,
 }
 
-impl Default for PascalWind {
+impl Default for Wind {
     fn default() -> Self {
         let mut wind = Self {
             strength: 0,
@@ -38,8 +38,8 @@ impl Default for PascalWind {
     }
 }
 
-impl PascalWind {
-    pub fn initialize(&mut self, rng: &mut PascalRandom, place: u8) {
+impl Wind {
+    pub fn initialize(&mut self, rng: &mut Random, place: u8) {
         let temp1 = rng.random_i32(180);
         let temp2 = rng.random_i32(120);
         self.windy = temp2;
@@ -51,13 +51,13 @@ impl PascalWind {
         self.set_place(place);
     }
 
-    pub fn sample(&mut self, rng: &mut PascalRandom) -> i32 {
+    pub fn sample(&mut self, rng: &mut Random) -> i32 {
         self.shift(rng);
         self.value = pascal_round(((self.angle.to_radians()).cos() * self.strength as f32) as f64);
         self.value
     }
 
-    pub fn advance_without_sampling(&mut self, rng: &mut PascalRandom) {
+    pub fn advance_without_sampling(&mut self, rng: &mut Random) {
         self.shift(rng);
     }
 
@@ -98,7 +98,7 @@ impl PascalWind {
         self.position
     }
 
-    fn shift(&mut self, rng: &mut PascalRandom) {
+    fn shift(&mut self, rng: &mut Random) {
         if self.increasing && self.angle > self.upper as f32 {
             self.increasing = false;
         }
@@ -124,8 +124,8 @@ mod tests {
 
     #[test]
     fn matches_pascal_wind_for_seed_zero() {
-        let mut rng = PascalRandom::new(0);
-        let mut wind = PascalWind::default();
+        let mut rng = Random::new(0);
+        let mut wind = Wind::default();
         wind.initialize(&mut rng, 0);
 
         assert_eq!(wind.windy, 71);
@@ -145,8 +145,8 @@ mod tests {
 
     #[test]
     fn matches_pascal_wind_for_seed_5489() {
-        let mut rng = PascalRandom::new(5489);
-        let mut wind = PascalWind::default();
+        let mut rng = Random::new(5489);
+        let mut wind = Wind::default();
         wind.initialize(&mut rng, 0);
 
         assert_eq!(wind.windy, 16);

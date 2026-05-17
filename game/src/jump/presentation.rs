@@ -1,9 +1,9 @@
 use crate::data::records::HillRecord;
 use crate::jump::frame::JumpRenderFrame;
 use crate::jump::types::JumpPhase;
-use crate::palette_consts::{FONT_GOLD, FONT_DEFAULT, FONT_GREET, FONT_HELP};
+use crate::gfx::palette::{FONT_GOLD, FONT_DEFAULT, FONT_GREET, FONT_HELP};
 use crate::parsers::langbase::LangBase;
-use crate::sprites;
+use crate::gfx::sprites;
 use engine::consts::{HEIGHT, WIDTH};
 use engine::ui::{Element, Font, ImageRegion};
 use std::rc::Rc;

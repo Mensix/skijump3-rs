@@ -1,10 +1,10 @@
 use crate::jump::animation::landing_height;
 use crate::jump::math::{nsqrt, pascal_round};
 use crate::jump::types::{JumpInput, JumpPhase, JumpSnapshot};
-use crate::pascal_random::PascalRandom;
+use crate::rng::Random;
 
 pub(crate) trait JumpInputProvider {
-    fn inputs(&mut self, snapshot: &JumpSnapshot, rng: &mut PascalRandom) -> Vec<JumpInput>;
+    fn inputs(&mut self, snapshot: &JumpSnapshot, rng: &mut Random) -> Vec<JumpInput>;
 }
 
 #[derive(Debug)]
@@ -31,11 +31,11 @@ impl ComputerInputProvider {
         }
     }
 
-    pub(crate) fn prepare_for_jump(&mut self, rng: &mut PascalRandom) {
+    pub(crate) fn prepare_for_jump(&mut self, rng: &mut Random) {
         self.initialize(rng);
     }
 
-    fn initialize(&mut self, rng: &mut PascalRandom) {
+    fn initialize(&mut self, rng: &mut Random) {
         if self.initialized {
             return;
         }
@@ -61,7 +61,7 @@ impl ComputerInputProvider {
         self.initialized = true;
     }
 
-    fn flight_inputs(&mut self, snapshot: &JumpSnapshot, rng: &mut PascalRandom) -> Vec<JumpInput> {
+    fn flight_inputs(&mut self, snapshot: &JumpSnapshot, rng: &mut Random) -> Vec<JumpInput> {
         let mut inputs = Vec::with_capacity(2);
 
         if snapshot.frame % self.reflex == 0 {
@@ -94,7 +94,7 @@ impl ComputerInputProvider {
 }
 
 impl JumpInputProvider for ComputerInputProvider {
-    fn inputs(&mut self, snapshot: &JumpSnapshot, rng: &mut PascalRandom) -> Vec<JumpInput> {
+    fn inputs(&mut self, snapshot: &JumpSnapshot, rng: &mut Random) -> Vec<JumpInput> {
         self.initialize(rng);
 
         match snapshot.phase {
@@ -147,7 +147,7 @@ mod tests {
     #[test]
     fn computer_starts_takeoff_near_table() {
         let mut provider = ComputerInputProvider::new(1);
-        let mut rng = PascalRandom::new(1);
+        let mut rng = Random::new(1);
         let mut near_table = snapshot(JumpPhase::Inrun);
         near_table.table_distance = -5.0;
 
@@ -160,7 +160,7 @@ mod tests {
     #[test]
     fn computer_does_not_takeoff_too_early() {
         let mut provider = ComputerInputProvider::new(1);
-        let mut rng = PascalRandom::new(1);
+        let mut rng = Random::new(1);
         let far_from_table = snapshot(JumpPhase::Inrun);
 
         assert!(provider.inputs(&far_from_table, &mut rng).is_empty());
@@ -171,7 +171,7 @@ mod tests {
         let mut provider = ComputerInputProvider::new(1);
         provider.initialized = true;
         provider.reflex = 4;
-        let mut rng = PascalRandom::new(1);
+        let mut rng = Random::new(1);
         let mut flight = snapshot(JumpPhase::Flight);
         flight.frame = 8;
         flight.body_angle = 158;
@@ -187,7 +187,7 @@ mod tests {
         let terrain = HillTerrain::from_front_pcx(front, 120, 0.89);
         let mut state = JumpState::new(&terrain, 148.0, 0.89, 120, 0.3217, 15);
         let mut provider = ComputerInputProvider::new(1);
-        let mut rng = PascalRandom::new(1);
+        let mut rng = Random::new(1);
         let wind = FlightWind {
             value: 0,
             windy: 0,
@@ -232,7 +232,7 @@ mod tests {
         let front = PcxParser::parse(include_bytes!("../../assets/FRONT2.PCX")).expect("FRONT2");
         let terrain = HillTerrain::from_front_pcx(front, 90, 0.84);
         let mut state = JumpState::new(&terrain, 131.0, 0.84, 90, 0.3222, 15);
-        let mut rng = PascalRandom::new(1);
+        let mut rng = Random::new(1);
         let wind = FlightWind {
             value: 0,
             windy: 0,
@@ -250,16 +250,16 @@ mod tests {
 
     #[test]
     fn silent_lahti_k90_computer_distance_stays_plausible() {
-        use crate::wind::PascalWind;
+        use crate::jump::wind::Wind;
 
         let front = PcxParser::parse(include_bytes!("../../assets/FRONT2.PCX")).expect("FRONT2");
         let terrain = HillTerrain::from_front_pcx(front, 90, 0.84);
         let mut state = JumpState::new(&terrain, 131.0, 0.84, 90, 0.3222, 15);
         state.prepare_silent_computer_jump(&terrain);
         let mut provider = ComputerInputProvider::new(0);
-        let mut rng = PascalRandom::new(5489);
+        let mut rng = Random::new(5489);
         provider.prepare_for_jump(&mut rng);
-        let mut wind = PascalWind::default();
+        let mut wind = Wind::default();
         wind.initialize(&mut rng, 0);
         wind.advance_without_sampling(&mut rng);
         for _ in 0..100 {
@@ -291,7 +291,7 @@ mod tests {
         let front = PcxParser::parse(include_bytes!("../../assets/FRONT2.PCX")).expect("FRONT2");
         let terrain = HillTerrain::from_front_pcx(front, 90, 0.84);
         let mut state = JumpState::new(&terrain, 131.0, 0.84, 90, 0.3222, 15);
-        let mut rng = PascalRandom::new(1);
+        let mut rng = Random::new(1);
         let wind = FlightWind {
             value: 0,
             windy: 0,
@@ -322,10 +322,10 @@ mod tests {
 
     #[test]
     fn pre_start_wind_shift_matches_pascal_count() {
-        use crate::wind::PascalWind;
+        use crate::jump::wind::Wind;
 
-        let mut rng = PascalRandom::new(42);
-        let mut wind = PascalWind::default();
+        let mut rng = Random::new(42);
+        let mut wind = Wind::default();
         wind.initialize(&mut rng, 0);
 
         // Pascal: 1x Tuuli.Hae (shift) + 100x Tuuli.Siirra (shift)

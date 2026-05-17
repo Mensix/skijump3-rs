@@ -8,11 +8,11 @@ use crate::jump::{
     ComputerInputProvider, JumpInputProvider, JumpPresentationContext, JumpSession, JumperControl,
     WindGaugePosition,
 };
-use crate::palette_consts::FONT_DEFAULT;
-use crate::pascal_random::PascalRandom;
-use crate::snow::SnowSystem;
+use crate::gfx::palette::FONT_DEFAULT;
+use crate::rng::Random;
+use crate::jump::snow::SnowSystem;
 use crate::store::{ResourcesRef, StoreRef};
-use crate::wind::PascalWind;
+use crate::jump::wind::Wind;
 use engine::consts::{HEIGHT, WIDTH};
 use engine::palette::Palette;
 use engine::ui::Element;
@@ -45,7 +45,7 @@ impl JumpRunner {
             wind.initialize(&mut rng, store.wind_place.get());
 
             if store.eka.get() {
-                let lmaara = crate::snow::calculate_lmaara(&mut rng);
+                let lmaara = crate::jump::snow::calculate_lmaara(&mut rng);
                 snow.set_count(lmaara, &mut rng);
                 wind.sample(&mut rng);
                 store.eka.set(false);
@@ -124,8 +124,8 @@ impl JumpRunner {
     /// Drives computer AI inputs and ticks physics until outcome is available.
     pub(crate) fn simulate_to_completion(
         &mut self,
-        rng: &mut PascalRandom,
-        wind: &mut PascalWind,
+        rng: &mut Random,
+        wind: &mut Wind,
     ) -> JumpOutcome {
         if let Some(input) = &mut self.computer_input {
             input.prepare_for_jump(rng);

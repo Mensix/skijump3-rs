@@ -2,7 +2,7 @@ use crate::components::confirm_dialog::{ConfirmAction, ConfirmDialog};
 use crate::components::text_input::{TextInput, TextInputAction};
 use crate::components::value_selector::{ValueSelector, ValueSelectorAction};
 use crate::data::profile::{Profile, NUM_SKIS, NUM_SUITS};
-use crate::palette_consts::{BG_LEFT, BG_RIGHT, FONT_HELP, BG_ORDER, FONT_NEW, FONT_NAME, FONT_BACK, FONT_DEFAULT, apply_suit_palette, apply_ski_palette, apply_suit_palette_at, apply_ski_palette_at};
+use crate::gfx::palette::{BG_LEFT, BG_RIGHT, FONT_HELP, BG_ORDER, FONT_NEW, FONT_NAME, FONT_BACK, FONT_DEFAULT, apply_suit_palette, apply_ski_palette, apply_suit_palette_at, apply_ski_palette_at};
 use crate::route::RouteTarget;
 use crate::save::SaveRef;
 use crate::store::{ResourcesRef, StoreRef};

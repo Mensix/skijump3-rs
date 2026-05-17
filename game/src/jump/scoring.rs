@@ -1,7 +1,7 @@
 use crate::data::hill_profile::HillTerrain;
 use crate::jump::animation::crash_risk;
 use crate::jump::math::pascal_round;
-use crate::pascal_random::PascalRandom;
+use crate::rng::Random;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct LandingRisk {
@@ -65,7 +65,7 @@ pub(crate) fn calculate_score(
     distance: i32,
     fall_type: u8,
     landing_style: u8,
-    rng: &mut PascalRandom,
+    rng: &mut Random,
 ) -> ScoreResult {
     let mut base = style_base;
     let short_jump_penalty_count = pascal_round(

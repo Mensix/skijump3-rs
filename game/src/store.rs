@@ -5,8 +5,8 @@ use crate::data::records::{HillCatalog, RecordStore};
 use crate::jump::replay::ReplayTrace;
 use crate::loaders::assets::AssetStore;
 use crate::parsers::langbase::LangBase;
-use crate::pascal_random::PascalRandom;
-use crate::wind::PascalWind;
+use crate::rng::Random;
+use crate::jump::wind::Wind;
 use engine::ui::Font;
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
@@ -77,8 +77,8 @@ impl Default for PracticeState {
 pub struct Store {
     pub profiles: RefCell<ProfileStore>,
     pub records: RefCell<RecordStore>,
-    pub rng: RefCell<PascalRandom>,
-    pub wind: RefCell<PascalWind>,
+    pub rng: RefCell<Random>,
+    pub wind: RefCell<Wind>,
     pub wind_place: Cell<u8>,
     pub practice: PracticeState,
     pub(crate) competition: RefCell<Option<Competition>>,
@@ -101,8 +101,8 @@ impl Store {
         Self {
             profiles: RefCell::new(ProfileStore::new()),
             records: RefCell::new(records),
-            rng: RefCell::new(PascalRandom::default()),
-            wind: RefCell::new(PascalWind::default()),
+            rng: RefCell::new(Random::default()),
+            wind: RefCell::new(Wind::default()),
             wind_place: Cell::new(0),
             practice: PracticeState::default(),
             competition: RefCell::new(None),

@@ -1,6 +1,6 @@
 use crate::components::screen;
 use crate::jump::replay::ReplayTrace;
-use crate::palette_consts::{FONT_DEFAULT, FONT_GOLD};
+use crate::gfx::palette::{FONT_DEFAULT, FONT_GOLD};
 use crate::store::ResourcesRef;
 use engine::ui::{Blinker, Element, Event, Key, TextEditState};
 use std::cell::RefCell;

@@ -1,7 +1,7 @@
 use crate::data::hill_profile::HillTerrain;
 use crate::data::records::HillInfo;
 use crate::jump::policy::{JumpPolicy, JumperControl};
-use crate::snow::SnowSystem;
+use crate::jump::snow::SnowSystem;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct JumpParticipant {

@@ -1,6 +1,6 @@
 use crate::components::screen::{new_screen, page_hints};
 use crate::data::records::{HillRecord, Hiscore};
-use crate::palette_consts::{FONT_DEFAULT, FONT_NEW, FONT_GREET, FONT_HELP, apply_menu_tint};
+use crate::gfx::palette::{FONT_DEFAULT, FONT_NEW, FONT_GREET, FONT_HELP, apply_menu_tint};
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::utils::{is_computer_name, shorten_name};

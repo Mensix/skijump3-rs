@@ -1,7 +1,7 @@
 use crate::components::menu::{Menu, MenuItem};
-use crate::palette_consts::{FONT_DEFAULT, FONT_GOLD, FONT_GREET, apply_menu_tint};
+use crate::gfx::palette::{FONT_DEFAULT, FONT_GOLD, FONT_GREET, apply_menu_tint};
 use crate::route::RouteTarget;
-use crate::sprites;
+use crate::gfx::sprites;
 use crate::store::{ResourcesRef, StoreRef};
 use engine::ui::{Component, Element, Event, Key, View};
 

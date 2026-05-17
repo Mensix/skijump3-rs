@@ -1,5 +1,5 @@
-use crate::palette_consts::FONT_HELP;
-use crate::sprites;
+use crate::gfx::palette::FONT_HELP;
+use crate::gfx::sprites;
 use engine::ui::Element;
 
 #[must_use] 

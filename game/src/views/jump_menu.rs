@@ -2,7 +2,7 @@ use crate::competition::builder::build_competition;
 use crate::competition::types::CupStyle;
 use crate::components::layout::{self, MainLayout};
 use crate::components::menu::{Menu, MenuItem};
-use crate::palette_consts::{FONT_DEFAULT, BG_LIST, FONT_HEADER, BG_ERASE};
+use crate::gfx::palette::{FONT_DEFAULT, BG_LIST, FONT_HEADER, BG_ERASE};
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use engine::ui::{Component, Element, Event, View};

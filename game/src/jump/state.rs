@@ -6,7 +6,7 @@ use crate::jump::animation::{
 use crate::jump::math::{nsqrt, pascal_round};
 use crate::jump::scoring;
 use crate::jump::types::{FlightWind, JumpInput, JumpOutcome, JumpPhase, JumpSnapshot};
-use crate::pascal_random::PascalRandom;
+use crate::rng::Random;
 
 #[derive(Debug, Clone)]
 pub(crate) struct JumpState {
@@ -238,7 +238,7 @@ impl JumpState {
         &mut self,
         terrain: &HillTerrain,
         wind: FlightWind,
-        rng: &mut PascalRandom,
+        rng: &mut Random,
         count_onbar_frames: bool,
     ) {
         match self.phase {
@@ -269,7 +269,7 @@ impl JumpState {
         }
     }
 
-    fn tick_inrun(&mut self, terrain: &HillTerrain, wind: FlightWind, rng: &mut PascalRandom) {
+    fn tick_inrun(&mut self, terrain: &HillTerrain, wind: FlightWind, rng: &mut Random) {
         let fx = self.x;
         let fy = self.y;
         self.matka += self.px * 0.01;
@@ -317,7 +317,7 @@ impl JumpState {
         self.update_camera(fx, fy);
     }
 
-    fn tick_flight(&mut self, terrain: &HillTerrain, wind: FlightWind, rng: &mut PascalRandom) {
+    fn tick_flight(&mut self, terrain: &HillTerrain, wind: FlightWind, rng: &mut Random) {
         let fx = self.x;
         let fy = self.y;
 
@@ -333,7 +333,7 @@ impl JumpState {
         fy: i32,
         terrain: &HillTerrain,
         wind: FlightWind,
-        mut rng: Option<&mut PascalRandom>,
+        mut rng: Option<&mut Random>,
     ) {
         if let Some(style) = self.landing_requested.take() {
             self.landing_style = style;
@@ -434,7 +434,7 @@ impl JumpState {
         self.update_camera(fx, fy);
     }
 
-    fn tick_landing(&mut self, terrain: &HillTerrain, rng: &mut PascalRandom) {
+    fn tick_landing(&mut self, terrain: &HillTerrain, rng: &mut Random) {
         if self.result_pending {
             self.phase = JumpPhase::Result;
             self.result_pending = false;
@@ -479,7 +479,7 @@ impl JumpState {
         self.update_camera(fx, fy);
     }
 
-    fn prepare_landing(&mut self, terrain: &HillTerrain, rng: &mut PascalRandom) {
+    fn prepare_landing(&mut self, terrain: &HillTerrain, rng: &mut Random) {
         self.grade = if self.hill_kr != 0 {
             pascal_round(f64::from(self.distance) / f64::from(self.hill_kr)) * 10
         } else {
@@ -524,7 +524,7 @@ impl JumpState {
         self.detached_px = self.px;
     }
 
-    fn update_ski_swing(&mut self, rng: &mut Option<&mut PascalRandom>) {
+    fn update_ski_swing(&mut self, rng: &mut Option<&mut Random>) {
         if self.ski_swing <= 0 {
             return;
         }

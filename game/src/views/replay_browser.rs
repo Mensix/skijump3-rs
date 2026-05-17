@@ -1,7 +1,7 @@
 use crate::components::layout::{self, MainLayout};
 use crate::components::menu::{Menu, MenuItem};
 use crate::jump::replay::ReplayTrace;
-use crate::palette_consts::{FONT_DEFAULT, FONT_HEADER, BG_ERASE, FONT_HELP, FONT_GOLD};
+use crate::gfx::palette::{FONT_DEFAULT, FONT_HEADER, BG_ERASE, FONT_HELP, FONT_GOLD};
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use engine::ui::{Component, Element, Event, Key, View};

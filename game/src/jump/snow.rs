@@ -1,4 +1,4 @@
-use crate::pascal_random::PascalRandom;
+use crate::rng::Random;
 use engine::consts::{HEIGHT, WIDTH};
 
 const LUMI_MAX: usize = 256;
@@ -31,7 +31,7 @@ pub struct SnowSystem {
 
 /// Pascal `LMaara` calculation: random snow count used at event start.
 /// Called once per event when `eka=true`.
-pub fn calculate_lmaara(rng: &mut PascalRandom) -> u16 {
+pub fn calculate_lmaara(rng: &mut Random) -> u16 {
     let mut lmaara = rng.random_i32(2) * rng.random_i32(256);
     if lmaara > 0 && lmaara < 40 {
         lmaara += rng.random_i32(150);
@@ -66,7 +66,7 @@ impl SnowSystem {
         }
     }
 
-    pub fn set_count(&mut self, count: u16, rng: &mut PascalRandom) {
+    pub fn set_count(&mut self, count: u16, rng: &mut Random) {
         self.perus_g = 600;
         self.g_variation = 300;
         self.side_movement = 50;
@@ -88,9 +88,8 @@ impl SnowSystem {
         self.count
     }
 
-    fn reset(&mut self, rng: &mut PascalRandom) {
+    fn reset(&mut self, rng: &mut Random) {
         self.compute_sine();
-        // Pascal: always initializes all LumiMax (256) flakes regardless of Max
         self.flakes = (0..LUMI_MAX)
             .map(|_| {
                 let x = i64::from(rng.random_i32(WIDTH as i32)) << 10;
@@ -119,7 +118,7 @@ impl SnowSystem {
             .collect();
     }
 
-    fn get_color(rng: &mut PascalRandom) -> u16 {
+    fn get_color(rng: &mut Random) -> u16 {
         let low = rng.random_i32(4) + 232;
         let high = rng.random_i32(4) + 232;
         (low as u16) | ((high as u16) << 8)

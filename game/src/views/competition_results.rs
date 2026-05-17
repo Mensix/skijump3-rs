@@ -1,7 +1,7 @@
 use crate::competition::machine::Competition;
 use crate::competition::types::{CompetitionPhase, QualificationStatus};
 use crate::components::screen::{new_screen, page_hints};
-use crate::palette_consts::{FONT_DEFAULT, FONT_GREET, FONT_HEADER};
+use crate::gfx::palette::{FONT_DEFAULT, FONT_GREET, FONT_HEADER};
 use crate::store::ResourcesRef;
 use engine::ui::Element;
 
