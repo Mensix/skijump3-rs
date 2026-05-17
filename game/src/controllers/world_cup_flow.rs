@@ -135,10 +135,14 @@ impl WorldCupFlow {
     }
 
     /// Call before rebuilding the jump runner for a human jumper.
+    /// Pascal: Tuuli.Alusta(windplace) called once per event.
     pub(crate) fn note_event_change(&self, store: &StoreRef) {
         let comp = store.competition.borrow();
         if let Some(c) = comp.as_ref() {
             if c.current_event != self.last_event.get() {
+                let mut rng = store.rng.borrow_mut();
+                let mut wind = store.wind.borrow_mut();
+                wind.initialize(&mut rng, store.wind_place.get());
                 store.first_event.set(true);
                 self.last_event.set(c.current_event);
             }

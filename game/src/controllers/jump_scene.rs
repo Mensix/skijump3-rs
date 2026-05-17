@@ -25,6 +25,12 @@ impl JumpScene {
         policy: JumpPolicy,
     ) -> Self {
         store.first_event.set(true);
+        // Pascal: Tuuli.Alusta(windplace) once per event before any jumpers.
+        let mut rng = store.rng.borrow_mut();
+        let mut wind = store.wind.borrow_mut();
+        wind.initialize(&mut rng, store.wind_place.get());
+        drop(wind);
+        drop(rng);
         let runner = RefCell::new(Self::build_runner(
             resources.clone(),
             &store,
@@ -193,11 +199,9 @@ impl JumpScene {
         let mut snow = SnowSystem::new();
 
         if terrain.is_ok() && hill.is_some() {
-            let mut rng = store.rng.borrow_mut();
-            let mut wind = store.wind.borrow_mut();
-            wind.initialize(&mut rng, store.wind_place.get());
-
             if store.first_event.get() {
+                let mut rng = store.rng.borrow_mut();
+                let mut wind = store.wind.borrow_mut();
                 let snow_count = calculate_snow_count(&mut rng);
                 snow.set_count(snow_count, &mut rng);
                 wind.sample(&mut rng);
