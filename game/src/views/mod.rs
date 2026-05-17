@@ -1,4 +1,3 @@
-mod competition_jump_controller;
 pub(crate) mod competition_jump_view;
 mod competition_results;
 pub mod jump_menu;
@@ -9,7 +8,6 @@ pub mod profiles_view;
 pub mod records_view;
 pub mod replay_browser;
 pub mod replay_view;
-mod training_jump_controller;
 pub mod welcome_screen;
 pub(crate) use competition_jump_view::CompetitionJumpView;
 pub use jump_menu::JumpMenuView;

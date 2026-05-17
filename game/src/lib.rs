@@ -1,5 +1,6 @@
 pub mod competition;
 pub mod components;
+pub mod controllers;
 pub mod data;
 pub mod jump;
 pub mod loaders;

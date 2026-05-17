@@ -3,11 +3,11 @@ use crate::jump::JumpRunner;
 use crate::palette_consts::apply_menu_tint;
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
-use crate::views::competition_jump_controller::{
+use crate::controllers::competition_jump::{
     CompetitionJumpController, CompetitionRenderState,
 };
+use crate::controllers::training_jump::{TrainingJumpAction, TrainingJumpController};
 use crate::views::competition_results;
-use crate::views::training_jump_controller::{TrainingJumpAction, TrainingJumpController};
 use engine::palette::Palette;
 use engine::ui::{Element, Event, Key, View};
 use std::cell::{Cell, RefCell};

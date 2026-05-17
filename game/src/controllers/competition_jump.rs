@@ -32,7 +32,6 @@ impl CompetitionJumpController {
         store: &StoreRef,
         runner: &RefCell<JumpRunner>,
     ) -> CompetitionRenderState {
-        // Record completed human jump (record_jump only, no advance)
         self.record_finished_human_jump(store, runner);
 
         if self.advance_to_human_or_display(resources, store, runner) {
@@ -42,7 +41,6 @@ impl CompetitionJumpController {
         }
     }
 
-    /// Call when user dismisses a display phase (presses any key).
     pub(crate) fn dismiss_display(&self, store: &StoreRef) {
         if let Some(c) = store.competition.borrow_mut().as_mut() {
             c.advance();
@@ -69,13 +67,9 @@ impl CompetitionJumpController {
         let mut comp = store.competition.borrow_mut();
         if let Some(c) = comp.as_mut() {
             c.record_jump(points, length);
-            // Note: no advance() — let advance_to_human_or_display handle it
         }
     }
 
-    /// Drive the machine: auto-skip training, show display phases,
-    /// simulate computers, stop at the next human jumper.
-    /// Returns true when a human jumper is ready to render.
     fn advance_to_human_or_display(
         &self,
         resources: &ResourcesRef,
@@ -88,7 +82,6 @@ impl CompetitionJumpController {
                 return false;
             };
 
-            // Display phases — let the view render results
             if matches!(
                 c.phase,
                 CompetitionPhase::QualificationResults
@@ -100,8 +93,6 @@ impl CompetitionJumpController {
                 return false;
             }
 
-            // Jump phase ended (no current jumper) — show results for jump phases,
-            // auto-advance for training and setup (no results for those)
             if c.current_jumper().is_none() {
                 let auto = matches!(
                     c.phase,
@@ -114,12 +105,10 @@ impl CompetitionJumpController {
                     store.competition.borrow_mut().as_mut().unwrap().advance();
                     continue;
                 }
-                // Jump phase ended → enter the matching Pascal result-list phase.
                 store.competition.borrow_mut().as_mut().unwrap().advance();
                 return false;
             }
 
-            // Human jumper — set up runner with correct phase label
             if c.is_human_current() {
                 let jumper_idx = c.current_jumper().unwrap();
                 let label = Self::phase_label(resources, c.phase);
@@ -131,7 +120,6 @@ impl CompetitionJumpController {
                 return true;
             }
 
-            // Computer jumper — fast-forward silently
             let jumper_idx = c.current_jumper().expect("computer jumper exists");
             let participant = to_jump_participant(c.field.get(jumper_idx));
             let hill_idx = c.hill_order.get(c.current_event).copied().unwrap_or(0);
