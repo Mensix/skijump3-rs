@@ -66,11 +66,11 @@ pub(crate) fn drive(
                 hill_idx,
                 is_human: true,
             } => {
-                let participant = participant_to_jump(competition.field.get(idx));
+                let participant = participant_to_jump(competition.participant(idx));
                 return WorldCupCommand::HumanJump {
                     participant,
                     hill_idx,
-                    phase: competition.phase,
+                    phase: competition.phase(),
                     is_new_event: check_event_change(competition.current_event, last_event),
                 };
             }
@@ -79,7 +79,7 @@ pub(crate) fn drive(
                 hill_idx,
                 is_human: false,
             } => {
-                let participant = participant_to_jump(competition.field.get(idx));
+                let participant = participant_to_jump(competition.participant(idx));
                 let outcome = simulate_computer(participant, hill_idx);
 
                 competition.record_jump(outcome.score, outcome.distance);
@@ -90,12 +90,13 @@ pub(crate) fn drive(
                 }
 
                 if let Some(next_idx) = competition.current_jumper() {
-                    if !competition.field.get(next_idx).is_computer {
-                        let next_participant = participant_to_jump(competition.field.get(next_idx));
+                    if !competition.participant(next_idx).is_computer {
+                        let next_participant =
+                            participant_to_jump(competition.participant(next_idx));
                         return WorldCupCommand::HumanJump {
                             participant: next_participant,
                             hill_idx,
-                            phase: competition.phase,
+                            phase: competition.phase(),
                             is_new_event: check_event_change(competition.current_event, last_event),
                         };
                     }

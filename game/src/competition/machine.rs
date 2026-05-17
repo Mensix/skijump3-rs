@@ -36,12 +36,12 @@ pub enum StepDecision {
 /// 5. `is_over()` → season finished?
 #[derive(Debug, Clone)]
 pub struct Competition {
-    pub field: CompetitionField,
-    pub style: CupStyle,
-    pub hill_order: Vec<usize>,
-    pub current_event: usize,
-    pub phase: CompetitionPhase,
-    pub trainrounds: usize,
+    pub(crate) field: CompetitionField,
+    pub(crate) style: CupStyle,
+    pub(crate) hill_order: Vec<usize>,
+    pub(crate) current_event: usize,
+    pub(crate) phase: CompetitionPhase,
+    pub(crate) trainrounds: usize,
 
     start_list: Vec<usize>,
     start_pos: usize,
@@ -60,6 +60,24 @@ impl Competition {
             start_list: Vec::new(),
             start_pos: 0,
         }
+    }
+
+    #[must_use]
+    pub fn phase(&self) -> CompetitionPhase {
+        self.phase
+    }
+
+    #[must_use]
+    pub fn current_hill(&self) -> usize {
+        self.hill_order
+            .get(self.current_event)
+            .copied()
+            .unwrap_or(0)
+    }
+
+    #[must_use]
+    pub fn participant(&self, idx: usize) -> &Participant {
+        self.field.get(idx)
     }
 
     // ── queries ────────────────────────────────────────────────
@@ -93,12 +111,8 @@ impl Competition {
         }
 
         let idx = self.current_jumper().unwrap();
-        let hill_idx = self
-            .hill_order
-            .get(self.current_event)
-            .copied()
-            .unwrap_or(0);
-        let is_human = !self.field.get(idx).is_computer;
+        let hill_idx = self.current_hill();
+        let is_human = !self.participant(idx).is_computer;
         StepDecision::Jump {
             idx,
             hill_idx,

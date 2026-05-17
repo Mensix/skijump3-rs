@@ -14,6 +14,16 @@ pub struct JumpMenuView {
     resources: ResourcesRef,
 }
 
+const JUMP_MENU_ACTIONS: &[Option<RouteTarget>] = &[
+    None,                        // 1 - WorldCup (special, builds competition)
+    Some(RouteTarget::MainMenu), // 2 - CustomCup (not implemented)
+    Some(RouteTarget::MainMenu), // 3 - FourHills (not implemented)
+    Some(RouteTarget::MainMenu), // 4 - TeamCup (not implemented)
+    Some(RouteTarget::MainMenu), // 5 - SeasonComplete (not implemented)
+    Some(RouteTarget::Practice), // 6 - Practice
+    Some(RouteTarget::MainMenu), // 7 - MainMenu
+];
+
 impl JumpMenuView {
     #[must_use]
     pub fn new(layout: MainLayout, store: StoreRef, resources: ResourcesRef) -> Self {
@@ -92,7 +102,6 @@ impl View<RouteTarget> for JumpMenuView {
 
     fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {
         match self.menu.handle_event(&event) {
-            Some(6) => Some(RouteTarget::Practice),
             Some(1) => {
                 let profiles = self.store.profiles.borrow();
                 let comp = build_competition(
@@ -106,7 +115,8 @@ impl View<RouteTarget> for JumpMenuView {
                 *self.store.competition.borrow_mut() = Some(comp);
                 Some(RouteTarget::CompetitionJump)
             }
-            Some(0 | 2 | 3 | 4 | 5 | 7) => Some(RouteTarget::MainMenu),
+            Some(0) => Some(RouteTarget::MainMenu),
+            Some(n) => JUMP_MENU_ACTIONS.get(n - 1).and_then(|&a| a),
             _ => None,
         }
     }

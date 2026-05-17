@@ -53,7 +53,7 @@ pub fn build_results_page(competition: &Competition, page: usize) -> ResultsPage
 
     let mut items = Vec::with_capacity(end - start);
     for &p in &standings[start..end] {
-        let (points, dist, dist2) = match competition.phase {
+        let (points, dist, dist2) = match competition.phase() {
             CompetitionPhase::QualificationResults => (p.points, p.qual_len, 0),
             CompetitionPhase::Round1Results => (p.points, p.round1_len, 0),
             CompetitionPhase::Round2Results => (p.points, p.round1_len, p.round2_len),
@@ -73,7 +73,7 @@ pub fn build_results_page(competition: &Competition, page: usize) -> ResultsPage
     }
 
     ResultsPage {
-        phase: competition.phase,
+        phase: competition.phase(),
         page,
         total_pages,
         items,
@@ -88,7 +88,7 @@ pub fn total_pages(competition: &Competition) -> usize {
 }
 
 fn standings_for_phase(competition: &Competition) -> Vec<&Participant> {
-    match competition.phase {
+    match competition.phase() {
         CompetitionPhase::WorldCupStandings => competition
             .overall_standings()
             .into_iter()
@@ -112,18 +112,14 @@ pub fn render_header(competition: &Competition, resources: &ResourcesRef) -> Vec
     let lang = &resources.langbase;
     let event = competition.current_event + 1;
     let total = competition.total_events().max(1);
-    let hill_idx = competition
-        .hill_order
-        .get(competition.current_event)
-        .copied()
-        .unwrap_or(0);
+    let hill_idx = competition.current_hill();
     let hill_str = resources
         .hills
         .hill(hill_idx)
         .map(|h| format!("{} K{}", h.name, h.kr))
         .unwrap_or_default();
 
-    let header = match competition.phase {
+    let header = match competition.phase() {
         CompetitionPhase::QualificationResults => {
             format!(
                 "{} {} {} {} - {}",

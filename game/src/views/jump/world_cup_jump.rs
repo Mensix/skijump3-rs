@@ -208,14 +208,14 @@ impl WorldCupJumpView {
         }
         self.store.competition.borrow().as_ref().is_some_and(|c| {
             matches!(
-                c.phase,
+                c.phase(),
                 CompetitionPhase::QualificationResults
                     | CompetitionPhase::Round1Results
                     | CompetitionPhase::Round2Results
                     | CompetitionPhase::WorldCupStandings
                     | CompetitionPhase::SeasonComplete
             ) || matches!(
-                c.phase,
+                c.phase(),
                 CompetitionPhase::Qualification
                     | CompetitionPhase::Round1
                     | CompetitionPhase::Round2

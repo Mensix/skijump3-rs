@@ -10,6 +10,16 @@ pub struct MainMenuView {
     layout: MainLayout,
 }
 
+const MENU_ACTIONS: &[Option<RouteTarget>] = &[
+    Some(RouteTarget::JumpMenu),
+    Some(RouteTarget::ProfilesList),
+    Some(RouteTarget::OptionsMenu),
+    Some(RouteTarget::HallOfFame),
+    Some(RouteTarget::HillRecords),
+    Some(RouteTarget::Replays),
+    Some(RouteTarget::Quit),
+];
+
 impl MainMenuView {
     #[allow(clippy::needless_pass_by_value)]
     pub fn new(layout: MainLayout, store: StoreRef) -> Self {
@@ -88,13 +98,8 @@ impl View<RouteTarget> for MainMenuView {
 
     fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {
         match self.menu.handle_event(&event) {
-            Some(1) => Some(RouteTarget::JumpMenu),
-            Some(2) => Some(RouteTarget::ProfilesList),
-            Some(3) => Some(RouteTarget::OptionsMenu),
-            Some(4) => Some(RouteTarget::HallOfFame),
-            Some(5) => Some(RouteTarget::HillRecords),
-            Some(6) => Some(RouteTarget::Replays),
-            Some(0 | 7) => Some(RouteTarget::Quit),
+            Some(0) | Some(7) => Some(RouteTarget::Quit),
+            Some(n) => MENU_ACTIONS.get(n - 1).and_then(|&a| a),
             _ => None,
         }
     }

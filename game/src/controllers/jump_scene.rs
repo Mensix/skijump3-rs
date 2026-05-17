@@ -19,12 +19,26 @@ pub struct JumpScene {
 impl JumpScene {
     /// Set up wind and first-event state for a new competition event.
     /// Pascal: Tuuli.Alusta(windplace) once per event before any jumpers.
-    /// Call before constructing `JumpScene` or at the start of each event.
     pub fn setup_event(store: &StoreRef) {
         store.first_event.set(true);
         let mut rng = store.rng.borrow_mut();
         let mut wind = store.wind.borrow_mut();
         wind.initialize(&mut rng, store.wind_place.get());
+    }
+
+    /// Create a snow system, optionally sampling snow count and wind
+    /// on the very first event (Pascal-faithful one-time init).
+    fn prepare_snow(store: &StoreRef) -> SnowSystem {
+        let mut snow = SnowSystem::new();
+        if store.first_event.get() {
+            let mut rng = store.rng.borrow_mut();
+            let mut wind = store.wind.borrow_mut();
+            let snow_count = calculate_snow_count(&mut rng);
+            snow.set_count(snow_count, &mut rng);
+            wind.sample(&mut rng);
+            store.first_event.set(false);
+        }
+        snow
     }
 
     pub fn new(
@@ -35,6 +49,7 @@ impl JumpScene {
         participant: JumpParticipant,
         policy: JumpPolicy,
     ) -> Self {
+        let snow = Self::prepare_snow(&store);
         let runner = RefCell::new(Self::build_runner(
             resources.clone(),
             &store,
@@ -43,6 +58,7 @@ impl JumpScene {
             participant,
             policy,
             String::new(),
+            snow,
         ));
         Self {
             runner,
@@ -59,6 +75,7 @@ impl JumpScene {
         policy: JumpPolicy,
         phase_label: String,
     ) {
+        let snow = Self::prepare_snow(&self.store);
         *self.runner.borrow_mut() = Self::build_runner(
             self.resources.clone(),
             &self.store,
@@ -67,6 +84,7 @@ impl JumpScene {
             participant,
             policy,
             phase_label,
+            snow,
         );
     }
 
@@ -209,6 +227,7 @@ impl JumpScene {
         (hill, terrain, record_distance)
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn build_runner(
         resources: ResourcesRef,
         store: &StoreRef,
@@ -217,19 +236,9 @@ impl JumpScene {
         participant: JumpParticipant,
         policy: JumpPolicy,
         phase_label: String,
+        snow: SnowSystem,
     ) -> JumpRunner {
         let (hill, terrain, record_distance) = Self::load_hill_data(&resources, store, hill_idx);
-        let mut snow = SnowSystem::new();
-
-        if terrain.is_ok() && hill.is_some() && store.first_event.get() {
-            let mut rng = store.rng.borrow_mut();
-            let mut wind = store.wind.borrow_mut();
-            let snow_count = calculate_snow_count(&mut rng);
-            snow.set_count(snow_count, &mut rng);
-            wind.sample(&mut rng);
-            store.first_event.set(false);
-        }
-
         let snow_count = snow.count();
         JumpRunner::new(
             JumpConfig {
