@@ -1,7 +1,7 @@
 use crate::competition::types::CompetitionPhase;
 use crate::controllers::jump_input::{JumpInputAction, JumpInputController};
 use crate::controllers::jump_scene::JumpScene;
-use crate::controllers::world_cup_flow::{WorldCupCommand, WorldCupFlow};
+use crate::controllers::world_cup_flow::{self, WorldCupCommand};
 use crate::gfx::palette::apply_menu_tint;
 use crate::jump::JumpParticipant;
 use crate::route::RouteTarget;
@@ -22,7 +22,8 @@ pub struct WorldCupJumpView {
     resources: ResourcesRef,
     store: StoreRef,
     scene: JumpScene,
-    controller: WorldCupFlow,
+    last_event: Cell<usize>,
+    result_acknowledged: Cell<bool>,
     display_page: Cell<usize>,
     render_mode: Cell<RenderMode>,
 }
@@ -42,16 +43,19 @@ impl WorldCupJumpView {
             resources,
             store,
             scene,
-            controller: WorldCupFlow::new(),
+            last_event: Cell::new(0),
+            result_acknowledged: Cell::new(false),
             display_page: Cell::new(0),
             render_mode: Cell::new(RenderMode::Jump),
         }
     }
 
     fn record_finished_human_jump(&self) {
-        let Some(outcome) = self.scene.outcome() else {
+        let outcome = self.scene.outcome();
+        if outcome.is_none() || !self.result_acknowledged.get() {
             return;
-        };
+        }
+        let outcome = outcome.unwrap();
         let comp = self.store.competition.borrow();
         let is_human = comp.as_ref().is_some_and(|c| c.is_human_current());
         drop(comp);
@@ -62,6 +66,7 @@ impl WorldCupJumpView {
         if let Some(c) = comp.as_mut() {
             c.record_jump(outcome.score, outcome.distance);
         }
+        self.result_acknowledged.set(false);
     }
 
     fn handle_human_jump(
@@ -70,11 +75,11 @@ impl WorldCupJumpView {
         hill_idx: usize,
         phase_label: String,
     ) {
+        self.result_acknowledged.set(false);
         let needs_rebuild = self.scene.participant_id() != participant.id
             || self.scene.hill_idx() != hill_idx
             || self.scene.outcome().is_some();
         if needs_rebuild {
-            self.controller.note_event_change(&self.store);
             self.scene
                 .rebuild_for_competition(hill_idx, 15, participant, phase_label);
         } else {
@@ -94,21 +99,31 @@ impl WorldCupJumpView {
     }
 
     fn drive_competition(&self) {
+        let mut comp = self.store.competition.borrow_mut();
+        let Some(c) = comp.as_mut() else {
+            self.render_mode.set(RenderMode::Done);
+            return;
+        };
+
         let mut simulate_computer =
             |participant: JumpParticipant, hill_idx: usize| -> crate::jump::types::JumpOutcome {
                 self.scene.simulate_hidden(participant, hill_idx)
             };
 
-        let command = self
-            .controller
-            .drive(&self.resources, &self.store, &mut simulate_computer);
+        let command = world_cup_flow::drive(c, &self.last_event, &mut simulate_computer);
+        drop(comp);
 
         match command {
             WorldCupCommand::HumanJump {
                 participant,
                 hill_idx,
-                phase_label,
+                phase,
+                is_new_event,
             } => {
+                if is_new_event {
+                    JumpScene::setup_event(&self.store);
+                }
+                let phase_label = Self::phase_label(&self.resources, phase);
                 self.handle_human_jump(participant, hill_idx, phase_label);
                 self.render_mode.set(RenderMode::Jump);
             }
@@ -118,6 +133,16 @@ impl WorldCupJumpView {
             WorldCupCommand::Done => {
                 self.render_mode.set(RenderMode::Done);
             }
+        }
+    }
+
+    fn phase_label(resources: &ResourcesRef, phase: CompetitionPhase) -> String {
+        match phase {
+            CompetitionPhase::Training(n) => format!("{} {}", resources.langbase.lstr(52), n),
+            CompetitionPhase::Qualification => resources.langbase.lstr(53).to_string(),
+            CompetitionPhase::Round1 => resources.langbase.lstr(54).to_string(),
+            CompetitionPhase::Round2 => resources.langbase.lstr(55).to_string(),
+            _ => resources.langbase.lstr(51).to_string(),
         }
     }
 }
@@ -138,42 +163,25 @@ impl View<RouteTarget> for WorldCupJumpView {
 
     fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {
         if self.is_result_display_state() {
-            match event {
-                Event::Keyboard(Key::Right | Key::Char(' ')) => {
-                    let page = self.display_page.get();
-                    let total = {
-                        let comp = self.store.competition.borrow();
-                        let c = comp.as_ref()?;
-                        competition_results::total_pages(c)
-                    };
-                    if page + 1 < total {
-                        self.display_page.set(page + 1);
-                    }
-                    None
-                }
-                Event::Keyboard(Key::Left) => {
-                    let page = self.display_page.get();
-                    if page > 0 {
-                        self.display_page.set(page - 1);
-                    }
-                    None
-                }
-                Event::Keyboard(Key::Escape | Key::Enter) => {
-                    self.display_page.set(0);
-                    self.controller.dismiss_display(&self.store);
-                    None
-                }
-                _ => None,
+            return self.handle_result_event(event);
+        }
+
+        // Pascal: wait for key after human jump before advancing
+        if self.scene.outcome().is_some() && !self.result_acknowledged.get() {
+            if matches!(event, Event::Keyboard(Key::Enter | Key::Escape)) {
+                self.result_acknowledged.set(true);
+                return None;
             }
-        } else {
-            let action = {
-                let mut session = self.scene.session_mut();
-                JumpInputController.handle_event(event, &mut session)
-            };
-            match action {
-                JumpInputAction::RouteBack => Some(RouteTarget::Back),
-                _ => None,
-            }
+            return None;
+        }
+
+        let action = {
+            let mut session = self.scene.session_mut();
+            JumpInputController.handle_event(event, &mut session)
+        };
+        match action {
+            JumpInputAction::RouteBack => Some(RouteTarget::Back),
+            _ => None,
         }
     }
 
@@ -210,5 +218,37 @@ impl WorldCupJumpView {
                     | CompetitionPhase::Round2
             ) && c.current_jumper().is_none()
         })
+    }
+
+    fn handle_result_event(&mut self, event: Event) -> Option<RouteTarget> {
+        match event {
+            Event::Keyboard(Key::Right | Key::Char(' ')) => {
+                let page = self.display_page.get();
+                let total = {
+                    let comp = self.store.competition.borrow();
+                    let c = comp.as_ref()?;
+                    competition_results::total_pages(c)
+                };
+                if page + 1 < total {
+                    self.display_page.set(page + 1);
+                }
+                None
+            }
+            Event::Keyboard(Key::Left) => {
+                let page = self.display_page.get();
+                if page > 0 {
+                    self.display_page.set(page - 1);
+                }
+                None
+            }
+            Event::Keyboard(Key::Escape | Key::Enter) => {
+                self.display_page.set(0);
+                if let Some(c) = self.store.competition.borrow_mut().as_mut() {
+                    c.advance();
+                }
+                None
+            }
+            _ => None,
+        }
     }
 }
