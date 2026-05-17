@@ -429,7 +429,6 @@ impl<'a> ReplayParser<'a> {
 mod tests {
     use super::*;
     use crate::gfx::sprites::Sprite;
-    use crate::jump::animation::INRUN_TRANSITION;
 
     fn trace() -> ReplayTrace {
         ReplayTrace {
@@ -467,7 +466,7 @@ mod tests {
                 ReplayFrame {
                     dx: 2,
                     dy: -1,
-                    body_anim: INRUN_TRANSITION as u8,
+                    body_anim: Sprite::InrunTransition as u8,
                     ski_anim: 73,
                     wind: 4,
                 },
@@ -555,7 +554,7 @@ mod tests {
         let mut recorder = ReplayRecorder::default();
         recorder.start(trace().meta);
         recorder.record_frame((10, 20), (11, 22), Sprite::IdleBody as u16, 72, -2);
-        recorder.record_frame((11, 22), (14, 25), INRUN_TRANSITION, 73, -1);
+        recorder.record_frame((11, 22), (14, 25), Sprite::InrunTransition as u16, 73, -1);
 
         let trace = recorder.finish().expect("trace");
         let bytes = trace.to_sjr_bytes();
@@ -563,7 +562,7 @@ mod tests {
 
         assert_eq!(trace.meta.frame_count, 1);
         assert_eq!(parsed.frames.len(), 2);
-        assert_eq!(parsed.frames[1].body_anim, INRUN_TRANSITION as u8);
+        assert_eq!(parsed.frames[1].body_anim, Sprite::InrunTransition as u8);
         assert_eq!(parsed.frames[1].ski_anim, 73);
     }
 

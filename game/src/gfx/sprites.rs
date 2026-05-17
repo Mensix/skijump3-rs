@@ -34,4 +34,5 @@ pub enum Sprite {
     CrashFinalNarrow = 161,
     CrashFinalDefault = 162,
     IdleBody = 163,
+    InrunTransition = 164,
 }

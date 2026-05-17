@@ -4,7 +4,6 @@ use crate::jump::types::FallType;
 const SKI_SLOPE: u16 = 70;
 const INRUN_BODY: u16 = 100;
 const FLIGHT_BODY: u16 = 105;
-pub(crate) const INRUN_TRANSITION: u16 = 164;
 const POST_LANDING_PHASE0: i32 = 121;
 const POST_LANDING_PHASE1: i32 = 122;
 const FALL_BASE: i32 = 141;
@@ -71,7 +70,7 @@ pub const fn inrun_body_anim(ski_anim: u16) -> u16 {
 
 #[must_use]
 pub const fn inrun_transition_body_anim(counter: i32) -> u16 {
-    INRUN_TRANSITION + (counter / 7) as u16
+    Sprite::InrunTransition as u16 + (counter / 7) as u16
 }
 
 #[must_use]
