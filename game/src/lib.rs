@@ -141,36 +141,66 @@ impl Game {
             )),
             _ => Box::new(MainMenuView::new(layout.clone(), store.clone())),
         };
+
+        // Factory helpers to reduce clone/closure repetition.
+        fn rs<F>(
+            r: &ResourcesRef,
+            s: &StoreRef,
+            ctor: F,
+        ) -> Box<dyn Fn() -> Box<dyn View<RouteTarget>>>
+        where
+            F: Fn(ResourcesRef, StoreRef) -> Box<dyn View<RouteTarget>> + 'static,
+        {
+            let r = r.clone();
+            let s = s.clone();
+            Box::new(move || ctor(r.clone(), s.clone()))
+        }
+
+        fn ls<F>(
+            l: &MainLayout,
+            s: &StoreRef,
+            ctor: F,
+        ) -> Box<dyn Fn() -> Box<dyn View<RouteTarget>>>
+        where
+            F: Fn(MainLayout, StoreRef) -> Box<dyn View<RouteTarget>> + 'static,
+        {
+            let l = l.clone();
+            let s = s.clone();
+            Box::new(move || ctor(l.clone(), s.clone()))
+        }
+
         Router::new(
             start_route,
             initial_view,
             vec![
-                (RouteTarget::MainMenu, {
-                    let l = layout.clone();
-                    let s = store.clone();
-                    Box::new(move || Box::new(MainMenuView::new(l.clone(), s.clone())))
-                }),
+                (
+                    RouteTarget::MainMenu,
+                    ls(&layout, &store, |l, s| Box::new(MainMenuView::new(l, s))),
+                ),
                 (RouteTarget::JumpMenu, {
                     let l = layout.clone();
                     let r = resources.clone();
                     let s = store.clone();
                     Box::new(move || Box::new(JumpMenuView::new(l.clone(), s.clone(), r.clone())))
                 }),
-                (RouteTarget::Practice, {
-                    let r = resources.clone();
-                    let s = store.clone();
-                    Box::new(move || Box::new(TrainingSetupView::new(r.clone(), s.clone())))
-                }),
-                (RouteTarget::Jump, {
-                    let r = resources.clone();
-                    let s = store.clone();
-                    Box::new(move || Box::new(TrainingJumpView::new(r.clone(), s.clone())))
-                }),
-                (RouteTarget::CompetitionJump, {
-                    let r = resources.clone();
-                    let s = store.clone();
-                    Box::new(move || Box::new(WorldCupJumpView::new(r.clone(), s.clone())))
-                }),
+                (
+                    RouteTarget::Practice,
+                    rs(&resources, &store, |r, s| {
+                        Box::new(TrainingSetupView::new(r, s))
+                    }),
+                ),
+                (
+                    RouteTarget::Jump,
+                    rs(&resources, &store, |r, s| {
+                        Box::new(TrainingJumpView::new(r, s))
+                    }),
+                ),
+                (
+                    RouteTarget::CompetitionJump,
+                    rs(&resources, &store, |r, s| {
+                        Box::new(WorldCupJumpView::new(r, s))
+                    }),
+                ),
                 (RouteTarget::Replays, {
                     let r = resources.clone();
                     let s = store.clone();
@@ -179,37 +209,36 @@ impl Game {
                         Box::new(ReplayBrowserView::new(r.clone(), s.clone(), l.clone()))
                     })
                 }),
-                (RouteTarget::ReplayPlayback, {
-                    let r = resources.clone();
-                    let s = store.clone();
-                    Box::new(move || Box::new(ReplayView::new(r.clone(), s.clone())))
-                }),
+                (
+                    RouteTarget::ReplayPlayback,
+                    rs(&resources, &store, |r, s| Box::new(ReplayView::new(r, s))),
+                ),
                 (RouteTarget::ProfilesList, {
                     let r = resources.clone();
                     let s = store.clone();
                     let sm = save_manager.clone();
                     Box::new(move || Box::new(ProfilesView::new(r.clone(), s.clone(), sm.clone())))
                 }),
-                (RouteTarget::HallOfFame, {
-                    let r = resources.clone();
-                    let s = store.clone();
-                    Box::new(move || Box::new(HallOfFameView::new(r.clone(), s.clone())))
-                }),
-                (RouteTarget::HillRecords, {
-                    let r = resources.clone();
-                    let s = store.clone();
-                    Box::new(move || Box::new(HillRecordsView::new(r.clone(), s.clone())))
-                }),
-                (RouteTarget::OptionsMenu, {
-                    let l = layout.clone();
-                    let s = store.clone();
-                    Box::new(move || Box::new(MainMenuView::new(l.clone(), s.clone())))
-                }),
-                (RouteTarget::Quit, {
-                    let l = layout;
-                    let s = store;
-                    Box::new(move || Box::new(MainMenuView::new(l.clone(), s.clone())))
-                }),
+                (
+                    RouteTarget::HallOfFame,
+                    rs(&resources, &store, |r, s| {
+                        Box::new(HallOfFameView::new(r, s))
+                    }),
+                ),
+                (
+                    RouteTarget::HillRecords,
+                    rs(&resources, &store, |r, s| {
+                        Box::new(HillRecordsView::new(r, s))
+                    }),
+                ),
+                (
+                    RouteTarget::OptionsMenu,
+                    ls(&layout, &store, |l, s| Box::new(MainMenuView::new(l, s))),
+                ),
+                (
+                    RouteTarget::Quit,
+                    ls(&layout, &store, |l, s| Box::new(MainMenuView::new(l, s))),
+                ),
                 (RouteTarget::Welcome, {
                     let r = resources;
                     let sm = save_manager;
