@@ -1,74 +1,44 @@
-use crate::consts::FONT_GLYPH_COUNT;
+use crate::consts::{FONT_GLYPH_COUNT, HEIGHT, SHADOW_PIXEL};
 use crate::sprite::SpriteData;
 
-#[derive(Debug, Clone)]
-struct Glyph {
-    data: Vec<u8>,
-    width: u16,
-    height: u16,
-    center_x: i16,
-    center_y: i16,
-}
-
-impl Glyph {
-    fn blit_to(&self, pixels: &mut [u8], screen_w: u32, dst_x: i32, dst_y: i32) {
-        let start_x = dst_x - self.center_x as i32;
-        let start_y = dst_y - self.center_y as i32;
-        for yy in 0..self.height as i32 {
-            for xx in 0..self.width as i32 {
-                let src_idx = (yy * self.width as i32 + xx) as usize;
-                if src_idx >= self.data.len() {
-                    continue;
-                }
-                let pixel = self.data[src_idx];
-                if pixel == 0 {
-                    continue;
-                }
-                let px = start_x + xx;
-                let py = start_y + yy;
-                if px < 0 || py < 0 || px >= (screen_w as i32) || py >= crate::consts::HEIGHT as i32
-                {
-                    continue;
-                }
-                let idx = (py as usize) * (screen_w as usize) + (px as usize);
-                pixels[idx] = pixel;
+fn blit_glyph_color(
+    g: &SpriteData,
+    pixels: &mut [u8],
+    screen_w: u32,
+    dst_x: i32,
+    dst_y: i32,
+    color: u8,
+) {
+    let start_x = dst_x - g.center_x as i32;
+    let start_y = dst_y - g.center_y as i32;
+    for yy in 0..g.height as i32 {
+        for xx in 0..g.width as i32 {
+            let src_idx = (yy * g.width as i32 + xx) as usize;
+            if src_idx >= g.data.len() {
+                continue;
             }
-        }
-    }
-
-    fn blit_color(&self, pixels: &mut [u8], screen_w: u32, dst_x: i32, dst_y: i32, color: u8) {
-        let start_x = dst_x - self.center_x as i32;
-        let start_y = dst_y - self.center_y as i32;
-        for yy in 0..self.height as i32 {
-            for xx in 0..self.width as i32 {
-                let src_idx = (yy * self.width as i32 + xx) as usize;
-                if src_idx >= self.data.len() {
-                    continue;
-                }
-                let pixel = self.data[src_idx];
-                if pixel == 0 {
-                    continue;
-                }
-                let px = start_x + xx;
-                let py = start_y + yy;
-                if px < 0 || py < 0 || px >= (screen_w as i32) || py >= crate::consts::HEIGHT as i32
-                {
-                    continue;
-                }
-                let idx = (py as usize) * (screen_w as usize) + (px as usize);
-                pixels[idx] = if pixel == crate::consts::SHADOW_PIXEL {
-                    crate::consts::SHADOW_PIXEL
-                } else {
-                    color
-                };
+            let pixel = g.data[src_idx];
+            if pixel == 0 {
+                continue;
             }
+            let px = start_x + xx;
+            let py = start_y + yy;
+            if px < 0 || py < 0 || px >= screen_w as i32 || py >= HEIGHT as i32 {
+                continue;
+            }
+            let idx = py as usize * screen_w as usize + px as usize;
+            pixels[idx] = if pixel == SHADOW_PIXEL {
+                SHADOW_PIXEL
+            } else {
+                color
+            };
         }
     }
 }
 
 #[derive(Debug, Clone)]
 pub struct Font {
-    glyphs: Vec<Option<Glyph>>,
+    glyphs: Vec<Option<SpriteData>>,
 }
 
 impl Font {
@@ -82,37 +52,10 @@ impl Font {
         let mut font = Self::new();
         for (i, sprite) in sprites.iter().enumerate() {
             if i < FONT_GLYPH_COUNT {
-                font.set_glyph(
-                    i,
-                    sprite.data.clone(),
-                    sprite.width,
-                    sprite.height,
-                    sprite.center_x,
-                    sprite.center_y,
-                );
+                font.glyphs[i] = Some(sprite.clone());
             }
         }
         font
-    }
-
-    pub fn set_glyph(
-        &mut self,
-        index: usize,
-        data: Vec<u8>,
-        width: u16,
-        height: u16,
-        center_x: i8,
-        center_y: i8,
-    ) {
-        if index < self.glyphs.len() {
-            self.glyphs[index] = Some(Glyph {
-                data,
-                width,
-                height,
-                center_x: center_x as i16,
-                center_y: center_y as i16,
-            });
-        }
     }
 
     pub fn blit_string(&self, pixels: &mut [u8], screen_w: u32, text: &str, x: i32, y: i32) {
@@ -155,7 +98,7 @@ impl Font {
                     if let Some(idx) = Self::char_to_index(ch) {
                         if let Some(ref g) = self.glyphs[idx] {
                             if color != 0 {
-                                g.blit_color(pixels, screen_w, px, y, color);
+                                blit_glyph_color(g, pixels, screen_w, px, y, color);
                             } else {
                                 g.blit_to(pixels, screen_w, px, y);
                             }
