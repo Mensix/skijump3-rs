@@ -78,16 +78,21 @@ impl Default for Config {
 }
 
 fn parse_num(s: &str) -> Result<i32, String> {
-    s.trim().parse().map_err(|e| format!("Bad number '{s}': {e}"))
+    s.trim()
+        .parse()
+        .map_err(|e| format!("Bad number '{s}': {e}"))
 }
 
 fn read_line<'a>(lines: &mut impl Iterator<Item = &'a str>) -> Result<&'a str, String> {
-    lines.next().ok_or_else(|| "Unexpected end of CONFIG.SKI".to_string())
+    lines
+        .next()
+        .ok_or_else(|| "Unexpected end of CONFIG.SKI".to_string())
 }
 
 impl Config {
     pub fn parse(data: &[u8]) -> Result<Self, String> {
-        let s = std::str::from_utf8(data).map_err(|e| format!("Invalid UTF-8 in CONFIG.SKI: {e}"))?;
+        let s =
+            std::str::from_utf8(data).map_err(|e| format!("Invalid UTF-8 in CONFIG.SKI: {e}"))?;
         let mut lines = s.lines();
 
         let reg = parse_num(read_line(&mut lines)?)?;
@@ -148,18 +153,44 @@ impl Config {
         let _ = read_line(&mut lines)?;
 
         Ok(Self {
-            reg, comphrs, lct, diff, compactlist, invback,
-            automatichrr, beeppi, nosamename, goals, diffwc, kosystem,
-            languagenumber, trainrounds, namenumber, setfile, gdetail, seecomps,
-            jumper_count, jnimet,
-            player_count, profileorder,
-            kothwind, kothrounds, kothpack, kothmaki, koth_count, kothpel,
-            key_up, key_right, key_left, key_telemark, key_replay,
+            reg,
+            comphrs,
+            lct,
+            diff,
+            compactlist,
+            invback,
+            automatichrr,
+            beeppi,
+            nosamename,
+            goals,
+            diffwc,
+            kosystem,
+            languagenumber,
+            trainrounds,
+            namenumber,
+            setfile,
+            gdetail,
+            seecomps,
+            jumper_count,
+            jnimet,
+            player_count,
+            profileorder,
+            kothwind,
+            kothrounds,
+            kothpack,
+            kothmaki,
+            koth_count,
+            kothpel,
+            key_up,
+            key_right,
+            key_left,
+            key_telemark,
+            key_replay,
             windplace,
         })
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut buf = Vec::new();
         macro_rules! num {

@@ -8,13 +8,12 @@ use crate::gfx::palette::{BG_RIGHT, FONT_DEFAULT, FONT_NEW};
 use crate::route::RouteTarget;
 use crate::text::layout::{lstr, replace_display_name};
 
-use super::list::{
-    ColorField, Mode, ProfilesView, QuestionAction, TextField, REPLACE_MAX,
-};
+use super::list::{ColorField, Mode, ProfilesView, QuestionAction, TextField, REPLACE_MAX};
 use super::render::profile_label;
 
 pub(super) fn save_players(view: &ProfilesView) {
-    view.save_manager.save_players(&view.store.profiles.borrow());
+    view.save_manager
+        .save_players(&view.store.profiles.borrow());
 }
 
 pub(super) fn handle_list_enter(view: &mut ProfilesView) -> Option<RouteTarget> {
@@ -81,7 +80,11 @@ pub(super) fn handle_list_delete(view: &mut ProfilesView) {
         view.mode = Mode::Question {
             action: QuestionAction::DeleteProfile(view.selected),
             dialog: ConfirmDialog::new(
-                format!("{}: {}", lstr(&view.resources.langbase, 328, "Delete"), name),
+                format!(
+                    "{}: {}",
+                    lstr(&view.resources.langbase, 328, "Delete"),
+                    name
+                ),
                 Rc::clone(&view.resources.langbase),
                 view.resources.font.clone(),
             ),
@@ -147,12 +150,7 @@ pub(super) fn handle_edit_enter(view: &mut ProfilesView, profile: usize, selecte
                 .min(REPLACE_MAX);
             let x = view.resources.font.string_width("Replace:") as i32 + 170;
             let display = if value > 0 {
-                replace_display_name(
-                    value,
-                    &view.resources.player_names,
-                    &view.resources.font,
-                    x,
-                )
+                replace_display_name(value, &view.resources.player_names, &view.resources.font, x)
             } else {
                 String::new()
             };

@@ -53,7 +53,9 @@ impl Wind {
 
     pub fn sample(&mut self, rng: &mut Random) -> i32 {
         self.shift(rng);
-        self.value = math::round(f64::from((self.angle.to_radians()).cos() * self.strength as f32));
+        self.value = math::round(f64::from(
+            (self.angle.to_radians()).cos() * self.strength as f32,
+        ));
         self.value
     }
 

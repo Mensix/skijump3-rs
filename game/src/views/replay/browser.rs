@@ -1,7 +1,7 @@
 use crate::components::layout::{self, MainLayout};
 use crate::components::menu::{Menu, MenuItem};
+use crate::gfx::palette::{BG_ERASE, FONT_DEFAULT, FONT_GOLD, FONT_HEADER, FONT_HELP};
 use crate::jump::replay::ReplayTrace;
-use crate::gfx::palette::{FONT_DEFAULT, FONT_HEADER, BG_ERASE, FONT_HELP, FONT_GOLD};
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use engine::ui::{Component, Element, Event, Key, View};
@@ -181,10 +181,10 @@ impl View<RouteTarget> for ReplayBrowserView {
         els.push(Element::text_color(&entry.filename, 170, 85, FONT_GOLD));
 
         if let Some(trace) = &entry.trace {
-            let hill = self
-                .resources
-                .hills
-                .hill(trace.meta.hill_idx).map_or_else(|| "?".to_string(), |hill| format!("{} K{}", hill.name, hill.kr));
+            let hill = self.resources.hills.hill(trace.meta.hill_idx).map_or_else(
+                || "?".to_string(),
+                |hill| format!("{} K{}", hill.name, hill.kr),
+            );
             els.push(Element::text_color(
                 &trace.meta.author,
                 170,

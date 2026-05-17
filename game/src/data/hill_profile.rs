@@ -84,10 +84,12 @@ mod tests {
 
 impl HillTerrain {
     pub fn load(assets: &AssetStore, info: &HillInfo) -> Result<Self, String> {
-        let front_data = assets.read(&format!("FRONT{}.PCX", info.front_index))
+        let front_data = assets
+            .read(&format!("FRONT{}.PCX", info.front_index))
             .map_err(|e| e.to_string())?;
-        let back_data =
-            assets.read(&format!("BACK{}.PCX", info.back_index)).map_err(|e| e.to_string())?;
+        let back_data = assets
+            .read(&format!("BACK{}.PCX", info.back_index))
+            .map_err(|e| e.to_string())?;
         let front = PcxParser::parse(&front_data).map_err(|e| e.to_string())?;
         let mut back = PcxParser::parse(&back_data).map_err(|e| e.to_string())?;
         if info.back_mirror != 0 {
@@ -96,12 +98,12 @@ impl HillTerrain {
         Ok(Self::from_pcxs(front, back, info.kr, info.pk()))
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn from_front_pcx(pcx: DecodedPcx, kr: i64, pk: f64) -> Self {
         Self::from_pcxs(pcx.clone(), pcx, kr, pk)
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn from_pcxs(front: DecodedPcx, back: DecodedPcx, kr: i64, pk: f64) -> Self {
         let width = front.width as usize;
         let height = front.height as usize;
@@ -138,7 +140,7 @@ impl HillTerrain {
         }
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn viewport_pixels(&self, scroll_x: i32, scroll_y: i32, w: u32, h: u32) -> Rc<[u8]> {
         let mut out = vec![0; w as usize * h as usize];
         for dy in 0..h as i32 {
@@ -190,7 +192,7 @@ impl HillTerrain {
         }
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn height_at(&self, x: i32) -> i32 {
         if x > 0 {
             self.profile_y.get(x as usize).copied().unwrap_or(0)
@@ -199,7 +201,7 @@ impl HillTerrain {
         }
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn hill_angle(&self, x: i32) -> i32 {
         let value = self.height_at(x + 9)
             + self.height_at(x + 8)

@@ -49,7 +49,6 @@ impl AssetParser<HillCatalog> for HillBaseParser {
 
         Ok(HillCatalog::new(hills))
     }
-
 }
 
 fn parse_i64(lines: &[String], idx: usize) -> i64 {

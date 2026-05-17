@@ -7,7 +7,7 @@
 /// The `high_extra` byte can be 0..=180 (values > 127 are non-UTF-8, so
 /// the output is `Vec<u8>`, not `String`). Callers writing to text files
 /// should treat this as raw byte output.
-#[must_use] 
+#[must_use]
 pub fn crypt(value: i64, order: usize) -> Vec<u8> {
     let low_5digits = (value % 100_000) as usize;
     let high_extra = if value >= 100_000 {
@@ -42,7 +42,7 @@ pub fn crypt(value: i64, order: usize) -> Vec<u8> {
 /// Convenience: convert crypt output to str for use with `uncrypt`.
 /// Only safe when `high_extra < 128`, i.e. `value < 5_300_000`.
 /// Panics otherwise (single bytes >= 128 are not valid UTF-8).
-#[must_use] 
+#[must_use]
 pub fn crypt_str(value: i64, order: usize) -> String {
     let bytes = crypt(value, order);
     String::from_utf8(bytes).expect("crypt output should be valid UTF-8 for this value range")
@@ -65,7 +65,7 @@ fn str_hash(text: &str, seed: u32) -> u32 {
 /// Pascal `ProfileCode` — checksum for a PLAYERS.SKI profile entry.
 /// Fields are passed positionally matching the Pascal `Profile_type` order.
 #[allow(clippy::too_many_arguments)]
-#[must_use] 
+#[must_use]
 pub fn profile_code(
     name: &str,
     bestresult: &str,
@@ -120,10 +120,17 @@ mod tests {
         for val in [0i64, 1, 42, 99999, 100_000, 123_456, 5_299_999] {
             for order in 1..=5 {
                 let enc_bytes = crypt(val, order);
-                assert_eq!(enc_bytes.len(), 8, "crypt output must be 8 bytes for val={val} order={order}");
+                assert_eq!(
+                    enc_bytes.len(),
+                    8,
+                    "crypt output must be 8 bytes for val={val} order={order}"
+                );
                 let enc = String::from_utf8(enc_bytes).unwrap();
                 let dec = super::super::super::parsers::records::uncrypt(&enc, order);
-                assert_eq!(dec, val, "round-trip failed for val={val} order={order}: enc={enc:?}");
+                assert_eq!(
+                    dec, val,
+                    "round-trip failed for val={val} order={order}: enc={enc:?}"
+                );
             }
         }
     }
@@ -138,9 +145,24 @@ mod tests {
     fn profile_code_matches_pascal() {
         // From the example PLAYERS.SKI in the repo
         let code = profile_code(
-            "SKI JUMPER", "0 (-)", "-",
-            0, 0, 0, 0, 1, 930, 1, 930, 0, 0,
-            1, 0, 0, 0, 1,
+            "SKI JUMPER",
+            "0 (-)",
+            "-",
+            0,
+            0,
+            0,
+            0,
+            1,
+            930,
+            1,
+            930,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            1,
         );
         assert_eq!(code, 15942);
     }

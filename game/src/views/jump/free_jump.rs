@@ -1,8 +1,9 @@
 use crate::components::save_replay_dialog::{SaveAction, SaveReplayDialog};
+use crate::controllers::jump_environment::{new_runner_with_env, runner_elements};
+use crate::controllers::training_jump::{TrainingJumpAction, TrainingJumpController};
 use crate::jump::{JumpParticipant, JumpPolicy, JumpRunner};
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
-use crate::controllers::training_jump::{TrainingJumpAction, TrainingJumpController};
 use engine::palette::Palette;
 use engine::ui::{Element, Event, View};
 use std::cell::RefCell;
@@ -19,7 +20,7 @@ impl JumpView {
         let hill_idx = store.practice.selected_hill.get();
         store.first_event.set(true);
 
-        let runner = JumpRunner::new_with_env(
+        let runner = new_runner_with_env(
             hill_idx,
             store.practice.start_gate.get(),
             JumpParticipant::trainee(),
@@ -139,9 +140,7 @@ impl View<RouteTarget> for JumpView {
                 .unwrap_or_default();
             return self.save_dialog.elements(&distance, &hill_name);
         }
-        self.runner
-            .borrow_mut()
-            .elements(&self.resources, &self.store)
+        runner_elements(&mut self.runner.borrow_mut(), &self.resources, &self.store)
     }
 
     fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {

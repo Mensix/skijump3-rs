@@ -3,7 +3,7 @@ use engine::ui::Font;
 
 const RIGHT_EDGE: i32 = 316;
 
-#[must_use] 
+#[must_use]
 pub fn trim_ascii(bytes: &[u8]) -> &[u8] {
     let start = bytes
         .iter()
@@ -16,7 +16,7 @@ pub fn trim_ascii(bytes: &[u8]) -> &[u8] {
     &bytes[start..end]
 }
 
-#[must_use] 
+#[must_use]
 pub fn shorten_name(s: &str, font: &Font, max_width: i32) -> String {
     if max_width <= 0 {
         return String::new();
@@ -54,7 +54,7 @@ fn replace_max_width(value: usize, font: &Font, x: i32) -> i32 {
         .max(0)
 }
 
-#[must_use] 
+#[must_use]
 pub fn replace_display_name(value: usize, player_names: &[String], font: &Font, x: i32) -> String {
     if value == 0 || value > player_names.len() {
         return String::new();
@@ -64,7 +64,7 @@ pub fn replace_display_name(value: usize, player_names: &[String], font: &Font, 
     shorten_name(name, font, max_w)
 }
 
-#[must_use] 
+#[must_use]
 pub fn is_computer_name(name: &str) -> bool {
     name.ends_with('\u{00FF}')
 }
@@ -77,4 +77,3 @@ pub fn lstr(langbase: &LangBase, index: usize, fallback: &str) -> String {
         v.to_string()
     }
 }
-

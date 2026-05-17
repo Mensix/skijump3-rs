@@ -20,17 +20,17 @@ pub struct RecordStore {
 }
 
 impl RecordStore {
-    #[must_use] 
+    #[must_use]
     pub const fn new(top: Vec<Hiscore>, hill_records: Vec<HillRecord>) -> Self {
         Self { top, hill_records }
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn top(&self, idx: usize) -> Option<&Hiscore> {
         self.top.get(idx)
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn hill_record(&self, idx: usize) -> Option<&HillRecord> {
         self.hill_records.get(idx)
     }
@@ -53,12 +53,12 @@ pub struct HillInfo {
 }
 
 impl HillInfo {
-    #[must_use] 
+    #[must_use]
     pub fn pk(&self) -> f64 {
         self.pk_hundred as f64 / 100.0
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn pl_save(&self) -> f64 {
         self.pl_save_ten_thousand as f64 / 10_000.0
     }
@@ -70,22 +70,22 @@ pub struct HillCatalog {
 }
 
 impl HillCatalog {
-    #[must_use] 
+    #[must_use]
     pub const fn new(hills: Vec<HillInfo>) -> Self {
         Self { hills }
     }
 
-    #[must_use] 
+    #[must_use]
     pub const fn len(&self) -> usize {
         self.hills.len()
     }
 
-    #[must_use] 
+    #[must_use]
     pub const fn is_empty(&self) -> bool {
         self.hills.is_empty()
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn hill(&self, idx: usize) -> Option<&HillInfo> {
         self.hills.get(idx)
     }

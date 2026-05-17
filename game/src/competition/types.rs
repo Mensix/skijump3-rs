@@ -1,3 +1,5 @@
+pub(crate) const DID_NOT_START_SCORE: i32 = -5555;
+
 /// Identifies the scoring/ruleset for a competition series.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CupStyle {
@@ -35,14 +37,11 @@ pub enum QualificationStatus {
 }
 
 impl QualificationStatus {
-    #[must_use] 
+    #[must_use]
     pub const fn can_jump(&self) -> bool {
         matches!(
             self,
-            Self::Qualified
-                | Self::PreQualified
-                | Self::LuckyLoser
-                | Self::KoSeed(_)
+            Self::Qualified | Self::PreQualified | Self::LuckyLoser | Self::KoSeed(_)
         )
     }
 }
@@ -73,7 +72,7 @@ pub struct Participant {
 }
 
 impl Participant {
-    #[must_use] 
+    #[must_use]
     pub const fn computer(id: usize, name: String) -> Self {
         Self {
             id,
@@ -95,7 +94,7 @@ impl Participant {
         }
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn display_name(&self) -> &str {
         if self.real_name.is_empty() {
             &self.name

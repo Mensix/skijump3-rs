@@ -1,7 +1,7 @@
-use crate::jump::types::FallType;
 use crate::data::hill_profile::HillTerrain;
 use crate::jump::animation::crash_risk;
 use crate::jump::math;
+use crate::jump::types::{FallType, LandingStyle};
 use crate::rng::Random;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -25,7 +25,7 @@ pub fn landing_risk(
     distance: i32,
     hill_kr: i32,
     body_angle: i32,
-    landing_style: u8,
+    landing_style: LandingStyle,
 ) -> LandingRisk {
     let slope_angle = terrain.hill_angle(x);
     let quality = math::round(f64::from(slope_angle).mul_add(1.34, f64::from(body_angle) / 10.0));
@@ -39,10 +39,14 @@ pub fn landing_risk(
 
     let mut fall_type = FallType::None;
     let mut style_penalty = 0;
-    if landing_style == 0 || quality < 56 {
-        fall_type = if landing_style == 0 { FallType::Normal } else { FallType::TwoFooted };
+    if landing_style == LandingStyle::None || quality < 56 {
+        fall_type = if landing_style == LandingStyle::None {
+            FallType::Normal
+        } else {
+            FallType::TwoFooted
+        };
     }
-    if landing_style == 1 {
+    if landing_style == LandingStyle::Telemark {
         risk *= 3;
         if quality < 60 {
             style_penalty += 5;
@@ -65,7 +69,7 @@ pub fn calculate_score(
     hill_kr: i32,
     distance: i32,
     fall_type: FallType,
-    landing_style: u8,
+    landing_style: LandingStyle,
     rng: &mut Random,
 ) -> ScoreResult {
     let mut base = style_base;
@@ -78,7 +82,7 @@ pub fn calculate_score(
 
     if fall_type != FallType::None {
         base -= 100;
-    } else if landing_style == 2 {
+    } else if landing_style == LandingStyle::TwoFooted {
         base -= 15 + rng.random_i32(2) * 5;
     }
 

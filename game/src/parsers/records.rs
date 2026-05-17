@@ -99,5 +99,4 @@ impl AssetParser<RecordStore> for RecordsParser {
 
         Ok(RecordStore::new(top, hill_records))
     }
-
 }

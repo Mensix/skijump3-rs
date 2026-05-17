@@ -2,7 +2,7 @@ use crate::gfx::palette::FONT_HELP;
 use crate::gfx::sprites;
 use engine::ui::Element;
 
-#[must_use] 
+#[must_use]
 pub fn new_screen(style: u8) -> Vec<Element> {
     let mut els = vec![Element::fillbox(0, 0, 320, 200, 0)];
 
@@ -37,7 +37,7 @@ pub fn new_screen(style: u8) -> Vec<Element> {
     els
 }
 
-#[must_use] 
+#[must_use]
 pub fn page_hints(page: usize, pages: usize, prev: &str, next: &str, end: &str) -> Vec<Element> {
     let mut els = Vec::with_capacity(2);
     if page > 0 {

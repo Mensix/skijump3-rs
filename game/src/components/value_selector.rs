@@ -30,7 +30,7 @@ pub struct ValueSelector {
 }
 
 impl ValueSelector {
-    #[must_use] 
+    #[must_use]
     pub const fn color_bars(
         x: i32,
         y: i32,
@@ -58,7 +58,7 @@ impl ValueSelector {
     }
 
     #[allow(clippy::too_many_arguments)]
-    #[must_use] 
+    #[must_use]
     pub const fn numeric(
         x: i32,
         y: i32,
@@ -86,7 +86,7 @@ impl ValueSelector {
         }
     }
 
-    #[must_use] 
+    #[must_use]
     pub const fn value(&self) -> usize {
         self.value
     }
@@ -177,7 +177,13 @@ impl ValueSelector {
         ];
         for value in 0..=self.max {
             let y = self.y + 4 + value as i32 * 8;
-            els.push(Element::fillbox(self.x + 6, y, 19, 5, (value as u8 + 1) * 5));
+            els.push(Element::fillbox(
+                self.x + 6,
+                y,
+                19,
+                5,
+                (value as u8 + 1) * 5,
+            ));
             if self.suit_boxes {
                 els.push(Element::box_(
                     self.x + 6,

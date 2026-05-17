@@ -1,4 +1,5 @@
 use crate::competition::types::{CompetitionPhase, Participant};
+use crate::controllers::jump_environment::{new_runner_with_env, set_runner_hill};
 use crate::jump::config::JumpParticipant;
 use crate::jump::policy::JumperControl;
 use crate::jump::{JumpPolicy, JumpRunner};
@@ -53,7 +54,9 @@ impl CompetitionJumpController {
         }
 
         let comp = store.competition.borrow();
-        let is_human = comp.as_ref().is_some_and(super::super::competition::machine::Competition::is_human_current);
+        let is_human = comp
+            .as_ref()
+            .is_some_and(super::super::competition::machine::Competition::is_human_current);
         drop(comp);
         if !is_human {
             return;
@@ -132,7 +135,7 @@ impl CompetitionJumpController {
 
             {
                 let mut runner = runner.borrow_mut();
-                runner.set_hill(hill_idx, resources);
+                set_runner_hill(&mut runner, hill_idx, resources);
                 runner.set_participant(participant);
                 runner.reset_state(15, record_distance);
             }
@@ -189,7 +192,7 @@ impl CompetitionJumpController {
     fn build_runner(resources: &ResourcesRef, store: &StoreRef) -> JumpRunner {
         let comp = store.competition.borrow();
         let Some(c) = comp.as_ref() else {
-            return JumpRunner::new_with_env(
+            return new_runner_with_env(
                 0,
                 15,
                 JumpParticipant::trainee(),
@@ -199,7 +202,7 @@ impl CompetitionJumpController {
             );
         };
         let Some(&hill_idx) = c.hill_order.get(c.current_event) else {
-            return JumpRunner::new_with_env(
+            return new_runner_with_env(
                 0,
                 15,
                 JumpParticipant::trainee(),
@@ -209,7 +212,7 @@ impl CompetitionJumpController {
             );
         };
         let Some(jumper_idx) = c.current_jumper() else {
-            return JumpRunner::new_with_env(
+            return new_runner_with_env(
                 hill_idx,
                 15,
                 JumpParticipant::trainee(),
@@ -219,7 +222,7 @@ impl CompetitionJumpController {
             );
         };
         let participant = to_jump_participant(c.field.get(jumper_idx));
-        JumpRunner::new_with_env(
+        new_runner_with_env(
             hill_idx,
             15,
             participant,

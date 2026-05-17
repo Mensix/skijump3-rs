@@ -1,5 +1,6 @@
 use crate::gfx::sprites::Sprite;
 use crate::jump::types::FallType;
+use crate::jump::types::LandingStyle;
 
 const SKI_SLOPE: u16 = 70;
 const INRUN_BODY: u16 = 100;
@@ -74,7 +75,7 @@ pub const fn inrun_transition_body_anim(counter: i32) -> u16 {
 }
 
 #[must_use]
-pub const fn landing_body_anim(mut ski_anim: u16, landing_style: u8) -> u16 {
+pub const fn landing_body_anim(mut ski_anim: u16, landing_style: LandingStyle) -> u16 {
     if ski_anim >= SKI_SLOPE {
         ski_anim -= SKI_SLOPE;
     }
@@ -85,16 +86,16 @@ pub const fn landing_body_anim(mut ski_anim: u16, landing_style: u8) -> u16 {
         8..=12 => Sprite::LandingBody4 as u16,
         _ => Sprite::LandingBody1 as u16,
     };
-    if landing_style == 2 {
+    if matches!(landing_style, LandingStyle::TwoFooted) {
         value += 6;
     }
     value
 }
 
-fn landing_loop_body_anim(counter: i32, slope_ski_anim: u16, landing_style: u8) -> u16 {
+fn landing_loop_body_anim(counter: i32, slope_ski_anim: u16, landing_style: LandingStyle) -> u16 {
     // Pascal: if (counter<7) and (landing>0) then JumperAnim:=113+landing;
-    if counter < 7 && landing_style > 0 {
-        return (Sprite::LandingLoopBase as u16) + u16::from(landing_style);
+    if counter < 7 && !matches!(landing_style, LandingStyle::None) {
+        return (Sprite::LandingLoopBase as u16) + landing_style.offset() as u16;
     }
     landing_body_anim(slope_ski_anim, landing_style)
 }
@@ -103,7 +104,7 @@ fn landing_loop_body_anim(counter: i32, slope_ski_anim: u16, landing_style: u8) 
 pub fn post_landing_body_anim(
     counter: i32,
     start_anim: i32,
-    landing_style: u8,
+    landing_style: LandingStyle,
     grade: i32,
     slope_ski_anim: u16,
 ) -> u16 {
@@ -113,26 +114,26 @@ pub fn post_landing_body_anim(
 
     let phase = ((counter - start_anim) / 12).min(6);
     let anim_idx = match phase {
-         0 => POST_LANDING_PHASE0 + i32::from(landing_style) * 6,
-         1 => POST_LANDING_PHASE1 + i32::from(landing_style) * 6,
-          2 => Sprite::PostLandingPhase2 as i32,
-          3..=6 => match grade {
-              0..=75 => Sprite::LandingSlide as i32,
-              105..=200 => {
-                  if phase > 3 {
-                      if grade > 114 {
-                          Sprite::PostLandingRecoveryHigh as i32
-                      } else {
-                          Sprite::PostLandingRecoveryUp as i32
-                      }
-                  } else {
-                      Sprite::PostLandingRecovery as i32
-                  }
-              }
-              _ => Sprite::PostLandingPhase2 as i32,
-          },
-          _ => Sprite::PostLandingPhase2 as i32,
-     };
+        0 => POST_LANDING_PHASE0 + landing_style.offset() * 6,
+        1 => POST_LANDING_PHASE1 + landing_style.offset() * 6,
+        2 => Sprite::PostLandingPhase2 as i32,
+        3..=6 => match grade {
+            0..=75 => Sprite::LandingSlide as i32,
+            105..=200 => {
+                if phase > 3 {
+                    if grade > 114 {
+                        Sprite::PostLandingRecoveryHigh as i32
+                    } else {
+                        Sprite::PostLandingRecoveryUp as i32
+                    }
+                } else {
+                    Sprite::PostLandingRecovery as i32
+                }
+            }
+            _ => Sprite::PostLandingPhase2 as i32,
+        },
+        _ => Sprite::PostLandingPhase2 as i32,
+    };
     anim_idx as u16
 }
 
@@ -142,7 +143,7 @@ pub(crate) fn fall_body_anim(
     counter: i32,
     body_angle: i32,
     detached_slope_ski_anim: u16,
-    landing_style: u8,
+    landing_style: LandingStyle,
 ) -> u16 {
     let detached_ski = detached_slope_ski_anim.saturating_sub(SKI_SLOPE);
     let anim_idx = match fall_type {
@@ -178,13 +179,15 @@ pub(crate) fn fall_body_anim(
                     7..=12 => Sprite::CrashFinalWide as i32,
                     _ => Sprite::CrashFinalDefault as i32,
                 };
-            } else if landing_style == 2 {
+            } else if matches!(landing_style, LandingStyle::TwoFooted) {
                 anim += 5;
             }
             anim
         }
         FallType::Crash => FALL_BASE + counter / 10,
-        FallType::None => return landing_loop_body_anim(counter, detached_slope_ski_anim, landing_style),
+        FallType::None => {
+            return landing_loop_body_anim(counter, detached_slope_ski_anim, landing_style)
+        }
     };
     anim_idx as u16
 }
@@ -304,10 +307,25 @@ mod tests {
 
     #[test]
     fn maps_landing_and_fall_frames() {
-        assert_eq!(post_landing_body_anim(101, 100, 1, 0, 70), 127);
-        assert_eq!(post_landing_body_anim(125, 100, 2, 120, 70), 135);
-        assert_eq!(post_landing_body_anim(150, 100, 2, 120, 70), 140);
-        assert_eq!(fall_body_anim(FallType::Normal, 10, 160, 74, 1), 142);
-        assert_eq!(fall_body_anim(FallType::Crash, 24, 160, 76, 2), 156);
+        assert_eq!(
+            post_landing_body_anim(101, 100, LandingStyle::Telemark, 0, 70),
+            127
+        );
+        assert_eq!(
+            post_landing_body_anim(125, 100, LandingStyle::TwoFooted, 120, 70),
+            135
+        );
+        assert_eq!(
+            post_landing_body_anim(150, 100, LandingStyle::TwoFooted, 120, 70),
+            140
+        );
+        assert_eq!(
+            fall_body_anim(FallType::Normal, 10, 160, 74, LandingStyle::Telemark),
+            142
+        );
+        assert_eq!(
+            fall_body_anim(FallType::Crash, 24, 160, 76, LandingStyle::TwoFooted),
+            156
+        );
     }
 }

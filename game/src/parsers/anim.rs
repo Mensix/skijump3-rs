@@ -66,12 +66,8 @@ impl AssetParser<Vec<SpriteData>> for AnimParser {
                 for src in &sources {
                     let w = src.width as usize;
                     let h = src.height as usize;
-                    let flipped: Vec<u8> = src.data
-                        .chunks_exact(w)
-                        .rev()
-                        .flatten()
-                        .copied()
-                        .collect();
+                    let flipped: Vec<u8> =
+                        src.data.chunks_exact(w).rev().flatten().copied().collect();
                     sprites.push(SpriteData {
                         data: flipped,
                         width: src.width,
@@ -85,5 +81,4 @@ impl AssetParser<Vec<SpriteData>> for AnimParser {
 
         Ok(sprites)
     }
-
 }

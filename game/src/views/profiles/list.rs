@@ -2,7 +2,10 @@ use crate::components::confirm_dialog::{ConfirmAction, ConfirmDialog};
 use crate::components::text_input::{TextInput, TextInputAction};
 use crate::components::value_selector::{ValueSelector, ValueSelectorAction};
 use crate::data::profile::{Profile, NUM_SKIS, NUM_SUITS};
-use crate::gfx::palette::{FONT_DEFAULT, apply_suit_palette, apply_ski_palette, apply_suit_palette_at, apply_ski_palette_at};
+use crate::gfx::palette::{
+    apply_ski_palette, apply_ski_palette_at, apply_suit_palette, apply_suit_palette_at,
+    FONT_DEFAULT,
+};
 use crate::route::RouteTarget;
 use crate::save::SaveRef;
 use crate::store::{ResourcesRef, StoreRef};
@@ -10,7 +13,9 @@ use crate::text::layout::{lstr, replace_display_name};
 use engine::palette::Palette;
 use engine::ui::{Component, Element, Event, Key, View};
 
-use super::actions::{apply_question, commit_text_input, handle_edit_enter, handle_list_delete, handle_list_enter};
+use super::actions::{
+    apply_question, commit_text_input, handle_edit_enter, handle_list_delete, handle_list_enter,
+};
 use super::render::{draw_empty_edit, draw_help, draw_list, draw_profile, draw_screen_base};
 
 const EDIT_MENU_ITEMS: usize = 9;
@@ -75,7 +80,7 @@ pub(super) enum Pending {
     TextCancel(usize, TextField),
     ColorCommit(usize, ColorField),
     ColorCancel(usize, ColorField),
-    ReplaceCommit(usize, usize),
+    ReplaceCommit(usize),
     ReplaceCancel(usize),
     QuestionYes(QuestionAction),
     QuestionNo(QuestionAction),
@@ -142,7 +147,6 @@ impl ProfilesView {
                 .then_some(self.selected),
         }
     }
-
 }
 
 impl View<RouteTarget> for ProfilesView {
@@ -296,7 +300,7 @@ impl View<RouteTarget> for ProfilesView {
                     match action {
                         ValueSelectorAction::Commit(value) => {
                             self.store.profiles.borrow_mut().profiles[*profile].replace = value;
-                            pending = Some(Pending::ReplaceCommit(*profile, value));
+                            pending = Some(Pending::ReplaceCommit(*profile));
                         }
                         ValueSelectorAction::Cancel => {
                             pending = Some(Pending::ReplaceCancel(*profile));
@@ -331,8 +335,7 @@ impl View<RouteTarget> for ProfilesView {
                     },
                 };
             }
-            Some(Pending::ColorCommit(profile, field) |
-Pending::ColorCancel(profile, field)) => {
+            Some(Pending::ColorCommit(profile, field) | Pending::ColorCancel(profile, field)) => {
                 self.mode = Mode::Edit {
                     profile,
                     selected: match field {
@@ -341,7 +344,7 @@ Pending::ColorCancel(profile, field)) => {
                     },
                 };
             }
-            Some(Pending::ReplaceCommit(profile, _value)) => {
+            Some(Pending::ReplaceCommit(profile)) => {
                 self.mode = Mode::Edit {
                     profile,
                     selected: 4,

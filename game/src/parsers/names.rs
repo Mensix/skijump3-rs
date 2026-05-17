@@ -46,5 +46,4 @@ impl AssetParser<Vec<String>> for NamesParser {
 
         Ok(names)
     }
-
 }

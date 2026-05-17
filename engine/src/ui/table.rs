@@ -77,7 +77,7 @@ impl Component for Table {
             .collect()
     }
 
-    fn handle_event(&mut self, _event: &Event) -> Option<Self::Action> {
+    fn handle_event(&mut self, _: &Event) -> Option<Self::Action> {
         None
     }
 }

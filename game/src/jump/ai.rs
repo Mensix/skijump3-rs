@@ -3,9 +3,8 @@ use crate::jump::math::{self, nsqrt};
 use crate::jump::types::{JumpInput, JumpPhase, JumpSnapshot};
 use crate::rng::Random;
 
-pub trait JumpInputProvider {
-    fn inputs(&mut self, snapshot: &JumpSnapshot, rng: &mut Random) -> Vec<JumpInput>;
-}
+#[cfg(test)]
+use crate::jump::types::DEFAULT_START_GATE;
 
 #[derive(Debug)]
 pub struct ComputerInputProvider {
@@ -41,7 +40,8 @@ impl ComputerInputProvider {
         }
 
         let jumper = self.jumper_id.max(0) + 1;
-        let skill_raw = 63 - rng.random_i32(80)
+        let skill_raw = 63
+            - rng.random_i32(80)
             - rng.random_i32(24 * jumper)
             - rng.random_i32(12 * jumper)
             - rng.random_i32(10 * jumper);
@@ -90,10 +90,8 @@ impl ComputerInputProvider {
 
         inputs
     }
-}
 
-impl JumpInputProvider for ComputerInputProvider {
-    fn inputs(&mut self, snapshot: &JumpSnapshot, rng: &mut Random) -> Vec<JumpInput> {
+    pub(crate) fn inputs(&mut self, snapshot: &JumpSnapshot, rng: &mut Random) -> Vec<JumpInput> {
         self.initialize(rng);
 
         match snapshot.phase {
@@ -139,7 +137,7 @@ mod tests {
             body_angle: 158,
             ski_angle: 0,
             speed: 90.0,
-            start_gate: 15,
+            start_gate: DEFAULT_START_GATE,
         }
     }
 
@@ -336,6 +334,9 @@ mod tests {
 
         // The angle has moved 101 steps; a fresh sample produces a valid value
         let value = wind.sample(&mut rng);
-        assert!(value >= -50 && value <= 50, "wind value out of range: {value}");
+        assert!(
+            value >= -50 && value <= 50,
+            "wind value out of range: {value}"
+        );
     }
 }

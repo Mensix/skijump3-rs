@@ -1,21 +1,28 @@
+use crate::data::hill_profile::HillTerrain;
+use crate::data::records::{HillCatalog, HillInfo, RecordStore};
+use crate::gfx::palette::FONT_DEFAULT;
 use crate::jump::config::JumpConfig;
-use crate::jump::policy::JumpPolicy;
 use crate::jump::presentation;
 use crate::jump::replay::ReplayTrace;
 use crate::jump::types::JumpOutcome;
-use crate::jump::JumpParticipant;
-use crate::jump::{
-    ComputerInputProvider, JumpInputProvider, JumpPresentationContext, JumpSession, JumperControl,
-    WindGaugePosition,
-};
-use crate::gfx::palette::FONT_DEFAULT;
-use crate::rng::Random;
-use crate::jump::snow::{calculate_snow_count, SnowSystem};
-use crate::store::{ResourcesRef, StoreRef};
 use crate::jump::wind::Wind;
+use crate::jump::wind::WindPosition;
+use crate::jump::JumpParticipant;
+use crate::jump::{ComputerInputProvider, JumpPresentationContext, JumpSession, JumperControl};
+use crate::parsers::langbase::LangBase;
+use crate::rng::Random;
 use engine::consts::{HEIGHT, WIDTH};
 use engine::palette::Palette;
-use engine::ui::Element;
+use engine::ui::{Element, Font};
+
+pub(crate) struct JumpRunnerRenderEnv<'a> {
+    pub(crate) font: &'a Font,
+    pub(crate) langbase: &'a LangBase,
+    pub(crate) hills: &'a HillCatalog,
+    pub(crate) records: &'a RecordStore,
+    pub(crate) rng: &'a mut Random,
+    pub(crate) wind: &'a mut Wind,
+}
 
 #[derive(Debug)]
 pub struct JumpRunner {
@@ -25,52 +32,6 @@ pub struct JumpRunner {
 }
 
 impl JumpRunner {
-    /// Create a runner with shared environment initialization:
-    /// hill/terrain loading, wind init, Pascal snow init (`first_event` gate), record distance.
-    pub(crate) fn new_with_env(
-        hill_idx: usize,
-        start_gate: i32,
-        participant: JumpParticipant,
-        policy: JumpPolicy,
-        resources: &ResourcesRef,
-        store: &StoreRef,
-    ) -> Self {
-        let hill = resources.hills.hill(hill_idx).cloned();
-        let terrain = resources.hill_terrain(hill_idx).map(|t| (*t).clone());
-        let mut snow = SnowSystem::new();
-
-        if terrain.is_ok() && hill.is_some() {
-            let mut rng = store.rng.borrow_mut();
-            let mut wind = store.wind.borrow_mut();
-            wind.initialize(&mut rng, store.wind_place.get());
-
-            if store.first_event.get() {
-                let snow_count = calculate_snow_count(&mut rng);
-                snow.set_count(snow_count, &mut rng);
-                wind.sample(&mut rng);
-                store.first_event.set(false);
-            }
-        }
-
-        let record_distance = store
-            .records
-            .borrow()
-            .hill_record(hill_idx)
-            .map_or(0, |r| r.len as i32);
-
-        Self::new(JumpConfig {
-            hill_idx,
-            hill,
-            terrain,
-            start_gate,
-            snow,
-            participant,
-            policy,
-            record_distance,
-            phase_label: String::new(),
-        })
-    }
-
     pub(crate) fn new(config: JumpConfig) -> Self {
         let session = JumpSession::new(config.clone());
         let computer_input = (config.participant.control == JumperControl::Computer)
@@ -102,11 +63,16 @@ impl JumpRunner {
         self.session.replay_trace()
     }
 
-    pub(crate) fn set_hill(&mut self, hill_idx: usize, resources: &ResourcesRef) {
+    pub(crate) fn set_hill(
+        &mut self,
+        hill_idx: usize,
+        hill: Option<HillInfo>,
+        terrain: Result<HillTerrain, String>,
+    ) {
         if self.config.hill_idx != hill_idx {
             self.config.hill_idx = hill_idx;
-            self.config.hill = resources.hills.hill(hill_idx).cloned();
-            self.config.terrain = resources.hill_terrain(hill_idx).map(|t| (*t).clone());
+            self.config.hill = hill;
+            self.config.terrain = terrain;
         }
     }
 
@@ -167,54 +133,45 @@ impl JumpRunner {
             .then(|| ComputerInputProvider::new(self.config.participant.id));
     }
 
-    pub(crate) fn elements(&mut self, resources: &ResourcesRef, store: &StoreRef) -> Vec<Element> {
+    pub(crate) fn elements(&mut self, env: JumpRunnerRenderEnv<'_>) -> Vec<Element> {
         match self.session.terrain() {
             Err(err) => unavailable_elements(err),
-            Ok(_) if self.session.state().is_some() => self.elements_for_loaded_session(resources, store),
+            Ok(_) if self.session.state().is_some() => self.elements_for_loaded_session(env),
             _ => unavailable_elements("jump state not available"),
         }
     }
 
-    fn elements_for_loaded_session(
-        &mut self,
-        resources: &ResourcesRef,
-        store: &StoreRef,
-    ) -> Vec<Element> {
+    fn elements_for_loaded_session(&mut self, env: JumpRunnerRenderEnv<'_>) -> Vec<Element> {
         if self.session.phase().is_none() {
             return unavailable_elements("jump state not available");
         }
 
-        let mut rng = store.rng.borrow_mut();
         if let (Some(snapshot), Some(input)) =
             (self.session.snapshot(), self.computer_input.as_mut())
         {
-            for jump_input in input.inputs(&snapshot, &mut rng) {
+            for jump_input in input.inputs(&snapshot, env.rng) {
                 self.session.handle_input(jump_input);
             }
         }
-        let mut wind_store = store.wind.borrow_mut();
-        let wind = self.session.tick_with_wind(&mut rng, &mut wind_store);
-        drop(wind_store);
-        drop(rng);
+        let wind = self.session.tick_with_wind(env.rng, env.wind);
 
-        let hill_name_k = resources
+        let hill_name_k = env
             .hills
             .hill(self.config.hill_idx)
             .map(|h| format!("{} K{}", h.name, h.kr))
             .unwrap_or_default();
-        let wind_pos = store.wind.borrow().position();
-        let records = store.records.borrow();
+        let wind_pos = env.wind.position();
         let frame = self
             .session
             .render_frame(wind, WIDTH, HEIGHT)
             .expect("loaded jump render frame");
         let ctx = JumpPresentationContext {
-            font: &resources.font,
-            langbase: &resources.langbase,
+            font: env.font,
+            langbase: env.langbase,
             jumper_name: self.config.participant.display_name(),
             hill_name_k: &hill_name_k,
-            hill_record: records.hill_record(self.config.hill_idx),
-            wind_position: WindGaugePosition {
+            hill_record: env.records.hill_record(self.config.hill_idx),
+            wind_position: WindPosition {
                 x: wind_pos.x,
                 y: wind_pos.y,
             },

@@ -2,7 +2,7 @@ use crate::competition::builder::build_competition;
 use crate::competition::types::CupStyle;
 use crate::components::layout::{self, MainLayout};
 use crate::components::menu::{Menu, MenuItem};
-use crate::gfx::palette::{FONT_DEFAULT, BG_LIST, FONT_HEADER, BG_ERASE};
+use crate::gfx::palette::{BG_ERASE, BG_LIST, FONT_DEFAULT, FONT_HEADER};
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use engine::ui::{Component, Element, Event, View};
@@ -15,7 +15,7 @@ pub struct JumpMenuView {
 }
 
 impl JumpMenuView {
-    #[must_use] 
+    #[must_use]
     pub fn new(layout: MainLayout, store: StoreRef, resources: ResourcesRef) -> Self {
         let items = vec![
             MenuItem {
@@ -106,9 +106,7 @@ impl View<RouteTarget> for JumpMenuView {
                 *self.store.competition.borrow_mut() = Some(comp);
                 Some(RouteTarget::CompetitionJump)
             }
-            Some(0 | 2 | 3 | 4 | 5 | 7) => {
-                Some(RouteTarget::MainMenu)
-            }
+            Some(0 | 2 | 3 | 4 | 5 | 7) => Some(RouteTarget::MainMenu),
             _ => None,
         }
     }

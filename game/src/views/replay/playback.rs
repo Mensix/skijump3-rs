@@ -1,14 +1,14 @@
 use crate::components::replay_playback::ReplayPlayback;
 use crate::data::hill_profile::HillTerrain;
 use crate::data::records::HillInfo;
-use crate::jump::math;
-use crate::parsers::langbase::LangBase;
-use crate::jump::presentation::{self, WindGaugePosition};
-use crate::jump::replay_player::ReplaySession;
-use crate::gfx::palette::{FONT_DEFAULT, FONT_HELP, FONT_GOLD, FONT_GREET};
-use crate::route::RouteTarget;
-use crate::jump::snow::SnowSystem;
+use crate::gfx::palette::{FONT_DEFAULT, FONT_GOLD, FONT_GREET, FONT_HELP};
 use crate::gfx::sprites;
+use crate::jump::math;
+use crate::jump::presentation::{self, WindPosition};
+use crate::jump::replay_player::ReplaySession;
+use crate::jump::snow::SnowSystem;
+use crate::parsers::langbase::LangBase;
+use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use engine::consts::{HEIGHT, WIDTH};
 use engine::palette::Palette;
@@ -35,8 +35,14 @@ impl ReplayView {
     #[allow(clippy::needless_pass_by_value)]
     pub fn new(resources: ResourcesRef, store: StoreRef) -> Self {
         let trace = store.selected_replay.borrow().clone();
-        let terrain = trace
-            .as_ref().map_or_else(|| Err("Replay hill not found".to_string()), |trace| resources.hill_terrain(trace.meta.hill_idx).map(|t| (*t).clone()));
+        let terrain = trace.as_ref().map_or_else(
+            || Err("Replay hill not found".to_string()),
+            |trace| {
+                resources
+                    .hill_terrain(trace.meta.hill_idx)
+                    .map(|t| (*t).clone())
+            },
+        );
         let mut snow = SnowSystem::new();
         if let Some(trace) = &trace {
             snow.set_count(trace.meta.snow_count, &mut store.rng.borrow_mut());
@@ -177,7 +183,7 @@ impl View<RouteTarget> for ReplayView {
             y - sy - 1,
         ));
 
-        let wind_pos = WindGaugePosition { x: 10, y: 180 };
+        let wind_pos = WindPosition { x: 10, y: 180 };
 
         if !session.trace().meta.intro {
             els.push(Element::sprite(sprites::Sprite::InfoPanel as u16, 227, 2));
@@ -187,7 +193,11 @@ impl View<RouteTarget> for ReplayView {
             let hill_text = self
                 .resources
                 .hills
-                .hill(session.trace().meta.hill_idx).map_or_else(|| "?".to_string(), |hill| format!("{} K{}", hill.name, hill.kr));
+                .hill(session.trace().meta.hill_idx)
+                .map_or_else(
+                    || "?".to_string(),
+                    |hill| format!("{} K{}", hill.name, hill.kr),
+                );
             els.push(Element::text_color_right(hill_text, 308, 9, FONT_DEFAULT));
             els.push(Element::text_color_right(
                 &session.trace().meta.author,
@@ -195,7 +205,11 @@ impl View<RouteTarget> for ReplayView {
                 19,
                 FONT_DEFAULT,
             ));
-            els.push(Element::sprite(sprites::Sprite::ReplayModeIcon as u16, 150, 30));
+            els.push(Element::sprite(
+                sprites::Sprite::ReplayModeIcon as u16,
+                150,
+                30,
+            ));
             els.push(Element::text_color_right(
                 format!(
                     "{} {}",
@@ -390,11 +404,7 @@ fn replay_speed_text(speed: u8, langbase: &LangBase) -> String {
     }
 }
 
-fn intro_box_elements(
-    els: &mut Vec<Element>,
-    langbase: &LangBase,
-    phase: u8,
-) {
+fn intro_box_elements(els: &mut Vec<Element>, langbase: &LangBase, phase: u8) {
     let ix = 30;
     let iy = if phase <= 3 { 140 } else { 30 };
     els.push(Element::fillbox(ix - 7, iy - 7, 269, 40, 248));

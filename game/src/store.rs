@@ -3,10 +3,11 @@ use crate::data::hill_profile::HillTerrain;
 use crate::data::profile::ProfileStore;
 use crate::data::records::{HillCatalog, RecordStore};
 use crate::jump::replay::ReplayTrace;
+use crate::jump::types::DEFAULT_START_GATE;
+use crate::jump::wind::Wind;
 use crate::loaders::assets::AssetStore;
 use crate::parsers::langbase::LangBase;
 use crate::rng::Random;
-use crate::jump::wind::Wind;
 use engine::ui::Font;
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
@@ -23,7 +24,7 @@ pub struct Resources {
 }
 
 impl Resources {
-    #[must_use] 
+    #[must_use]
     pub fn new(
         font: Font,
         langbase: Rc<LangBase>,
@@ -68,7 +69,7 @@ impl Default for PracticeState {
     fn default() -> Self {
         Self {
             selected_hill: Cell::new(0),
-            start_gate: Cell::new(15),
+            start_gate: Cell::new(DEFAULT_START_GATE),
         }
     }
 }
@@ -96,7 +97,7 @@ impl Default for Store {
 }
 
 impl Store {
-    #[must_use] 
+    #[must_use]
     pub fn new(records: RecordStore) -> Self {
         Self {
             profiles: RefCell::new(ProfileStore::new()),
@@ -107,7 +108,7 @@ impl Store {
             practice: PracticeState::default(),
             competition: RefCell::new(None),
             selected_hill: Cell::new(0),
-            start_gate: Cell::new(15),
+            start_gate: Cell::new(DEFAULT_START_GATE),
             first_event: Cell::new(true),
             selected_replay: RefCell::new(None),
             selected_main_menu: Cell::new(0),

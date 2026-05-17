@@ -5,11 +5,11 @@ use crate::jump::frame::JumpRenderFrame;
 use crate::jump::math;
 use crate::jump::policy::JumpPolicy;
 use crate::jump::replay::{ReplayMeta, ReplayRecorder, ReplayTrace};
+use crate::jump::snow::SnowSystem;
 use crate::jump::types::{FlightWind, JumpInput, JumpOutcome, JumpPhase, JumpSnapshot};
+use crate::jump::wind::Wind;
 use crate::jump::JumpState;
 use crate::rng::Random;
-use crate::jump::snow::SnowSystem;
-use crate::jump::wind::Wind;
 
 fn find_hill_record_marker(
     terrain: &HillTerrain,
@@ -240,11 +240,7 @@ impl JumpSession {
         }
     }
 
-    pub(crate) fn tick_with_wind(
-        &mut self,
-        rng: &mut Random,
-        wind: &mut Wind,
-    ) -> FlightWind {
+    pub(crate) fn tick_with_wind(&mut self, rng: &mut Random, wind: &mut Wind) -> FlightWind {
         let phase = self.phase();
         let wind_value = if matches!(phase, Some(JumpPhase::Info | JumpPhase::Result)) {
             wind.value

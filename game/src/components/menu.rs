@@ -27,7 +27,7 @@ pub struct Menu {
 
 impl Menu {
     #[allow(clippy::too_many_arguments)]
-    #[must_use] 
+    #[must_use]
     pub fn new(
         x: i32,
         y: i32,
@@ -56,19 +56,19 @@ impl Menu {
         }
     }
 
-    #[must_use] 
+    #[must_use]
     pub const fn with_labels(mut self, show: bool) -> Self {
         self.show_labels = show;
         self
     }
 
-    #[must_use] 
+    #[must_use]
     pub const fn with_box(mut self, show: bool) -> Self {
         self.show_box = show;
         self
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn with_exit(mut self, label_idx: usize, y_off: i32) -> Self {
         self.exit_item = true;
         self.exit_label_idx = label_idx;
@@ -78,7 +78,7 @@ impl Menu {
         self
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn selected(&self) -> usize {
         self.selection.selected()
     }
@@ -91,12 +91,12 @@ impl Menu {
         self.selection.set_selected(idx);
     }
 
-    #[must_use] 
+    #[must_use]
     pub const fn item_count(&self) -> usize {
         self.items.len()
     }
 
-    #[must_use] 
+    #[must_use]
     pub const fn has_exit(&self) -> bool {
         self.exit_item
     }

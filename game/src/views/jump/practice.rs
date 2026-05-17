@@ -1,7 +1,7 @@
 use crate::components::menu::{Menu, MenuItem};
-use crate::gfx::palette::{FONT_DEFAULT, FONT_GOLD, FONT_GREET, apply_menu_tint};
-use crate::route::RouteTarget;
+use crate::gfx::palette::{apply_menu_tint, FONT_DEFAULT, FONT_GOLD, FONT_GREET};
 use crate::gfx::sprites;
+use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use engine::ui::{Component, Element, Event, Key, View};
 
@@ -206,7 +206,9 @@ impl View<RouteTarget> for PracticeView {
             }
             Event::Keyboard(_) => {}
         }
-        self.menu.handle_event(&event).and_then(|_idx| self.confirm())
+        self.menu
+            .handle_event(&event)
+            .and_then(|_idx| self.confirm())
     }
 
     fn apply_palette(&self, palette: &mut engine::palette::Palette) {

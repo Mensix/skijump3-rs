@@ -65,7 +65,6 @@ pub const BG_LEFT: u8 = 243;
 pub const BG_RIGHT: u8 = 244;
 pub const BG_ORDER: u8 = 243;
 
-
 pub const SUIT_PALETTE_BASE: usize = 215;
 pub const SKI_PALETTE_INDEX: usize = 231;
 
@@ -143,12 +142,7 @@ pub fn apply_menu_tint(palette: &mut Palette, index: usize, col: usize) {
 }
 
 pub fn apply_logo_tint(palette: &mut Palette, col: usize) {
-    const REPLACE_LOGO: [[u8; 3]; 4] = [
-        [46, 46, 63],
-        [32, 32, 63],
-        [51, 51, 51],
-        [38, 38, 38],
-    ];
+    const REPLACE_LOGO: [[u8; 3]; 4] = [[46, 46, 63], [32, 32, 63], [51, 51, 51], [38, 38, 38]];
     let col = col.min(3);
     palette.set(253, REPLACE_LOGO[col * 2]);
     palette.set(254, REPLACE_LOGO[col * 2 + 1]);

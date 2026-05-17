@@ -1,20 +1,16 @@
 use crate::data::records::HillRecord;
+use crate::gfx::palette::{FONT_DEFAULT, FONT_GOLD, FONT_GREET, FONT_HELP};
+use crate::gfx::sprites;
 use crate::jump::frame::JumpRenderFrame;
 use crate::jump::types::JumpPhase;
-use crate::gfx::palette::{FONT_GOLD, FONT_DEFAULT, FONT_GREET, FONT_HELP};
 use crate::parsers::langbase::LangBase;
-use crate::gfx::sprites;
 use engine::consts::{HEIGHT, WIDTH};
 use engine::ui::{Element, Font, ImageRegion};
 use std::rc::Rc;
 
 const FONT_DIM_TURQUOISE: u8 = 252;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct WindGaugePosition {
-    pub(crate) x: i32,
-    pub(crate) y: i32,
-}
+pub use crate::jump::wind::WindPosition;
 
 pub struct JumpPresentationContext<'a> {
     pub(crate) font: &'a Font,
@@ -22,7 +18,7 @@ pub struct JumpPresentationContext<'a> {
     pub(crate) jumper_name: &'a str,
     pub(crate) hill_name_k: &'a str,
     pub(crate) hill_record: Option<&'a HillRecord>,
-    pub(crate) wind_position: WindGaugePosition,
+    pub(crate) wind_position: WindPosition,
     pub(crate) phase_label: &'a str,
     pub(crate) allow_gate_adjust: bool,
 }
@@ -61,11 +57,19 @@ pub fn elements(frame: &JumpRenderFrame, ctx: &JumpPresentationContext<'_>) -> V
     if frame.phase == JumpPhase::OnBar
         && (frame.frame_counter < 350 || (frame.frame_counter % 40) > 19)
     {
-        els.push(Element::sprite(sprites::Sprite::StartLight as u16, jumper_x + 60, jumper_y - 10));
+        els.push(Element::sprite(
+            sprites::Sprite::StartLight as u16,
+            jumper_x + 60,
+            jumper_y - 10,
+        ));
     }
 
     if let Some((hr_x, hr_y)) = frame.hill_record_marker {
-        els.push(Element::sprite(sprites::Sprite::HillRecordMarker as u16, hr_x - frame.sx, hr_y - frame.sy));
+        els.push(Element::sprite(
+            sprites::Sprite::HillRecordMarker as u16,
+            hr_x - frame.sx,
+            hr_y - frame.sy,
+        ));
     }
 
     // Pascal: jumper not drawn during Info phase (only hill + info panel)
@@ -86,7 +90,11 @@ fn info_elements(
     ctx: &JumpPresentationContext<'_>,
 ) {
     els.push(Element::sprite(sprites::Sprite::InfoPanel as u16, 227, 2));
-    els.push(Element::sprite(sprites::Sprite::JumperInfoBox as u16, 3, 150));
+    els.push(Element::sprite(
+        sprites::Sprite::JumperInfoBox as u16,
+        3,
+        150,
+    ));
     els.push(Element::text_color_right(
         ctx.hill_name_k,
         308,
@@ -225,7 +233,7 @@ fn landing_elements(
     }
 }
 
-pub fn wind_elements(els: &mut Vec<Element>, position: WindGaugePosition, value: i32) {
+pub fn wind_elements(els: &mut Vec<Element>, position: WindPosition, value: i32) {
     let x = position.x;
     let y = position.y;
     els.push(Element::fillbox(x + 4, y + 1, 35, 2, 248));

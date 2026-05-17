@@ -1,12 +1,14 @@
 use crate::data::hill_profile::HillTerrain;
+use crate::gfx::sprites::Sprite;
 use crate::jump::animation::{
     fall_body_anim, flight_body_anim, flight_ski_anim, inrun_body_anim, inrun_transition_body_anim,
     landing_body_anim, post_landing_body_anim, slope_ski_anim, takeoff_body_anim,
 };
-use crate::gfx::sprites::Sprite;
 use crate::jump::math::{self, nsqrt};
 use crate::jump::scoring;
-use crate::jump::types::{FallType, FlightWind, JumpInput, JumpOutcome, JumpPhase, JumpSnapshot, SkiSwing};
+use crate::jump::types::{
+    FallType, FlightWind, JumpInput, JumpOutcome, JumpPhase, JumpSnapshot, LandingStyle, SkiSwing,
+};
 use crate::rng::Random;
 
 #[derive(Debug, Clone)]
@@ -28,7 +30,7 @@ pub struct JumpState {
     pub(crate) body_angle: i32,
     pub(crate) ski_angle: i32,
     pub(crate) ski_swing: SkiSwing,
-    pub(crate) landing_style: u8,
+    pub(crate) landing_style: LandingStyle,
     pub(crate) height: i32,
     pub(crate) delta_height: [i32; 6],
     pub(crate) first_flight_frame: bool,
@@ -48,7 +50,7 @@ pub struct JumpState {
     pub(crate) takeoff_requested: bool,
     pub(crate) lean_forward_requested: bool,
     pub(crate) lean_back_requested: bool,
-    pub(crate) landing_requested: Option<u8>,
+    pub(crate) landing_requested: Option<LandingStyle>,
     pub(crate) x: i32,
     pub(crate) y: i32,
     pub(crate) sx: i32,
@@ -94,7 +96,7 @@ impl JumpState {
             body_angle: 0,
             ski_angle: 0,
             ski_swing: SkiSwing::None,
-            landing_style: 0,
+            landing_style: LandingStyle::None,
             height: 0,
             delta_height: [0; 6],
             first_flight_frame: true,
@@ -136,8 +138,8 @@ impl JumpState {
             JumpInput::Takeoff => self.start_takeoff(),
             JumpInput::LeanForward => self.lean_forward(),
             JumpInput::LeanBack => self.lean_back(),
-            JumpInput::Telemark => self.set_landing(1),
-            JumpInput::TwoFooted => self.set_landing(2),
+            JumpInput::Telemark => self.set_landing(LandingStyle::Telemark),
+            JumpInput::TwoFooted => self.set_landing(LandingStyle::TwoFooted),
             JumpInput::AdjustGate(delta) => self.adjust_start_gate(delta),
             JumpInput::ShowResult => {
                 if self.phase == JumpPhase::Landing {
@@ -221,7 +223,7 @@ impl JumpState {
         self.body_angle = 0;
         self.ski_angle = 0;
         self.ski_swing = SkiSwing::None;
-        self.landing_style = 0;
+        self.landing_style = LandingStyle::None;
         self.height = 0;
         self.delta_height = [0; 6];
         self.first_flight_frame = true;
@@ -343,7 +345,10 @@ impl JumpState {
         if self.lean_back_requested && self.body_angle <= 600 {
             self.body_angle += math::round(f64::from(self.body_angle) / 4.0);
         }
-        if self.lean_forward_requested && self.landing_style == 0 && self.body_angle > 0 {
+        if self.lean_forward_requested
+            && self.landing_style == LandingStyle::None
+            && self.body_angle > 0
+        {
             self.body_angle -= math::round(f64::from(self.body_angle) / 5.0);
         }
         self.lean_back_requested = false;
@@ -383,13 +388,14 @@ impl JumpState {
 
         self.lift = self.lift.max(0.105);
 
-        self.vertical_pos += (self.flight_time * self.flight_time).mul_add(self.lift, -((self.vertical_speed - 8.0) / 100.0));
+        self.vertical_pos += (self.flight_time * self.flight_time)
+            .mul_add(self.lift, -((self.vertical_speed - 8.0) / 100.0));
         self.y = math::round(self.vertical_pos);
 
         self.update_ski_swing(&mut rng);
 
-        if self.landing_style > 0 && self.body_angle < 600 {
-            self.body_angle += 9 + (i32::from(self.landing_style) - 1) * 5;
+        if self.landing_style != LandingStyle::None && self.body_angle < 600 {
+            self.body_angle += 9 + (self.landing_style.offset() - 1) * 5;
             if self.lift < 1.0 {
                 self.lift += 0.003;
             }
@@ -414,7 +420,7 @@ impl JumpState {
         self.delta_height[(self.frame as usize) % 3] = prev_height - self.height;
 
         if self.height == 0 {
-            self.distance = self.distance(terrain);
+            self.distance = self.distance();
             if let Some(rng) = rng.as_mut() {
                 self.prepare_landing(terrain, rng);
                 if self.silent_computer {
@@ -517,7 +523,11 @@ impl JumpState {
             self.grade = self.fall_type.as_grade();
         }
         self.skis_stuck = rng.random_i32(2) != 0;
-        self.start_anim = if self.landing_style == 2 { 50 } else { 100 };
+        self.start_anim = if self.landing_style == LandingStyle::TwoFooted {
+            50
+        } else {
+            100
+        };
         self.detached_travel = self.travel;
         self.detached_vertical_pos = self.vertical_pos;
         self.detached_px = self.px;
@@ -598,13 +608,9 @@ impl JumpState {
         self.sy = self.sy.min(312);
     }
 
-    fn distance(&self, _terrain: &HillTerrain) -> i32 {
+    fn distance(&self) -> i32 {
         let vertical_delta = self.vertical_pos - f64::from(self.ramp_y);
-        math::round(
-            self.travel.hypot(vertical_delta)
-                * self.distance_factor
-                * 0.5,
-        ) * 5
+        math::round(self.travel.hypot(vertical_delta) * self.distance_factor * 0.5) * 5
     }
 
     const fn lean_forward(&mut self) {
@@ -615,7 +621,7 @@ impl JumpState {
         self.lean_back_requested = true;
     }
 
-    const fn set_landing(&mut self, style: u8) {
+    const fn set_landing(&mut self, style: LandingStyle) {
         self.landing_requested = Some(style);
     }
 
@@ -656,8 +662,14 @@ impl JumpState {
 
     pub(crate) fn anims(&mut self, terrain: &HillTerrain) -> (u16, u16) {
         match self.phase {
-            JumpPhase::Info => (Sprite::IdleBody as u16, slope_ski_anim(terrain.hill_angle(self.x))),
-            JumpPhase::OnBar => (Sprite::IdleBody as u16, slope_ski_anim(terrain.hill_angle(self.x))),
+            JumpPhase::Info => (
+                Sprite::IdleBody as u16,
+                slope_ski_anim(terrain.hill_angle(self.x)),
+            ),
+            JumpPhase::OnBar => (
+                Sprite::IdleBody as u16,
+                slope_ski_anim(terrain.hill_angle(self.x)),
+            ),
             JumpPhase::Inrun => {
                 let ski = slope_ski_anim(terrain.hill_angle(self.x));
                 if self.takeoff_counter > 0 {

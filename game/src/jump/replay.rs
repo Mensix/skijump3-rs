@@ -104,7 +104,7 @@ impl ReplayRecorder {
         }
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn finish(&self) -> Option<ReplayTrace> {
         let mut meta = self.meta.clone()?;
         meta.frame_count = self.frames.len().saturating_sub(1);
@@ -202,7 +202,7 @@ impl ReplayTrace {
         })
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn to_sjr_bytes(&self) -> Vec<u8> {
         let max_turns = self.meta.frame_count.min(REPLAY_FRAME_CAPACITY - 1);
         let hill_record = self.meta.hill_record_marker.unwrap_or((0, 0));
@@ -328,8 +328,18 @@ fn decode_frames(data: &[u8], max_turns: usize) -> Result<Vec<ReplayFrame>, Repl
 }
 
 fn encode_frames(out: &mut Vec<u8>, frames: &[ReplayFrame]) {
-    let empty = ReplayFrame { dx: 0, dy: 0, body_anim: 0, ski_anim: 0, wind: 0 };
-    for frame in frames.iter().chain(std::iter::repeat(&empty)).take(REPLAY_FRAME_CAPACITY) {
+    let empty = ReplayFrame {
+        dx: 0,
+        dy: 0,
+        body_anim: 0,
+        ski_anim: 0,
+        wind: 0,
+    };
+    for frame in frames
+        .iter()
+        .chain(std::iter::repeat(&empty))
+        .take(REPLAY_FRAME_CAPACITY)
+    {
         out.push((i16::from(frame.dx) + 128) as u8);
         out.push((i16::from(frame.dy) + 128) as u8);
         out.push(frame.body_anim + 1);

@@ -15,11 +15,14 @@ fn write_crypt(out: &mut Vec<u8>, value: i64, order: usize) {
     out.push(b'\n');
 }
 
-#[must_use] 
+#[must_use]
 pub fn records_to_bytes(store: &RecordStore) -> Vec<u8> {
     let mut out = Vec::new();
 
-    write_line(&mut out, "HISCORE.SKI - !!! DO NOT ATTEMPT TO EDIT THIS FILE !!!");
+    write_line(
+        &mut out,
+        "HISCORE.SKI - !!! DO NOT ATTEMPT TO EDIT THIS FILE !!!",
+    );
 
     for idx in 0..NUM_TOPS {
         let order = idx + 1; // Pascal file format uses 1-based crypt keys
@@ -87,14 +90,32 @@ mod tests {
         let rewritten = records_to_bytes(&store);
         let reparsed = RecordsParser::parse(&rewritten).expect("re-parse rewritten HISCORE.SKI");
 
-        assert_eq!(store.top(0).map(|t| t.name.as_str()), reparsed.top(0).map(|t| t.name.as_str()));
-        assert_eq!(store.top(0).map(|t| t.score), reparsed.top(0).map(|t| t.score));
-        assert_eq!(store.hill_record(0).map(|r| r.name.as_str()), reparsed.hill_record(0).map(|r| r.name.as_str()));
-        assert_eq!(store.hill_record(0).map(|r| r.len), reparsed.hill_record(0).map(|r| r.len));
+        assert_eq!(
+            store.top(0).map(|t| t.name.as_str()),
+            reparsed.top(0).map(|t| t.name.as_str())
+        );
+        assert_eq!(
+            store.top(0).map(|t| t.score),
+            reparsed.top(0).map(|t| t.score)
+        );
+        assert_eq!(
+            store.hill_record(0).map(|r| r.name.as_str()),
+            reparsed.hill_record(0).map(|r| r.name.as_str())
+        );
+        assert_eq!(
+            store.hill_record(0).map(|r| r.len),
+            reparsed.hill_record(0).map(|r| r.len)
+        );
 
         for i in 0..20 {
-            assert_eq!(store.top(i).map(|t| t.name.as_str()), reparsed.top(i).map(|t| t.name.as_str()));
-            assert_eq!(store.top(i).map(|t| t.score), reparsed.top(i).map(|t| t.score));
+            assert_eq!(
+                store.top(i).map(|t| t.name.as_str()),
+                reparsed.top(i).map(|t| t.name.as_str())
+            );
+            assert_eq!(
+                store.top(i).map(|t| t.score),
+                reparsed.top(i).map(|t| t.score)
+            );
         }
     }
 }

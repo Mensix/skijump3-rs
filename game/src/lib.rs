@@ -8,10 +8,10 @@ pub mod loaders;
 pub mod parsers;
 pub mod rng;
 pub mod route;
+pub mod save;
 pub mod store;
 pub mod text;
 pub mod views;
-pub mod save;
 
 use crate::components::layout::MainLayout;
 use crate::data::records::{HillCatalog, RecordStore};
@@ -116,8 +116,13 @@ impl Game {
         let player_names = load_player_names(&assets);
         let hills = Self::load_hills(&assets)?;
         let records = Self::load_records(&assets)?;
-        let resources: ResourcesRef =
-            Rc::new(Resources::new(font.clone(), Rc::clone(&langbase), player_names, hills, assets));
+        let resources: ResourcesRef = Rc::new(Resources::new(
+            font.clone(),
+            Rc::clone(&langbase),
+            player_names,
+            hills,
+            assets,
+        ));
         let store: StoreRef = Rc::new(Store::new(records));
         let router = Self::create_router(resources, pixels, store, start_route, save_manager);
 
@@ -141,7 +146,9 @@ impl Game {
     }
 
     #[allow(clippy::type_complexity)]
-    fn load_assets(assets: &AssetStore) -> Result<(Vec<u8>, Palette, Vec<SpriteData>, Rc<LangBase>), String> {
+    fn load_assets(
+        assets: &AssetStore,
+    ) -> Result<(Vec<u8>, Palette, Vec<SpriteData>, Rc<LangBase>), String> {
         let pcx_data = assets.read(MAIN_PCX).map_err(|e| e.to_string())?;
         let decoded = PcxParser::parse(&pcx_data).map_err(|e| e.to_string())?;
 
@@ -298,10 +305,10 @@ impl Game {
             self.router.apply_palette(&mut p);
             p
         };
-        self.renderer.set_palette(palette.clone());
+        self.renderer.set_palette(palette);
 
         self.framebuffer.fill(0);
-        let mut ctx = engine::ui::PaintCtx::new(&mut self.framebuffer, &palette, WIDTH, HEIGHT);
+        let mut ctx = engine::ui::PaintCtx::new(&mut self.framebuffer, WIDTH, HEIGHT);
         let elements = self.router.current_view().elements();
         for el in &elements {
             el.render(&mut ctx, &self.font, &self.sprites);

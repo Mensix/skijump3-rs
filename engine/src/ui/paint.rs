@@ -1,5 +1,3 @@
-use crate::palette::Palette;
-
 pub struct PaintCtx<'a> {
     pub pixels: &'a mut [u8],
     pub width: u32,
@@ -7,8 +5,12 @@ pub struct PaintCtx<'a> {
 }
 
 impl<'a> PaintCtx<'a> {
-    pub fn new(pixels: &'a mut [u8], _palette: &'a Palette, width: u32, height: u32) -> Self {
-        Self { pixels, width, height }
+    pub fn new(pixels: &'a mut [u8], width: u32, height: u32) -> Self {
+        Self {
+            pixels,
+            width,
+            height,
+        }
     }
 
     pub fn fill_rect(&mut self, x: i32, y: i32, w: i32, h: i32, color: u8) {

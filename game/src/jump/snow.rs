@@ -33,13 +33,21 @@ pub struct SnowSystem {
 /// Called once per event when `first_event=true`.
 pub fn calculate_snow_count(rng: &mut Random) -> u16 {
     let count = rng.random_i32(2) * rng.random_i32(256);
-    let count = if count > 0 && count < 40 { count + rng.random_i32(150) } else { count };
-    let count = if count > 0 && rng.random_i32(4) == 0 { count + 1000 } else { count };
+    let count = if count > 0 && count < 40 {
+        count + rng.random_i32(150)
+    } else {
+        count
+    };
+    let count = if count > 0 && rng.random_i32(4) == 0 {
+        count + 1000
+    } else {
+        count
+    };
     count as u16
 }
 
 impl SnowSystem {
-    #[must_use] 
+    #[must_use]
     pub fn new() -> Self {
         let mut system = Self {
             flakes: vec![],
@@ -79,7 +87,7 @@ impl SnowSystem {
         self.reset(rng);
     }
 
-    #[must_use] 
+    #[must_use]
     pub const fn count(&self) -> u16 {
         self.count
     }
@@ -91,7 +99,8 @@ impl SnowSystem {
                 let x = i64::from(rng.random_i32(WIDTH as i32)) << 10;
                 let y = i64::from(rng.random_i32(HEIGHT as i32)) << 10;
                 let sin_pos = rng.random_i32(SINE_LENGTH as i32) as usize;
-                let gravity = i64::from(rng.random_i32(i32::from(self.g_variation))) + i64::from(self.base_gravity)
+                let gravity = i64::from(rng.random_i32(i32::from(self.g_variation)))
+                    + i64::from(self.base_gravity)
                     - i64::from(self.g_variation);
                 let style = rng.random_i32(2) as u16;
                 let style = if self.sleet && style == 1 {

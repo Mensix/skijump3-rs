@@ -77,5 +77,4 @@ impl AssetParser<DecodedPcx> for PcxParser {
             height,
         })
     }
-
 }

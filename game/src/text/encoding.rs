@@ -53,7 +53,7 @@ const fn cp850_to_char(b: u8) -> char {
     }
 }
 
-#[must_use] 
+#[must_use]
 pub fn decode(bytes: &[u8]) -> String {
     let mut out = String::with_capacity(bytes.len());
     for &b in bytes {

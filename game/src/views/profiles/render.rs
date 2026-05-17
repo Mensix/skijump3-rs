@@ -1,6 +1,5 @@
 use engine::ui::Element;
 
-use crate::data::profile::Profile;
 use crate::gfx::palette::{
     BG_LEFT, BG_ORDER, BG_RIGHT, FONT_BACK, FONT_DEFAULT, FONT_HELP, FONT_NAME, FONT_NEW,
 };
@@ -120,7 +119,7 @@ pub(super) fn draw_empty_edit(els: &mut Vec<Element>) {
     els.push(Element::FillArea { thing: 63 });
 }
 
-pub(super) fn draw_suit_ski(view: &ProfilesView, els: &mut Vec<Element>, _profile: &Profile) {
+pub(super) fn draw_suit_ski(view: &ProfilesView, els: &mut Vec<Element>) {
     let suit_label = profile_label(view, 3);
     let ski_label = profile_label(view, 4);
     let suit_w = view.resources.font.string_width(&suit_label) as i32;
@@ -170,7 +169,9 @@ pub(super) fn draw_profile(
     draw_empty_edit(els);
 
     let store = view.store.profiles.borrow();
-    let Some(profile) = store.profiles.get(profile_index) else { return };
+    let Some(profile) = store.profiles.get(profile_index) else {
+        return;
+    };
     let label_color = if edit_phase { FONT_DEFAULT } else { FONT_HELP };
     let value_color = FONT_NEW;
 
@@ -178,7 +179,7 @@ pub(super) fn draw_profile(
         els.push(Element::fillbox(175, 85, 131, 1, FONT_HELP));
     }
 
-    draw_suit_ski(view, els, profile);
+    draw_suit_ski(view, els);
 
     for field in 1..=18 {
         if !edit_phase && field > 7 && field < 10 {
@@ -191,7 +192,12 @@ pub(super) fn draw_profile(
             } else {
                 label_color
             };
-            els.push(Element::text_color(label, 166, ProfilesView::col_y(field), lc));
+            els.push(Element::text_color(
+                label,
+                166,
+                ProfilesView::col_y(field),
+                lc,
+            ));
         }
     }
 
@@ -200,7 +206,10 @@ pub(super) fn draw_profile(
         let x = if field > 15 {
             170
         } else {
-            170 + view.resources.font.string_width(&profile_label(view, field)) as i32
+            170 + view
+                .resources
+                .font
+                .string_width(&profile_label(view, field)) as i32
         };
         let y = if field > 15 { y + 8 } else { y };
         let value = format_profile_value(

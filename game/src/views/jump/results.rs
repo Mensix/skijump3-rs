@@ -1,5 +1,7 @@
 use crate::competition::machine::Competition;
-use crate::competition::types::{CompetitionPhase, Participant, QualificationStatus};
+use crate::competition::types::{
+    CompetitionPhase, Participant, QualificationStatus, DID_NOT_START_SCORE,
+};
 use crate::components::screen::{new_screen, page_hints};
 use crate::gfx::palette::{FONT_DEFAULT, FONT_GREET, FONT_HEADER};
 use crate::store::ResourcesRef;
@@ -41,7 +43,9 @@ pub struct ResultsEntry {
 
 pub fn build_results_page(competition: &Competition, page: usize) -> ResultsPage {
     let standings = standings_for_phase(competition);
-    let total_pages = standings.len().div_ceil(QUALIFICATION_ITEMS_PER_PAGE)
+    let total_pages = standings
+        .len()
+        .div_ceil(QUALIFICATION_ITEMS_PER_PAGE)
         .max(1);
     let page = page.min(total_pages.saturating_sub(1));
     let start = page * QUALIFICATION_ITEMS_PER_PAGE;
@@ -77,7 +81,9 @@ pub fn build_results_page(competition: &Competition, page: usize) -> ResultsPage
 }
 
 pub fn total_pages(competition: &Competition) -> usize {
-    standings_for_phase(competition).len().div_ceil(QUALIFICATION_ITEMS_PER_PAGE)
+    standings_for_phase(competition)
+        .len()
+        .div_ceil(QUALIFICATION_ITEMS_PER_PAGE)
         .max(1)
 }
 
@@ -91,7 +97,7 @@ fn standings_for_phase(competition: &Competition) -> Vec<&Participant> {
         CompetitionPhase::Round1Results => competition
             .event_standings()
             .into_iter()
-            .filter(|p| p.points != -5555)
+            .filter(|p| p.points != DID_NOT_START_SCORE)
             .collect(),
         CompetitionPhase::Round2Results => competition
             .event_standings()

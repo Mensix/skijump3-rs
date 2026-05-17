@@ -1,6 +1,6 @@
 use crate::components::screen;
-use crate::jump::replay::ReplayTrace;
 use crate::gfx::palette::{FONT_DEFAULT, FONT_GOLD};
+use crate::jump::replay::ReplayTrace;
 use crate::store::ResourcesRef;
 use engine::ui::{Blinker, Element, Event, Key, TextEditState};
 use std::cell::RefCell;
@@ -296,9 +296,7 @@ impl SaveReplayDialog {
                     *self.state.borrow_mut() = SaveDialogState::Browse { selected: 0 };
                     SaveAction::Consumed
                 }
-                Event::Keyboard(Key::Enter | Key::Char(' ')) => {
-                    self.activate_item(selected)
-                }
+                Event::Keyboard(Key::Enter | Key::Char(' ')) => self.activate_item(selected),
                 Event::Keyboard(Key::Char(c)) => self.handle_browse_digit(c),
                 _ => SaveAction::Consumed,
             },

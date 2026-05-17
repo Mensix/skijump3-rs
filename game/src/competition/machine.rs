@@ -1,9 +1,12 @@
 use crate::competition::field::{CompetitionField, SortBy};
 use crate::competition::scoring;
-use crate::competition::types::{CompetitionPhase, CupStyle, Participant, QualificationStatus};
+use crate::competition::types::{
+    CompetitionPhase, CupStyle, Participant, QualificationStatus, DID_NOT_START_SCORE,
+};
 
 const QUALIFICATION_SPOTS: usize = 50;
 const ROUND2_SPOTS: usize = 30;
+const PRE_QUALIFIED_COUNT: usize = 10;
 
 /// Drives a single competition event (or a full season).
 ///
@@ -27,7 +30,7 @@ pub struct Competition {
 }
 
 impl Competition {
-    #[must_use] 
+    #[must_use]
     pub fn new(style: CupStyle, participants: Vec<Participant>, hill_order: Vec<usize>) -> Self {
         Self {
             field: CompetitionField::new(participants),
@@ -43,7 +46,7 @@ impl Competition {
 
     // ── queries ────────────────────────────────────────────────
 
-    #[must_use] 
+    #[must_use]
     pub fn current_jumper(&self) -> Option<usize> {
         if self.start_pos < self.start_list.len() {
             Some(self.start_list[self.start_pos])
@@ -52,30 +55,30 @@ impl Competition {
         }
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn is_human_current(&self) -> bool {
         self.current_jumper()
             .is_some_and(|idx| !self.field.get(idx).is_computer)
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn is_over(&self) -> bool {
         self.phase == CompetitionPhase::SeasonComplete
     }
 
-    #[must_use] 
+    #[must_use]
     pub const fn phase_progress(&self) -> (usize, usize) {
         (self.start_pos, self.start_list.len())
     }
 
     /// Number of events in the season.
-    #[must_use] 
+    #[must_use]
     pub const fn total_events(&self) -> usize {
         self.hill_order.len()
     }
 
     /// Participants in event-points order (for results lists).
-    #[must_use] 
+    #[must_use]
     pub fn event_standings(&self) -> Vec<&Participant> {
         self.field
             .event_order
@@ -85,7 +88,7 @@ impl Competition {
     }
 
     /// Participants in season-points order (for WC standings).
-    #[must_use] 
+    #[must_use]
     pub fn overall_standings(&self) -> Vec<&Participant> {
         self.field
             .master_order
@@ -227,7 +230,9 @@ impl Competition {
         // Top 10 in overall WC classification skip qualification
         if self.current_event > 0 {
             for idx in 0..self.field.len() {
-                if self.field.get(idx).rank <= 10 && self.field.get(idx).injury == 0 {
+                if self.field.get(idx).rank <= PRE_QUALIFIED_COUNT
+                    && self.field.get(idx).injury == 0
+                {
                     self.field.get_mut(idx).qual = QualificationStatus::PreQualified;
                 }
             }
@@ -271,7 +276,7 @@ impl Competition {
             if self.field.get(idx).qual.can_jump() {
                 self.field.get_mut(idx).points = 0;
             } else {
-                self.field.get_mut(idx).points = -5555;
+                self.field.get_mut(idx).points = DID_NOT_START_SCORE;
             }
         }
         self.field.sort_field(SortBy::EventPoints);
@@ -297,7 +302,7 @@ impl Competition {
             CupStyle::FourHills => {
                 for idx in 0..self.field.len() {
                     let pts = self.field.get(idx).points;
-                    if pts != -5555 {
+                    if pts != DID_NOT_START_SCORE {
                         self.field.get_mut(idx).four_hills_points += pts;
                     }
                 }

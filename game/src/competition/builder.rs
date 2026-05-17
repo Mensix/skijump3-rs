@@ -5,7 +5,7 @@ use crate::data::profile::ProfileStore;
 const TOTAL_SLOTS: usize = 75;
 
 /// Build a Competition from game state.
-#[must_use] 
+#[must_use]
 pub fn build_competition(
     style: CupStyle,
     profiles: &ProfileStore,
@@ -27,10 +27,7 @@ fn build_hill_order(style: CupStyle, hill_count: usize) -> Vec<usize> {
     }
 }
 
-fn build_participants(
-    profiles: &ProfileStore,
-    computer_names: &[String],
-) -> Vec<Participant> {
+fn build_participants(profiles: &ProfileStore, computer_names: &[String]) -> Vec<Participant> {
     let mut participants = Vec::with_capacity(TOTAL_SLOTS);
 
     for (i, p) in profiles.profiles.iter().enumerate() {

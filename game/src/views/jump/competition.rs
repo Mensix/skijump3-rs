@@ -1,12 +1,11 @@
 use crate::competition::types::CompetitionPhase;
-use crate::jump::JumpRunner;
+use crate::controllers::competition_jump::{CompetitionJumpController, CompetitionRenderState};
+use crate::controllers::jump_environment::runner_elements;
+use crate::controllers::training_jump::{TrainingJumpAction, TrainingJumpController};
 use crate::gfx::palette::apply_menu_tint;
+use crate::jump::JumpRunner;
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
-use crate::controllers::competition_jump::{
-    CompetitionJumpController, CompetitionRenderState,
-};
-use crate::controllers::training_jump::{TrainingJumpAction, TrainingJumpController};
 use crate::views::jump::results as competition_results;
 use engine::palette::Palette;
 use engine::ui::{Element, Event, Key, View};
@@ -40,10 +39,9 @@ impl View<RouteTarget> for CompetitionJumpView {
             .controller
             .drive(&self.resources, &self.store, &self.runner)
         {
-            CompetitionRenderState::HumanJump => self
-                .runner
-                .borrow_mut()
-                .elements(&self.resources, &self.store),
+            CompetitionRenderState::HumanJump => {
+                runner_elements(&mut self.runner.borrow_mut(), &self.resources, &self.store)
+            }
             CompetitionRenderState::DisplayList => {
                 let comp = self.store.competition.borrow();
                 let Some(c) = comp.as_ref() else {

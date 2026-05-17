@@ -95,7 +95,7 @@ impl Default for ProfileStore {
 }
 
 impl ProfileStore {
-    #[must_use] 
+    #[must_use]
     pub fn new() -> Self {
         Self {
             profiles: vec![Profile::default()],
@@ -103,17 +103,17 @@ impl ProfileStore {
         }
     }
 
-    #[must_use] 
+    #[must_use]
     pub const fn num_profiles(&self) -> usize {
         self.profiles.len()
     }
 
-    #[must_use] 
+    #[must_use]
     pub const fn has_slot(&self) -> bool {
         self.num_profiles() < MAX_PROFILES
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn order_pos(&self, profile_index: usize) -> Option<usize> {
         self.active_order
             .iter()

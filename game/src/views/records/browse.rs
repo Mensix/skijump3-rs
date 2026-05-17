@@ -1,6 +1,6 @@
 use crate::components::screen::{new_screen, page_hints};
 use crate::data::records::{HillRecord, Hiscore};
-use crate::gfx::palette::{FONT_DEFAULT, FONT_NEW, FONT_GREET, FONT_HELP, apply_menu_tint};
+use crate::gfx::palette::{apply_menu_tint, FONT_DEFAULT, FONT_GREET, FONT_HELP, FONT_NEW};
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::layout::{is_computer_name, lstr, shorten_name};
@@ -49,7 +49,11 @@ const fn handle_page_event(event: Event, page: &mut usize, pages: usize) -> Opti
     }
 }
 
-const fn apply_page_action(action: PageAction, page: &mut usize, pages: usize) -> Option<RouteTarget> {
+const fn apply_page_action(
+    action: PageAction,
+    page: &mut usize,
+    pages: usize,
+) -> Option<RouteTarget> {
     match action {
         PageAction::Back => Some(RouteTarget::Back),
         PageAction::First => {
@@ -91,11 +95,26 @@ impl HallOfFameView {
         let mut yy = 6;
         let col = [30, 146, 173, 215];
         let (title, entries, start, sortby) = match phase {
-            0 => (lstr(&self.resources.langbase, 163, "World Cup"), 20, 1, false),
-            1 => (lstr(&self.resources.langbase, 164, "Team Cup"), 10, 21, false),
+            0 => (
+                lstr(&self.resources.langbase, 163, "World Cup"),
+                20,
+                1,
+                false,
+            ),
+            1 => (
+                lstr(&self.resources.langbase, 164, "Team Cup"),
+                10,
+                21,
+                false,
+            ),
             _ => {
                 yy = 126;
-                (lstr(&self.resources.langbase, 165, "Four Hills"), 5, 31, true)
+                (
+                    lstr(&self.resources.langbase, 165, "Four Hills"),
+                    5,
+                    31,
+                    true,
+                )
             }
         };
 

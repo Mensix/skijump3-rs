@@ -1,9 +1,9 @@
 use crate::components::menu::{Menu, MenuItem};
-use crate::gfx::palette::{FONT_DEFAULT, FONT_GOLD, FONT_GREET, apply_logo_tint};
+use crate::gfx::palette::{apply_logo_tint, FONT_DEFAULT, FONT_GOLD, FONT_GREET};
+use crate::gfx::sprites;
 use crate::parsers::langbase::LangBase;
 use crate::route::RouteTarget;
 use crate::save::SaveRef;
-use crate::gfx::sprites;
 use engine::ui::{Component, Element, Event, View};
 use std::rc::Rc;
 

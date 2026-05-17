@@ -3,7 +3,7 @@ use crate::save::crypt::profile_code;
 
 use super::write_lines;
 
-#[must_use] 
+#[must_use]
 pub fn profiles_to_bytes(store: &ProfileStore) -> Vec<u8> {
     let mut out = Vec::new();
 
