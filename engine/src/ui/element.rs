@@ -27,7 +27,8 @@ pub enum Element {
         x: i32,
         y: i32,
         color: u8,
-        right: bool
+        right: bool,
+        center: bool,
     },
     Sprite(u16, i32, i32),
     Fillbox {
@@ -154,6 +155,7 @@ impl Element {
             y,
             color,
             right,
+            center: false,
         }
     }
 
