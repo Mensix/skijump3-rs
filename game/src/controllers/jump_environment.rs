@@ -1,3 +1,4 @@
+use crate::data::hill_profile::HillTerrain;
 use crate::jump::config::JumpConfig;
 use crate::jump::snow::{calculate_snow_count, SnowSystem};
 use crate::jump::{JumpParticipant, JumpPolicy, JumpRunner, JumpRunnerRenderEnv};
@@ -12,7 +13,10 @@ pub(crate) fn new_runner_with_env(
     store: &StoreRef,
 ) -> JumpRunner {
     let hill = resources.hills.hill(hill_idx).cloned();
-    let terrain = resources.hill_terrain(hill_idx).map(|t| (*t).clone());
+    let terrain = resources.hills.hill(hill_idx).map_or_else(
+        || Err(format!("Hill {hill_idx} not found")),
+        |info| HillTerrain::load(&resources.assets, info),
+    );
     let mut snow = SnowSystem::new();
 
     if terrain.is_ok() && hill.is_some() {
@@ -53,7 +57,10 @@ pub(crate) fn new_runner_with_env(
 
 pub(crate) fn set_runner_hill(runner: &mut JumpRunner, hill_idx: usize, resources: &ResourcesRef) {
     let hill = resources.hills.hill(hill_idx).cloned();
-    let terrain = resources.hill_terrain(hill_idx).map(|t| (*t).clone());
+    let terrain = resources.hills.hill(hill_idx).map_or_else(
+        || Err(format!("Hill {hill_idx} not found")),
+        |info| HillTerrain::load(&resources.assets, info),
+    );
     runner.set_hill(hill_idx, hill, terrain);
 }
 

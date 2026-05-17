@@ -3,7 +3,8 @@ use engine::sprite::SpriteData;
 
 pub struct AnimParser;
 
-impl AssetParser<Vec<SpriteData>> for AnimParser {
+impl AssetParser for AnimParser {
+    type Output = Vec<SpriteData>;
     fn parse(data: &[u8]) -> Result<Vec<SpriteData>, ParseError> {
         let mut sprites = Vec::new();
 

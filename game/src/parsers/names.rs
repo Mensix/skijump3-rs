@@ -4,7 +4,8 @@ use crate::text::layout;
 
 pub struct NamesParser;
 
-impl AssetParser<Vec<String>> for NamesParser {
+impl AssetParser for NamesParser {
+    type Output = Vec<String>;
     fn parse(data: &[u8]) -> Result<Vec<String>, ParseError> {
         let mut names: Vec<String> = Vec::new();
         let mut in_names = false;

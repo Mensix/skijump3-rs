@@ -55,7 +55,8 @@ fn parse_language_names(data: &[u8]) -> Vec<String> {
 
 pub struct LangBaseParser;
 
-impl AssetParser<LangBase> for LangBaseParser {
+impl AssetParser for LangBaseParser {
+    type Output = LangBase;
     fn parse(data: &[u8]) -> Result<LangBase, ParseError> {
         let languages = parse_language_names(data);
         let num_languages = languages.len();

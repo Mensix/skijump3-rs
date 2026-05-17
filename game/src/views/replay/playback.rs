@@ -38,9 +38,11 @@ impl ReplayView {
         let terrain = trace.as_ref().map_or_else(
             || Err("Replay hill not found".to_string()),
             |trace| {
-                resources
-                    .hill_terrain(trace.meta.hill_idx)
-                    .map(|t| (*t).clone())
+                let info = resources
+                    .hills
+                    .hill(trace.meta.hill_idx)
+                    .ok_or_else(|| format!("Hill {} not found", trace.meta.hill_idx))?;
+                HillTerrain::load(&resources.assets, info)
             },
         );
         let mut snow = SnowSystem::new();

@@ -24,6 +24,7 @@ impl fmt::Display for ParseError {
 
 impl std::error::Error for ParseError {}
 
-pub trait AssetParser<T> {
-    fn parse(data: &[u8]) -> Result<T, ParseError>;
+pub trait AssetParser {
+    type Output;
+    fn parse(data: &[u8]) -> Result<Self::Output, ParseError>;
 }

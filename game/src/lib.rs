@@ -25,7 +25,8 @@ use engine::ui::{Font, PaintCtx, Router, View};
 use engine::video::Renderer;
 use loaders::assets::AssetStore;
 use parsers::langbase::{LangBase, LangBaseParser};
-use parsers::{anim::AnimParser, pcx::PcxParser, AssetParser};
+use parsers::pcx::{DecodedPcx, PcxParser};
+use parsers::{anim::AnimParser};
 use route::RouteTarget;
 use std::rc::Rc;
 use views::{
@@ -112,14 +113,9 @@ impl Game {
     fn load_assets(
         assets: &AssetStore,
     ) -> Result<(Vec<u8>, Palette, Vec<SpriteData>, Rc<LangBase>), String> {
-        let pcx_data = assets.read(MAIN_PCX).map_err(|e| e.to_string())?;
-        let decoded = PcxParser::parse(&pcx_data).map_err(|e| e.to_string())?;
-
-        let anim_data = assets.read(ANIM_SKI).map_err(|e| e.to_string())?;
-        let sprites: Vec<SpriteData> = AnimParser::parse(&anim_data).map_err(|e| e.to_string())?;
-
-        let langbase_data = assets.read(LANGBASE_SKI).map_err(|e| e.to_string())?;
-        let langbase = Rc::new(LangBaseParser::parse(&langbase_data).map_err(|e| e.to_string())?);
+        let decoded = assets.parse::<DecodedPcx, PcxParser>(MAIN_PCX)?;
+        let sprites = assets.parse::<Vec<SpriteData>, AnimParser>(ANIM_SKI)?;
+        let langbase = Rc::new(assets.parse::<LangBase, LangBaseParser>(LANGBASE_SKI)?);
 
         Ok((decoded.pixels, decoded.palette, sprites, langbase))
     }

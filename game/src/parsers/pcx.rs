@@ -44,7 +44,8 @@ impl PcxParser {
     }
 }
 
-impl AssetParser<DecodedPcx> for PcxParser {
+impl AssetParser for PcxParser {
+    type Output = DecodedPcx;
     fn parse(data: &[u8]) -> Result<DecodedPcx, ParseError> {
         if data.len() <= PCX_HEADER_SIZE + 768 {
             return Err(ParseError {

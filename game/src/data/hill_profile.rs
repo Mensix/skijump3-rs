@@ -1,7 +1,6 @@
 use crate::data::records::HillInfo;
 use crate::loaders::assets::AssetStore;
 use crate::parsers::pcx::{DecodedPcx, PcxParser};
-use crate::parsers::AssetParser;
 use engine::palette::Palette;
 use std::rc::Rc;
 
@@ -25,6 +24,7 @@ pub struct HillTerrain {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::parsers::AssetParser;
 
     #[test]
     fn extracts_front_pcx_profile_and_takeoff_point() {
@@ -84,14 +84,8 @@ mod tests {
 
 impl HillTerrain {
     pub fn load(assets: &AssetStore, info: &HillInfo) -> Result<Self, String> {
-        let front_data = assets
-            .read(&format!("FRONT{}.PCX", info.front_index))
-            .map_err(|e| e.to_string())?;
-        let back_data = assets
-            .read(&format!("BACK{}.PCX", info.back_index))
-            .map_err(|e| e.to_string())?;
-        let front = PcxParser::parse(&front_data).map_err(|e| e.to_string())?;
-        let mut back = PcxParser::parse(&back_data).map_err(|e| e.to_string())?;
+        let front = assets.parse::<DecodedPcx, PcxParser>(&format!("FRONT{}.PCX", info.front_index))?;
+        let mut back = assets.parse::<DecodedPcx, PcxParser>(&format!("BACK{}.PCX", info.back_index))?;
         if info.back_mirror != 0 {
             Self::mirror_pixels(&mut back.pixels, back.width as usize, back.height as usize);
         }

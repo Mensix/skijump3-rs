@@ -17,12 +17,12 @@ pub struct JumpView {
 
 impl JumpView {
     pub fn new(resources: ResourcesRef, store: StoreRef) -> Self {
-        let hill_idx = store.practice.selected_hill.get();
+        let hill_idx = store.practice_selected_hill.get();
         store.first_event.set(true);
 
         let runner = new_runner_with_env(
             hill_idx,
-            store.practice.start_gate.get(),
+            store.practice_start_gate.get(),
             JumpParticipant::trainee(),
             JumpPolicy::training(),
             &resources,
@@ -81,7 +81,7 @@ impl JumpView {
             .map_or(0, |r| r.len as i32);
         self.runner
             .borrow_mut()
-            .reset_state(self.store.practice.start_gate.get(), record_distance);
+            .reset_state(self.store.practice_start_gate.get(), record_distance);
     }
 
     fn reset_wind(&self) {
@@ -111,7 +111,7 @@ impl JumpView {
                 None
             }
             TrainingJumpAction::PersistStartGate(start_gate) => {
-                self.store.practice.start_gate.set(start_gate);
+                self.store.practice_start_gate.set(start_gate);
                 self.store.start_gate.set(start_gate);
                 None
             }

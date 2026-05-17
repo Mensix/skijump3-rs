@@ -48,7 +48,8 @@ pub(crate) fn uncrypt(input: &str, order: usize) -> i64 {
     value
 }
 
-impl AssetParser<RecordStore> for RecordsParser {
+impl AssetParser for RecordsParser {
+    type Output = RecordStore;
     fn parse(data: &[u8]) -> Result<RecordStore, ParseError> {
         let lines: Vec<String> = data.split(|&b| b == b'\n').map(decode_line).collect();
         let min_lines = 1 + NUM_TOPS * 3 + NUM_HILL_RECORDS * 2 + 3 + NUM_TOPS + NUM_HILL_RECORDS;

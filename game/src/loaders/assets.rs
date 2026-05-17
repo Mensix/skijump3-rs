@@ -1,7 +1,7 @@
 use crate::data::records::{HillCatalog, RecordStore};
 use crate::parsers::hills::HillBaseParser;
-use crate::parsers::names::NamesParser;
 use crate::parsers::records::RecordsParser;
+use crate::parsers::names::NamesParser;
 use crate::parsers::AssetParser;
 
 #[derive(Debug, Clone)]
@@ -27,6 +27,11 @@ impl AssetStore {
     pub fn load_records(&self, name: &str) -> Result<RecordStore, String> {
         let data = self.read(name).map_err(|e| e.to_string())?;
         RecordsParser::parse(&data).map_err(|e| e.to_string())
+    }
+
+    pub fn parse<T, P: AssetParser<Output = T>>(&self, name: &str) -> Result<T, String> {
+        let data = self.read(name).map_err(|e| e.to_string())?;
+        P::parse(&data).map_err(|e| e.to_string())
     }
 
     pub fn load_all_names(&self) -> Vec<String> {

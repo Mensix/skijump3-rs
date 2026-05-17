@@ -9,7 +9,8 @@ fn decode_line(bytes: &[u8]) -> String {
     encoding::decode(layout::trim_ascii(bytes))
 }
 
-impl AssetParser<HillCatalog> for HillBaseParser {
+impl AssetParser for HillBaseParser {
+    type Output = HillCatalog;
     fn parse(data: &[u8]) -> Result<HillCatalog, ParseError> {
         let lines: Vec<String> = data.split(|&b| b == b'\n').map(decode_line).collect();
         let mut hills = Vec::new();
