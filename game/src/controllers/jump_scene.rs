@@ -1,4 +1,5 @@
 use crate::data::hill_profile::HillTerrain;
+use crate::data::records::HillInfo;
 use crate::jump::config::JumpConfig;
 use crate::jump::replay::ReplayTrace;
 use crate::jump::snow::{calculate_snow_count, SnowSystem};
@@ -16,6 +17,16 @@ pub struct JumpScene {
 }
 
 impl JumpScene {
+    /// Set up wind and first-event state for a new competition event.
+    /// Pascal: Tuuli.Alusta(windplace) once per event before any jumpers.
+    /// Call before constructing `JumpScene` or at the start of each event.
+    pub fn setup_event(store: &StoreRef) {
+        store.first_event.set(true);
+        let mut rng = store.rng.borrow_mut();
+        let mut wind = store.wind.borrow_mut();
+        wind.initialize(&mut rng, store.wind_place.get());
+    }
+
     pub fn new(
         resources: ResourcesRef,
         store: StoreRef,
@@ -24,13 +35,6 @@ impl JumpScene {
         participant: JumpParticipant,
         policy: JumpPolicy,
     ) -> Self {
-        store.first_event.set(true);
-        // Pascal: Tuuli.Alusta(windplace) once per event before any jumpers.
-        let mut rng = store.rng.borrow_mut();
-        let mut wind = store.wind.borrow_mut();
-        wind.initialize(&mut rng, store.wind_place.get());
-        drop(wind);
-        drop(rng);
         let runner = RefCell::new(Self::build_runner(
             resources.clone(),
             &store,
@@ -123,18 +127,8 @@ impl JumpScene {
     /// Does not mutate the visible runner — safe to call from a `&self`
     /// context alongside the view's own `&self` scene usage.
     pub fn simulate_hidden(&self, participant: JumpParticipant, hill_idx: usize) -> JumpOutcome {
-        let hill = self.resources.hills.hill(hill_idx).cloned();
-        let terrain = hill.as_ref().map_or_else(
-            || Err(format!("Hill {hill_idx} not found")),
-            |info| HillTerrain::load(&self.resources.assets, info),
-        );
-        let record_distance = self
-            .store
-            .records
-            .borrow()
-            .hill_record(hill_idx)
-            .map_or(0, |r| r.len as i32);
-
+        let (hill, terrain, record_distance) =
+            Self::load_hill_data(&self.resources, &self.store, hill_idx);
         let mut runner = JumpRunner::new(
             JumpConfig {
                 hill_idx,
@@ -149,7 +143,6 @@ impl JumpScene {
             },
             SnowSystem::new(),
         );
-
         let mut rng = self.store.rng.borrow_mut();
         let mut wind = self.store.wind.borrow_mut();
         runner.simulate_to_completion(&mut rng, &mut wind)
@@ -182,6 +175,25 @@ impl JumpScene {
         }
     }
 
+    /// Load hill data common to both visible and hidden runner construction.
+    fn load_hill_data(
+        resources: &ResourcesRef,
+        store: &StoreRef,
+        hill_idx: usize,
+    ) -> (Option<HillInfo>, Result<HillTerrain, String>, i32) {
+        let hill = resources.hills.hill(hill_idx).cloned();
+        let terrain = hill.as_ref().map_or_else(
+            || Err(format!("Hill {hill_idx} not found")),
+            |info| HillTerrain::load(&resources.assets, info),
+        );
+        let record_distance = store
+            .records
+            .borrow()
+            .hill_record(hill_idx)
+            .map_or(0, |r| r.len as i32);
+        (hill, terrain, record_distance)
+    }
+
     fn build_runner(
         resources: ResourcesRef,
         store: &StoreRef,
@@ -191,11 +203,7 @@ impl JumpScene {
         policy: JumpPolicy,
         phase_label: String,
     ) -> JumpRunner {
-        let hill = resources.hills.hill(hill_idx).cloned();
-        let terrain = resources.hills.hill(hill_idx).map_or_else(
-            || Err(format!("Hill {hill_idx} not found")),
-            |info| HillTerrain::load(&resources.assets, info),
-        );
+        let (hill, terrain, record_distance) = Self::load_hill_data(&resources, store, hill_idx);
         let mut snow = SnowSystem::new();
 
         if terrain.is_ok() && hill.is_some() {
@@ -208,12 +216,6 @@ impl JumpScene {
                 store.first_event.set(false);
             }
         }
-
-        let record_distance = store
-            .records
-            .borrow()
-            .hill_record(hill_idx)
-            .map_or(0, |r| r.len as i32);
 
         let snow_count = snow.count();
         JumpRunner::new(

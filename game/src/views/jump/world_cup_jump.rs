@@ -29,6 +29,7 @@ pub struct WorldCupJumpView {
 
 impl WorldCupJumpView {
     pub(crate) fn new(resources: ResourcesRef, store: StoreRef) -> Self {
+        JumpScene::setup_event(&store);
         let scene = JumpScene::new(
             ResourcesRef::clone(&resources),
             StoreRef::clone(&store),
@@ -136,29 +137,7 @@ impl View<RouteTarget> for WorldCupJumpView {
     }
 
     fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {
-        let comp_phase = self.store.competition.borrow().as_ref().map(|c| c.phase);
-
-        if matches!(
-            comp_phase,
-            Some(
-                CompetitionPhase::QualificationResults
-                    | CompetitionPhase::Round1Results
-                    | CompetitionPhase::Round2Results
-                    | CompetitionPhase::WorldCupStandings
-                    | CompetitionPhase::SeasonComplete
-            )
-        ) || self.display_page.get() > 0
-            || {
-                self.store.competition.borrow().as_ref().is_some_and(|c| {
-                    matches!(
-                        c.phase,
-                        CompetitionPhase::Qualification
-                            | CompetitionPhase::Round1
-                            | CompetitionPhase::Round2
-                    ) && c.current_jumper().is_none()
-                })
-            }
-        {
+        if self.is_result_display_state() {
             match event {
                 Event::Keyboard(Key::Right | Key::Char(' ')) => {
                     let page = self.display_page.get();
@@ -203,7 +182,7 @@ impl View<RouteTarget> for WorldCupJumpView {
     }
 
     fn apply_palette(&self, palette: &mut Palette) {
-        if self.is_displaying_results() {
+        if self.is_result_display_state() {
             apply_menu_tint(palette, 3, 0);
             return;
         }
@@ -212,11 +191,10 @@ impl View<RouteTarget> for WorldCupJumpView {
 }
 
 impl WorldCupJumpView {
-    fn is_displaying_results(&self) -> bool {
+    fn is_result_display_state(&self) -> bool {
         if self.display_page.get() > 0 {
             return true;
         }
-
         self.store.competition.borrow().as_ref().is_some_and(|c| {
             matches!(
                 c.phase,
