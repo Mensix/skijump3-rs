@@ -4,7 +4,12 @@ use crate::jump::types::FallType;
 const SKI_SLOPE: u16 = 70;
 const INRUN_BODY: u16 = 100;
 const FLIGHT_BODY: u16 = 105;
-const INRUN_TRANSITION: u16 = 164;
+pub(crate) const INRUN_TRANSITION: u16 = 164;
+const POST_LANDING_PHASE0: i32 = 121;
+const POST_LANDING_PHASE1: i32 = 122;
+const FALL_BASE: i32 = 141;
+const CRASH_BASE: i32 = 150;
+const CRASH_THRESHOLD: i32 = 154;
 
 #[must_use]
 pub const fn crash_risk(slope_angle: i32) -> i64 {
@@ -109,8 +114,8 @@ pub fn post_landing_body_anim(
 
     let phase = ((counter - start_anim) / 12).min(6);
     let anim_idx = match phase {
-         0 => 121 + i32::from(landing_style) * 6,
-         1 => 122 + i32::from(landing_style) * 6,
+         0 => POST_LANDING_PHASE0 + i32::from(landing_style) * 6,
+         1 => POST_LANDING_PHASE1 + i32::from(landing_style) * 6,
           2 => Sprite::PostLandingPhase2 as i32,
           3..=6 => match grade {
               0..=75 => Sprite::LandingSlide as i32,
@@ -147,9 +152,9 @@ pub(crate) fn fall_body_anim(
             if extra < 0 {
                 extra = 0;
             }
-            let mut anim = 141 + counter / 10 + extra;
+            let mut anim = FALL_BASE + counter / 10 + extra;
             if fall_type == FallType::TwoFooted {
-                anim = 141 + (counter - 6) / 10 + extra;
+                anim = FALL_BASE + (counter - 6) / 10 + extra;
             }
             if anim > 144 {
                 anim = match detached_ski {
@@ -166,8 +171,8 @@ pub(crate) fn fall_body_anim(
             anim
         }
         FallType::Crash if counter > 14 => {
-            let mut anim = 150 + (counter - 14) / 10;
-            if anim > 154 {
+            let mut anim = CRASH_BASE + (counter - 14) / 10;
+            if anim > CRASH_THRESHOLD {
                 anim = match detached_ski {
                     3..=4 => Sprite::CrashFinalNarrow as i32,
                     5..=6 => Sprite::CrashFinalMedium as i32,
@@ -179,7 +184,7 @@ pub(crate) fn fall_body_anim(
             }
             anim
         }
-        FallType::Crash => 141 + counter / 10,
+        FallType::Crash => FALL_BASE + counter / 10,
         FallType::None => return landing_loop_body_anim(counter, detached_slope_ski_anim, landing_style),
     };
     anim_idx as u16

@@ -428,6 +428,8 @@ impl<'a> ReplayParser<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::gfx::sprites::Sprite;
+    use crate::jump::animation::INRUN_TRANSITION;
 
     fn trace() -> ReplayTrace {
         ReplayTrace {
@@ -458,28 +460,28 @@ mod tests {
                 ReplayFrame {
                     dx: 0,
                     dy: 0,
-                    body_anim: 163,
+                    body_anim: Sprite::IdleBody as u8,
                     ski_anim: 72,
                     wind: -3,
                 },
                 ReplayFrame {
                     dx: 2,
                     dy: -1,
-                    body_anim: 164,
+                    body_anim: INRUN_TRANSITION as u8,
                     ski_anim: 73,
                     wind: 4,
                 },
                 ReplayFrame {
                     dx: -2,
                     dy: 1,
-                    body_anim: 111,
+                    body_anim: Sprite::TakeoffArmsUp as u8,
                     ski_anim: 90,
                     wind: 0,
                 },
                 ReplayFrame {
                     dx: 3,
                     dy: 4,
-                    body_anim: 112,
+                    body_anim: Sprite::LandingLoopBase as u8,
                     ski_anim: 91,
                     wind: 7,
                 },
@@ -507,7 +509,7 @@ mod tests {
         assert_eq!(parsed.frames.len(), 5);
         assert_eq!(parsed.frames[1].dx, 2);
         assert_eq!(parsed.frames[1].dy, -1);
-        assert_eq!(parsed.frames[3].body_anim, 112);
+        assert_eq!(parsed.frames[3].body_anim, Sprite::LandingLoopBase as u8);
         assert_eq!(parsed.frames[3].wind, 7);
     }
 
@@ -524,7 +526,7 @@ mod tests {
         assert_eq!(bytes[data_start + 3], 73);
 
         let parsed = ReplayTrace::from_sjr_bytes(&bytes, false).expect("valid replay");
-        assert_eq!(parsed.frames[0].body_anim, 163);
+        assert_eq!(parsed.frames[0].body_anim, Sprite::IdleBody as u8);
         assert_eq!(parsed.frames[0].ski_anim, 72);
     }
 
@@ -552,8 +554,8 @@ mod tests {
     fn recorder_frame_count_is_pascal_last_frame_index() {
         let mut recorder = ReplayRecorder::default();
         recorder.start(trace().meta);
-        recorder.record_frame((10, 20), (11, 22), 163, 72, -2);
-        recorder.record_frame((11, 22), (14, 25), 164, 73, -1);
+        recorder.record_frame((10, 20), (11, 22), Sprite::IdleBody as u16, 72, -2);
+        recorder.record_frame((11, 22), (14, 25), INRUN_TRANSITION, 73, -1);
 
         let trace = recorder.finish().expect("trace");
         let bytes = trace.to_sjr_bytes();
@@ -561,7 +563,7 @@ mod tests {
 
         assert_eq!(trace.meta.frame_count, 1);
         assert_eq!(parsed.frames.len(), 2);
-        assert_eq!(parsed.frames[1].body_anim, 164);
+        assert_eq!(parsed.frames[1].body_anim, INRUN_TRANSITION as u8);
         assert_eq!(parsed.frames[1].ski_anim, 73);
     }
 
@@ -569,13 +571,13 @@ mod tests {
     fn recorder_ignores_frames_after_result_stop() {
         let mut recorder = ReplayRecorder::default();
         recorder.start(trace().meta);
-        recorder.record_frame((10, 20), (11, 22), 163, 72, -2);
+        recorder.record_frame((10, 20), (11, 22), Sprite::IdleBody as u16, 72, -2);
         recorder.stop();
-        recorder.record_frame((11, 22), (11, 22), 136, 90, -2);
+        recorder.record_frame((11, 22), (11, 22), Sprite::LandingSlide as u16, 90, -2);
 
         let trace = recorder.finish().expect("trace");
 
         assert_eq!(trace.frames.len(), 1);
-        assert_eq!(trace.frames[0].body_anim, 163);
+        assert_eq!(trace.frames[0].body_anim, Sprite::IdleBody as u8);
     }
 }
