@@ -102,6 +102,14 @@ impl JumpRunner {
         self.session.replay_trace()
     }
 
+    pub(crate) fn set_hill(&mut self, hill_idx: usize, resources: &ResourcesRef) {
+        if self.config.hill_idx != hill_idx {
+            self.config.hill_idx = hill_idx;
+            self.config.hill = resources.hills.hill(hill_idx).cloned();
+            self.config.terrain = resources.hill_terrain(hill_idx).map(|t| (*t).clone());
+        }
+    }
+
     pub(crate) fn reset_state(&mut self, start_gate: i32, record_distance: i32) {
         self.config.start_gate = start_gate;
         self.config.record_distance = record_distance;

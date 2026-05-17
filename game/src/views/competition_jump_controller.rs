@@ -144,6 +144,7 @@ impl CompetitionJumpController {
 
             {
                 let mut runner = runner.borrow_mut();
+                runner.set_hill(hill_idx, resources);
                 runner.set_participant(participant);
                 runner.reset_state(15, record_distance);
             }
