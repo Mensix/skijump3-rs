@@ -1,7 +1,7 @@
 use crate::rng::Random;
 use engine::consts::{HEIGHT, WIDTH};
 
-const LUMI_MAX: usize = 256;
+const SNOW_MAX: usize = 256;
 const SINE_LENGTH: usize = 512;
 const BG_MIN: u8 = 64;
 const BG_MAX: u8 = 215;
@@ -23,23 +23,23 @@ pub struct SnowSystem {
     sine: Vec<i64>,
     count: u16,
     max: usize,
-    perus_g: u16,
+    base_gravity: u16,
     g_variation: u16,
     side_movement: u16,
     sleet: bool,
 }
 
 /// Pascal `LMaara` calculation: random snow count used at event start.
-/// Called once per event when `eka=true`.
-pub fn calculate_lmaara(rng: &mut Random) -> u16 {
-    let mut lmaara = rng.random_i32(2) * rng.random_i32(256);
-    if lmaara > 0 && lmaara < 40 {
-        lmaara += rng.random_i32(150);
+/// Called once per event when `first_event=true`.
+pub fn calculate_snow_count(rng: &mut Random) -> u16 {
+    let mut snow_count = rng.random_i32(2) * rng.random_i32(256);
+    if snow_count > 0 && snow_count < 40 {
+        snow_count += rng.random_i32(150);
     }
-    if lmaara > 0 && rng.random_i32(4) == 0 {
-        lmaara += 1000;
+    if snow_count > 0 && rng.random_i32(4) == 0 {
+        snow_count += 1000;
     }
-    lmaara as u16
+    snow_count as u16
 }
 
 impl SnowSystem {
@@ -50,7 +50,7 @@ impl SnowSystem {
             sine: vec![0; SINE_LENGTH + 1],
             count: 0,
             max: 0,
-            perus_g: 600,
+            base_gravity: 600,
             g_variation: 300,
             side_movement: 50,
             sleet: false,
@@ -67,7 +67,7 @@ impl SnowSystem {
     }
 
     pub fn set_count(&mut self, count: u16, rng: &mut Random) {
-        self.perus_g = 600;
+        self.base_gravity = 600;
         self.g_variation = 300;
         self.side_movement = 50;
         self.sleet = false;
@@ -75,7 +75,7 @@ impl SnowSystem {
         self.max = count as usize;
         if count > 1000 {
             self.sleet = true;
-            self.perus_g = 875;
+            self.base_gravity = 875;
             self.g_variation = 100;
             self.side_movement = 50;
             self.max = (count - 1000) as usize;
@@ -90,12 +90,12 @@ impl SnowSystem {
 
     fn reset(&mut self, rng: &mut Random) {
         self.compute_sine();
-        self.flakes = (0..LUMI_MAX)
+        self.flakes = (0..SNOW_MAX)
             .map(|_| {
                 let x = i64::from(rng.random_i32(WIDTH as i32)) << 10;
                 let y = i64::from(rng.random_i32(HEIGHT as i32)) << 10;
                 let sin_pos = rng.random_i32(SINE_LENGTH as i32) as usize;
-                let gravity = i64::from(rng.random_i32(i32::from(self.g_variation))) + i64::from(self.perus_g)
+                let gravity = i64::from(rng.random_i32(i32::from(self.g_variation))) + i64::from(self.base_gravity)
                     - i64::from(self.g_variation);
                 let style = rng.random_i32(2) as u16;
                 let style = if self.sleet && style == 1 {
@@ -125,7 +125,7 @@ impl SnowSystem {
     }
 
     pub fn update(&mut self, buffer: &mut [u8], delta_x: i32, delta_y: i32, wind: i32, draw: bool) {
-        let max = self.max.min(LUMI_MAX - 1);
+        let max = self.max.min(SNOW_MAX - 1);
         for flake in self.flakes.iter_mut().take(max + 1) {
             if draw {
                 flake.x += self.sine[flake.sin_pos] + i64::from(delta_x) * 512 + i64::from(wind);

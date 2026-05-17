@@ -19,14 +19,14 @@ fn find_hill_record_marker(
     if record_distance <= 0 {
         return None;
     }
-    let keula_x = terrain.keula_x;
-    let keula_y = terrain.profiili(keula_x);
-    for x in keula_x..1024 {
-        let dx = f64::from(x - keula_x);
-        let dy = f64::from(terrain.profiili(x) - keula_y);
+    let tip_x = terrain.tip_x;
+    let tip_y = terrain.height_at(tip_x);
+    for x in tip_x..1024 {
+        let dx = f64::from(x - tip_x);
+        let dy = f64::from(terrain.height_at(x) - tip_y);
         let hp = pascal_round((dx * dx + dy * dy).sqrt() * pk * 0.5) * 5;
         if hp >= record_distance {
-            let kor = terrain.profiili(x);
+            let kor = terrain.height_at(x);
             return Some((x, kor - 9));
         }
     }

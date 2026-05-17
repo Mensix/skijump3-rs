@@ -10,7 +10,7 @@ use crate::jump::{
 };
 use crate::gfx::palette::FONT_DEFAULT;
 use crate::rng::Random;
-use crate::jump::snow::{calculate_lmaara, SnowSystem};
+use crate::jump::snow::{calculate_snow_count, SnowSystem};
 use crate::store::{ResourcesRef, StoreRef};
 use crate::jump::wind::Wind;
 use engine::consts::{HEIGHT, WIDTH};
@@ -26,7 +26,7 @@ pub(crate) struct JumpRunner {
 
 impl JumpRunner {
     /// Create a runner with shared environment initialization:
-    /// hill/terrain loading, wind init, Pascal snow init (eka gate), record distance.
+    /// hill/terrain loading, wind init, Pascal snow init (first_event gate), record distance.
     pub(crate) fn new_with_env(
         hill_idx: usize,
         start_gate: i32,
@@ -44,11 +44,11 @@ impl JumpRunner {
             let mut wind = store.wind.borrow_mut();
             wind.initialize(&mut rng, store.wind_place.get());
 
-            if store.eka.get() {
-                let lmaara = calculate_lmaara(&mut rng);
-                snow.set_count(lmaara, &mut rng);
+            if store.first_event.get() {
+                let snow_count = calculate_snow_count(&mut rng);
+                snow.set_count(snow_count, &mut rng);
                 wind.sample(&mut rng);
-                store.eka.set(false);
+                store.first_event.set(false);
             }
         }
 

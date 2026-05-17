@@ -19,7 +19,7 @@ pub struct HillTerrain {
     back_height: u16,
     line_lengths: Vec<usize>,
     profile_y: Vec<i32>,
-    pub keula_x: i32,
+    pub tip_x: i32,
 }
 
 #[cfg(test)]
@@ -34,10 +34,10 @@ mod tests {
 
         assert_eq!(terrain.width, 1024);
         assert_eq!(terrain.height, 512);
-        assert!(terrain.keula_x > 0);
-        assert!(terrain.profiili(terrain.keula_x) > 0);
-        assert_eq!(terrain.maki_kulma(terrain.keula_x), 0);
-        assert_eq!(terrain.profiili(1299), terrain.profiili(1023));
+        assert!(terrain.tip_x > 0);
+        assert!(terrain.height_at(terrain.tip_x) > 0);
+        assert_eq!(terrain.hill_angle(terrain.tip_x), 0);
+        assert_eq!(terrain.height_at(1299), terrain.height_at(1023));
     }
 
     #[test]
@@ -108,8 +108,8 @@ impl HillTerrain {
         let mut pixels = front.pixels;
         let line_lengths = Self::line_lengths(&pixels, width, height);
         let profile_y = Self::profile_y(&line_lengths, width, height);
-        let keula_x = Self::keula_x(&profile_y, width);
-        Self::draw_distance_markers(&mut pixels, width, &profile_y, keula_x, kr, pk);
+        let tip_x = Self::tip_x(&profile_y, width);
+        Self::draw_distance_markers(&mut pixels, width, &profile_y, tip_x, kr, pk);
 
         Self {
             front_pixels: pixels.into(),
@@ -122,7 +122,7 @@ impl HillTerrain {
             back_height: back.height,
             line_lengths,
             profile_y,
-            keula_x,
+            tip_x,
         }
     }
 
@@ -191,7 +191,7 @@ impl HillTerrain {
     }
 
     #[must_use] 
-    pub fn profiili(&self, x: i32) -> i32 {
+    pub fn height_at(&self, x: i32) -> i32 {
         if x > 0 {
             self.profile_y.get(x as usize).copied().unwrap_or(0)
         } else {
@@ -200,17 +200,17 @@ impl HillTerrain {
     }
 
     #[must_use] 
-    pub fn maki_kulma(&self, x: i32) -> i32 {
-        let value = self.profiili(x + 9)
-            + self.profiili(x + 8)
-            + self.profiili(x + 7)
-            + self.profiili(x + 6)
-            - self.profiili(x - 3)
-            - self.profiili(x - 4)
-            - self.profiili(x - 5)
-            - self.profiili(x - 2);
+    pub fn hill_angle(&self, x: i32) -> i32 {
+        let value = self.height_at(x + 9)
+            + self.height_at(x + 8)
+            + self.height_at(x + 7)
+            + self.height_at(x + 6)
+            - self.height_at(x - 3)
+            - self.height_at(x - 4)
+            - self.height_at(x - 5)
+            - self.height_at(x - 2);
 
-        if x > self.keula_x - 15 && x <= self.keula_x {
+        if x > self.tip_x - 15 && x <= self.tip_x {
             0
         } else {
             value
@@ -244,30 +244,30 @@ impl HillTerrain {
         profile
     }
 
-    fn keula_x(profile_y: &[i32], width: usize) -> i32 {
-        let mut keula_x = 0;
+    fn tip_x(profile_y: &[i32], width: usize) -> i32 {
+        let mut tip_x = 0;
         let mut former_y = 0;
         for (x, &y) in profile_y.iter().take(width).enumerate() {
             if y - former_y > 3 {
-                keula_x = x as i32;
+                tip_x = x as i32;
             }
             former_y = y;
         }
-        keula_x - 1
+        tip_x - 1
     }
 
     fn draw_distance_markers(
         pixels: &mut [u8],
         width: usize,
         profile_y: &[i32],
-        keula_x: i32,
+        tip_x: i32,
         kr: i64,
         pk: f64,
     ) {
-        let keula_idx = keula_x.max(0) as usize;
+        let keula_idx = tip_x.max(0) as usize;
         let drawable_width = width.min(profile_y.len());
         for x in keula_idx..drawable_width.saturating_sub(10) {
-            let x2 = x as i64 - i64::from(keula_x);
+            let x2 = x as i64 - i64::from(tip_x);
             let y2 = i64::from(profile_y[x]) - i64::from(profile_y[keula_idx]);
             let hp = ((((x2 * x2 + y2 * y2) as f64).sqrt() * pk * 0.5).round() as i64) * 5;
             if hp >= (2 * kr * 10) / 3 && hp <= kr * 12 {

@@ -223,7 +223,7 @@ mod tests {
 
         assert_eq!(state.phase, JumpPhase::Inrun);
         assert_eq!(state.frame, 0);
-        assert_eq!(state.matka, -45.0);
+        assert_eq!(state.travel, -45.0);
         assert_eq!(state.px, 131.0);
     }
 

@@ -22,7 +22,7 @@ impl CompetitionJumpController {
     }
 
     pub(crate) fn initial_runner(resources: &ResourcesRef, store: &StoreRef) -> JumpRunner {
-        store.eka.set(true);
+        store.first_event.set(true);
         Self::build_runner(resources, store)
     }
 
@@ -178,7 +178,7 @@ impl CompetitionJumpController {
                 .is_some_and(|c| c.current_event != self.last_event.get())
         };
         if event_changed {
-            store.eka.set(true);
+            store.first_event.set(true);
             let comp = store.competition.borrow();
             self.last_event
                 .set(comp.as_ref().map_or(0, |c| c.current_event));

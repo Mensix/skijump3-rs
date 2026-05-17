@@ -11,7 +11,7 @@ use crate::rng::Random;
 #[derive(Debug, Clone)]
 pub(crate) struct JumpState {
     pub(crate) phase: JumpPhase,
-    pub(crate) matka: f64,
+    pub(crate) travel: f64,
     pub(crate) px: f64,
     pub(crate) pxk: f64,
     pub(crate) base_maxspeed: f64,
@@ -41,7 +41,7 @@ pub(crate) struct JumpState {
     pub(crate) style_revealed: [bool; 5],
     pub(crate) score: i32,
     pub(crate) skis_stuck: bool,
-    pub(crate) detached_matka: f64,
+    pub(crate) detached_travel: f64,
     pub(crate) detached_vertical_pos: f64,
     pub(crate) detached_px: f64,
     pub(crate) takeoff_requested: bool,
@@ -70,14 +70,14 @@ impl JumpState {
         lift: f64,
         start_gate: i32,
     ) -> Self {
-        let matka = -f64::from(terrain.keula_x) + 10.0;
-        let qx = f64::from(terrain.keula_x) + 0.5;
-        let x = pascal_round(matka + qx);
-        let y = terrain.profiili(x);
-        let ramp_y = terrain.profiili(terrain.keula_x);
+        let travel = -f64::from(terrain.tip_x) + 10.0;
+        let qx = f64::from(terrain.tip_x) + 0.5;
+        let x = pascal_round(travel + qx);
+        let y = terrain.height_at(x);
+        let ramp_y = terrain.height_at(terrain.tip_x);
         Self {
             phase: JumpPhase::Info,
-            matka,
+            travel,
             px: 0.0,
             pxk: 1.016,
             base_maxspeed: maxspeed,
@@ -107,7 +107,7 @@ impl JumpState {
             style_revealed: [false; 5],
             score: 0,
             skis_stuck: false,
-            detached_matka: matka,
+            detached_travel: travel,
             detached_vertical_pos: f64::from(y),
             detached_px: 0.0,
             takeoff_requested: false,
@@ -165,7 +165,7 @@ impl JumpState {
             phase: self.phase,
             frame: self.frame,
             x: self.x,
-            table_distance: self.matka,
+            table_distance: self.travel,
             y: self.y,
             height: self.height,
             delta_height_sum: self.delta_height[0] + self.delta_height[1] + self.delta_height[2],
@@ -180,7 +180,7 @@ impl JumpState {
 
     pub(crate) fn snapshot_with_terrain(&self, terrain: &HillTerrain) -> JumpSnapshot {
         let mut snapshot = self.snapshot();
-        snapshot.slope_angle = terrain.maki_kulma(self.x);
+        snapshot.slope_angle = terrain.hill_angle(self.x);
         snapshot
     }
 
@@ -210,10 +210,10 @@ impl JumpState {
     pub(crate) fn prepare_silent_computer_jump(&mut self, terrain: &HillTerrain) {
         self.phase = JumpPhase::Inrun;
         self.frame = 0;
-        self.matka = -45.0;
+        self.travel = -45.0;
         self.px = self.maxspeed;
-        self.x = pascal_round(self.matka + self.qx);
-        self.y = terrain.profiili(self.x);
+        self.x = pascal_round(self.travel + self.qx);
+        self.y = terrain.height_at(self.x);
         self.vertical_pos = f64::from(self.y);
         self.vertical_speed = 0.0;
         self.flight_time = 0.0;
@@ -247,7 +247,7 @@ impl JumpState {
                 self.info_counter += 1;
             }
             JumpPhase::OnBar => {
-                // Pascal: if (not treeni) then inc(laskuri);
+                // Pascal: if (not treeni) then inc(counter);
                 // Training mode: frame stays 0 so the start light is always on.
                 if count_onbar_frames {
                     self.frame += 1;
@@ -272,22 +272,22 @@ impl JumpState {
     fn tick_inrun(&mut self, terrain: &HillTerrain, wind: FlightWind, rng: &mut Random) {
         let fx = self.x;
         let fy = self.y;
-        self.matka += self.px * 0.01;
-        self.x = pascal_round(self.matka + self.qx);
+        self.travel += self.px * 0.01;
+        self.x = pascal_round(self.travel + self.qx);
 
-        if self.matka >= 0.0 {
+        if self.travel >= 0.0 {
             self.phase = JumpPhase::Flight;
             self.tick_flight_after_position_update(fx, fy, terrain, wind, Some(rng));
             return;
         }
 
-        self.y = terrain.profiili(self.x);
+        self.y = terrain.height_at(self.x);
         self.vertical_pos = f64::from(self.y);
 
         if self.takeoff_counter > 0 {
             self.takeoff_counter = self.takeoff_counter.saturating_add(1);
         }
-        if self.takeoff_requested && self.matka > -40.0 && self.takeoff_counter == 0 {
+        if self.takeoff_requested && self.travel > -40.0 && self.takeoff_counter == 0 {
             self.takeoff_counter = 1;
         }
         self.takeoff_requested = false;
@@ -321,8 +321,8 @@ impl JumpState {
         let fx = self.x;
         let fy = self.y;
 
-        self.matka += self.px * 0.01;
-        self.x = pascal_round(self.matka + self.qx);
+        self.travel += self.px * 0.01;
+        self.x = pascal_round(self.travel + self.qx);
 
         self.tick_flight_after_position_update(fx, fy, terrain, wind, Some(rng));
     }
@@ -411,7 +411,7 @@ impl JumpState {
         }
 
         let prev_height = self.height;
-        self.height = (terrain.profiili(self.x) - self.y).max(0);
+        self.height = (terrain.height_at(self.x) - self.y).max(0);
         self.delta_height[(self.frame as usize) % 3] = prev_height - self.height;
 
         if self.height == 0 {
@@ -449,16 +449,16 @@ impl JumpState {
         if rng.random_i32(20) == 1 {
             self.style_revealed[note] = true;
         }
-        self.matka += self.px * 0.008;
-        self.detached_matka += self.detached_px * 0.008;
+        self.travel += self.px * 0.008;
+        self.detached_travel += self.detached_px * 0.008;
         if self.skis_stuck {
-            self.matka = self.detached_matka;
+            self.travel = self.detached_travel;
         }
-        self.x = pascal_round(self.matka + self.qx);
-        self.y = terrain.profiili(self.x);
+        self.x = pascal_round(self.travel + self.qx);
+        self.y = terrain.height_at(self.x);
         self.vertical_pos = f64::from(self.y);
         self.detached_vertical_pos =
-            f64::from(terrain.profiili(pascal_round(self.detached_matka + self.qx)));
+            f64::from(terrain.height_at(pascal_round(self.detached_travel + self.qx)));
 
         if self.fall_type > 0 {
             if self.landing_counter > 50 && self.detached_px > 0.0 {
@@ -519,7 +519,7 @@ impl JumpState {
         }
         self.skis_stuck = rng.random_i32(2) != 0;
         self.start_anim = if self.landing_style == 2 { 50 } else { 100 };
-        self.detached_matka = self.matka;
+        self.detached_travel = self.travel;
         self.detached_vertical_pos = self.vertical_pos;
         self.detached_px = self.px;
     }
@@ -602,7 +602,7 @@ impl JumpState {
     fn distance(&self, _terrain: &HillTerrain) -> i32 {
         let vertical_delta = self.vertical_pos - f64::from(self.ramp_y);
         pascal_round(
-            (self.matka * self.matka + vertical_delta * vertical_delta).sqrt()
+            (self.travel * self.travel + vertical_delta * vertical_delta).sqrt()
                 * self.distance_factor
                 * 0.5,
         ) * 5
@@ -621,8 +621,8 @@ impl JumpState {
     }
 
     fn landing_body_anim_for_state(&self, terrain: &HillTerrain) -> u16 {
-        let detached_x = pascal_round(self.detached_matka + self.qx);
-        let detached_ski = slope_ski_anim(terrain.maki_kulma(detached_x));
+        let detached_x = pascal_round(self.detached_travel + self.qx);
+        let detached_ski = slope_ski_anim(terrain.hill_angle(detached_x));
         if self.fall_type > 0 {
             fall_body_anim(
                 self.fall_type,
@@ -647,7 +647,7 @@ impl JumpState {
     pub(crate) fn body_position(&self) -> (i32, i32) {
         if self.phase == JumpPhase::Landing {
             (
-                pascal_round(self.detached_matka + self.qx),
+                pascal_round(self.detached_travel + self.qx),
                 pascal_round(self.detached_vertical_pos),
             )
         } else {
@@ -657,10 +657,10 @@ impl JumpState {
 
     pub(crate) fn anims(&mut self, terrain: &HillTerrain) -> (u16, u16) {
         match self.phase {
-            JumpPhase::Info => (163, slope_ski_anim(terrain.maki_kulma(self.x))),
-            JumpPhase::OnBar => (163, slope_ski_anim(terrain.maki_kulma(self.x))),
+            JumpPhase::Info => (163, slope_ski_anim(terrain.hill_angle(self.x))),
+            JumpPhase::OnBar => (163, slope_ski_anim(terrain.hill_angle(self.x))),
             JumpPhase::Inrun => {
-                let ski = slope_ski_anim(terrain.maki_kulma(self.x));
+                let ski = slope_ski_anim(terrain.hill_angle(self.x));
                 if self.takeoff_counter > 0 {
                     (takeoff_body_anim(&mut self.takeoff_phase), ski)
                 } else if self.frame < 28 {
@@ -675,18 +675,18 @@ impl JumpState {
                 } else {
                     flight_body_anim(self.body_angle)
                 };
-                let ski = if self.height < 6 && self.matka > 20.0 {
+                let ski = if self.height < 6 && self.travel > 20.0 {
                     if self.ski_angle == 0 {
                         self.ski_swing = 0;
                     }
-                    slope_ski_anim(terrain.maki_kulma(self.x) / (self.height + 1))
+                    slope_ski_anim(terrain.hill_angle(self.x) / (self.height + 1))
                 } else {
                     flight_ski_anim(self.ski_angle)
                 };
                 (body, ski)
             }
             JumpPhase::Landing | JumpPhase::Result => {
-                let ski = slope_ski_anim(terrain.maki_kulma(self.x));
+                let ski = slope_ski_anim(terrain.hill_angle(self.x));
                 (self.landing_body_anim_for_state(terrain), ski)
             }
         }

@@ -84,7 +84,7 @@ pub struct Store {
     pub(crate) competition: RefCell<Option<Competition>>,
     pub selected_hill: Cell<usize>,
     pub start_gate: Cell<i32>,
-    pub eka: Cell<bool>,
+    pub first_event: Cell<bool>,
     pub selected_replay: RefCell<Option<ReplayTrace>>,
     pub selected_main_menu: Cell<usize>,
 }
@@ -108,7 +108,7 @@ impl Store {
             competition: RefCell::new(None),
             selected_hill: Cell::new(1),
             start_gate: Cell::new(15),
-            eka: Cell::new(true),
+            first_event: Cell::new(true),
             selected_replay: RefCell::new(None),
             selected_main_menu: Cell::new(0),
         }

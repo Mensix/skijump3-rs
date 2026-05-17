@@ -17,7 +17,7 @@ pub struct JumpView {
 impl JumpView {
     pub fn new(resources: ResourcesRef, store: StoreRef) -> Self {
         let hill_idx = store.practice.selected_hill.get();
-        store.eka.set(true);
+        store.first_event.set(true);
 
         let runner = JumpRunner::new_with_env(
             hill_idx,

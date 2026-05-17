@@ -26,7 +26,7 @@ pub(crate) fn landing_risk(
     body_angle: i32,
     landing_style: u8,
 ) -> LandingRisk {
-    let slope_angle = terrain.maki_kulma(x);
+    let slope_angle = terrain.hill_angle(x);
     let quality = pascal_round(f64::from(slope_angle) * 1.34 + f64::from(body_angle) / 10.0);
     let mut risk = crash_risk(slope_angle) as i32;
     if f64::from(distance) < (20.0 / 3.0) * f64::from(hill_kr) {

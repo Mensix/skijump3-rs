@@ -18,15 +18,15 @@ pub struct Config {
     pub setfile: String,
     pub gdetail: i32,
     pub seecomps: i32,
-    pub jmaara: i32,
+    pub jumper_count: i32,
     pub jnimet: Vec<String>,
-    pub pmaara: i32,
+    pub player_count: i32,
     pub profileorder: Vec<i32>,
     pub kothwind: i32,
     pub kothrounds: i32,
     pub kothpack: i32,
     pub kothmaki: i32,
-    pub kothmaara: i32,
+    pub koth_count: i32,
     pub kothpel: Vec<i32>,
     pub key_up: i32,
     pub key_right: i32,
@@ -57,15 +57,15 @@ impl Default for Config {
             setfile: String::from("TEMP"),
             gdetail: 0,
             seecomps: 240,
-            jmaara: 1,
+            jumper_count: 1,
             jnimet: vec![String::from("A TEAM")],
-            pmaara: 1,
+            player_count: 1,
             profileorder: vec![1],
             kothwind: 0,
             kothrounds: 2,
             kothpack: 1,
             kothmaki: 0,
-            kothmaara: 1,
+            koth_count: 1,
             kothpel: vec![1],
             key_up: 72,
             key_right: 77,
@@ -112,17 +112,17 @@ impl Config {
         let _ = read_line(&mut lines)?;
         let _ = read_line(&mut lines)?;
         let _ = read_line(&mut lines)?;
-        let jmaara = parse_num(read_line(&mut lines)?)?;
+        let jumper_count = parse_num(read_line(&mut lines)?)?;
 
         let mut jnimet = Vec::new();
-        for _ in 0..jmaara {
+        for _ in 0..jumper_count {
             jnimet.push(read_line(&mut lines)?.trim().to_string());
         }
 
-        let pmaara = parse_num(read_line(&mut lines)?)?;
+        let player_count = parse_num(read_line(&mut lines)?)?;
 
         let mut profileorder = Vec::new();
-        for _ in 0..pmaara {
+        for _ in 0..player_count {
             profileorder.push(parse_num(read_line(&mut lines)?)?);
         }
 
@@ -130,10 +130,10 @@ impl Config {
         let kothrounds = parse_num(read_line(&mut lines)?)?;
         let kothpack = parse_num(read_line(&mut lines)?)?;
         let kothmaki = parse_num(read_line(&mut lines)?)?;
-        let kothmaara = parse_num(read_line(&mut lines)?)?;
+        let koth_count = parse_num(read_line(&mut lines)?)?;
 
         let mut kothpel = Vec::new();
-        for _ in 0..kothmaara {
+        for _ in 0..koth_count {
             kothpel.push(parse_num(read_line(&mut lines)?)?);
         }
 
@@ -151,9 +151,9 @@ impl Config {
             reg, comphrs, lct, diff, compactlist, invback,
             automatichrr, beeppi, nosamename, goals, diffwc, kosystem,
             languagenumber, trainrounds, namenumber, setfile, gdetail, seecomps,
-            jmaara, jnimet,
-            pmaara, profileorder,
-            kothwind, kothrounds, kothpack, kothmaki, kothmaara, kothpel,
+            jumper_count, jnimet,
+            player_count, profileorder,
+            kothwind, kothrounds, kothpack, kothmaki, koth_count, kothpel,
             key_up, key_right, key_left, key_telemark, key_replay,
             windplace,
         })
@@ -194,11 +194,11 @@ impl Config {
         num!(self.seecomps);
         // 3 placeholder lines
         buf.extend_from_slice(b"0\n0\n0\n");
-        num!(self.jmaara);
+        num!(self.jumper_count);
         for name in &self.jnimet {
             s_val!(name);
         }
-        num!(self.pmaara);
+        num!(self.player_count);
         for idx in &self.profileorder {
             num!(idx);
         }
@@ -206,7 +206,7 @@ impl Config {
         num!(self.kothrounds);
         num!(self.kothpack);
         num!(self.kothmaki);
-        num!(self.kothmaara);
+        num!(self.koth_count);
         for idx in &self.kothpel {
             num!(idx);
         }
