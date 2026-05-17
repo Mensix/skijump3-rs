@@ -22,8 +22,8 @@ pub fn build_competition(
 
 fn build_hill_order(style: CupStyle, hill_count: usize) -> Vec<usize> {
     match style {
-        CupStyle::FourHills => vec![9, 10, 11, 12],
-        _ => (1..=hill_count.min(TOTAL_SLOTS)).collect(),
+        CupStyle::FourHills => vec![8, 9, 10, 11],
+        _ => (0..hill_count.min(TOTAL_SLOTS)).collect(),
     }
 }
 
@@ -91,7 +91,7 @@ mod tests {
         let profiles = ProfileStore::new();
         let names = vec!["X".into()];
         let comp = build_competition(CupStyle::FourHills, &profiles, &names, 20, 0);
-        assert_eq!(comp.hill_order, vec![9, 10, 11, 12]);
+        assert_eq!(comp.hill_order, vec![8, 9, 10, 11]);
     }
 
     #[test]
@@ -100,7 +100,7 @@ mod tests {
         let names = vec!["X".into()];
         let comp = build_competition(CupStyle::WorldCup, &profiles, &names, 10, 0);
         assert_eq!(comp.hill_order.len(), 10);
-        assert_eq!(comp.hill_order[0], 1);
-        assert_eq!(comp.hill_order[9], 10);
+        assert_eq!(comp.hill_order[0], 0);
+        assert_eq!(comp.hill_order[9], 9);
     }
 }

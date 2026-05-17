@@ -129,7 +129,8 @@ impl ReplayTrace {
         let start_x = parser.i32_line("start_x")?;
         let start_y = parser.i32_line("start_y")?;
         let max_turns = parser.usize_line("max_turns")?;
-        let hill_idx = parser.usize_line("hill_idx")?;
+        let hill_idx_raw = parser.usize_line("hill_idx")?;
+        let hill_idx = hill_idx_raw.saturating_sub(1);
         let hill_filename = parser.string_line("hill_filename")?;
         let hill_filename_raw = parser.previous_raw_line();
         let hill_profile = parser.i32_line("hill_profile")?;
@@ -162,7 +163,7 @@ impl ReplayTrace {
             start_x,
             start_y,
             max_turns,
-            hill_idx,
+            hill_idx: hill_idx_raw,
             hill_filename: hill_filename_raw,
             hill_profile,
             distance,
@@ -206,11 +207,12 @@ impl ReplayTrace {
     pub fn to_sjr_bytes(&self) -> Vec<u8> {
         let max_turns = self.meta.frame_count.min(REPLAY_FRAME_CAPACITY - 1);
         let hill_record = self.meta.hill_record_marker.unwrap_or((0, 0));
+        let file_hill_idx = self.meta.hill_idx.wrapping_add(1);
         let checksum = replay_checksum(ReplayChecksumInput {
             start_x: self.meta.start_x,
             start_y: self.meta.start_y,
             max_turns,
-            hill_idx: self.meta.hill_idx,
+            hill_idx: file_hill_idx,
             hill_filename: self.meta.hill_filename.as_bytes(),
             hill_profile: self.meta.hill_profile,
             distance: self.meta.distance,
@@ -226,7 +228,7 @@ impl ReplayTrace {
         writeln!(&mut out, "{}", self.meta.start_x).expect("write string");
         writeln!(&mut out, "{}", self.meta.start_y).expect("write string");
         writeln!(&mut out, "{max_turns}").expect("write string");
-        writeln!(&mut out, "{}", self.meta.hill_idx).expect("write string");
+        writeln!(&mut out, "{file_hill_idx}").expect("write string");
         writeln!(&mut out, "{}", self.meta.hill_filename).expect("write string");
         writeln!(&mut out, "{}", self.meta.hill_profile).expect("write string");
         writeln!(&mut out, "{}", self.meta.snow_count).expect("write string");
