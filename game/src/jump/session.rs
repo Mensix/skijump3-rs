@@ -204,6 +204,15 @@ impl JumpSession {
         }
     }
 
+    pub(crate) fn prepare_silent_computer_jump(&mut self) {
+        if let (Ok(terrain), Some(state)) = (&self.terrain, &mut self.state) {
+            state.prepare_silent_computer_jump(terrain);
+            self.prev_camera = (state.sx, state.sy);
+            self.replay_prev_pos = Some((state.x, state.y));
+            self.last_phase = Some(state.phase);
+        }
+    }
+
     pub(crate) fn handle_input(&mut self, input: JumpInput) {
         if let Some(state) = &mut self.state {
             state.handle_input(input);

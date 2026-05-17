@@ -119,6 +119,16 @@ impl JumpRunner {
         rng: &mut PascalRandom,
         wind: &mut PascalWind,
     ) -> JumpOutcome {
+        if let Some(input) = &mut self.computer_input {
+            input.prepare_for_jump(rng);
+        }
+        self.session.prepare_silent_computer_jump();
+        // Pascal does one Tuuli.Hae before switching to non-draw mode
+        wind.advance_without_sampling(rng);
+        for _ in 0..100 {
+            wind.advance_without_sampling(rng);
+        }
+
         loop {
             if let Some(outcome) = self.session.outcome() {
                 return outcome;

@@ -57,6 +57,10 @@ impl PascalWind {
         self.value
     }
 
+    pub fn advance_without_sampling(&mut self, rng: &mut PascalRandom) {
+        self.shift(rng);
+    }
+
     pub fn set_place(&mut self, place: u8) {
         self.place = place;
         self.position = match place {
@@ -89,7 +93,7 @@ impl PascalWind {
         };
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn position(&self) -> WindPosition {
         self.position
     }

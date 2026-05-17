@@ -58,6 +58,7 @@ pub(crate) struct JumpState {
     result_pending: bool,
     pub(crate) takeoff_counter: u8,
     pub(crate) takeoff_phase: u8,
+    silent_computer: bool,
 }
 
 impl JumpState {
@@ -123,6 +124,7 @@ impl JumpState {
             result_pending: false,
             takeoff_counter: 0,
             takeoff_phase: 0,
+            silent_computer: false,
         }
     }
 
@@ -205,6 +207,33 @@ impl JumpState {
         self.takeoff_requested = true;
     }
 
+    pub(crate) fn prepare_silent_computer_jump(&mut self, terrain: &HillTerrain) {
+        self.phase = JumpPhase::Inrun;
+        self.frame = 0;
+        self.matka = -45.0;
+        self.px = self.maxspeed;
+        self.x = pascal_round(self.matka + self.qx);
+        self.y = terrain.profiili(self.x);
+        self.vertical_pos = f64::from(self.y);
+        self.vertical_speed = 0.0;
+        self.flight_time = 0.0;
+        self.body_angle = 0;
+        self.ski_angle = 0;
+        self.ski_swing = 0;
+        self.landing_style = 0;
+        self.height = 0;
+        self.delta_height = [0; 6];
+        self.first_flight_frame = true;
+        self.distance = 0;
+        self.landing_counter = 0;
+        self.fall_type = 0;
+        self.result_pending = false;
+        self.takeoff_requested = false;
+        self.takeoff_counter = 0;
+        self.takeoff_phase = 0;
+        self.silent_computer = true;
+    }
+
     pub(crate) fn tick(
         &mut self,
         terrain: &HillTerrain,
@@ -263,9 +292,9 @@ impl JumpState {
         }
         self.takeoff_requested = false;
 
-        if self.frame < 14 {
+        if !self.silent_computer && self.frame < 14 {
             self.px = 0.0;
-        } else if self.frame < 28 {
+        } else if !self.silent_computer && self.frame < 28 {
             self.px = 37.0;
         }
 
@@ -389,6 +418,10 @@ impl JumpState {
             self.distance = self.distance(terrain);
             if let Some(rng) = rng.as_mut() {
                 self.prepare_landing(terrain, rng);
+                if self.silent_computer {
+                    self.phase = JumpPhase::Result;
+                    return;
+                }
                 self.phase = JumpPhase::Landing;
                 self.landing_counter = 0;
                 self.tick_landing(terrain, rng);

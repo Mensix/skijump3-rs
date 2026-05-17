@@ -31,6 +31,10 @@ impl ComputerInputProvider {
         }
     }
 
+    pub(crate) fn prepare_for_jump(&mut self, rng: &mut PascalRandom) {
+        self.initialize(rng);
+    }
+
     fn initialize(&mut self, rng: &mut PascalRandom) {
         if self.initialized {
             return;
@@ -63,7 +67,7 @@ impl ComputerInputProvider {
         if snapshot.frame % self.reflex == 0 {
             if snapshot.body_angle >= 62 {
                 inputs.push(JumpInput::LeanForward);
-            } else {
+            } else if snapshot.body_angle < 50 {
                 inputs.push(JumpInput::LeanBack);
             }
         }
@@ -207,5 +211,132 @@ mod tests {
         }
 
         panic!("computer simulation did not finish");
+    }
+
+    #[test]
+    fn silent_computer_jump_starts_like_pascal_non_view_path() {
+        let front = PcxParser::parse(include_bytes!("../../assets/FRONT2.PCX")).expect("FRONT2");
+        let terrain = HillTerrain::from_front_pcx(front, 90, 0.84);
+        let mut state = JumpState::new(&terrain, 131.0, 0.84, 90, 0.3222, 15);
+
+        state.prepare_silent_computer_jump(&terrain);
+
+        assert_eq!(state.phase, JumpPhase::Inrun);
+        assert_eq!(state.frame, 0);
+        assert_eq!(state.matka, -45.0);
+        assert_eq!(state.px, 131.0);
+    }
+
+    #[test]
+    fn silent_computer_jump_keeps_pascal_maxspeed_on_first_tick() {
+        let front = PcxParser::parse(include_bytes!("../../assets/FRONT2.PCX")).expect("FRONT2");
+        let terrain = HillTerrain::from_front_pcx(front, 90, 0.84);
+        let mut state = JumpState::new(&terrain, 131.0, 0.84, 90, 0.3222, 15);
+        let mut rng = PascalRandom::new(1);
+        let wind = FlightWind {
+            value: 0,
+            windy: 0,
+            strength: 0,
+        };
+
+        state.prepare_silent_computer_jump(&terrain);
+        state.tick(&terrain, wind, &mut rng, true);
+
+        assert_eq!(
+            state.px, 131.0,
+            "silent path should not reset px to visible-start speed"
+        );
+    }
+
+    #[test]
+    fn silent_lahti_k90_computer_distance_stays_plausible() {
+        use crate::wind::PascalWind;
+
+        let front = PcxParser::parse(include_bytes!("../../assets/FRONT2.PCX")).expect("FRONT2");
+        let terrain = HillTerrain::from_front_pcx(front, 90, 0.84);
+        let mut state = JumpState::new(&terrain, 131.0, 0.84, 90, 0.3222, 15);
+        state.prepare_silent_computer_jump(&terrain);
+        let mut provider = ComputerInputProvider::new(0);
+        let mut rng = PascalRandom::new(5489);
+        provider.prepare_for_jump(&mut rng);
+        let mut wind = PascalWind::default();
+        wind.initialize(&mut rng, 0);
+        wind.advance_without_sampling(&mut rng);
+        for _ in 0..100 {
+            wind.advance_without_sampling(&mut rng);
+        }
+
+        for _ in 0..5000 {
+            let snapshot = state.snapshot_with_terrain(&terrain);
+            for input in provider.inputs(&snapshot, &mut rng) {
+                state.handle_input(input);
+            }
+            let sampled = FlightWind {
+                value: wind.sample(&mut rng),
+                windy: wind.windy,
+                strength: wind.strength,
+            };
+            state.tick(&terrain, sampled, &mut rng, true);
+            if let Some(outcome) = state.outcome() {
+                assert_eq!(outcome.distance, 945);
+                return;
+            }
+        }
+
+        panic!("silent Lahti K90 computer simulation did not finish");
+    }
+
+    #[test]
+    fn silent_computer_skips_landing_phase() {
+        let front = PcxParser::parse(include_bytes!("../../assets/FRONT2.PCX")).expect("FRONT2");
+        let terrain = HillTerrain::from_front_pcx(front, 90, 0.84);
+        let mut state = JumpState::new(&terrain, 131.0, 0.84, 90, 0.3222, 15);
+        let mut rng = PascalRandom::new(1);
+        let wind = FlightWind {
+            value: 0,
+            windy: 0,
+            strength: 0,
+        };
+
+        state.prepare_silent_computer_jump(&terrain);
+        for _ in 0..5000 {
+            let snapshot = state.snapshot_with_terrain(&terrain);
+            if snapshot.phase == JumpPhase::Info {
+                state.handle_input(JumpInput::LeaveInfo);
+            } else if snapshot.phase == JumpPhase::OnBar {
+                state.handle_input(JumpInput::Start);
+            } else if snapshot.phase == JumpPhase::Inrun && snapshot.table_distance > -20.0 {
+                state.handle_input(JumpInput::Takeoff);
+            } else if snapshot.phase == JumpPhase::Flight {
+                state.handle_input(JumpInput::Telemark);
+            }
+            state.tick(&terrain, wind, &mut rng, true);
+            if let Some(_) = state.outcome() {
+                assert_eq!(state.phase, JumpPhase::Result);
+                assert_eq!(state.landing_counter, 0);
+                return;
+            }
+        }
+        panic!("silent computer never reached Result");
+    }
+
+    #[test]
+    fn pre_start_wind_shift_matches_pascal_count() {
+        use crate::wind::PascalWind;
+
+        let mut rng = PascalRandom::new(42);
+        let mut wind = PascalWind::default();
+        wind.initialize(&mut rng, 0);
+
+        // Pascal: 1x Tuuli.Hae (shift) + 100x Tuuli.Siirra (shift)
+        // before the first physics-relevant wind sample
+        wind.advance_without_sampling(&mut rng);
+        for _ in 0..100 {
+            wind.advance_without_sampling(&mut rng);
+        }
+
+        // The angle has moved 101 steps; a fresh sample produces a valid value
+        let value = wind.sample(&mut rng);
+        assert!(value >= -50 && value <= 50, "wind value out of range: {value}");
     }
 }
