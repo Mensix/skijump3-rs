@@ -1,7 +1,7 @@
 use crate::components::save_replay_dialog::{SaveAction, SaveReplayDialog};
-use crate::controllers::jump_environment::{new_runner_with_env, runner_elements};
+use crate::controllers::jump_scene::JumpScene;
 use crate::controllers::training_jump::{TrainingJumpAction, TrainingJumpController};
-use crate::jump::{JumpParticipant, JumpPolicy, JumpRunner};
+use crate::jump::{JumpParticipant, JumpPolicy};
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use engine::palette::Palette;
@@ -11,35 +11,71 @@ use std::cell::RefCell;
 pub struct JumpView {
     resources: ResourcesRef,
     store: StoreRef,
-    runner: RefCell<JumpRunner>,
+    scene: RefCell<JumpScene>,
     save_dialog: SaveReplayDialog,
 }
 
 impl JumpView {
     pub fn new(resources: ResourcesRef, store: StoreRef) -> Self {
         let hill_idx = store.practice_selected_hill.get();
-        store.first_event.set(true);
-
-        let runner = new_runner_with_env(
+        let participant = JumpParticipant::trainee();
+        let start_gate = store.practice_start_gate.get();
+        let scene = JumpScene::new(
+            ResourcesRef::clone(&resources),
+            StoreRef::clone(&store),
             hill_idx,
-            store.practice_start_gate.get(),
-            JumpParticipant::trainee(),
+            start_gate,
+            participant,
             JumpPolicy::training(),
-            &resources,
-            &store,
         );
+        let save_dialog = SaveReplayDialog::new(ResourcesRef::clone(&resources));
 
         Self {
-            resources: ResourcesRef::clone(&resources),
+            resources,
             store,
-            runner: RefCell::new(runner),
-            save_dialog: SaveReplayDialog::new(resources),
+            scene: RefCell::new(scene),
+            save_dialog,
+        }
+    }
+
+    fn handle_jump_event(&mut self, event: Event) -> Option<RouteTarget> {
+        let action = {
+            let scene = self.scene.borrow_mut();
+            let mut session = scene.session_mut();
+            TrainingJumpController.handle_event(event, &mut session)
+        };
+        match action {
+            TrainingJumpAction::None => None,
+            TrainingJumpAction::RouteBack => Some(RouteTarget::Back),
+            TrainingJumpAction::ResetWind => {
+                let mut rng = self.store.rng.borrow_mut();
+                let mut wind = self.store.wind.borrow_mut();
+                wind.initialize(&mut rng, self.store.wind_place.get());
+                None
+            }
+            TrainingJumpAction::ResetJump => {
+                let _ = self.scene.borrow_mut().outcome();
+                let _ = self.scene.borrow().replay_trace();
+                self.scene
+                    .borrow_mut()
+                    .reset_state(self.store.practice_start_gate.get());
+                None
+            }
+            TrainingJumpAction::PersistStartGate(start_gate) => {
+                self.store.practice_start_gate.set(start_gate);
+                self.store.start_gate.set(start_gate);
+                None
+            }
+            TrainingJumpAction::SaveReplay => {
+                self.enter_save_dialog();
+                None
+            }
         }
     }
 
     fn enter_save_dialog(&mut self) {
         let distance = self
-            .runner
+            .scene
             .borrow()
             .outcome()
             .map(|o| format!("{:.1}", f64::from(o.distance) / 10.0))
@@ -47,7 +83,7 @@ impl JumpView {
         let hill_name = self
             .resources
             .hills
-            .hill(self.runner.borrow().hill_idx())
+            .hill(self.scene.borrow().hill_idx())
             .map(|h| format!("{} K{}", h.name, h.kr))
             .unwrap_or_default();
         let pb = self.store.profiles.borrow();
@@ -63,65 +99,17 @@ impl JumpView {
                 })
             })
             .unwrap_or_default();
-        self.save_dialog
-            .open(author_name, format!("Huge Jump in {hill_name}"), distance, hill_name);
+        self.save_dialog.open(
+            author_name,
+            format!("Huge Jump in {hill_name}"),
+            distance,
+            hill_name,
+        );
     }
 
     fn do_save_replay(&mut self) {
-        let runner = self.runner.borrow();
-        if let Some(trace) = runner.replay_trace() {
+        if let Some(trace) = self.scene.borrow().replay_trace() {
             self.save_dialog.write_replay(&trace);
-        }
-    }
-
-    fn reset_jump_state(&self) {
-        let hill_idx = self.runner.borrow().hill_idx();
-        let record_distance = self
-            .store
-            .records
-            .borrow()
-            .hill_record(hill_idx)
-            .map_or(0, |r| r.len as i32);
-        self.runner
-            .borrow_mut()
-            .reset_state(self.store.practice_start_gate.get(), record_distance);
-    }
-
-    fn reset_wind(&self) {
-        {
-            let mut rng = self.store.rng.borrow_mut();
-            let mut wind = self.store.wind.borrow_mut();
-            wind.initialize(&mut rng, self.store.wind_place.get());
-        }
-    }
-
-    fn handle_jump_event(&mut self, event: Event) -> Option<RouteTarget> {
-        let action = {
-            let mut runner = self.runner.borrow_mut();
-            TrainingJumpController.handle_event(event, runner.session_mut())
-        };
-        match action {
-            TrainingJumpAction::None => None,
-            TrainingJumpAction::RouteBack => Some(RouteTarget::Back),
-            TrainingJumpAction::ResetWind => {
-                self.reset_wind();
-                None
-            }
-            TrainingJumpAction::ResetJump => {
-                let _ = self.runner.borrow().outcome();
-                let _ = self.runner.borrow().replay_trace();
-                self.reset_jump_state();
-                None
-            }
-            TrainingJumpAction::PersistStartGate(start_gate) => {
-                self.store.practice_start_gate.set(start_gate);
-                self.store.start_gate.set(start_gate);
-                None
-            }
-            TrainingJumpAction::SaveReplay => {
-                self.enter_save_dialog();
-                None
-            }
         }
     }
 }
@@ -131,15 +119,14 @@ impl View<RouteTarget> for JumpView {
         if self.save_dialog.is_active() {
             return self.save_dialog.elements();
         }
-        runner_elements(&mut self.runner.borrow_mut(), &self.resources, &self.store)
+        self.scene.borrow_mut().elements()
     }
 
     fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {
         if self.save_dialog.is_active() {
             match self.save_dialog.handle_event(&event) {
                 Some(SaveAction::SaveReplay) => self.do_save_replay(),
-                Some(SaveAction::Consumed) => {}
-                None => {}
+                Some(SaveAction::Consumed) | None => {}
             }
             None
         } else {
@@ -148,21 +135,14 @@ impl View<RouteTarget> for JumpView {
     }
 
     fn render_snow(&self, framebuffer: &mut [u8]) {
-        if self.save_dialog.is_active() {
-            return;
-        }
-        if let Ok(mut runner) = self.runner.try_borrow_mut() {
-            let wind = self.store.wind.borrow().value;
-            runner.render_snow(framebuffer, wind);
+        if !self.save_dialog.is_active() {
+            self.scene.borrow_mut().render_snow(framebuffer);
         }
     }
 
     fn apply_palette(&self, palette: &mut Palette) {
-        if self.save_dialog.is_active() {
-            return;
-        }
-        if let Ok(runner) = self.runner.try_borrow() {
-            runner.apply_palette(palette);
+        if !self.save_dialog.is_active() {
+            self.scene.borrow().apply_palette(palette);
         }
     }
 }

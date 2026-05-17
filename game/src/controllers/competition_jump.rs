@@ -1,10 +1,10 @@
 use crate::competition::types::{CompetitionPhase, Participant};
-use crate::controllers::jump_environment::{new_runner_with_env, set_runner_hill};
+use crate::controllers::jump_scene::JumpScene;
 use crate::jump::config::JumpParticipant;
 use crate::jump::policy::JumperControl;
-use crate::jump::{JumpPolicy, JumpRunner};
+
 use crate::store::{ResourcesRef, StoreRef};
-use std::cell::{Cell, RefCell};
+use std::cell::Cell;
 
 pub enum CompetitionRenderState {
     HumanJump,
@@ -22,20 +22,15 @@ impl CompetitionJumpController {
         }
     }
 
-    pub(crate) fn initial_runner(resources: &ResourcesRef, store: &StoreRef) -> JumpRunner {
-        store.first_event.set(true);
-        Self::build_runner(resources, store)
-    }
-
     pub(crate) fn drive(
         &self,
         resources: &ResourcesRef,
         store: &StoreRef,
-        runner: &RefCell<JumpRunner>,
+        scene: &JumpScene,
     ) -> CompetitionRenderState {
-        self.record_finished_human_jump(store, runner);
+        self.record_finished_human_jump(store, scene);
 
-        if self.advance_to_human_or_display(resources, store, runner) {
+        if self.advance_to_human_or_display(resources, store, scene) {
             CompetitionRenderState::HumanJump
         } else {
             CompetitionRenderState::DisplayList
@@ -48,10 +43,10 @@ impl CompetitionJumpController {
         }
     }
 
-    fn record_finished_human_jump(&self, store: &StoreRef, runner: &RefCell<JumpRunner>) {
-        if runner.borrow().outcome().is_none() {
+    fn record_finished_human_jump(&self, store: &StoreRef, scene: &JumpScene) {
+        let Some(outcome) = scene.outcome() else {
             return;
-        }
+        };
 
         let comp = store.competition.borrow();
         let is_human = comp
@@ -62,14 +57,9 @@ impl CompetitionJumpController {
             return;
         }
 
-        let (points, length) = {
-            let runner = runner.borrow();
-            let outcome = runner.outcome().expect("human jump should have outcome");
-            (outcome.score, outcome.distance)
-        };
         let mut comp = store.competition.borrow_mut();
         if let Some(c) = comp.as_mut() {
-            c.record_jump(points, length);
+            c.record_jump(outcome.score, outcome.distance);
         }
     }
 
@@ -77,7 +67,7 @@ impl CompetitionJumpController {
         &self,
         resources: &ResourcesRef,
         store: &StoreRef,
-        runner: &RefCell<JumpRunner>,
+        scene: &JumpScene,
     ) -> bool {
         loop {
             let comp = store.competition.borrow();
@@ -116,36 +106,23 @@ impl CompetitionJumpController {
                 let jumper_idx = c.current_jumper().unwrap();
                 let label = Self::phase_label(resources, c.phase);
                 drop(comp);
-                if runner.borrow().participant_id() != jumper_idx {
-                    self.rebuild_runner(resources, store, runner);
+                if scene.participant_id() != jumper_idx {
+                    self.rebuild_runner(store, scene);
                 }
-                runner.borrow_mut().set_phase_label(label);
+                scene.set_phase_label(label);
                 return true;
             }
 
             let jumper_idx = c.current_jumper().expect("computer jumper exists");
             let participant = to_jump_participant(c.field.get(jumper_idx));
             let hill_idx = c.hill_order.get(c.current_event).copied().unwrap_or(0);
-            let record_distance = store
-                .records
-                .borrow()
-                .hill_record(hill_idx)
-                .map_or(0, |r| r.len as i32);
             drop(comp);
 
-            {
-                let mut runner = runner.borrow_mut();
-                set_runner_hill(&mut runner, hill_idx, resources);
-                runner.set_participant(participant);
-                runner.reset_state(15, record_distance);
-            }
+            scene.set_hill(hill_idx);
+            scene.set_participant(participant);
+            scene.reset_state(15);
 
-            let outcome = {
-                let mut runner = runner.borrow_mut();
-                let mut rng = store.rng.borrow_mut();
-                let mut wind = store.wind.borrow_mut();
-                runner.simulate_to_completion(&mut rng, &mut wind)
-            };
+            let outcome = scene.simulate_to_completion();
 
             let mut comp = store.competition.borrow_mut();
             let c = comp.as_mut().unwrap();
@@ -153,7 +130,7 @@ impl CompetitionJumpController {
             c.advance();
 
             if c.is_over() {
-                self.rebuild_runner(resources, store, runner);
+                self.rebuild_runner(store, scene);
                 return false;
             }
 
@@ -163,18 +140,13 @@ impl CompetitionJumpController {
 
             if human_next {
                 drop(comp);
-                self.rebuild_runner(resources, store, runner);
+                self.rebuild_runner(store, scene);
                 return true;
             }
         }
     }
 
-    fn rebuild_runner(
-        &self,
-        resources: &ResourcesRef,
-        store: &StoreRef,
-        runner: &RefCell<JumpRunner>,
-    ) {
+    fn rebuild_runner(&self, store: &StoreRef, scene: &JumpScene) {
         let event_changed = {
             let comp = store.competition.borrow();
             comp.as_ref()
@@ -186,50 +158,21 @@ impl CompetitionJumpController {
             self.last_event
                 .set(comp.as_ref().map_or(0, |c| c.current_event));
         }
-        *runner.borrow_mut() = Self::build_runner(resources, store);
-    }
-
-    fn build_runner(resources: &ResourcesRef, store: &StoreRef) -> JumpRunner {
         let comp = store.competition.borrow();
         let Some(c) = comp.as_ref() else {
-            return new_runner_with_env(
-                0,
-                15,
-                JumpParticipant::trainee(),
-                JumpPolicy::competition(),
-                resources,
-                store,
-            );
+            scene.rebuild_for_competition(0, 15, JumpParticipant::trainee(), String::new());
+            return;
         };
         let Some(&hill_idx) = c.hill_order.get(c.current_event) else {
-            return new_runner_with_env(
-                0,
-                15,
-                JumpParticipant::trainee(),
-                JumpPolicy::competition(),
-                resources,
-                store,
-            );
+            scene.rebuild_for_competition(0, 15, JumpParticipant::trainee(), String::new());
+            return;
         };
         let Some(jumper_idx) = c.current_jumper() else {
-            return new_runner_with_env(
-                hill_idx,
-                15,
-                JumpParticipant::trainee(),
-                JumpPolicy::competition(),
-                resources,
-                store,
-            );
+            scene.rebuild_for_competition(hill_idx, 15, JumpParticipant::trainee(), String::new());
+            return;
         };
         let participant = to_jump_participant(c.field.get(jumper_idx));
-        new_runner_with_env(
-            hill_idx,
-            15,
-            participant,
-            JumpPolicy::competition(),
-            resources,
-            store,
-        )
+        scene.rebuild_for_competition(hill_idx, 15, participant, String::new());
     }
 
     fn phase_label(resources: &ResourcesRef, phase: CompetitionPhase) -> String {
@@ -241,6 +184,8 @@ impl CompetitionJumpController {
             _ => resources.langbase.lstr(51).to_string(),
         }
     }
+
+
 }
 
 fn to_jump_participant(p: &Participant) -> JumpParticipant {

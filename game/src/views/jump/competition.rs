@@ -1,33 +1,39 @@
 use crate::competition::types::CompetitionPhase;
 use crate::controllers::competition_jump::{CompetitionJumpController, CompetitionRenderState};
-use crate::controllers::jump_environment::runner_elements;
+use crate::controllers::jump_scene::JumpScene;
 use crate::controllers::training_jump::{TrainingJumpAction, TrainingJumpController};
 use crate::gfx::palette::apply_menu_tint;
-use crate::jump::JumpRunner;
+use crate::jump::JumpParticipant;
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::views::jump::results as competition_results;
 use engine::palette::Palette;
 use engine::ui::{Element, Event, Key, View};
-use std::cell::{Cell, RefCell};
+use std::cell::Cell;
 
 pub struct CompetitionJumpView {
     resources: ResourcesRef,
     store: StoreRef,
-    runner: RefCell<JumpRunner>,
+    scene: JumpScene,
     controller: CompetitionJumpController,
     display_page: Cell<usize>,
 }
 
 impl CompetitionJumpView {
     pub(crate) fn new(resources: ResourcesRef, store: StoreRef) -> Self {
-        let controller = CompetitionJumpController::new();
-        let runner = CompetitionJumpController::initial_runner(&resources, &store);
+        let scene = JumpScene::new(
+            ResourcesRef::clone(&resources),
+            StoreRef::clone(&store),
+            0,
+            15,
+            JumpParticipant::trainee(),
+            crate::jump::JumpPolicy::competition(),
+        );
         Self {
             resources,
             store,
-            runner: RefCell::new(runner),
-            controller,
+            scene,
+            controller: CompetitionJumpController::new(),
             display_page: Cell::new(0),
         }
     }
@@ -37,11 +43,9 @@ impl View<RouteTarget> for CompetitionJumpView {
     fn elements(&self) -> Vec<Element> {
         match self
             .controller
-            .drive(&self.resources, &self.store, &self.runner)
+            .drive(&self.resources, &self.store, &self.scene)
         {
-            CompetitionRenderState::HumanJump => {
-                runner_elements(&mut self.runner.borrow_mut(), &self.resources, &self.store)
-            }
+            CompetitionRenderState::HumanJump => self.scene.elements(),
             CompetitionRenderState::DisplayList => {
                 let comp = self.store.competition.borrow();
                 let Some(c) = comp.as_ref() else {
@@ -69,7 +73,6 @@ impl View<RouteTarget> for CompetitionJumpView {
             )
         ) || self.display_page.get() > 0
             || {
-                // Check if we're in a displayable jump phase with no current jumper
                 self.store.competition.borrow().as_ref().is_some_and(|c| {
                     matches!(
                         c.phase,
@@ -80,7 +83,6 @@ impl View<RouteTarget> for CompetitionJumpView {
                 })
             }
         {
-            // We're in a display phase — handle pagination
             match event {
                 Event::Keyboard(Key::Right | Key::Char(' ')) => {
                     let page = self.display_page.get();
@@ -109,10 +111,9 @@ impl View<RouteTarget> for CompetitionJumpView {
                 _ => None,
             }
         } else {
-            // Jump phase — delegate to TrainingJumpController
             let action = {
-                let mut runner = self.runner.borrow_mut();
-                TrainingJumpController.handle_event(event, runner.session_mut())
+                let mut session = self.scene.session_mut();
+                TrainingJumpController.handle_event(event, &mut session)
             };
             match action {
                 TrainingJumpAction::RouteBack => Some(RouteTarget::Back),
@@ -122,10 +123,7 @@ impl View<RouteTarget> for CompetitionJumpView {
     }
 
     fn render_snow(&self, framebuffer: &mut [u8]) {
-        if let Ok(mut runner) = self.runner.try_borrow_mut() {
-            let wind = self.store.wind.borrow().value;
-            runner.render_snow(framebuffer, wind);
-        }
+        self.scene.render_snow(framebuffer);
     }
 
     fn apply_palette(&self, palette: &mut Palette) {
@@ -133,10 +131,7 @@ impl View<RouteTarget> for CompetitionJumpView {
             apply_menu_tint(palette, 3, 0);
             return;
         }
-
-        if let Ok(runner) = self.runner.try_borrow() {
-            runner.apply_palette(palette);
-        }
+        self.scene.apply_palette(palette);
     }
 }
 
