@@ -315,6 +315,7 @@ impl JumpState {
                 self.vertical_speed -= 1.0;
                 self.body_angle = 158;
             }
+            self.takeoff_phase = self.takeoff_phase.saturating_add(1);
         }
 
         self.update_camera(fx, fy);
@@ -393,6 +394,14 @@ impl JumpState {
         self.y = math::round(self.vertical_pos);
 
         self.update_ski_swing(&mut rng);
+
+        if self.height < 6 && self.travel > 20.0 && self.ski_angle == 0 {
+            self.ski_swing = SkiSwing::None;
+        }
+
+        if self.takeoff_counter > 0 && self.takeoff_phase < 25 {
+            self.takeoff_phase = self.takeoff_phase.saturating_add(1);
+        }
 
         if self.landing_style != LandingStyle::None && self.body_angle < 600 {
             self.body_angle += 9 + (self.landing_style.offset() - 1) * 5;
@@ -660,7 +669,7 @@ impl JumpState {
         }
     }
 
-    pub(crate) fn anims(&mut self, terrain: &HillTerrain) -> (u16, u16) {
+    pub(crate) fn anims(&self, terrain: &HillTerrain) -> (u16, u16) {
         match self.phase {
             JumpPhase::Info => (
                 Sprite::IdleBody as u16,
@@ -673,7 +682,7 @@ impl JumpState {
             JumpPhase::Inrun => {
                 let ski = slope_ski_anim(terrain.hill_angle(self.x));
                 if self.takeoff_counter > 0 {
-                    (takeoff_body_anim(&mut self.takeoff_phase), ski)
+                    (takeoff_body_anim(self.takeoff_phase), ski)
                 } else if self.frame < 28 {
                     (inrun_transition_body_anim(self.frame), ski)
                 } else {
@@ -682,14 +691,11 @@ impl JumpState {
             }
             JumpPhase::Flight => {
                 let body = if self.takeoff_counter > 0 && self.takeoff_phase < 25 {
-                    takeoff_body_anim(&mut self.takeoff_phase)
+                    takeoff_body_anim(self.takeoff_phase)
                 } else {
                     flight_body_anim(self.body_angle)
                 };
                 let ski = if self.height < 6 && self.travel > 20.0 {
-                    if self.ski_angle == 0 {
-                        self.ski_swing = SkiSwing::None;
-                    }
                     slope_ski_anim(terrain.hill_angle(self.x) / (self.height + 1))
                 } else {
                     flight_ski_anim(self.ski_angle)

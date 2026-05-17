@@ -1,7 +1,6 @@
 use crate::data::hill_profile::HillTerrain;
 use crate::data::records::HillInfo;
 use crate::jump::policy::{JumpPolicy, JumperControl};
-use crate::jump::snow::SnowSystem;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct JumpParticipant {
@@ -42,7 +41,7 @@ pub struct JumpConfig {
     pub(crate) hill: Option<HillInfo>,
     pub(crate) terrain: Result<HillTerrain, String>,
     pub(crate) start_gate: i32,
-    pub(crate) snow: SnowSystem,
+    pub(crate) snow_count: u16,
     pub(crate) participant: JumpParticipant,
     pub(crate) policy: JumpPolicy,
     pub(crate) record_distance: i32,

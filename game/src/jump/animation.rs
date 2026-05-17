@@ -192,8 +192,8 @@ pub(crate) fn fall_body_anim(
     anim_idx as u16
 }
 
-pub const fn takeoff_body_anim(phase: &mut u8) -> u16 {
-    let value = match *phase {
+pub const fn takeoff_body_anim(phase: u8) -> u16 {
+    match phase {
         4..=6 => Sprite::Takeoff1 as u16,
         7..=9 => Sprite::Takeoff2 as u16,
         10..=13 => Sprite::Takeoff3 as u16,
@@ -202,9 +202,7 @@ pub const fn takeoff_body_anim(phase: &mut u8) -> u16 {
         21..=23 => Sprite::Takeoff6 as u16,
         24..=50 => Sprite::TakeoffArmsUp as u16,
         _ => Sprite::TakeoffDefault as u16,
-    };
-    *phase = phase.saturating_add(1);
-    value
+    }
 }
 
 #[must_use]
@@ -277,12 +275,9 @@ mod tests {
 
     #[test]
     fn maps_takeoff_and_flight_frames() {
-        let mut phase = 0;
-        assert_eq!(takeoff_body_anim(&mut phase), 116);
-        phase = 4;
-        assert_eq!(takeoff_body_anim(&mut phase), 117);
-        phase = 24;
-        assert_eq!(takeoff_body_anim(&mut phase), 111);
+        assert_eq!(takeoff_body_anim(0), 116);
+        assert_eq!(takeoff_body_anim(4), 117);
+        assert_eq!(takeoff_body_anim(24), 111);
 
         assert_eq!(flight_body_anim(49), 105);
         assert_eq!(flight_body_anim(50), 106);

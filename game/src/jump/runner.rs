@@ -4,6 +4,7 @@ use crate::gfx::palette::FONT_DEFAULT;
 use crate::jump::config::JumpConfig;
 use crate::jump::presentation;
 use crate::jump::replay::ReplayTrace;
+use crate::jump::snow::SnowSystem;
 use crate::jump::types::JumpOutcome;
 use crate::jump::wind::Wind;
 use crate::jump::wind::WindPosition;
@@ -28,17 +29,22 @@ pub(crate) struct JumpRunnerRenderEnv<'a> {
 pub struct JumpRunner {
     session: JumpSession,
     config: JumpConfig,
+    snow: SnowSystem,
+    prev_camera: (i32, i32),
     computer_input: Option<ComputerInputProvider>,
 }
 
 impl JumpRunner {
-    pub(crate) fn new(config: JumpConfig) -> Self {
-        let session = JumpSession::new(config.clone());
+    pub(crate) fn new(config: JumpConfig, snow: SnowSystem) -> Self {
         let computer_input = (config.participant.control == JumperControl::Computer)
             .then(|| ComputerInputProvider::new(config.participant.id));
+        let session = JumpSession::new(config.clone());
+        let prev_camera = session.camera().unwrap_or((0, 0));
         Self {
             session,
             config,
+            snow,
+            prev_camera,
             computer_input,
         }
     }
@@ -183,7 +189,12 @@ impl JumpRunner {
 
     pub(crate) fn render_snow(&mut self, framebuffer: &mut [u8], wind: i32) {
         let draw = self.session.draws_snow();
-        self.session.render_snow(framebuffer, wind, draw);
+        if let Some(camera) = self.session.camera() {
+            let delta_x = self.prev_camera.0 - camera.0;
+            let delta_y = self.prev_camera.1 - camera.1;
+            self.prev_camera = camera;
+            self.snow.update(framebuffer, delta_x, delta_y, wind, draw);
+        }
     }
 
     pub(crate) fn apply_palette(&self, palette: &mut Palette) {

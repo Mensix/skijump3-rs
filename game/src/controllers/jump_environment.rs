@@ -34,17 +34,21 @@ pub(crate) fn new_runner_with_env(
         .hill_record(hill_idx)
         .map_or(0, |r| r.len as i32);
 
-    JumpRunner::new(JumpConfig {
-        hill_idx,
-        hill,
-        terrain,
+    let snow_count = snow.count();
+    JumpRunner::new(
+        JumpConfig {
+            hill_idx,
+            hill,
+            terrain,
+            start_gate,
+            snow_count,
+            participant,
+            policy,
+            record_distance,
+            phase_label: String::new(),
+        },
         snow,
-        start_gate,
-        participant,
-        policy,
-        record_distance,
-        phase_label: String::new(),
-    })
+    )
 }
 
 pub(crate) fn set_runner_hill(runner: &mut JumpRunner, hill_idx: usize, resources: &ResourcesRef) {

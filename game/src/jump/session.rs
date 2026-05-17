@@ -5,7 +5,6 @@ use crate::jump::frame::JumpRenderFrame;
 use crate::jump::math;
 use crate::jump::policy::JumpPolicy;
 use crate::jump::replay::{ReplayMeta, ReplayRecorder, ReplayTrace};
-use crate::jump::snow::SnowSystem;
 use crate::jump::types::{FlightWind, JumpInput, JumpOutcome, JumpPhase, JumpSnapshot};
 use crate::jump::wind::Wind;
 use crate::jump::JumpState;
@@ -37,8 +36,6 @@ fn find_hill_record_marker(
 pub struct JumpSession {
     terrain: Result<HillTerrain, String>,
     state: Option<JumpState>,
-    snow: SnowSystem,
-    prev_camera: (i32, i32),
     replay_prev_pos: Option<(i32, i32)>,
     replay: ReplayRecorder,
     hill_idx: usize,
@@ -57,7 +54,7 @@ impl JumpSession {
             hill,
             hill_idx,
             start_gate,
-            snow,
+            snow_count,
             participant,
             policy,
             record_distance,
@@ -74,10 +71,8 @@ impl JumpSession {
             )),
             _ => None,
         };
-        let prev_camera = state.as_ref().map_or((0, 0), |state| (state.sx, state.sy));
         let replay_prev_pos = state.as_ref().map(|state| (state.x, state.y));
         let last_phase = state.as_ref().map(|state| state.phase);
-        let snow_count = snow.count();
         let mut replay = ReplayRecorder::default();
         if let Some(state) = &state {
             replay.start(Self::replay_meta(
@@ -97,8 +92,6 @@ impl JumpSession {
         Self {
             terrain,
             state,
-            snow,
-            prev_camera,
             replay_prev_pos,
             replay,
             hill_idx,
@@ -187,10 +180,6 @@ impl JumpSession {
             (Ok(terrain), Some(_)) => find_hill_record_marker(terrain, hill.pk(), record_distance),
             _ => None,
         };
-        self.prev_camera = self
-            .state
-            .as_ref()
-            .map_or((0, 0), |state| (state.sx, state.sy));
         self.replay_prev_pos = self.state.as_ref().map(|state| (state.x, state.y));
         self.last_phase = self.state.as_ref().map(|state| state.phase);
         if let Some(state) = &self.state {
@@ -207,7 +196,6 @@ impl JumpSession {
     pub(crate) fn prepare_silent_computer_jump(&mut self) {
         if let (Ok(terrain), Some(state)) = (&self.terrain, &mut self.state) {
             state.prepare_silent_computer_jump(terrain);
-            self.prev_camera = (state.sx, state.sy);
             self.replay_prev_pos = Some((state.x, state.y));
             self.last_phase = Some(state.phase);
         }
@@ -278,16 +266,6 @@ impl JumpSession {
         self.state.as_ref()?.outcome()
     }
 
-    pub(crate) fn render_snow(&mut self, framebuffer: &mut [u8], wind: i32, draw: bool) {
-        if let Some(state) = &self.state {
-            let previous = self.prev_camera;
-            self.prev_camera = (state.sx, state.sy);
-            let delta_x = previous.0 - state.sx;
-            let delta_y = previous.1 - state.sy;
-            self.snow.update(framebuffer, delta_x, delta_y, wind, draw);
-        }
-    }
-
     pub(crate) fn draws_snow(&self) -> bool {
         matches!(
             self.phase(),
@@ -299,6 +277,10 @@ impl JumpSession {
                     | JumpPhase::Landing
             )
         )
+    }
+
+    pub(crate) fn camera(&self) -> Option<(i32, i32)> {
+        self.state.as_ref().map(|state| (state.sx, state.sy))
     }
 
     pub(crate) fn render_frame(
