@@ -142,8 +142,21 @@ impl SaveReplayDialog {
     }
 
     pub fn write_replay(&mut self, trace: &ReplayTrace) {
-        let filename = format!("{}.SJR", self.filename);
-        let _ = std::fs::write(&filename, trace.to_sjr_bytes());
+        let safe_name: String = self
+            .filename
+            .chars()
+            .map(|c| {
+                if c.is_alphanumeric() || c == '-' || c == '_' {
+                    c
+                } else {
+                    '_'
+                }
+            })
+            .collect();
+        let filename = format!("{}.SJR", safe_name);
+        if let Err(e) = std::fs::write(&filename, trace.to_sjr_bytes()) {
+            eprintln!("Warning: failed to save replay {filename}: {e}");
+        }
         self.state = SaveDialogState::Inactive;
     }
 }

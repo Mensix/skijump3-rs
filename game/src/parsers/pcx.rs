@@ -65,6 +65,16 @@ impl AssetParser for PcxParser {
         let image_data = &data[PCX_HEADER_SIZE..];
         let pixels = Self::rle_decode(image_data, total_pixels);
 
+        if pixels.len() != total_pixels {
+            return Err(ParseError {
+                message: format!(
+                    "PCX truncated: expected {total_pixels} pixels, decoded {}",
+                    pixels.len()
+                ),
+                byte_offset: Some(PCX_HEADER_SIZE),
+            });
+        }
+
         let palette_data = &data[data.len() - 768..];
         let palette = Palette::from_pcx_bytes(palette_data).map_err(|_| ParseError {
             message: "Failed to parse PCX palette".to_string(),

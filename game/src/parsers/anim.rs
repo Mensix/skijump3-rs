@@ -18,7 +18,7 @@ impl AssetParser for AnimParser {
         let mut pos = 0;
 
         loop {
-            if pos >= data.len() {
+            if pos + 1 >= data.len() {
                 break;
             }
 

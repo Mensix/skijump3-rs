@@ -151,6 +151,9 @@ impl View<RouteTarget> for WorldCupJumpView {
     fn update(&mut self) {
         self.record_finished_human_jump();
         self.drive_competition();
+        if self.render_mode.get() == RenderMode::Jump {
+            self.scene.update();
+        }
     }
 
     fn elements(&self) -> Vec<Element> {

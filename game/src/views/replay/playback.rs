@@ -115,6 +115,21 @@ impl ReplayView {
 }
 
 impl View<RouteTarget> for ReplayView {
+    fn update(&mut self) {
+        let mut session_ref = self.session.borrow_mut();
+        let Some(session) = session_ref.as_mut() else {
+            return;
+        };
+
+        if session.trace().meta.intro {
+            if self.active_intro_box.borrow().is_none() && self.intro_boxes.borrow().is_empty() {
+                session.auto_step_forward();
+            }
+        } else if self.advance(session) {
+            self.snow_advance.set(true);
+        }
+    }
+
     fn elements(&self) -> Vec<Element> {
         let Ok(terrain) = &self.terrain else {
             return vec![
@@ -274,11 +289,7 @@ impl View<RouteTarget> for ReplayView {
                 if blink {
                     els.push(Element::fillbox(ix + 247, iy + 27, 5, 1, FONT_DEFAULT));
                 }
-            } else {
-                session.auto_step_forward();
             }
-        } else if self.advance(session) {
-            self.snow_advance.set(true);
         }
         els
     }

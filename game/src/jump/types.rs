@@ -10,7 +10,7 @@ pub enum JumpPhase {
     Result,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct FlightWind {
     pub(crate) value: i32,
     pub(crate) windy: i32,

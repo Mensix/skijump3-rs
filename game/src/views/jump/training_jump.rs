@@ -116,11 +116,17 @@ impl TrainingJumpView {
 }
 
 impl View<RouteTarget> for TrainingJumpView {
+    fn update(&mut self) {
+        if !self.save_dialog.is_active() {
+            self.scene.borrow_mut().update();
+        }
+    }
+
     fn elements(&self) -> Vec<Element> {
         if self.save_dialog.is_active() {
             return self.save_dialog.elements();
         }
-        self.scene.borrow_mut().elements()
+        self.scene.borrow().elements()
     }
 
     fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {

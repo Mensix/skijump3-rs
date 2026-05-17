@@ -4,7 +4,7 @@ use crate::jump::config::JumpConfig;
 use crate::jump::presentation;
 use crate::jump::replay::ReplayTrace;
 use crate::jump::snow::SnowSystem;
-use crate::jump::types::JumpOutcome;
+use crate::jump::types::{FlightWind, JumpOutcome};
 use crate::jump::wind::Wind;
 use crate::jump::wind::WindPosition;
 use crate::jump::{ComputerInputProvider, JumpPresentationContext, JumpSession, JumperControl};
@@ -19,8 +19,7 @@ pub(crate) struct JumpRunnerRenderEnv<'a> {
     pub(crate) langbase: &'a LangBase,
     pub(crate) hills: &'a HillCatalog,
     pub(crate) records: &'a RecordStore,
-    pub(crate) rng: &'a mut Random,
-    pub(crate) wind: &'a mut Wind,
+    pub(crate) wind: &'a Wind,
 }
 
 #[derive(Debug)]
@@ -31,6 +30,7 @@ pub struct JumpRunner {
     prev_camera: (i32, i32),
     computer_input: Option<ComputerInputProvider>,
     computer_pre_ai_wind_done: bool,
+    last_wind: FlightWind,
 }
 
 impl JumpRunner {
@@ -46,6 +46,7 @@ impl JumpRunner {
             prev_camera,
             computer_input,
             computer_pre_ai_wind_done: false,
+            last_wind: FlightWind::default(),
         }
     }
 
@@ -117,6 +118,25 @@ impl JumpRunner {
         self.config.phase_label = label;
     }
 
+    /// Advance physics, AI, and wind by one frame. Call once per frame
+    /// before `elements()` so the rendering stays pure.
+    pub(crate) fn update(&mut self, rng: &mut Random, wind: &mut Wind) {
+        if self.computer_input.is_some() && !self.computer_pre_ai_wind_done {
+            // Pascal samples wind once before computer skill/reflex are initialized.
+            wind.advance_without_sampling(rng);
+            self.computer_pre_ai_wind_done = true;
+        }
+
+        if let (Some(snapshot), Some(input)) =
+            (self.session.snapshot(), self.computer_input.as_mut())
+        {
+            for jump_input in input.inputs(&snapshot, rng) {
+                self.session.handle_input(jump_input);
+            }
+        }
+        self.last_wind = self.session.tick_with_wind(rng, wind);
+    }
+
     pub(crate) fn elements(&mut self, env: JumpRunnerRenderEnv<'_>) -> Vec<Element> {
         match self.session.terrain() {
             Err(err) => unavailable_elements(err),
@@ -130,21 +150,6 @@ impl JumpRunner {
             return unavailable_elements("jump state not available");
         }
 
-        if self.computer_input.is_some() && !self.computer_pre_ai_wind_done {
-            // Pascal samples wind once before computer skill/reflex are initialized.
-            env.wind.advance_without_sampling(env.rng);
-            self.computer_pre_ai_wind_done = true;
-        }
-
-        if let (Some(snapshot), Some(input)) =
-            (self.session.snapshot(), self.computer_input.as_mut())
-        {
-            for jump_input in input.inputs(&snapshot, env.rng) {
-                self.session.handle_input(jump_input);
-            }
-        }
-        let wind = self.session.tick_with_wind(env.rng, env.wind);
-
         let hill_name_k = env
             .hills
             .hill(self.config.hill_idx)
@@ -153,7 +158,7 @@ impl JumpRunner {
         let wind_pos = env.wind.position();
         let frame = self
             .session
-            .render_frame(wind, WIDTH, HEIGHT)
+            .render_frame(self.last_wind, WIDTH, HEIGHT)
             .expect("loaded jump render frame");
         let ctx = JumpPresentationContext {
             font: env.font,

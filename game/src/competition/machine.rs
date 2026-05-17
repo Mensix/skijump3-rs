@@ -246,20 +246,6 @@ impl Competition {
         self.start_pos += 1;
     }
 
-    /// Prepare standings for a result-list screen without entering the next phase.
-    pub fn prepare_display_list(&mut self) {
-        if self.current_jumper().is_some() {
-            return;
-        }
-
-        match self.phase {
-            CompetitionPhase::Qualification => self.resolve_qualification(),
-            CompetitionPhase::Round1 => self.field.sort_field(SortBy::EventPoints),
-            CompetitionPhase::Round2 => self.field.sort_field(SortBy::EventPoints),
-            _ => {}
-        }
-    }
-
     // ── internal ───────────────────────────────────────────────
 
     fn enter_phase(&mut self, phase: CompetitionPhase) {

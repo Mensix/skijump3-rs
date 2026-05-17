@@ -159,17 +159,22 @@ impl JumpScene {
     }
 
     pub fn elements(&self) -> Vec<Element> {
-        let mut rng = self.store.rng.borrow_mut();
-        let mut wind = self.store.wind.borrow_mut();
+        let wind = self.store.wind.borrow();
         let records = self.store.records.borrow();
         self.runner.borrow_mut().elements(JumpRunnerRenderEnv {
             font: &self.resources.font,
             langbase: &self.resources.langbase,
             hills: &self.resources.hills,
             records: &records,
-            rng: &mut rng,
-            wind: &mut wind,
+            wind: &wind,
         })
+    }
+
+    /// Advance physics, AI, and wind by one frame for the visible runner.
+    pub fn update(&self) {
+        let mut rng = self.store.rng.borrow_mut();
+        let mut wind = self.store.wind.borrow_mut();
+        self.runner.borrow_mut().update(&mut rng, &mut wind);
     }
 
     pub fn render_snow(&self, framebuffer: &mut [u8]) {
@@ -216,15 +221,13 @@ impl JumpScene {
         let (hill, terrain, record_distance) = Self::load_hill_data(&resources, store, hill_idx);
         let mut snow = SnowSystem::new();
 
-        if terrain.is_ok() && hill.is_some() {
-            if store.first_event.get() {
-                let mut rng = store.rng.borrow_mut();
-                let mut wind = store.wind.borrow_mut();
-                let snow_count = calculate_snow_count(&mut rng);
-                snow.set_count(snow_count, &mut rng);
-                wind.sample(&mut rng);
-                store.first_event.set(false);
-            }
+        if terrain.is_ok() && hill.is_some() && store.first_event.get() {
+            let mut rng = store.rng.borrow_mut();
+            let mut wind = store.wind.borrow_mut();
+            let snow_count = calculate_snow_count(&mut rng);
+            snow.set_count(snow_count, &mut rng);
+            wind.sample(&mut rng);
+            store.first_event.set(false);
         }
 
         let snow_count = snow.count();
