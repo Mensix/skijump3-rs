@@ -41,7 +41,8 @@ const HISCORE_SKI: &str = "HISCORE.SKI";
 const VERSION: &str = "3.12";
 
 pub struct Game {
-    _sdl: sdl2::Sdl,
+    #[allow(dead_code)]
+    sdl: sdl2::Sdl,
     renderer: Renderer,
     input: Input,
     font: Font,
@@ -89,7 +90,7 @@ impl Game {
         let router = Self::create_router(resources, pixels, store, start_route, save_manager);
 
         Ok(Self {
-            _sdl: sdl,
+            sdl,
             renderer,
             input,
             font,
