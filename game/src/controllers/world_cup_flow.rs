@@ -1,21 +1,20 @@
-use crate::competition::types::{CompetitionPhase, Participant};
+use crate::competition::types::CompetitionPhase;
 use crate::controllers::jump_scene::JumpScene;
 use crate::jump::config::JumpParticipant;
-use crate::jump::policy::JumperControl;
 
 use crate::store::{ResourcesRef, StoreRef};
 use std::cell::Cell;
 
-pub enum CompetitionRenderState {
+pub enum WorldCupScreenState {
     HumanJump,
     DisplayList,
 }
 
-pub struct CompetitionJumpController {
+pub struct WorldCupFlow {
     last_event: Cell<usize>,
 }
 
-impl CompetitionJumpController {
+impl WorldCupFlow {
     pub(crate) const fn new() -> Self {
         Self {
             last_event: Cell::new(0),
@@ -27,13 +26,13 @@ impl CompetitionJumpController {
         resources: &ResourcesRef,
         store: &StoreRef,
         scene: &JumpScene,
-    ) -> CompetitionRenderState {
+    ) -> WorldCupScreenState {
         self.record_finished_human_jump(store, scene);
 
         if self.advance_to_human_or_display(resources, store, scene) {
-            CompetitionRenderState::HumanJump
+            WorldCupScreenState::HumanJump
         } else {
-            CompetitionRenderState::DisplayList
+            WorldCupScreenState::DisplayList
         }
     }
 
@@ -114,7 +113,7 @@ impl CompetitionJumpController {
             }
 
             let jumper_idx = c.current_jumper().expect("computer jumper exists");
-            let participant = to_jump_participant(c.field.get(jumper_idx));
+            let participant = JumpParticipant::from(c.field.get(jumper_idx));
             let hill_idx = c.hill_order.get(c.current_event).copied().unwrap_or(0);
             drop(comp);
 
@@ -171,7 +170,7 @@ impl CompetitionJumpController {
             scene.rebuild_for_competition(hill_idx, 15, JumpParticipant::trainee(), String::new());
             return;
         };
-        let participant = to_jump_participant(c.field.get(jumper_idx));
+        let participant = JumpParticipant::from(c.field.get(jumper_idx));
         scene.rebuild_for_competition(hill_idx, 15, participant, String::new());
     }
 
@@ -183,22 +182,5 @@ impl CompetitionJumpController {
             CompetitionPhase::Round2 => resources.langbase.lstr(55).to_string(),
             _ => resources.langbase.lstr(51).to_string(),
         }
-    }
-}
-
-fn to_jump_participant(p: &Participant) -> JumpParticipant {
-    JumpParticipant {
-        id: p.id,
-        ai_id: p.ai_id,
-        name: p.name.clone(),
-        real_name: p.real_name.clone(),
-        suit_color: p.suit_color,
-        ski_color: p.ski_color,
-        team: p.team,
-        control: if p.is_computer {
-            JumperControl::Computer
-        } else {
-            JumperControl::Human
-        },
     }
 }

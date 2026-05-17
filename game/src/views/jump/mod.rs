@@ -1,8 +1,8 @@
-pub(crate) mod competition;
-pub mod free_jump;
-pub mod practice;
 pub(crate) mod results;
+pub mod training_jump;
+pub mod training_setup;
+pub(crate) mod world_cup_jump;
 
-pub(crate) use competition::CompetitionJumpView;
-pub use free_jump::JumpView;
-pub use practice::PracticeView;
+pub use training_jump::TrainingJumpView;
+pub use training_setup::TrainingSetupView;
+pub(crate) use world_cup_jump::WorldCupJumpView;

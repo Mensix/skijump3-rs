@@ -30,8 +30,8 @@ use parsers::pcx::PcxParser;
 use route::RouteTarget;
 use std::rc::Rc;
 use views::{
-    CompetitionJumpView, HallOfFameView, HillRecordsView, JumpMenuView, JumpView, MainMenuView,
-    PracticeView, ProfilesView, ReplayBrowserView, ReplayView, WelcomeScreenView,
+    HallOfFameView, HillRecordsView, JumpMenuView, MainMenuView, ProfilesView, ReplayBrowserView,
+    ReplayView, TrainingJumpView, TrainingSetupView, WelcomeScreenView, WorldCupJumpView,
 };
 
 const MAIN_PCX: &str = "MAIN.PCX";
@@ -159,17 +159,17 @@ impl Game {
                 (RouteTarget::Practice, {
                     let r = resources.clone();
                     let s = store.clone();
-                    Box::new(move || Box::new(PracticeView::new(r.clone(), s.clone())))
+                    Box::new(move || Box::new(TrainingSetupView::new(r.clone(), s.clone())))
                 }),
                 (RouteTarget::Jump, {
                     let r = resources.clone();
                     let s = store.clone();
-                    Box::new(move || Box::new(JumpView::new(r.clone(), s.clone())))
+                    Box::new(move || Box::new(TrainingJumpView::new(r.clone(), s.clone())))
                 }),
                 (RouteTarget::CompetitionJump, {
                     let r = resources.clone();
                     let s = store.clone();
-                    Box::new(move || Box::new(CompetitionJumpView::new(r.clone(), s.clone())))
+                    Box::new(move || Box::new(WorldCupJumpView::new(r.clone(), s.clone())))
                 }),
                 (RouteTarget::Replays, {
                     let r = resources.clone();

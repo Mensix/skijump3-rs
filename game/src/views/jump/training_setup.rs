@@ -5,7 +5,7 @@ use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use engine::ui::{Component, Element, Event, Key, View};
 
-pub struct PracticeView {
+pub struct TrainingSetupView {
     resources: ResourcesRef,
     store: StoreRef,
     menu: Menu,
@@ -13,7 +13,7 @@ pub struct PracticeView {
     total: usize,
 }
 
-impl PracticeView {
+impl TrainingSetupView {
     fn page_items(&self) -> usize {
         (self.total.saturating_sub(self.start)).min(20)
     }
@@ -117,7 +117,7 @@ impl PracticeView {
     }
 }
 
-impl View<RouteTarget> for PracticeView {
+impl View<RouteTarget> for TrainingSetupView {
     fn elements(&self) -> Vec<Element> {
         let mut els = vec![
             Element::fillbox(0, 0, 320, 200, 0),

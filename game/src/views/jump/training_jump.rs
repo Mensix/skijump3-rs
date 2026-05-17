@@ -1,6 +1,6 @@
 use crate::components::save_replay_dialog::{SaveAction, SaveReplayDialog};
+use crate::controllers::jump_input::{JumpInputAction, JumpInputController};
 use crate::controllers::jump_scene::JumpScene;
-use crate::controllers::training_jump::{TrainingJumpAction, TrainingJumpController};
 use crate::jump::{JumpParticipant, JumpPolicy};
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
@@ -8,14 +8,14 @@ use engine::palette::Palette;
 use engine::ui::{Component, Element, Event, View};
 use std::cell::RefCell;
 
-pub struct JumpView {
+pub struct TrainingJumpView {
     resources: ResourcesRef,
     store: StoreRef,
     scene: RefCell<JumpScene>,
     save_dialog: SaveReplayDialog,
 }
 
-impl JumpView {
+impl TrainingJumpView {
     pub fn new(resources: ResourcesRef, store: StoreRef) -> Self {
         let hill_idx = store.practice_selected_hill.get();
         let participant = JumpParticipant::trainee();
@@ -42,18 +42,18 @@ impl JumpView {
         let action = {
             let scene = self.scene.borrow_mut();
             let mut session = scene.session_mut();
-            TrainingJumpController.handle_event(event, &mut session)
+            JumpInputController.handle_event(event, &mut session)
         };
         match action {
-            TrainingJumpAction::None => None,
-            TrainingJumpAction::RouteBack => Some(RouteTarget::Back),
-            TrainingJumpAction::ResetWind => {
+            JumpInputAction::None => None,
+            JumpInputAction::RouteBack => Some(RouteTarget::Back),
+            JumpInputAction::ResetWind => {
                 let mut rng = self.store.rng.borrow_mut();
                 let mut wind = self.store.wind.borrow_mut();
                 wind.initialize(&mut rng, self.store.wind_place.get());
                 None
             }
-            TrainingJumpAction::ResetJump => {
+            JumpInputAction::ResetJump => {
                 let _ = self.scene.borrow_mut().outcome();
                 let _ = self.scene.borrow().replay_trace();
                 self.scene
@@ -61,12 +61,12 @@ impl JumpView {
                     .reset_state(self.store.practice_start_gate.get());
                 None
             }
-            TrainingJumpAction::PersistStartGate(start_gate) => {
+            JumpInputAction::PersistStartGate(start_gate) => {
                 self.store.practice_start_gate.set(start_gate);
                 self.store.start_gate.set(start_gate);
                 None
             }
-            TrainingJumpAction::SaveReplay => {
+            JumpInputAction::SaveReplay => {
                 self.enter_save_dialog();
                 None
             }
@@ -114,7 +114,7 @@ impl JumpView {
     }
 }
 
-impl View<RouteTarget> for JumpView {
+impl View<RouteTarget> for TrainingJumpView {
     fn elements(&self) -> Vec<Element> {
         if self.save_dialog.is_active() {
             return self.save_dialog.elements();

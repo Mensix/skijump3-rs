@@ -1,7 +1,7 @@
 use crate::competition::types::CompetitionPhase;
-use crate::controllers::competition_jump::{CompetitionJumpController, CompetitionRenderState};
+use crate::controllers::jump_input::{JumpInputAction, JumpInputController};
 use crate::controllers::jump_scene::JumpScene;
-use crate::controllers::training_jump::{TrainingJumpAction, TrainingJumpController};
+use crate::controllers::world_cup_flow::{WorldCupFlow, WorldCupScreenState};
 use crate::gfx::palette::apply_menu_tint;
 use crate::jump::JumpParticipant;
 use crate::route::RouteTarget;
@@ -11,15 +11,15 @@ use engine::palette::Palette;
 use engine::ui::{Element, Event, Key, View};
 use std::cell::Cell;
 
-pub struct CompetitionJumpView {
+pub struct WorldCupJumpView {
     resources: ResourcesRef,
     store: StoreRef,
     scene: JumpScene,
-    controller: CompetitionJumpController,
+    controller: WorldCupFlow,
     display_page: Cell<usize>,
 }
 
-impl CompetitionJumpView {
+impl WorldCupJumpView {
     pub(crate) fn new(resources: ResourcesRef, store: StoreRef) -> Self {
         let scene = JumpScene::new(
             ResourcesRef::clone(&resources),
@@ -33,20 +33,20 @@ impl CompetitionJumpView {
             resources,
             store,
             scene,
-            controller: CompetitionJumpController::new(),
+            controller: WorldCupFlow::new(),
             display_page: Cell::new(0),
         }
     }
 }
 
-impl View<RouteTarget> for CompetitionJumpView {
+impl View<RouteTarget> for WorldCupJumpView {
     fn elements(&self) -> Vec<Element> {
         match self
             .controller
             .drive(&self.resources, &self.store, &self.scene)
         {
-            CompetitionRenderState::HumanJump => self.scene.elements(),
-            CompetitionRenderState::DisplayList => {
+            WorldCupScreenState::HumanJump => self.scene.elements(),
+            WorldCupScreenState::DisplayList => {
                 let comp = self.store.competition.borrow();
                 let Some(c) = comp.as_ref() else {
                     return vec![Element::fillbox(0, 0, 320, 200, 0)];
@@ -113,10 +113,10 @@ impl View<RouteTarget> for CompetitionJumpView {
         } else {
             let action = {
                 let mut session = self.scene.session_mut();
-                TrainingJumpController.handle_event(event, &mut session)
+                JumpInputController.handle_event(event, &mut session)
             };
             match action {
-                TrainingJumpAction::RouteBack => Some(RouteTarget::Back),
+                JumpInputAction::RouteBack => Some(RouteTarget::Back),
                 _ => None,
             }
         }
@@ -135,7 +135,7 @@ impl View<RouteTarget> for CompetitionJumpView {
     }
 }
 
-impl CompetitionJumpView {
+impl WorldCupJumpView {
     fn is_displaying_results(&self) -> bool {
         if self.display_page.get() > 0 {
             return true;
