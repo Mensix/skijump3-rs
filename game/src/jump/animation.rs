@@ -1,3 +1,4 @@
+use crate::gfx::sprites::Sprite;
 use crate::jump::types::FallType;
 
 const SKI_SLOPE: u16 = 70;
@@ -74,11 +75,11 @@ pub const fn landing_body_anim(mut ski_anim: u16, landing_style: u8) -> u16 {
         ski_anim -= SKI_SLOPE;
     }
     let mut value = match ski_anim {
-        0..=4 => 126,
-        5..=6 => 125,
-        7 => 124,
-        8..=12 => 123,
-        _ => 126,
+        0..=4 => Sprite::LandingBody1 as u16,
+        5..=6 => Sprite::LandingBody2 as u16,
+        7 => Sprite::LandingBody3 as u16,
+        8..=12 => Sprite::LandingBody4 as u16,
+        _ => Sprite::LandingBody1 as u16,
     };
     if landing_style == 2 {
         value += 6;
@@ -89,7 +90,7 @@ pub const fn landing_body_anim(mut ski_anim: u16, landing_style: u8) -> u16 {
 fn landing_loop_body_anim(counter: i32, slope_ski_anim: u16, landing_style: u8) -> u16 {
     // Pascal: if (counter<7) and (landing>0) then JumperAnim:=113+landing;
     if counter < 7 && landing_style > 0 {
-        return 112 + u16::from(landing_style);
+        return (Sprite::LandingLoopBase as u16) + u16::from(landing_style);
     }
     landing_body_anim(slope_ski_anim, landing_style)
 }
@@ -112,7 +113,7 @@ pub fn post_landing_body_anim(
          1 => 122 + i32::from(landing_style) * 6,
          2 => 135,
          3..=6 => match grade {
-             0..=75 => 136,
+             0..=75 => Sprite::LandingSlide as i32,
              105..=200 => {
                  if phase > 3 {
                      if grade > 114 {
@@ -132,7 +133,7 @@ pub fn post_landing_body_anim(
 }
 
 #[must_use]
-pub fn fall_body_anim(
+pub(crate) fn fall_body_anim(
     fall_type: FallType,
     counter: i32,
     body_angle: i32,
@@ -186,14 +187,14 @@ pub fn fall_body_anim(
 
 pub const fn takeoff_body_anim(phase: &mut u8) -> u16 {
     let value = match *phase {
-        4..=6 => 117,
-        7..=9 => 118,
-        10..=13 => 119,
-        14..=17 => 120,
-        18..=20 => 121,
-        21..=23 => 122,
-        24..=50 => 111,
-        _ => 116,
+        4..=6 => Sprite::Takeoff1 as u16,
+        7..=9 => Sprite::Takeoff2 as u16,
+        10..=13 => Sprite::Takeoff3 as u16,
+        14..=17 => Sprite::Takeoff4 as u16,
+        18..=20 => Sprite::Takeoff5 as u16,
+        21..=23 => Sprite::Takeoff6 as u16,
+        24..=50 => Sprite::TakeoffArmsUp as u16,
+        _ => Sprite::TakeoffDefault as u16,
     };
     *phase = phase.saturating_add(1);
     value
