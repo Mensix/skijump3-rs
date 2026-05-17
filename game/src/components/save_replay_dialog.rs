@@ -103,7 +103,7 @@ impl SaveReplayDialog {
             };
 
             // Header
-            els.push(Element::text_color(
+            els.push(Element::text(
                 format!(
                     "{}: {}µ at {}",
                     self.resources.langbase.lstr(25),
@@ -113,6 +113,7 @@ impl SaveReplayDialog {
                 30,
                 6,
                 FONT_DEFAULT,
+                false,
             ));
 
             // Pascal: for temp:=1 to 5 do
@@ -128,7 +129,7 @@ impl SaveReplayDialog {
                     4 => format!("5. {}", self.resources.langbase.lstr(296)),
                     _ => String::new(),
                 };
-                els.push(Element::text_color(&label, 18, final_yy, label_color));
+                els.push(Element::text(&label, 18, final_yy, label_color, false));
 
                 if i < 3 {
                     let is_editing = editing && editing_field == Some(i);
@@ -155,7 +156,7 @@ impl SaveReplayDialog {
                         };
                         els.push(Element::fillbox(146, final_yy - 2, fw, fh, 242));
                     }
-                    els.push(Element::text_color(&value, 148, final_yy, FONT_GOLD));
+                    els.push(Element::text(&value, 148, final_yy, FONT_GOLD, false));
 
                     if is_editing {
                         if let SaveDialogState::EditField { ref editor, .. } = *self.state.borrow()
@@ -190,17 +191,19 @@ impl SaveReplayDialog {
             els.push(Element::fillbox(60, 80, 201, 51, 244));
             els.push(Element::FillArea { thing: 63 });
 
-            els.push(Element::text_color(
+            els.push(Element::text(
                 format!("{}.SJR {}", filename, self.resources.langbase.lstr(345)),
                 80,
                 90,
                 FONT_GOLD,
+                false,
             ));
-            els.push(Element::text_color(
+            els.push(Element::text(
                 format!("{} (Y/N):", self.resources.langbase.lstr(346)),
                 80,
                 110,
                 FONT_GOLD,
+                false,
             ));
             // Pascal getch(190,110,243): fillbox + blinking cursor
             els.push(Element::fillbox(188, 108, 9, 11, 243));

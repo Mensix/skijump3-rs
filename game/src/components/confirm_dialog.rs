@@ -40,9 +40,9 @@ impl Component for ConfirmDialog {
             Element::fillbox(59, 79, 203, 53, 242),
             Element::fillbox(60, 80, 201, 51, 244),
             Element::FillArea { thing: 63 },
-            Element::text_color(&self.message, 70, 90, 246),
-            Element::text_color(str2, 70, 110, 246),
-            Element::text_color("(Y/N)", hint_x, 110, 241),
+            Element::text(&self.message, 70, 90, 246, false),
+            Element::text(str2, 70, 110, 246, false),
+            Element::text("(Y/N)", hint_x, 110, 241, false),
             Element::fillbox(cursor_x - 2, 108, 9, 11, 243),
         ];
         if self.blinker.visible(11, 10) {

@@ -24,9 +24,9 @@ use engine::sprite::SpriteData;
 use engine::ui::{Font, PaintCtx, Router, View};
 use engine::video::Renderer;
 use loaders::assets::AssetStore;
+use parsers::anim::AnimParser;
 use parsers::langbase::{LangBase, LangBaseParser};
 use parsers::pcx::{DecodedPcx, PcxParser};
-use parsers::{anim::AnimParser};
 use route::RouteTarget;
 use std::rc::Rc;
 use views::{

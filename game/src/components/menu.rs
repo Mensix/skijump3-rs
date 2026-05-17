@@ -111,20 +111,22 @@ impl Component for Menu {
         if self.show_labels {
             for (i, item) in self.items.iter().enumerate() {
                 let iy = self.y + 1 + (i as i32) * self.item_h + item.y_off;
-                els.push(Element::text_color(
+                els.push(Element::text(
                     format!("{} - {}", item.num, self.langbase.lstr(item.label)),
                     self.x,
                     iy,
                     self.fontcolor,
+                    false,
                 ));
             }
             if self.exit_item {
                 let iy = self.y + 1 + (self.items.len() as i32) * self.item_h + self.exit_y_off;
-                els.push(Element::text_color(
+                els.push(Element::text(
                     format!("0. {}", self.langbase.lstr(self.exit_label_idx)),
                     self.x,
                     iy,
                     self.fontcolor,
+                    false,
                 ));
             }
         }

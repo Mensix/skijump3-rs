@@ -151,7 +151,7 @@ pub fn render_header(competition: &Competition, resources: &ResourcesRef) -> Vec
         _ => String::new(),
     };
 
-    vec![Element::text_color(header, 30, 6, FONT_DEFAULT)]
+    vec![Element::text(header, 30, 6, FONT_DEFAULT, false)]
 }
 
 fn round_header(
@@ -190,20 +190,22 @@ pub fn render_results_page(page: &ResultsPage, resources: &ResourcesRef) -> Vec<
         };
 
         if entry.rank != last_rank {
-            els.push(Element::text_color_right(
+            els.push(Element::text(
                 format!("{}.", entry.rank),
                 COL_RANK,
                 y,
                 col_rank,
+                true,
             ));
         }
         last_rank = entry.rank;
 
-        els.push(Element::text_color(
+        els.push(Element::text(
             truncate_name(&entry.name),
             COL_NAME,
             y,
             col_text,
+            false,
         ));
 
         let points = if entry.distance == 0 && entry.distance2 == 0 {
@@ -211,39 +213,41 @@ pub fn render_results_page(page: &ResultsPage, resources: &ResourcesRef) -> Vec<
         } else {
             format_tenths(entry.points)
         };
-        els.push(Element::text_color_right(points, COL_POINTS, y, col_text));
+        els.push(Element::text(points, COL_POINTS, y, col_text, true));
 
         if entry.distance > 0 {
-            els.push(Element::text_color(
+            els.push(Element::text(
                 format_distance(entry.distance, entry.distance2),
                 COL_DISTANCE,
                 y,
                 col_dist,
+                false,
             ));
         }
 
         match page.phase {
             CompetitionPhase::QualificationResults => match entry.qual {
                 QualificationStatus::Qualified => {
-                    els.push(Element::text_color("Q", COL_QUAL, y, col_rank));
+                    els.push(Element::text("Q", COL_QUAL, y, col_rank, false));
                 }
                 QualificationStatus::PreQualified => {
-                    els.push(Element::text_color("Q WC", COL_QUAL, y, col_dist));
+                    els.push(Element::text("Q WC", COL_QUAL, y, col_dist, false));
                 }
                 _ => {}
             },
             CompetitionPhase::Round1Results if entry.rank <= 30 => {
-                els.push(Element::text_color("Q", COL_QUAL, y, col_rank));
+                els.push(Element::text("Q", COL_QUAL, y, col_rank, false));
             }
             _ => {}
         }
 
         if entry.injury > 0 {
-            els.push(Element::text_color(
+            els.push(Element::text(
                 format!("INJ-{}", entry.injury.saturating_sub(1)),
                 COL_EXTRA,
                 y,
                 INJURY_COLOR,
+                false,
             ));
         }
     }

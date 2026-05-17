@@ -41,19 +41,9 @@ pub fn new_screen(style: u8) -> Vec<Element> {
 pub fn page_hints(page: usize, pages: usize, prev: &str, next: &str, end: &str) -> Vec<Element> {
     let mut els = Vec::with_capacity(2);
     if page > 0 {
-        els.push(Element::text_color_right(
-            format!("(-{prev}"),
-            319,
-            5,
-            FONT_HELP,
-        ));
+        els.push(Element::text(format!("(-{prev}"), 319, 5, FONT_HELP, true));
     }
     let text = if page + 1 == pages { end } else { next };
-    els.push(Element::text_color_right(
-        format!("{text}-)"),
-        319,
-        13,
-        FONT_HELP,
-    ));
+    els.push(Element::text(format!("{text}-)"), 319, 13, FONT_HELP, true));
     els
 }

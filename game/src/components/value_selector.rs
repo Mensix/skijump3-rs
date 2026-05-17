@@ -214,10 +214,10 @@ impl ValueSelector {
         };
         let mut els = vec![
             Element::fillbox(self.x - 2, self.y - 1, self.width, 8, self.bg),
-            Element::text_color(text, self.x, self.y, self.fg),
+            Element::text(text, self.x, self.y, self.fg, false),
         ];
         if let Some(rt) = &self.right_text {
-            els.push(Element::text_color_right(rt, 316, self.y, self.fg));
+            els.push(Element::text(rt, 316, self.y, self.fg, true));
         }
         els
     }

@@ -13,11 +13,12 @@ pub(super) fn draw_screen_base(view: &ProfilesView, els: &mut Vec<Element>) {
     els.push(Element::fillbox(0, 0, 159, 200, BG_LEFT));
     els.push(Element::fillbox(160, 0, 160, 200, BG_RIGHT));
     els.push(Element::FillArea { thing: 63 });
-    els.push(Element::text_color(
+    els.push(Element::text(
         lstr(&view.resources.langbase, 34, "Jumpers:"),
         40,
         3,
         FONT_HELP,
+        false,
     ));
 }
 
@@ -29,31 +30,34 @@ pub(super) fn draw_list(view: &ProfilesView, els: &mut Vec<Element>) {
         let y = ProfilesView::y_for(i + 1);
         els.push(Element::fillbox(10, y - 1, 21, 8, BG_ORDER));
         if let Some(order_pos) = store.order_pos(i) {
-            els.push(Element::text_color(
+            els.push(Element::text(
                 format!("{}.", order_pos + 1),
                 18,
                 y,
                 FONT_NEW,
+                false,
             ));
         }
-        els.push(Element::text_color(&profile.name, 40, y, FONT_NAME));
+        els.push(Element::text(&profile.name, 40, y, FONT_NAME, false));
     }
 
     if store.has_slot() {
-        els.push(Element::text_color(
+        els.push(Element::text(
             lstr(&view.resources.langbase, 302, "*Create New Jumper*"),
             40,
             ProfilesView::y_for(np + 1),
             FONT_NEW,
+            false,
         ));
     }
 
     let back_temp = if store.has_slot() { np + 3 } else { np + 2 };
-    els.push(Element::text_color(
+    els.push(Element::text(
         lstr(&view.resources.langbase, 33, "Back to Main Menu"),
         40,
         ProfilesView::y_for(back_temp),
         FONT_BACK,
+        false,
     ));
 
     if matches!(view.mode, Mode::List) {
@@ -78,37 +82,42 @@ pub(super) fn draw_help(view: &ProfilesView, els: &mut Vec<Element>, profile: Op
 
     if let Some(profile) = profile {
         let in_order = store.order_pos(profile).is_some();
-        els.push(Element::text_color(
+        els.push(Element::text(
             lstr(&view.resources.langbase, 322, "(Use arrows,"),
             8,
             175,
             FONT_HELP,
+            false,
         ));
         if in_order {
-            els.push(Element::text_color(
+            els.push(Element::text(
                 lstr(&view.resources.langbase, 323, "ENTER edits jumper,"),
                 11,
                 183,
                 FONT_HELP,
+                false,
             ));
-            els.push(Element::text_color(
+            els.push(Element::text(
                 lstr(&view.resources.langbase, 324, "DEL removes from order)"),
                 11,
                 191,
                 FONT_HELP,
+                false,
             ));
         } else {
-            els.push(Element::text_color(
+            els.push(Element::text(
                 lstr(&view.resources.langbase, 325, "ENTER adds jumper,"),
                 11,
                 183,
                 FONT_HELP,
+                false,
             ));
-            els.push(Element::text_color(
+            els.push(Element::text(
                 lstr(&view.resources.langbase, 326, "DEL deletes jumper)"),
                 11,
                 191,
                 FONT_HELP,
+                false,
             ));
         }
     }
@@ -192,11 +201,12 @@ pub(super) fn draw_profile(
             } else {
                 label_color
             };
-            els.push(Element::text_color(
+            els.push(Element::text(
                 label,
                 166,
                 ProfilesView::col_y(field),
                 lc,
+                false,
             ));
         }
     }
@@ -220,7 +230,7 @@ pub(super) fn draw_profile(
             &view.resources.langbase,
         );
         if !value.is_empty() {
-            els.push(Element::text_color(value, x, y, value_color));
+            els.push(Element::text(value, x, y, value_color, false));
         }
     }
 

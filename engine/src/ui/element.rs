@@ -27,8 +27,7 @@ pub enum Element {
         x: i32,
         y: i32,
         color: u8,
-        right: bool,
-        center: bool,
+        right: bool
     },
     Sprite(u16, i32, i32),
     Fillbox {
@@ -148,47 +147,13 @@ impl Element {
         }
     }
 
-    pub fn text(text: impl Into<String>, x: i32, y: i32) -> Self {
-        Self::Text {
-            text: text.into(),
-            x,
-            y,
-            color: 15,
-            right: false,
-            center: false,
-        }
-    }
-
-    pub fn text_color(text: impl Into<String>, x: i32, y: i32, color: u8) -> Self {
+    pub fn text(text: impl Into<String>, x: i32, y: i32, color: u8, right: bool) -> Self {
         Self::Text {
             text: text.into(),
             x,
             y,
             color,
-            right: false,
-            center: false,
-        }
-    }
-
-    pub fn text_color_right(text: impl Into<String>, x: i32, y: i32, color: u8) -> Self {
-        Self::Text {
-            text: text.into(),
-            x,
-            y,
-            color,
-            right: true,
-            center: false,
-        }
-    }
-
-    pub fn text_color_center(text: impl Into<String>, x: i32, y: i32, color: u8) -> Self {
-        Self::Text {
-            text: text.into(),
-            x,
-            y,
-            color,
-            right: false,
-            center: true,
+            right,
         }
     }
 

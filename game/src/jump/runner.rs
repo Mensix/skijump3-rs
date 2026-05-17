@@ -209,7 +209,7 @@ impl JumpRunner {
 fn unavailable_elements(message: &str) -> Vec<Element> {
     vec![
         Element::fillbox(0, 0, WIDTH as i32, HEIGHT as i32, 0),
-        Element::text_color(message, 20, 80, FONT_DEFAULT),
-        Element::text_color("PRESS ESC", 20, 95, FONT_DEFAULT),
+        Element::text(message, 20, 80, FONT_DEFAULT, false),
+        Element::text("PRESS ESC", 20, 95, FONT_DEFAULT, false),
     ]
 }

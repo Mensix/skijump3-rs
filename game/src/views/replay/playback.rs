@@ -119,16 +119,16 @@ impl View<RouteTarget> for ReplayView {
         let Ok(terrain) = &self.terrain else {
             return vec![
                 Element::fillbox(0, 0, WIDTH as i32, HEIGHT as i32, 0),
-                Element::text_color("Replay hill not found", 20, 80, FONT_DEFAULT),
-                Element::text_color("PRESS ESC", 20, 95, FONT_HELP),
+                Element::text("Replay hill not found", 20, 80, FONT_DEFAULT, false),
+                Element::text("PRESS ESC", 20, 95, FONT_HELP, false),
             ];
         };
         let mut session_ref = self.session.borrow_mut();
         let Some(session) = session_ref.as_mut() else {
             return vec![
                 Element::fillbox(0, 0, WIDTH as i32, HEIGHT as i32, 0),
-                Element::text_color("No replay selected", 20, 80, FONT_DEFAULT),
-                Element::text_color("PRESS ESC", 20, 95, FONT_HELP),
+                Element::text("No replay selected", 20, 80, FONT_DEFAULT, false),
+                Element::text("PRESS ESC", 20, 95, FONT_HELP, false),
             ];
         };
         let Some(frame) = session.render_frame() else {
@@ -190,7 +190,7 @@ impl View<RouteTarget> for ReplayView {
         if !session.trace().meta.intro {
             els.push(Element::sprite(sprites::Sprite::InfoPanel as u16, 227, 2));
             if session.frame_index() % 30 > 15 {
-                els.push(Element::text_color("R", 2, 2, FONT_GOLD));
+                els.push(Element::text("R", 2, 2, FONT_GOLD, false));
             }
             let hill_text = self
                 .resources
@@ -200,19 +200,20 @@ impl View<RouteTarget> for ReplayView {
                     || "?".to_string(),
                     |hill| format!("{} K{}", hill.name, hill.kr),
                 );
-            els.push(Element::text_color_right(hill_text, 308, 9, FONT_DEFAULT));
-            els.push(Element::text_color_right(
+            els.push(Element::text(hill_text, 308, 9, FONT_DEFAULT, true));
+            els.push(Element::text(
                 &session.trace().meta.author,
                 308,
                 19,
                 FONT_DEFAULT,
+                true,
             ));
             els.push(Element::sprite(
                 sprites::Sprite::ReplayModeIcon as u16,
                 150,
                 30,
             ));
-            els.push(Element::text_color_right(
+            els.push(Element::text(
                 format!(
                     "{} {}",
                     self.resources.langbase.lstr(340),
@@ -225,8 +226,9 @@ impl View<RouteTarget> for ReplayView {
                 309,
                 29,
                 FONT_GREET,
+                true,
             ));
-            els.push(Element::text_color_right(
+            els.push(Element::text(
                 format!(
                     "{} {}",
                     self.resources.langbase.lstr(341),
@@ -241,8 +243,9 @@ impl View<RouteTarget> for ReplayView {
                 309,
                 39,
                 FONT_GREET,
+                true,
             ));
-            els.push(Element::text_color_right(
+            els.push(Element::text(
                 format!(
                     "{} {}",
                     self.resources.langbase.lstr(342),
@@ -251,12 +254,13 @@ impl View<RouteTarget> for ReplayView {
                 309,
                 49,
                 FONT_GREET,
+                true,
             ));
             if let Some(gate_text) = replay_gate_text(
                 &self.resources.langbase,
                 session.trace().meta.start_gate_or_competition,
             ) {
-                els.push(Element::text_color_right(gate_text, 309, 59, FONT_GREET));
+                els.push(Element::text(gate_text, 309, 59, FONT_GREET, true));
             }
         }
         presentation::wind_elements(&mut els, wind_pos, i32::from(replay_frame.wind));
@@ -411,23 +415,26 @@ fn intro_box_elements(els: &mut Vec<Element>, langbase: &LangBase, phase: u8) {
     let iy = if phase <= 3 { 140 } else { 30 };
     els.push(Element::fillbox(ix - 7, iy - 7, 269, 40, 248));
     els.push(Element::fillbox(ix - 6, iy - 6, 267, 38, 243));
-    els.push(Element::text_color(
+    els.push(Element::text(
         langbase.lstr(360 + phase as usize * 2),
         ix,
         iy,
         FONT_GOLD,
+        false,
     ));
-    els.push(Element::text_color(
+    els.push(Element::text(
         langbase.lstr(361 + phase as usize * 2),
         ix,
         iy + 10,
         FONT_GOLD,
+        false,
     ));
-    els.push(Element::text_color_right(
+    els.push(Element::text(
         langbase.lstr(15),
         ix + 246,
         iy + 21,
         FONT_DEFAULT,
+        true,
     ));
     els.push(Element::fillbox(ix + 245, iy + 19, 9, 11, 243));
 }

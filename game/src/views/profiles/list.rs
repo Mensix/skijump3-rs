@@ -182,27 +182,30 @@ impl View<RouteTarget> for ProfilesView {
                             &self.resources.font,
                             x,
                         );
-                        els.push(Element::text_color(n, x, 44, FONT_DEFAULT));
-                        els.push(Element::text_color_right(
+                        els.push(Element::text(n, x, 44, FONT_DEFAULT, false));
+                        els.push(Element::text(
                             format!("#{value}"),
                             316,
                             44,
                             FONT_DEFAULT,
+                            true,
                         ));
                     } else {
-                        els.push(Element::text_color(
+                        els.push(Element::text(
                             format!("#{value}"),
                             x,
                             44,
                             FONT_DEFAULT,
+                            false,
                         ));
                     }
                 } else {
-                    els.push(Element::text_color(
+                    els.push(Element::text(
                         lstr(&self.resources.langbase, 9, "None"),
                         x,
                         44,
                         FONT_DEFAULT,
+                        false,
                     ));
                 }
             }

@@ -52,7 +52,7 @@ impl Component for TextInput {
         let cx = self.x + self.font.string_width(buf) as i32;
         let mut els = vec![
             Element::fillbox(self.x - 2, self.y - 2, self.max_width + 4, 10, self.bg),
-            Element::text_color(buf, self.x, self.y, self.fg),
+            Element::text(buf, self.x, self.y, self.fg, false),
         ];
         if self.blinker.visible(11, 10) {
             els.push(Element::fillbox(cx, self.y + 6, 5, 1, 240));

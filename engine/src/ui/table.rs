@@ -55,8 +55,8 @@ impl Table {
         self.cells
             .into_iter()
             .map(|cell| match cell.align {
-                Align::Left => Element::text_color(cell.text, cell.x, cell.y, cell.color),
-                Align::Right => Element::text_color_right(cell.text, cell.x, cell.y, cell.color),
+                Align::Left => Element::text(cell.text, cell.x, cell.y, cell.color, false),
+                Align::Right => Element::text(cell.text, cell.x, cell.y, cell.color, true),
             })
             .collect()
     }
@@ -69,10 +69,8 @@ impl Component for Table {
         self.cells
             .iter()
             .map(|cell| match cell.align {
-                Align::Left => Element::text_color(cell.text.clone(), cell.x, cell.y, cell.color),
-                Align::Right => {
-                    Element::text_color_right(cell.text.clone(), cell.x, cell.y, cell.color)
-                }
+                Align::Left => Element::text(cell.text.clone(), cell.x, cell.y, cell.color, false),
+                Align::Right => Element::text(cell.text.clone(), cell.x, cell.y, cell.color, true),
             })
             .collect()
     }

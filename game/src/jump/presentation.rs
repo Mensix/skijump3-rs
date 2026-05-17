@@ -95,26 +95,23 @@ fn info_elements(
         3,
         150,
     ));
-    els.push(Element::text_color_right(
-        ctx.hill_name_k,
-        308,
-        9,
-        FONT_GOLD,
-    ));
-    els.push(Element::text_color_right(
+    els.push(Element::text(ctx.hill_name_k, 308, 9, FONT_GOLD, true));
+    els.push(Element::text(
         ctx.langbase.lstr(65),
         308,
         19,
         FONT_GOLD,
+        true,
     ));
     if let Some(record) = ctx.hill_record {
         if record.len > 0 {
-            els.push(Element::text_color_right(&record.name, 308, 29, FONT_GOLD));
-            els.push(Element::text_color_right(
+            els.push(Element::text(&record.name, 308, 29, FONT_GOLD, true));
+            els.push(Element::text(
                 format!("{:.1}m", record.len as f64 / 10.0),
                 308,
                 39,
                 FONT_GOLD,
+                true,
             ));
         }
     }
@@ -124,33 +121,42 @@ fn info_elements(
     if ctx.allow_gate_adjust {
         let label58 = ctx.langbase.lstr(58);
         let label58_w = ctx.font.string_width(label58) as i32;
-        els.push(Element::text_color(label58, 64, 19, FONT_DEFAULT));
-        els.push(Element::text_color(
+        els.push(Element::text(label58, 64, 19, FONT_DEFAULT, false));
+        els.push(Element::text(
             format!("{}", frame.start_gate),
             70 + label58_w,
             19,
             FONT_GOLD,
+            false,
         ));
-        els.push(Element::text_color("(+/-)", 67 + label58_w, 27, FONT_GREET));
+        els.push(Element::text(
+            "(+/-)",
+            67 + label58_w,
+            27,
+            FONT_GREET,
+            false,
+        ));
     }
     let phase_label = if ctx.phase_label.is_empty() {
         ctx.langbase.lstr(51)
     } else {
         ctx.phase_label
     };
-    els.push(Element::text_color(phase_label, 12, 160, FONT_GREET));
-    els.push(Element::text_color(label56, 12, 172, FONT_GREET));
-    els.push(Element::text_color(
+    els.push(Element::text(phase_label, 12, 160, FONT_GREET, false));
+    els.push(Element::text(label56, 12, 172, FONT_GREET, false));
+    els.push(Element::text(
         ctx.jumper_name,
         12 + label_w,
         172,
         FONT_DEFAULT,
+        false,
     ));
-    els.push(Element::text_color(
+    els.push(Element::text(
         ctx.langbase.lstr(59),
         12,
         191,
         FONT_HELP,
+        false,
     ));
 }
 
@@ -160,12 +166,7 @@ fn result_elements(
     ctx: &JumpPresentationContext<'_>,
 ) {
     els.push(Element::sprite(sprites::Sprite::InfoPanel as u16, 227, 2));
-    els.push(Element::text_color_right(
-        ctx.jumper_name,
-        308,
-        9,
-        FONT_DEFAULT,
-    ));
+    els.push(Element::text(ctx.jumper_name, 308, 9, FONT_DEFAULT, true));
     let style_min = *frame.style_points.iter().min().unwrap_or(&0);
     let style_max = *frame.style_points.iter().max().unwrap_or(&0);
     let first_min_idx = frame.style_points.iter().position(|&p| p == style_min);
@@ -176,30 +177,34 @@ fn result_elements(
         } else {
             FONT_GREET
         };
-        els.push(Element::text_color_right(
+        els.push(Element::text(
             format!("{:.1}", f64::from(point) / 10.0),
             308 - (i as i32) * 24,
             21,
             color,
+            true,
         ));
     }
-    els.push(Element::text_color_right(
+    els.push(Element::text(
         format!("{:.1}m", f64::from(frame.distance) / 10.0),
         308,
         33,
         FONT_GREET,
+        true,
     ));
-    els.push(Element::text_color_right(
+    els.push(Element::text(
         format!("{:.1}", f64::from(frame.score) / 10.0),
         308,
         45,
         FONT_GOLD,
+        true,
     ));
-    els.push(Element::text_color_right(
+    els.push(Element::text(
         ctx.langbase.lstr(298),
         308,
         73,
         FONT_GREET,
+        true,
     ));
 }
 
@@ -209,25 +214,22 @@ fn landing_elements(
     ctx: &JumpPresentationContext<'_>,
 ) {
     els.push(Element::sprite(sprites::Sprite::InfoPanel as u16, 227, 2));
-    els.push(Element::text_color_right(
-        ctx.jumper_name,
-        308,
-        9,
-        FONT_GREET,
-    ));
-    els.push(Element::text_color_right(
+    els.push(Element::text(ctx.jumper_name, 308, 9, FONT_GREET, true));
+    els.push(Element::text(
         format!("{:.1}m", f64::from(frame.distance) / 10.0),
         308,
         33,
         FONT_GREET,
+        true,
     ));
     for (i, &point) in frame.style_points.iter().enumerate() {
         if frame.style_revealed[i] {
-            els.push(Element::text_color_right(
+            els.push(Element::text(
                 format!("{:.1}", f64::from(point) / 10.0),
                 308 - (i as i32) * 24,
                 21,
                 FONT_GREET,
+                true,
             ));
         }
     }
@@ -249,23 +251,25 @@ pub fn wind_elements(els: &mut Vec<Element>, position: WindPosition, value: i32)
 
     let text = format!("{:.1}", f64::from(value.abs()) / 10.0);
     if value < 0 {
-        els.push(Element::text_color("-", x + 10, y + 5, FONT_GREET));
+        els.push(Element::text("-", x + 10, y + 5, FONT_GREET, false));
     }
     let mut chars = text.chars();
     if let Some(ones) = chars.next() {
-        els.push(Element::text_color(
+        els.push(Element::text(
             ones.to_string(),
             x + 15,
             y + 5,
             FONT_GREET,
+            false,
         ));
     }
     if let Some(tenths) = text.chars().nth(2) {
-        els.push(Element::text_color(
+        els.push(Element::text(
             tenths.to_string(),
             x + 24,
             y + 5,
             FONT_GREET,
+            false,
         ));
     }
 }

@@ -36,7 +36,10 @@ impl PracticeView {
 
     pub fn new(resources: ResourcesRef, store: StoreRef) -> Self {
         let total = resources.hills.len();
-        let selected = store.practice_selected_hill.get().min(total.saturating_sub(1));
+        let selected = store
+            .practice_selected_hill
+            .get()
+            .min(total.saturating_sub(1));
         let start = if total > 20 { selected / 20 * 20 } else { 0 };
         let page_n = (total.saturating_sub(start)).min(20);
         let n = page_n + usize::from(total > 20);
@@ -123,50 +126,72 @@ impl View<RouteTarget> for PracticeView {
             Element::fillbox(309, 0, 11, 200, 245),
             Element::FillArea { thing: 63 },
             Element::sprite(sprites::Sprite::Logo as u16, 30, 8),
-            Element::text_color(self.resources.langbase.lstr(151), 30, 31, FONT_DEFAULT),
-            Element::text_color(self.resources.langbase.lstr(152), 30, 41, FONT_DEFAULT),
-            Element::text_color(self.resources.langbase.lstr(153), 30, 51, FONT_DEFAULT),
+            Element::text(
+                self.resources.langbase.lstr(151),
+                30,
+                31,
+                FONT_DEFAULT,
+                false,
+            ),
+            Element::text(
+                self.resources.langbase.lstr(152),
+                30,
+                41,
+                FONT_DEFAULT,
+                false,
+            ),
+            Element::text(
+                self.resources.langbase.lstr(153),
+                30,
+                51,
+                FONT_DEFAULT,
+                false,
+            ),
         ];
 
         let page_n = self.page_items();
         for i in 0..page_n {
             let idx = self.start + i;
             let y = self.item_row(i) as i32 * 8 + 10;
-            els.push(Element::text_color_right(
+            els.push(Element::text(
                 format!("{}.", i + 1),
                 130,
                 y,
                 FONT_GOLD,
+                true,
             ));
             if let Some(hill) = self.resources.hills.hill(idx) {
-                els.push(Element::text_color(&hill.name, 140, y, FONT_DEFAULT));
+                els.push(Element::text(&hill.name, 140, y, FONT_DEFAULT, false));
                 let name_w = self.resources.font.string_width(&hill.name) as i32;
-                els.push(Element::text_color(
+                els.push(Element::text(
                     format!("K{}", hill.kr),
                     145 + name_w,
                     y,
                     FONT_GREET,
+                    false,
                 ));
             }
         }
 
         if self.has_more() {
             let y = self.item_row(page_n) as i32 * 8 + 10;
-            els.push(Element::text_color(
+            els.push(Element::text(
                 self.resources.langbase.lstr(156),
                 140,
                 y,
                 FONT_GREET,
+                false,
             ));
         }
 
         let y = (self.exit_row() - 1) as i32 * 8 + 10;
-        els.push(Element::text_color_right("0.", 130, y, FONT_DEFAULT));
-        els.push(Element::text_color(
+        els.push(Element::text("0.", 130, y, FONT_DEFAULT, true));
+        els.push(Element::text(
             self.resources.langbase.lstr(154),
             140,
             y,
             FONT_DEFAULT,
+            false,
         ));
 
         // Selection box at the correct screen row.
