@@ -20,23 +20,19 @@ impl JumpScene {
     /// Set up wind and first-event state for a new competition event.
     /// Pascal: Tuuli.Alusta(windplace) once per event before any jumpers.
     pub fn setup_event(store: &StoreRef) {
-        store.first_event.set(true);
-        let mut rng = store.rng.borrow_mut();
-        let mut wind = store.wind.borrow_mut();
-        wind.initialize(&mut rng, store.wind_place.get());
+        store.jump_runtime.setup_event();
     }
 
     /// Create a snow system, optionally sampling snow count and wind
     /// on the very first event (Pascal-faithful one-time init).
     fn prepare_snow(store: &StoreRef) -> SnowSystem {
         let mut snow = SnowSystem::new();
-        if store.first_event.get() {
-            let mut rng = store.rng.borrow_mut();
-            let mut wind = store.wind.borrow_mut();
+        if store.jump_runtime.consume_first_event() {
+            let mut rng = store.jump_runtime.rng.borrow_mut();
+            let mut wind = store.jump_runtime.wind.borrow_mut();
             let snow_count = calculate_snow_count(&mut rng);
             snow.set_count(snow_count, &mut rng);
             wind.sample(&mut rng);
-            store.first_event.set(false);
         }
         snow
     }
@@ -147,8 +143,8 @@ impl JumpScene {
     pub fn simulate_hidden(&self, participant: JumpParticipant, hill_idx: usize) -> JumpOutcome {
         let mut runner =
             Self::build_hidden_runner(&self.resources, &self.store, participant, hill_idx);
-        let mut rng = self.store.rng.borrow_mut();
-        let mut wind = self.store.wind.borrow_mut();
+        let mut rng = self.store.jump_runtime.rng.borrow_mut();
+        let mut wind = self.store.jump_runtime.wind.borrow_mut();
         runner.simulate_to_completion(&mut rng, &mut wind)
     }
 
@@ -177,7 +173,7 @@ impl JumpScene {
     }
 
     pub fn elements(&self) -> Vec<Element> {
-        let wind = self.store.wind.borrow();
+        let wind = self.store.jump_runtime.wind.borrow();
         let records = self.store.records.borrow();
         self.runner.borrow_mut().elements(JumpRunnerRenderEnv {
             font: &self.resources.font,
@@ -190,14 +186,14 @@ impl JumpScene {
 
     /// Advance physics, AI, and wind by one frame for the visible runner.
     pub fn update(&self) {
-        let mut rng = self.store.rng.borrow_mut();
-        let mut wind = self.store.wind.borrow_mut();
+        let mut rng = self.store.jump_runtime.rng.borrow_mut();
+        let mut wind = self.store.jump_runtime.wind.borrow_mut();
         self.runner.borrow_mut().update(&mut rng, &mut wind);
     }
 
     pub fn render_snow(&self, framebuffer: &mut [u8]) {
         if let Ok(mut runner) = self.runner.try_borrow_mut() {
-            let wind = self.store.wind.borrow().value;
+            let wind = self.store.jump_runtime.wind.borrow().value;
             runner.render_snow(framebuffer, wind);
         }
     }

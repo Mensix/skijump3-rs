@@ -49,9 +49,7 @@ impl TrainingJumpView {
             JumpInputAction::None => None,
             JumpInputAction::RouteBack => Some(RouteTarget::Back),
             JumpInputAction::ResetWind => {
-                let mut rng = self.store.rng.borrow_mut();
-                let mut wind = self.store.wind.borrow_mut();
-                wind.initialize(&mut rng, self.store.wind_place.get());
+                self.store.jump_runtime.reset_practice_wind();
                 None
             }
             JumpInputAction::ResetJump => {

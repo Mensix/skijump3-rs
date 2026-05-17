@@ -47,7 +47,10 @@ impl ReplayView {
         );
         let mut snow = SnowSystem::new();
         if let Some(trace) = &trace {
-            snow.set_count(trace.meta.snow_count, &mut store.rng.borrow_mut());
+            snow.set_count(
+                trace.meta.snow_count,
+                &mut store.jump_runtime.rng.borrow_mut(),
+            );
         }
         Self {
             resources,

@@ -41,19 +41,73 @@ impl Resources {
 
 pub type ResourcesRef = Rc<Resources>;
 
+/// Runtime state for jump physics, AI, and wind.
+/// Grouped to keep related global mutation together.
+#[derive(Debug, Clone)]
+pub struct JumpRuntime {
+    pub(crate) rng: RefCell<Random>,
+    pub(crate) wind: RefCell<Wind>,
+    wind_place: Cell<u8>,
+    first_event: Cell<bool>,
+}
+
+impl JumpRuntime {
+    pub fn new() -> Self {
+        Self {
+            rng: RefCell::new(Random::default()),
+            wind: RefCell::new(Wind::default()),
+            wind_place: Cell::new(0),
+            first_event: Cell::new(true),
+        }
+    }
+
+    /// Start a new competition event: mark first_event and init wind.
+    /// Pascal: Tuuli.Alusta(windplace) + first-event tracking.
+    pub fn setup_event(&self) {
+        self.first_event.set(true);
+        let mut rng = self.rng.borrow_mut();
+        let mut wind = self.wind.borrow_mut();
+        wind.initialize(&mut rng, self.wind_place.get());
+    }
+
+    /// Check and clear the first-event flag in one atomic step.
+    #[must_use]
+    pub fn consume_first_event(&self) -> bool {
+        self.first_event.replace(false)
+    }
+
+    /// Reset wind for practice mode (F5).
+    pub fn reset_practice_wind(&self) {
+        let mut rng = self.rng.borrow_mut();
+        let mut wind = self.wind.borrow_mut();
+        wind.initialize(&mut rng, self.wind_place.get());
+    }
+
+    pub fn set_wind_place(&self, val: u8) {
+        self.wind_place.set(val);
+    }
+
+    pub fn wind_place(&self) -> u8 {
+        self.wind_place.get()
+    }
+}
+
+impl Default for JumpRuntime {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Store {
+    pub jump_runtime: JumpRuntime,
     pub profiles: RefCell<ProfileStore>,
     pub records: RefCell<RecordStore>,
-    pub rng: RefCell<Random>,
-    pub wind: RefCell<Wind>,
-    pub wind_place: Cell<u8>,
     pub practice_selected_hill: Cell<usize>,
     pub practice_start_gate: Cell<i32>,
     pub(crate) competition: RefCell<Option<Competition>>,
     pub selected_hill: Cell<usize>,
     pub start_gate: Cell<i32>,
-    pub first_event: Cell<bool>,
     pub selected_replay: RefCell<Option<ReplayTrace>>,
     pub selected_main_menu: Cell<usize>,
 }
@@ -68,17 +122,14 @@ impl Store {
     #[must_use]
     pub fn new(records: RecordStore) -> Self {
         Self {
+            jump_runtime: JumpRuntime::new(),
             profiles: RefCell::new(ProfileStore::new()),
             records: RefCell::new(records),
-            rng: RefCell::new(Random::default()),
-            wind: RefCell::new(Wind::default()),
-            wind_place: Cell::new(0),
             practice_selected_hill: Cell::new(0),
             practice_start_gate: Cell::new(DEFAULT_START_GATE),
             competition: RefCell::new(None),
             selected_hill: Cell::new(0),
             start_gate: Cell::new(DEFAULT_START_GATE),
-            first_event: Cell::new(true),
             selected_replay: RefCell::new(None),
             selected_main_menu: Cell::new(0),
         }

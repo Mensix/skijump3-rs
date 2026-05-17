@@ -77,6 +77,7 @@ impl Wind {
         };
     }
 
+    #[allow(dead_code)]
     pub const fn move_to_jumper(&mut self, x: i32, y: i32) {
         self.position = match self.place {
             11 => WindPosition {
