@@ -218,7 +218,7 @@ impl View<RouteTarget> for ReplayView {
                         self.resources
                             .hills
                             .hill(session.trace().meta.hill_idx)
-                            .map_or(1.0, super::super::data::records::HillInfo::pk),
+                            .map_or(1.0, crate::data::records::HillInfo::pk),
                     )
                 ),
                 309,

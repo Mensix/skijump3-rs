@@ -7,7 +7,7 @@ use crate::controllers::competition_jump::{
     CompetitionJumpController, CompetitionRenderState,
 };
 use crate::controllers::training_jump::{TrainingJumpAction, TrainingJumpController};
-use crate::views::competition_results;
+use crate::views::jump::results as competition_results;
 use engine::palette::Palette;
 use engine::ui::{Element, Event, Key, View};
 use std::cell::{Cell, RefCell};
