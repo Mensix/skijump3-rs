@@ -25,6 +25,10 @@ pub enum Key {
 }
 
 pub trait View<T: Clone + PartialEq + 'static> {
+    /// Called once per frame before `elements()`.
+    /// Use for game-state updates, simulation steps, etc.
+    /// Default is a no-op.
+    fn update(&mut self) {}
     fn elements(&self) -> Vec<Element>;
     fn handle_event(&mut self, event: Event) -> Option<T>;
     fn apply_palette(&self, _: &mut Palette) {}

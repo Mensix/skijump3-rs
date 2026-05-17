@@ -249,6 +249,8 @@ impl Game {
     }
 
     fn render_frame(&mut self) -> Result<(), String> {
+        self.router.current_view_mut().update();
+
         let palette = {
             let mut p = self.base_palette.clone();
             self.router.apply_palette(&mut p);

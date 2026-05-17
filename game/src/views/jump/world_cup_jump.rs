@@ -11,12 +11,20 @@ use engine::palette::Palette;
 use engine::ui::{Element, Event, Key, View};
 use std::cell::Cell;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum RenderMode {
+    Jump,
+    Results,
+    Done,
+}
+
 pub struct WorldCupJumpView {
     resources: ResourcesRef,
     store: StoreRef,
     scene: JumpScene,
     controller: WorldCupFlow,
     display_page: Cell<usize>,
+    render_mode: Cell<RenderMode>,
 }
 
 impl WorldCupJumpView {
@@ -35,6 +43,7 @@ impl WorldCupJumpView {
             scene,
             controller: WorldCupFlow::new(),
             display_page: Cell::new(0),
+            render_mode: Cell::new(RenderMode::Jump),
         }
     }
 
@@ -82,31 +91,47 @@ impl WorldCupJumpView {
         els.extend(competition_results::render_header(c, &self.resources));
         els
     }
-}
 
-impl View<RouteTarget> for WorldCupJumpView {
-    fn elements(&self) -> Vec<Element> {
-        self.record_finished_human_jump();
-
+    fn drive_competition(&self) {
         let mut simulate_computer =
             |participant: JumpParticipant, hill_idx: usize| -> crate::jump::types::JumpOutcome {
                 self.scene.simulate_hidden(participant, hill_idx)
             };
 
-        match self
+        let command = self
             .controller
-            .drive(&self.resources, &self.store, &mut simulate_computer)
-        {
+            .drive(&self.resources, &self.store, &mut simulate_computer);
+
+        match command {
             WorldCupCommand::HumanJump {
                 participant,
                 hill_idx,
                 phase_label,
             } => {
                 self.handle_human_jump(participant, hill_idx, phase_label);
-                self.scene.elements()
+                self.render_mode.set(RenderMode::Jump);
             }
-            WorldCupCommand::ShowResults => self.results_page(),
-            WorldCupCommand::Done => vec![],
+            WorldCupCommand::ShowResults => {
+                self.render_mode.set(RenderMode::Results);
+            }
+            WorldCupCommand::Done => {
+                self.render_mode.set(RenderMode::Done);
+            }
+        }
+    }
+}
+
+impl View<RouteTarget> for WorldCupJumpView {
+    fn update(&mut self) {
+        self.record_finished_human_jump();
+        self.drive_competition();
+    }
+
+    fn elements(&self) -> Vec<Element> {
+        match self.render_mode.get() {
+            RenderMode::Jump => self.scene.elements(),
+            RenderMode::Results => self.results_page(),
+            RenderMode::Done => vec![],
         }
     }
 
