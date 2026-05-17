@@ -106,7 +106,7 @@ impl View<RouteTarget> for JumpMenuView {
                 *self.store.competition.borrow_mut() = Some(comp);
                 Some(RouteTarget::CompetitionJump)
             }
-            Some(0) | Some(2) | Some(3) | Some(4) | Some(5) | Some(7) => {
+            Some(0 | 2 | 3 | 4 | 5 | 7) => {
                 Some(RouteTarget::MainMenu)
             }
             _ => None,

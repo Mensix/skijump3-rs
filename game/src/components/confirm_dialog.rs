@@ -1,4 +1,5 @@
 use crate::parsers::langbase::LangBase;
+use crate::text::layout::lstr;
 use engine::ui::{Blinker, Component, Element, Event, Font, Key};
 use std::rc::Rc;
 
@@ -27,21 +28,13 @@ impl ConfirmDialog {
         }
     }
 
-    fn lstr(&self, index: usize, fallback: &str) -> String {
-        let v = self.langbase.lstr(index);
-        if v == "?" {
-            fallback.to_string()
-        } else {
-            v.to_string()
-        }
-    }
 }
 
 impl Component for ConfirmDialog {
     type Action = ConfirmAction;
 
     fn elements(&self) -> Vec<Element> {
-        let str2 = self.lstr(193, "Are you sure?");
+        let str2 = lstr(&self.langbase, 193, "Are you sure?");
         let hint_x = 70 + self.font.string_width(&str2) as i32 + 4;
         let cursor_x = hint_x + 25;
         let mut els = vec![

@@ -159,6 +159,7 @@ impl Config {
         })
     }
 
+    #[must_use] 
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut buf = Vec::new();
         macro_rules! num {

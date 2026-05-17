@@ -1,5 +1,5 @@
 use crate::parsers::{AssetParser, ParseError};
-use crate::utils::pascal_decode;
+use crate::text::encoding;
 
 pub struct NamesParser;
 
@@ -49,7 +49,7 @@ impl AssetParser<Vec<String>> for NamesParser {
                 continue;
             }
 
-            let name = pascal_decode(&trimmed).trim().to_string();
+            let name = encoding::decode(&trimmed).trim().to_string();
             if !name.is_empty() {
                 names.push(name);
             }

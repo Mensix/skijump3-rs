@@ -1,6 +1,6 @@
 use crate::data::hill_profile::HillTerrain;
 use crate::jump::animation::crash_risk;
-use crate::jump::math::pascal_round;
+use crate::jump::math;
 use crate::rng::Random;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -27,13 +27,13 @@ pub(crate) fn landing_risk(
     landing_style: u8,
 ) -> LandingRisk {
     let slope_angle = terrain.hill_angle(x);
-    let quality = pascal_round(f64::from(slope_angle) * 1.34 + f64::from(body_angle) / 10.0);
+    let quality = math::round(f64::from(slope_angle) * 1.34 + f64::from(body_angle) / 10.0);
     let mut risk = crash_risk(slope_angle) as i32;
     if f64::from(distance) < (20.0 / 3.0) * f64::from(hill_kr) {
         risk = 1;
     }
     if quality < 63 {
-        risk = pascal_round(f64::from(risk) * (1.0 + f64::from(63 - quality) * 0.075));
+        risk = math::round(f64::from(risk) * (1.0 + f64::from(63 - quality) * 0.075));
     }
 
     let mut fall_type = 0;
@@ -68,7 +68,7 @@ pub(crate) fn calculate_score(
     rng: &mut Random,
 ) -> ScoreResult {
     let mut base = style_base;
-    let short_jump_penalty_count = pascal_round(
+    let short_jump_penalty_count = math::round(
         (f64::from(hill_kr) + f64::from(hill_kr) / 20.0 - (f64::from(distance) / 10.0)) / 6.0,
     );
     if short_jump_penalty_count > 0 {
@@ -84,8 +84,8 @@ pub(crate) fn calculate_score(
     let mut style_points = [0; 5];
     style_points[0] = base;
     for point in style_points.iter_mut().skip(1) {
-        let temp = rng.random_i32(4);
-        *point = base - (temp - 1) * 5;
+        let offset = rng.random_i32(4);
+        *point = base - (offset - 1) * 5;
     }
 
     let mut min_style = 200;
@@ -98,7 +98,7 @@ pub(crate) fn calculate_score(
 
     let mut score = style_points.iter().sum::<i32>() - min_style - max_style;
     if hill_kr != 0 {
-        score += pascal_round(
+        score += math::round(
             ((f64::from(distance) / 10.0) - (f64::from(hill_kr) * 2.0 / 3.0))
                 * (180.0 / f64::from(hill_kr))
                 * 10.0,

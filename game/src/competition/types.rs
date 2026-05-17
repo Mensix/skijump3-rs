@@ -35,6 +35,7 @@ pub enum QualificationStatus {
 }
 
 impl QualificationStatus {
+    #[must_use] 
     pub fn can_jump(&self) -> bool {
         matches!(
             self,
@@ -72,6 +73,7 @@ pub struct Participant {
 }
 
 impl Participant {
+    #[must_use] 
     pub fn computer(id: usize, name: String) -> Self {
         Self {
             id,
@@ -93,6 +95,7 @@ impl Participant {
         }
     }
 
+    #[must_use] 
     pub fn display_name(&self) -> &str {
         if self.real_name.is_empty() {
             &self.name

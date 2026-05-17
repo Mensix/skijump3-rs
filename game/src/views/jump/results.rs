@@ -41,8 +41,7 @@ pub(crate) struct ResultsEntry {
 
 pub(crate) fn build_results_page(competition: &Competition, page: usize) -> ResultsPage {
     let standings = standings_for_phase(competition);
-    let total_pages = ((standings.len() + QUALIFICATION_ITEMS_PER_PAGE - 1)
-        / QUALIFICATION_ITEMS_PER_PAGE)
+    let total_pages = standings.len().div_ceil(QUALIFICATION_ITEMS_PER_PAGE)
         .max(1);
     let page = page.min(total_pages.saturating_sub(1));
     let start = page * QUALIFICATION_ITEMS_PER_PAGE;
@@ -78,8 +77,7 @@ pub(crate) fn build_results_page(competition: &Competition, page: usize) -> Resu
 }
 
 pub(crate) fn total_pages(competition: &Competition) -> usize {
-    ((standings_for_phase(competition).len() + QUALIFICATION_ITEMS_PER_PAGE - 1)
-        / QUALIFICATION_ITEMS_PER_PAGE)
+    standings_for_phase(competition).len().div_ceil(QUALIFICATION_ITEMS_PER_PAGE)
         .max(1)
 }
 

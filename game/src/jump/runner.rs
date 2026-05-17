@@ -26,7 +26,7 @@ pub(crate) struct JumpRunner {
 
 impl JumpRunner {
     /// Create a runner with shared environment initialization:
-    /// hill/terrain loading, wind init, Pascal snow init (first_event gate), record distance.
+    /// hill/terrain loading, wind init, Pascal snow init (`first_event` gate), record distance.
     pub(crate) fn new_with_env(
         hill_idx: usize,
         start_gate: i32,

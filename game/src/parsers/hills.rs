@@ -1,13 +1,12 @@
 use crate::data::records::{HillCatalog, HillInfo};
 use crate::parsers::{AssetParser, ParseError};
-use crate::utils::pascal_decode;
+use crate::text::encoding;
+use crate::text::layout;
 
 pub struct HillBaseParser;
 
-use crate::utils;
-
 fn decode_line(bytes: &[u8]) -> String {
-    pascal_decode(utils::trim_ascii(bytes))
+    encoding::decode(layout::trim_ascii(bytes))
 }
 
 impl AssetParser<HillCatalog> for HillBaseParser {

@@ -1,5 +1,5 @@
 use crate::jump::animation::landing_height;
-use crate::jump::math::{nsqrt, pascal_round};
+use crate::jump::math::{self, nsqrt};
 use crate::jump::types::{JumpInput, JumpPhase, JumpSnapshot};
 use crate::rng::Random;
 
@@ -41,18 +41,18 @@ impl ComputerInputProvider {
         }
 
         let jumper = self.pascal_jumper.max(1);
-        let mut temp = rng.random_i32(80);
-        temp -= rng.random_i32(24 * jumper);
-        temp -= rng.random_i32(12 * jumper);
-        temp -= rng.random_i32(10 * jumper);
-        temp = 63 - temp;
+        let mut skill_raw = rng.random_i32(80);
+        skill_raw -= rng.random_i32(24 * jumper);
+        skill_raw -= rng.random_i32(12 * jumper);
+        skill_raw -= rng.random_i32(10 * jumper);
+        skill_raw = 63 - skill_raw;
 
-        self.skill = 17 - pascal_round(nsqrt(f64::from(temp)) / 4.0);
+        self.skill = 17 - math::round(nsqrt(f64::from(skill_raw)) / 4.0);
         if self.skill > 16 {
             self.skill = 16;
         }
 
-        self.reflex = pascal_round(f64::from(34 + jumper + rng.random_i32(10)) / 5.0).max(1);
+        self.reflex = math::round(f64::from(34 + jumper + rng.random_i32(10)) / 5.0).max(1);
 
         if rng.random_i32(300 - jumper) == 0 {
             self.skill = 17 + rng.random_i32(3 + jumper / 25);
@@ -74,7 +74,7 @@ impl ComputerInputProvider {
 
         let mut landing_height = landing_height(snapshot.slope_angle);
         if self.planned_two_footed {
-            landing_height = pascal_round(f64::from(landing_height) * 0.6);
+            landing_height = math::round(f64::from(landing_height) * 0.6);
         }
 
         if snapshot.table_distance > 3.0 && snapshot.height < 4 {

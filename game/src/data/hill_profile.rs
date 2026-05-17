@@ -264,11 +264,11 @@ impl HillTerrain {
         kr: i64,
         pk: f64,
     ) {
-        let keula_idx = tip_x.max(0) as usize;
+        let tip_idx = tip_x.max(0) as usize;
         let drawable_width = width.min(profile_y.len());
-        for x in keula_idx..drawable_width.saturating_sub(10) {
+        for x in tip_idx..drawable_width.saturating_sub(10) {
             let x2 = x as i64 - i64::from(tip_x);
-            let y2 = i64::from(profile_y[x]) - i64::from(profile_y[keula_idx]);
+            let y2 = i64::from(profile_y[x]) - i64::from(profile_y[tip_idx]);
             let hp = ((((x2 * x2 + y2 * y2) as f64).sqrt() * pk * 0.5).round() as i64) * 5;
             if hp >= (2 * kr * 10) / 3 && hp <= kr * 12 {
                 let color = if hp < kr * 10 { 238 } else { 239 };

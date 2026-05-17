@@ -53,7 +53,7 @@ impl CompetitionJumpController {
         }
 
         let comp = store.competition.borrow();
-        let is_human = comp.as_ref().is_some_and(|c| c.is_human_current());
+        let is_human = comp.as_ref().is_some_and(super::super::competition::machine::Competition::is_human_current);
         drop(comp);
         if !is_human {
             return;

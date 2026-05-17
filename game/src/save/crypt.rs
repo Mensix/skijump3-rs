@@ -4,9 +4,10 @@
 /// The encryption shifts ASCII digit characters by +21:
 /// `'0'` (48) → `'E'` (69), `'1'` (49) → `'F'` (70), ..., `'9'` (57) → `'N'` (78).
 ///
-/// The high_extra byte can be 0..=180 (values > 127 are non-UTF-8, so
+/// The `high_extra` byte can be 0..=180 (values > 127 are non-UTF-8, so
 /// the output is `Vec<u8>`, not `String`). Callers writing to text files
 /// should treat this as raw byte output.
+#[must_use] 
 pub fn crypt(value: i64, order: usize) -> Vec<u8> {
     let low_5digits = (value % 100_000) as usize;
     let high_extra = if value >= 100_000 {
@@ -41,6 +42,7 @@ pub fn crypt(value: i64, order: usize) -> Vec<u8> {
 /// Convenience: convert crypt output to str for use with `uncrypt`.
 /// Only safe when `high_extra < 128`, i.e. `value < 5_300_000`.
 /// Panics otherwise (single bytes >= 128 are not valid UTF-8).
+#[must_use] 
 pub fn crypt_str(value: i64, order: usize) -> String {
     let bytes = crypt(value, order);
     String::from_utf8(bytes).expect("crypt output should be valid UTF-8 for this value range")
@@ -60,12 +62,13 @@ fn valuestr(text: &str, seed: u32) -> u32 {
     let result = running_hash
         .wrapping_mul(seed16.wrapping_rem(7).wrapping_add(1))
         .wrapping_add(seed16);
-    result as u32
+    u32::from(result)
 }
 
 /// Pascal `ProfileCode` — checksum for a PLAYERS.SKI profile entry.
 /// Fields are passed positionally matching the Pascal `Profile_type` order.
 #[allow(clippy::too_many_arguments)]
+#[must_use] 
 pub fn profile_code(
     name: &str,
     bestresult: &str,
@@ -89,18 +92,18 @@ pub fn profile_code(
     let concat = format!("{name}{bestresult}{best4result}");
     let mut code: i32 = valuestr(&concat, 11) as i32;
 
-    code += (suitcolor ^ 31) as i32;
-    code += (skicolor ^ 53) as i32;
-    code += (kothlevel & 44) as i32;
-    code += (replace | 91) as i32;
-    code += (bestwchill ^ 157) as i32;
-    code += (bestwcjump & 311) as i32;
-    code += (besthill ^ 113) as i32;
-    code += (bestjump & 277) as i32;
-    code += (bestpoints | 133) as i32;
-    code += (best4points & 31) as i32;
+    code += i32::from(suitcolor ^ 31);
+    code += i32::from(skicolor ^ 53);
+    code += i32::from(kothlevel & 44);
+    code += i32::from(replace | 91);
+    code += i32::from(bestwchill ^ 157);
+    code += i32::from(bestwcjump & 311);
+    code += i32::from(besthill ^ 113);
+    code += i32::from(bestjump & 277);
+    code += i32::from(bestpoints | 133);
+    code += i32::from(best4points & 31);
 
-    code += (cstyle ^ 37) as i32;
+    code += i32::from(cstyle ^ 37);
     code += wcs & 741;
     code += legswon | 453;
     code += wcswon ^ 857;

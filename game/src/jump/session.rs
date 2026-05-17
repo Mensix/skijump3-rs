@@ -2,7 +2,7 @@ use crate::data::hill_profile::HillTerrain;
 use crate::data::records::HillInfo;
 use crate::jump::config::{JumpConfig, JumpParticipant};
 use crate::jump::frame::JumpRenderFrame;
-use crate::jump::math::pascal_round;
+use crate::jump::math;
 use crate::jump::policy::JumpPolicy;
 use crate::jump::replay::{ReplayMeta, ReplayRecorder, ReplayTrace};
 use crate::jump::types::{FlightWind, JumpInput, JumpOutcome, JumpPhase, JumpSnapshot};
@@ -24,10 +24,10 @@ fn find_hill_record_marker(
     for x in tip_x..1024 {
         let dx = f64::from(x - tip_x);
         let dy = f64::from(terrain.height_at(x) - tip_y);
-        let hp = pascal_round((dx * dx + dy * dy).sqrt() * pk * 0.5) * 5;
+        let hp = math::round((dx * dx + dy * dy).sqrt() * pk * 0.5) * 5;
         if hp >= record_distance {
-            let kor = terrain.height_at(x);
-            return Some((x, kor - 9));
+            let ground_y = terrain.height_at(x);
+            return Some((x, ground_y - 9));
         }
     }
     None

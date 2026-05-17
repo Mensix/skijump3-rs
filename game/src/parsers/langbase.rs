@@ -1,5 +1,5 @@
 use crate::parsers::{AssetParser, ParseError};
-use crate::utils;
+use crate::text::layout;
 use std::cell::Cell;
 
 const NUM_STR: usize = 599;
@@ -36,7 +36,7 @@ fn parse_language_names(data: &[u8]) -> Vec<String> {
     let mut names = Vec::new();
     let mut expect_name = false;
     for line in data.split(|&b| b == b'\n') {
-        let trimmed = utils::trim_ascii(line);
+        let trimmed = layout::trim_ascii(line);
         if trimmed.is_empty() {
             expect_name = false;
             continue;
@@ -66,7 +66,7 @@ impl AssetParser<LangBase> for LangBaseParser {
         let mut current_lang: Option<usize> = None;
 
         for line in data.split(|&b| b == b'\n') {
-            let trimmed = utils::trim_ascii(line);
+            let trimmed = layout::trim_ascii(line);
 
             if trimmed.is_empty() {
                 continue;

@@ -1,7 +1,7 @@
 use crate::components::replay_playback::ReplayPlayback;
 use crate::data::hill_profile::HillTerrain;
 use crate::data::records::HillInfo;
-use crate::jump::math::pascal_round;
+use crate::jump::math;
 use crate::parsers::langbase::LangBase;
 use crate::jump::presentation::{self, WindGaugePosition};
 use crate::jump::replay_player::ReplaySession;
@@ -326,11 +326,11 @@ fn muuta_replay(palette: &mut Palette, mode: u8) {
         4 => 251,
         _ => 249,
     };
-    for temp in 249..=253 {
-        if temp == col {
-            palette.set(temp as usize, [10, 63, 20]);
+    for i in 249..=253 {
+        if i == col {
+            palette.set(i as usize, [10, 63, 20]);
         } else {
-            palette.set(temp as usize, [0, 0, 0]);
+            palette.set(i as usize, [0, 0, 0]);
         }
     }
 }
@@ -343,12 +343,12 @@ fn replay_time(frame_index: usize, flight_start: usize, flight_stop: usize) -> S
     if frame_index <= flight_start {
         return "0.00".to_string();
     }
-    let temp = if frame_index > flight_stop {
+    let flight_frames = if frame_index > flight_stop {
         flight_stop - flight_start
     } else {
         frame_index - flight_start
     };
-    let hundredths = pascal_round(temp as f64 * 10.0 / 7.0).max(0);
+    let hundredths = math::round(flight_frames as f64 * 10.0 / 7.0).max(0);
     format!("{}.{:02}", hundredths / 100, hundredths % 100)
 }
 

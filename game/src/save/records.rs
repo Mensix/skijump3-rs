@@ -1,12 +1,12 @@
 use crate::data::records::RecordStore;
 use crate::save::crypt::crypt;
-use crate::utils::pascal_encode;
+use crate::text::encoding;
 
 const NUM_TOPS: usize = 41;
 const NUM_HILL_RECORDS: usize = 20;
 
 fn write_line(out: &mut Vec<u8>, text: &str) {
-    out.extend(&pascal_encode(text));
+    out.extend(&encoding::encode(text));
     out.push(b'\n');
 }
 
@@ -15,6 +15,7 @@ fn write_crypt(out: &mut Vec<u8>, value: i64, order: usize) {
     out.push(b'\n');
 }
 
+#[must_use] 
 pub fn records_to_bytes(store: &RecordStore) -> Vec<u8> {
     let mut out = Vec::new();
 

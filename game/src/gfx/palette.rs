@@ -1,5 +1,56 @@
 use engine::palette::Palette;
 
+pub const UI_PALETTE_BASE: usize = 216;
+
+pub const STANDARD_UI_PALETTE: [[u8; 3]; 40] = [
+    [53, 17, 53],
+    [63, 0, 0],
+    [43, 12, 43],
+    [63, 0, 0],
+    [49, 45, 0],
+    [34, 31, 0],
+    [63, 0, 0],
+    [56, 54, 54],
+    [63, 63, 21],
+    [54, 52, 10],
+    [42, 42, 42],
+    [42, 20, 10],
+    [21, 21, 21],
+    [57, 45, 38],
+    [63, 0, 0],
+    [63, 63, 32],
+    [40, 40, 41],
+    [48, 48, 49],
+    [55, 55, 56],
+    [63, 63, 63],
+    [56, 13, 13],
+    [13, 53, 13],
+    [23, 23, 63],
+    [63, 23, 23],
+    [63, 63, 63],
+    [44, 44, 44],
+    [0, 0, 0],
+    [18, 13, 34],
+    [34, 13, 18],
+    [20, 20, 20],
+    [63, 57, 9],
+    [9, 57, 63],
+    [23, 16, 43],
+    [43, 16, 23],
+    [26, 26, 26],
+    [52, 47, 0],
+    [0, 47, 52],
+    [51, 51, 51],
+    [38, 38, 38],
+    [63, 63, 63],
+];
+
+pub fn apply_standard_ui_palette(palette: &mut Palette) {
+    for (i, &rgb) in STANDARD_UI_PALETTE.iter().enumerate() {
+        palette.set(UI_PALETTE_BASE + i, rgb);
+    }
+}
+
 pub const FONT_DEFAULT: u8 = 240;
 pub const FONT_HEADER: u8 = 246;
 pub const FONT_GOLD: u8 = 246;
@@ -13,8 +64,7 @@ pub const BG_LIST: u8 = 8;
 pub const BG_LEFT: u8 = 243;
 pub const BG_RIGHT: u8 = 244;
 pub const BG_ORDER: u8 = 243;
-pub const BG_MENU: u8 = 243;
-pub const BG_PANEL: u8 = 244;
+
 
 pub const SUIT_PALETTE_BASE: usize = 215;
 pub const SKI_PALETTE_INDEX: usize = 231;

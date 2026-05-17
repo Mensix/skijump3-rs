@@ -9,12 +9,13 @@ pub mod parsers;
 pub mod rng;
 pub mod route;
 pub mod store;
-pub mod utils;
+pub mod text;
 pub mod views;
 pub mod save;
 
 use crate::components::layout::MainLayout;
 use crate::data::records::{HillCatalog, RecordStore};
+use crate::gfx::palette::apply_standard_ui_palette;
 use crate::save::{SaveManager, SaveRef};
 use crate::store::{Resources, ResourcesRef, Store, StoreRef};
 use engine::consts::{FONT_GLYPH_COUNT, HEIGHT, WIDTH};
@@ -47,56 +48,6 @@ const HILLBASE_SKI: &str = "HILLBASE.SKI";
 const HISCORE_SKI: &str = "HISCORE.SKI";
 const NAMES_FILES: &[&str] = &["NAMES0.SKI", "NAMES1.SKI", "NAMES2.SKI"];
 const VERSION: &str = "3.12";
-const UI_PALETTE_BASE: usize = 216;
-
-const STANDARD_UI_PALETTE: [[u8; 3]; 40] = [
-    [53, 17, 53],
-    [63, 0, 0],
-    [43, 12, 43],
-    [63, 0, 0],
-    [49, 45, 0],
-    [34, 31, 0],
-    [63, 0, 0],
-    [56, 54, 54],
-    [63, 63, 21],
-    [54, 52, 10],
-    [42, 42, 42],
-    [42, 20, 10],
-    [21, 21, 21],
-    [57, 45, 38],
-    [63, 0, 0],
-    [63, 63, 32],
-    [40, 40, 41],
-    [48, 48, 49],
-    [55, 55, 56],
-    [63, 63, 63],
-    [56, 13, 13],
-    [13, 53, 13],
-    [23, 23, 63],
-    [63, 23, 23],
-    [63, 63, 63],
-    [44, 44, 44],
-    [0, 0, 0],
-    [18, 13, 34],
-    [34, 13, 18],
-    [20, 20, 20],
-    [63, 57, 9],
-    [9, 57, 63],
-    [23, 16, 43],
-    [43, 16, 23],
-    [26, 26, 26],
-    [52, 47, 0],
-    [0, 47, 52],
-    [51, 51, 51],
-    [38, 38, 38],
-    [63, 63, 63],
-];
-
-fn apply_standard_ui_palette(palette: &mut Palette) {
-    for (i, &rgb) in STANDARD_UI_PALETTE.iter().enumerate() {
-        palette.set(UI_PALETTE_BASE + i, rgb);
-    }
-}
 
 fn load_font(sprites: &[SpriteData]) -> Font {
     let mut font = Font::new();
@@ -156,10 +107,10 @@ impl Game {
             Rc::clone(&langbase),
         ));
 
-        let start_route = if save_manager.config.borrow().languagenumber != 255 {
-            RouteTarget::MainMenu
-        } else {
+        let start_route = if save_manager.config.borrow().languagenumber == 255 {
             RouteTarget::Welcome
+        } else {
+            RouteTarget::MainMenu
         };
 
         let player_names = load_player_names(&assets);

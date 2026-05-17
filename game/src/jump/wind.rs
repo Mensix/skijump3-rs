@@ -1,4 +1,4 @@
-use crate::jump::math::pascal_round;
+use crate::jump::math;
 use crate::rng::Random;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -53,7 +53,7 @@ impl Wind {
 
     pub fn sample(&mut self, rng: &mut Random) -> i32 {
         self.shift(rng);
-        self.value = pascal_round(((self.angle.to_radians()).cos() * self.strength as f32) as f64);
+        self.value = math::round(f64::from((self.angle.to_radians()).cos() * self.strength as f32));
         self.value
     }
 

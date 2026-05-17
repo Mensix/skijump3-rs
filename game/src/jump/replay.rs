@@ -1,4 +1,4 @@
-use crate::utils::pascal_decode;
+use crate::text::encoding;
 use std::fmt::Write;
 
 const REPLAY_FRAME_CAPACITY: usize = 1001;
@@ -143,12 +143,12 @@ impl ReplayTrace {
         let ski_color = parser.u8_line("ski_color")?;
         let author = {
             parser.line("author")?;
-            pascal_decode(parser.previous_raw_line())
+            encoding::decode(parser.previous_raw_line())
         };
         let author_raw = parser.previous_raw_line();
         let name = {
             parser.line("name")?;
-            pascal_decode(parser.previous_raw_line())
+            encoding::decode(parser.previous_raw_line())
         };
         let saved_at = parser.string_line("saved_at")?;
         let has_bib = parser.i32_line("has_bib")? != 0;

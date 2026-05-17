@@ -3,7 +3,7 @@ use crate::data::records::{HillRecord, Hiscore};
 use crate::gfx::palette::{FONT_DEFAULT, FONT_NEW, FONT_GREET, FONT_HELP, apply_menu_tint};
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
-use crate::utils::{is_computer_name, shorten_name};
+use crate::text::layout::{is_computer_name, lstr, shorten_name};
 use engine::ui::{Cell, Table};
 use engine::ui::{Element, Event, Key, View};
 
@@ -16,15 +16,6 @@ enum PageAction {
     Prev,
     First,
     Back,
-}
-
-fn lstr(resources: &ResourcesRef, index: usize, fallback: &str) -> String {
-    let v = resources.langbase.lstr(index);
-    if v == "?" {
-        fallback.to_string()
-    } else {
-        v.to_string()
-    }
 }
 
 fn txtp(value: i64) -> String {
@@ -100,11 +91,11 @@ impl HallOfFameView {
         let mut yy = 6;
         let col = [30, 146, 173, 215];
         let (title, entries, start, sortby) = match phase {
-            0 => (lstr(&self.resources, 163, "World Cup"), 20, 1, false),
-            1 => (lstr(&self.resources, 164, "Team Cup"), 10, 21, false),
+            0 => (lstr(&self.resources.langbase, 163, "World Cup"), 20, 1, false),
+            1 => (lstr(&self.resources.langbase, 164, "Team Cup"), 10, 21, false),
             _ => {
                 yy = 126;
-                (lstr(&self.resources, 165, "Four Hills"), 5, 31, true)
+                (lstr(&self.resources.langbase, 165, "Four Hills"), 5, 31, true)
             }
         };
 
@@ -113,37 +104,37 @@ impl HallOfFameView {
         yy += 17;
 
         table.push(Cell::left(
-            lstr(&self.resources, 166, "Name"),
+            lstr(&self.resources.langbase, 166, "Name"),
             col[0],
             yy,
             FONT_NEW,
         ));
         table.push(Cell::left(
-            lstr(&self.resources, 167, "Pos"),
+            lstr(&self.resources.langbase, 167, "Pos"),
             col[1],
             yy,
             FONT_NEW,
         ));
         table.push(Cell::left(
-            lstr(&self.resources, 168, "Points"),
+            lstr(&self.resources.langbase, 168, "Points"),
             col[2],
             yy,
             FONT_NEW,
         ));
         table.push(Cell::left(
-            lstr(&self.resources, 169, "Date"),
+            lstr(&self.resources.langbase, 169, "Date"),
             col[3],
             yy,
             FONT_NEW,
         ));
 
         let records = self.store.records.borrow();
-        for temp in start..start + entries {
+        for idx in start..start + entries {
             yy += 8;
-            let Some(hi) = records.top(temp) else {
+            let Some(hi) = records.top(idx) else {
                 continue;
             };
-            self.push_hiscore_row(&mut table, hi, temp - start + 1, yy, col, sortby);
+            self.push_hiscore_row(&mut table, hi, idx - start + 1, yy, col, sortby);
         }
 
         els.extend(table.into_elements());
@@ -190,20 +181,20 @@ impl HallOfFameView {
         let mut yy = 12;
         let mut table = Table::new();
         table.push(Cell::left(
-            lstr(&self.resources, 160, "King of the Hill"),
+            lstr(&self.resources.langbase, 160, "King of the Hill"),
             30,
             6,
             FONT_DEFAULT,
         ));
 
         let records = self.store.records.borrow();
-        for temp in 1..=6 {
+        for idx in 1..=6 {
             yy += 18;
             table.push(Cell::left(
                 format!(
                     "{}. {}",
-                    temp,
-                    lstr(&self.resources, 130 + temp, "Challenge")
+                    idx,
+                    lstr(&self.resources.langbase, 130 + idx, "Challenge")
                 ),
                 col[0],
                 yy,
@@ -211,8 +202,8 @@ impl HallOfFameView {
             ));
             yy += 10;
 
-            let name = lstr(&self.resources, 161, "Nobody");
-            let Some(hi) = records.top(temp + 35) else {
+            let name = lstr(&self.resources.langbase, 161, "Nobody");
+            let Some(hi) = records.top(idx + 35) else {
                 table.push(Cell::left(name, col[1], yy, FONT_HELP));
                 continue;
             };
@@ -253,9 +244,9 @@ impl View<RouteTarget> for HallOfFameView {
         els.extend(page_hints(
             self.page,
             HALL_PAGES,
-            &lstr(&self.resources, 246, "Back"),
-            &lstr(&self.resources, 247, "Next"),
-            &lstr(&self.resources, 248, "End"),
+            &lstr(&self.resources.langbase, 246, "Back"),
+            &lstr(&self.resources.langbase, 247, "Next"),
+            &lstr(&self.resources.langbase, 248, "End"),
         ));
         els
     }
@@ -299,33 +290,33 @@ impl HillRecordsView {
         let start = phase * PAGE_SIZE;
         let loop_count = (self.resources.hills.len().saturating_sub(start)).min(PAGE_SIZE);
         let title = if phase == 0 {
-            lstr(&self.resources, 170, "Hill Records")
+            lstr(&self.resources.langbase, 170, "Hill Records")
         } else {
-            lstr(&self.resources, 156, "Extra Hill Records")
+            lstr(&self.resources.langbase, 156, "Extra Hill Records")
         };
         let mut table = Table::new();
         table.push(Cell::left(title, 30, 6, FONT_DEFAULT));
         table.push(Cell::left(
-            lstr(&self.resources, 106, "Hill"),
+            lstr(&self.resources.langbase, 106, "Hill"),
             col[0],
             23,
             FONT_DEFAULT,
         ));
         table.push(Cell::left(
-            lstr(&self.resources, 171, "Who"),
+            lstr(&self.resources.langbase, 171, "Who"),
             col[1],
             23,
             FONT_DEFAULT,
         ));
         table.push(Cell::right(
-            lstr(&self.resources, 172, "Length"),
+            lstr(&self.resources.langbase, 172, "Length"),
             col[2],
             23,
             FONT_DEFAULT,
         ));
         table.push(Cell::left("(K)", col[3], 23, FONT_DEFAULT));
         table.push(Cell::left(
-            lstr(&self.resources, 169, "Date"),
+            lstr(&self.resources.langbase, 169, "Date"),
             col[4],
             23,
             FONT_DEFAULT,
@@ -415,9 +406,9 @@ impl View<RouteTarget> for HillRecordsView {
         els.extend(page_hints(
             self.page,
             pages,
-            &lstr(&self.resources, 246, "Back"),
-            &lstr(&self.resources, 247, "Next"),
-            &lstr(&self.resources, 248, "End"),
+            &lstr(&self.resources.langbase, 246, "Back"),
+            &lstr(&self.resources.langbase, 247, "Next"),
+            &lstr(&self.resources.langbase, 248, "End"),
         ));
         els
     }

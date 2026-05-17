@@ -21,6 +21,7 @@ pub struct CompetitionField {
 }
 
 impl CompetitionField {
+    #[must_use] 
     pub fn new(participants: Vec<Participant>) -> Self {
         let count = participants.len();
         let master_order: Vec<usize> = (0..count).collect();
@@ -32,14 +33,17 @@ impl CompetitionField {
         }
     }
 
+    #[must_use] 
     pub fn len(&self) -> usize {
         self.participants.len()
     }
 
+    #[must_use] 
     pub fn is_empty(&self) -> bool {
         self.participants.is_empty()
     }
 
+    #[must_use] 
     pub fn get(&self, idx: usize) -> &Participant {
         &self.participants[idx]
     }
@@ -88,11 +92,13 @@ impl CompetitionField {
     }
 
     /// Number of non-injured participants.
+    #[must_use] 
     pub fn num_active(&self) -> usize {
         self.participants.iter().filter(|p| p.injury == 0).count()
     }
 
     /// How many have `QualificationStatus` that lets them jump the current round.
+    #[must_use] 
     pub fn num_qualified(&self) -> usize {
         self.participants
             .iter()
@@ -103,10 +109,11 @@ impl CompetitionField {
     /// Build an ordered start list for the given phase.
     ///
     /// - **Qualification**: reverse `master_order`, only non-injured,
-    ///   skipping PreQualified.
+    ///   skipping `PreQualified`.
     /// - **Round 1**: reverse `event_order`, only qualified.
     /// - **Round 2**: reverse `event_order`, only qualified.
     /// - **Training**: reverse `master_order`, only non-injured.
+    #[must_use] 
     pub fn build_start_list(&self, phase: CompetitionPhase) -> Vec<usize> {
         match phase {
             CompetitionPhase::Training(_) => self

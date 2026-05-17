@@ -5,6 +5,7 @@ use crate::data::profile::ProfileStore;
 const TOTAL_SLOTS: usize = 75;
 
 /// Build a Competition from game state.
+#[must_use] 
 pub fn build_competition(
     style: CupStyle,
     profiles: &ProfileStore,

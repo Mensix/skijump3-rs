@@ -27,6 +27,7 @@ pub struct Competition {
 }
 
 impl Competition {
+    #[must_use] 
     pub fn new(style: CupStyle, participants: Vec<Participant>, hill_order: Vec<usize>) -> Self {
         Self {
             field: CompetitionField::new(participants),
@@ -42,6 +43,7 @@ impl Competition {
 
     // ── queries ────────────────────────────────────────────────
 
+    #[must_use] 
     pub fn current_jumper(&self) -> Option<usize> {
         if self.start_pos < self.start_list.len() {
             Some(self.start_list[self.start_pos])
@@ -50,26 +52,30 @@ impl Competition {
         }
     }
 
+    #[must_use] 
     pub fn is_human_current(&self) -> bool {
         self.current_jumper()
-            .map(|idx| !self.field.get(idx).is_computer)
-            .unwrap_or(false)
+            .is_some_and(|idx| !self.field.get(idx).is_computer)
     }
 
+    #[must_use] 
     pub fn is_over(&self) -> bool {
         self.phase == CompetitionPhase::SeasonComplete
     }
 
+    #[must_use] 
     pub fn phase_progress(&self) -> (usize, usize) {
         (self.start_pos, self.start_list.len())
     }
 
     /// Number of events in the season.
+    #[must_use] 
     pub fn total_events(&self) -> usize {
         self.hill_order.len()
     }
 
     /// Participants in event-points order (for results lists).
+    #[must_use] 
     pub fn event_standings(&self) -> Vec<&Participant> {
         self.field
             .event_order
@@ -79,6 +85,7 @@ impl Competition {
     }
 
     /// Participants in season-points order (for WC standings).
+    #[must_use] 
     pub fn overall_standings(&self) -> Vec<&Participant> {
         self.field
             .master_order
@@ -99,7 +106,7 @@ impl Competition {
             CompetitionPhase::Training(n) => {
                 if self.start_pos >= self.start_list.len() {
                     let next = n + 1;
-                    if next as usize <= self.trainrounds {
+                    if next <= self.trainrounds {
                         self.enter_phase(CompetitionPhase::Training(next));
                     } else {
                         self.enter_phase(CompetitionPhase::Qualification);

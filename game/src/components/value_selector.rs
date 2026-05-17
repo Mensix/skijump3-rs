@@ -175,16 +175,16 @@ impl ValueSelector {
                 self.border,
             ),
         ];
-        for temp in 0..=self.max {
-            let y = self.y + 4 + temp as i32 * 8;
-            els.push(Element::fillbox(self.x + 6, y, 19, 5, (temp as u8 + 1) * 5));
+        for value in 0..=self.max {
+            let y = self.y + 4 + value as i32 * 8;
+            els.push(Element::fillbox(self.x + 6, y, 19, 5, (value as u8 + 1) * 5));
             if self.suit_boxes {
                 els.push(Element::box_(
                     self.x + 6,
                     y,
                     19,
                     5,
-                    (temp as u8 + 1) * 5 + 2,
+                    (value as u8 + 1) * 5 + 2,
                 ));
             }
         }
