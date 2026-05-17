@@ -1,4 +1,3 @@
-use crate::competition::types::Participant;
 use crate::data::hill_profile::HillTerrain;
 use crate::data::records::HillInfo;
 use crate::jump::policy::{JumpPolicy, JumperControl};
@@ -34,25 +33,6 @@ impl JumpParticipant {
             &self.name
         } else {
             &self.real_name
-        }
-    }
-}
-
-impl From<&Participant> for JumpParticipant {
-    fn from(p: &Participant) -> Self {
-        Self {
-            id: p.id,
-            ai_id: p.ai_id,
-            name: p.name.clone(),
-            real_name: p.real_name.clone(),
-            suit_color: p.suit_color,
-            ski_color: p.ski_color,
-            team: p.team,
-            control: if p.is_computer {
-                JumperControl::Computer
-            } else {
-                JumperControl::Human
-            },
         }
     }
 }

@@ -8,6 +8,24 @@ const QUALIFICATION_SPOTS: usize = 50;
 const ROUND2_SPOTS: usize = 30;
 const PRE_QUALIFIED_COUNT: usize = 10;
 
+/// Pure decision returned by `Competition::decide_next()`.
+/// No mutation, no IO — just describes what the caller should do.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StepDecision {
+    /// Season is over.
+    Done,
+    /// Show a results/standings screen (then caller must `advance`).
+    ShowResults,
+    /// Auto-advance through trivial phases (Training, Setup, EventComplete).
+    AdvancePhase,
+    /// A specific participant must jump.
+    Jump {
+        idx: usize,
+        hill_idx: usize,
+        is_human: bool,
+    },
+}
+
 /// Drives a single competition event (or a full season).
 ///
 /// Call `advance()` to enter the first phase, then loop:
@@ -45,6 +63,48 @@ impl Competition {
     }
 
     // ── queries ────────────────────────────────────────────────
+
+    /// Pure decision: what should the caller do next?
+    /// No mutation, no store access — just reads current state.
+    #[must_use]
+    pub fn decide_next(&self) -> StepDecision {
+        if matches!(
+            self.phase,
+            CompetitionPhase::QualificationResults
+                | CompetitionPhase::Round1Results
+                | CompetitionPhase::Round2Results
+                | CompetitionPhase::WorldCupStandings
+                | CompetitionPhase::SeasonComplete
+        ) {
+            return StepDecision::ShowResults;
+        }
+
+        if self.current_jumper().is_none() {
+            let auto = matches!(
+                self.phase,
+                CompetitionPhase::Training(_)
+                    | CompetitionPhase::Setup
+                    | CompetitionPhase::EventComplete
+            );
+            if auto {
+                return StepDecision::AdvancePhase;
+            }
+            return StepDecision::ShowResults;
+        }
+
+        let idx = self.current_jumper().unwrap();
+        let hill_idx = self
+            .hill_order
+            .get(self.current_event)
+            .copied()
+            .unwrap_or(0);
+        let is_human = !self.field.get(idx).is_computer;
+        StepDecision::Jump {
+            idx,
+            hill_idx,
+            is_human,
+        }
+    }
 
     #[must_use]
     pub fn current_jumper(&self) -> Option<usize> {

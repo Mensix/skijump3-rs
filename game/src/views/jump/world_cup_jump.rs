@@ -3,7 +3,6 @@ use crate::controllers::jump_input::{JumpInputAction, JumpInputController};
 use crate::controllers::jump_scene::JumpScene;
 use crate::controllers::world_cup_flow::{WorldCupCommand, WorldCupFlow};
 use crate::gfx::palette::apply_menu_tint;
-use crate::jump::types::JumpOutcome;
 use crate::jump::JumpParticipant;
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
@@ -61,7 +60,9 @@ impl WorldCupJumpView {
         hill_idx: usize,
         phase_label: String,
     ) {
-        let needs_rebuild = self.scene.participant_id() != participant.id;
+        let needs_rebuild = self.scene.participant_id() != participant.id
+            || self.scene.hill_idx() != hill_idx
+            || self.scene.outcome().is_some();
         if needs_rebuild {
             self.controller.note_event_change(&self.store);
             self.scene
@@ -88,11 +89,8 @@ impl View<RouteTarget> for WorldCupJumpView {
         self.record_finished_human_jump();
 
         let mut simulate_computer =
-            |participant: JumpParticipant, hill_idx: usize| -> JumpOutcome {
-                self.scene.set_hill(hill_idx);
-                self.scene.set_participant(participant);
-                self.scene.reset_state(15);
-                self.scene.simulate_to_completion()
+            |participant: JumpParticipant, hill_idx: usize| -> crate::jump::types::JumpOutcome {
+                self.scene.simulate_hidden(participant, hill_idx)
             };
 
         match self

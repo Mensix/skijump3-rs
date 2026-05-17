@@ -1,5 +1,7 @@
-use crate::competition::types::CompetitionPhase;
+use crate::competition::machine::StepDecision;
+use crate::competition::types::{CompetitionPhase, Participant};
 use crate::jump::config::JumpParticipant;
+use crate::jump::policy::JumperControl;
 use crate::jump::types::JumpOutcome;
 
 use crate::store::{ResourcesRef, StoreRef};
@@ -13,6 +15,26 @@ pub enum WorldCupCommand {
     },
     ShowResults,
     Done,
+}
+
+/// Convert a competition Participant to a jump-domain JumpParticipant.
+/// Lives here (the boundary) so neither `jump` nor `competition` needs
+/// to know about the other.
+pub(crate) fn participant_to_jump(p: &Participant) -> JumpParticipant {
+    JumpParticipant {
+        id: p.id,
+        ai_id: p.ai_id,
+        name: p.name.clone(),
+        real_name: p.real_name.clone(),
+        suit_color: p.suit_color,
+        ski_color: p.ski_color,
+        team: p.team,
+        control: if p.is_computer {
+            JumperControl::Computer
+        } else {
+            JumperControl::Human
+        },
+    }
 }
 
 pub struct WorldCupFlow {
@@ -30,7 +52,7 @@ impl WorldCupFlow {
     ///
     /// `simulate_computer` is called for each computer jumper encountered
     /// in the loop.  The flow records the outcome and advances the
-    /// competition internally -- the caller need only provide the
+    /// competition internally — the caller need only provide the
     /// simulation plumbing.
     pub(crate) fn drive(
         &self,
@@ -44,82 +66,64 @@ impl WorldCupFlow {
                 return WorldCupCommand::Done;
             };
 
-            // Display-list phases
-            if matches!(
-                c.phase,
-                CompetitionPhase::QualificationResults
-                    | CompetitionPhase::Round1Results
-                    | CompetitionPhase::Round2Results
-                    | CompetitionPhase::WorldCupStandings
-                    | CompetitionPhase::SeasonComplete
-            ) {
-                return WorldCupCommand::ShowResults;
-            }
-
-            // No jumper scheduled yet -- auto-advance or show results
-            if c.current_jumper().is_none() {
-                let auto = matches!(
-                    c.phase,
-                    CompetitionPhase::Training(_)
-                        | CompetitionPhase::Setup
-                        | CompetitionPhase::EventComplete
-                );
-                drop(comp);
-                if auto {
+            match c.decide_next() {
+                StepDecision::Done => return WorldCupCommand::Done,
+                StepDecision::ShowResults => return WorldCupCommand::ShowResults,
+                StepDecision::AdvancePhase => {
+                    drop(comp);
                     store.competition.borrow_mut().as_mut().unwrap().advance();
                     continue;
                 }
-                store.competition.borrow_mut().as_mut().unwrap().advance();
-                return WorldCupCommand::ShowResults;
-            }
-
-            // Human jumper -- hand control to the view
-            if c.is_human_current() {
-                let jumper_idx = c.current_jumper().unwrap();
-                let participant = JumpParticipant::from(c.field.get(jumper_idx));
-                let hill_idx = c.hill_order.get(c.current_event).copied().unwrap_or(0);
-                let label = Self::phase_label(resources, c.phase);
-                drop(comp);
-                return WorldCupCommand::HumanJump {
-                    participant,
+                StepDecision::Jump {
+                    idx,
                     hill_idx,
-                    phase_label: label,
-                };
-            }
-
-            // Computer jumper -- simulate via callback, record, continue
-            let jumper_idx = c.current_jumper().expect("computer jumper exists");
-            let participant = JumpParticipant::from(c.field.get(jumper_idx));
-            let hill_idx = c.hill_order.get(c.current_event).copied().unwrap_or(0);
-            drop(comp);
-
-            let outcome = simulate_computer(participant, hill_idx);
-
-            let mut comp = store.competition.borrow_mut();
-            let c = comp.as_mut().unwrap();
-            c.record_jump(outcome.score, outcome.distance);
-            c.advance();
-
-            if c.is_over() {
-                self.note_event_change(store);
-                return WorldCupCommand::Done;
-            }
-
-            let human_next = c
-                .current_jumper()
-                .is_some_and(|idx| !c.field.get(idx).is_computer);
-
-            if human_next {
-                let jumper_idx = c.current_jumper().unwrap();
-                let next_participant = JumpParticipant::from(c.field.get(jumper_idx));
-                let label = Self::phase_label(resources, c.phase);
-                drop(comp);
-                self.note_event_change(store);
-                return WorldCupCommand::HumanJump {
-                    participant: next_participant,
+                    is_human: true,
+                } => {
+                    let participant = participant_to_jump(c.field.get(idx));
+                    let label = Self::phase_label(resources, c.phase);
+                    drop(comp);
+                    return WorldCupCommand::HumanJump {
+                        participant,
+                        hill_idx,
+                        phase_label: label,
+                    };
+                }
+                StepDecision::Jump {
+                    idx,
                     hill_idx,
-                    phase_label: label,
-                };
+                    is_human: false,
+                } => {
+                    let participant = participant_to_jump(c.field.get(idx));
+                    drop(comp);
+
+                    let outcome = simulate_computer(participant, hill_idx);
+
+                    let mut comp = store.competition.borrow_mut();
+                    let c = comp.as_mut().unwrap();
+                    c.record_jump(outcome.score, outcome.distance);
+                    c.advance();
+
+                    if c.is_over() {
+                        self.note_event_change(store);
+                        return WorldCupCommand::Done;
+                    }
+
+                    // Check if the next jumper in line is human —
+                    // if so hand control to the view immediately.
+                    if let Some(next_idx) = c.current_jumper() {
+                        if !c.field.get(next_idx).is_computer {
+                            let next_participant = participant_to_jump(c.field.get(next_idx));
+                            let label = Self::phase_label(resources, c.phase);
+                            self.note_event_change(store);
+                            drop(comp);
+                            return WorldCupCommand::HumanJump {
+                                participant: next_participant,
+                                hill_idx,
+                                phase_label: label,
+                            };
+                        }
+                    }
+                }
             }
         }
     }

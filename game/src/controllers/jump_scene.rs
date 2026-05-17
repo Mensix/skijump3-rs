@@ -76,19 +76,6 @@ impl JumpScene {
         );
     }
 
-    pub fn set_participant(&self, participant: JumpParticipant) {
-        self.runner.borrow_mut().set_participant(participant);
-    }
-
-    pub fn set_hill(&self, hill_idx: usize) {
-        let hill = self.resources.hills.hill(hill_idx).cloned();
-        let terrain = self.resources.hills.hill(hill_idx).map_or_else(
-            || Err(format!("Hill {hill_idx} not found")),
-            |info| HillTerrain::load(&self.resources.assets, info),
-        );
-        self.runner.borrow_mut().set_hill(hill_idx, hill, terrain);
-    }
-
     pub fn set_phase_label(&self, label: String) {
         self.runner.borrow_mut().set_phase_label(label);
     }
@@ -126,12 +113,40 @@ impl JumpScene {
         self.runner.borrow().participant_id()
     }
 
-    pub fn simulate_to_completion(&self) -> JumpOutcome {
+    /// Build a temporary runner and simulate a computer jump invisibly.
+    /// Does not mutate the visible runner — safe to call from a `&self`
+    /// context alongside the view's own `&self` scene usage.
+    pub fn simulate_hidden(&self, participant: JumpParticipant, hill_idx: usize) -> JumpOutcome {
+        let hill = self.resources.hills.hill(hill_idx).cloned();
+        let terrain = hill.as_ref().map_or_else(
+            || Err(format!("Hill {hill_idx} not found")),
+            |info| HillTerrain::load(&self.resources.assets, info),
+        );
+        let record_distance = self
+            .store
+            .records
+            .borrow()
+            .hill_record(hill_idx)
+            .map_or(0, |r| r.len as i32);
+
+        let mut runner = JumpRunner::new(
+            JumpConfig {
+                hill_idx,
+                hill,
+                terrain,
+                start_gate: 15,
+                snow_count: 0,
+                participant,
+                policy: JumpPolicy::competition(),
+                record_distance,
+                phase_label: String::new(),
+            },
+            SnowSystem::new(),
+        );
+
         let mut rng = self.store.rng.borrow_mut();
         let mut wind = self.store.wind.borrow_mut();
-        self.runner
-            .borrow_mut()
-            .simulate_to_completion(&mut rng, &mut wind)
+        runner.simulate_to_completion(&mut rng, &mut wind)
     }
 
     pub fn elements(&self) -> Vec<Element> {

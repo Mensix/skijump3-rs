@@ -1,5 +1,4 @@
-use crate::data::hill_profile::HillTerrain;
-use crate::data::records::{HillCatalog, HillInfo, RecordStore};
+use crate::data::records::{HillCatalog, RecordStore};
 use crate::gfx::palette::FONT_DEFAULT;
 use crate::jump::config::JumpConfig;
 use crate::jump::presentation;
@@ -8,7 +7,6 @@ use crate::jump::snow::SnowSystem;
 use crate::jump::types::JumpOutcome;
 use crate::jump::wind::Wind;
 use crate::jump::wind::WindPosition;
-use crate::jump::JumpParticipant;
 use crate::jump::{ComputerInputProvider, JumpPresentationContext, JumpSession, JumperControl};
 use crate::parsers::langbase::LangBase;
 use crate::rng::Random;
@@ -71,19 +69,6 @@ impl JumpRunner {
         self.session.replay_trace()
     }
 
-    pub(crate) fn set_hill(
-        &mut self,
-        hill_idx: usize,
-        hill: Option<HillInfo>,
-        terrain: Result<HillTerrain, String>,
-    ) {
-        if self.config.hill_idx != hill_idx {
-            self.config.hill_idx = hill_idx;
-            self.config.hill = hill;
-            self.config.terrain = terrain;
-        }
-    }
-
     pub(crate) fn reset_state(&mut self, start_gate: i32, record_distance: i32) {
         self.config.start_gate = start_gate;
         self.config.record_distance = record_distance;
@@ -128,17 +113,8 @@ impl JumpRunner {
         }
     }
 
-    /// Set the phase label shown in the info panel (e.g. "Qualification", "Round 1").
-    /// Training mode shows the default langbase string; competition sets it explicitly.
     pub(crate) fn set_phase_label(&mut self, label: String) {
         self.config.phase_label = label;
-    }
-
-    pub(crate) fn set_participant(&mut self, participant: JumpParticipant) {
-        self.config.participant = participant;
-        self.computer_input = (self.config.participant.control == JumperControl::Computer)
-            .then(|| ComputerInputProvider::new(self.config.participant.ai_id));
-        self.computer_pre_ai_wind_done = false;
     }
 
     pub(crate) fn elements(&mut self, env: JumpRunnerRenderEnv<'_>) -> Vec<Element> {
