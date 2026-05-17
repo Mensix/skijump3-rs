@@ -1,5 +1,6 @@
 use crate::components::replay_playback::ReplayPlayback;
 use crate::data::hill_profile::HillTerrain;
+use crate::data::records::HillInfo;
 use crate::jump::math::pascal_round;
 use crate::parsers::langbase::LangBase;
 use crate::jump::presentation::{self, WindGaugePosition};
@@ -218,7 +219,7 @@ impl View<RouteTarget> for ReplayView {
                         self.resources
                             .hills
                             .hill(session.trace().meta.hill_idx)
-                            .map_or(1.0, crate::data::records::HillInfo::pk),
+                            .map_or(1.0, HillInfo::pk),
                     )
                 ),
                 309,

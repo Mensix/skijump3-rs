@@ -1,5 +1,5 @@
 use crate::competition::machine::Competition;
-use crate::competition::types::{CompetitionPhase, QualificationStatus};
+use crate::competition::types::{CompetitionPhase, Participant, QualificationStatus};
 use crate::components::screen::{new_screen, page_hints};
 use crate::gfx::palette::{FONT_DEFAULT, FONT_GREET, FONT_HEADER};
 use crate::store::ResourcesRef;
@@ -83,7 +83,7 @@ pub(crate) fn total_pages(competition: &Competition) -> usize {
         .max(1)
 }
 
-fn standings_for_phase(competition: &Competition) -> Vec<&crate::competition::types::Participant> {
+fn standings_for_phase(competition: &Competition) -> Vec<&Participant> {
     match competition.phase {
         CompetitionPhase::WorldCupStandings => competition
             .overall_standings()

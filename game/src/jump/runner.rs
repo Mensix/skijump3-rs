@@ -10,7 +10,7 @@ use crate::jump::{
 };
 use crate::gfx::palette::FONT_DEFAULT;
 use crate::rng::Random;
-use crate::jump::snow::SnowSystem;
+use crate::jump::snow::{calculate_lmaara, SnowSystem};
 use crate::store::{ResourcesRef, StoreRef};
 use crate::jump::wind::Wind;
 use engine::consts::{HEIGHT, WIDTH};
@@ -45,7 +45,7 @@ impl JumpRunner {
             wind.initialize(&mut rng, store.wind_place.get());
 
             if store.eka.get() {
-                let lmaara = crate::jump::snow::calculate_lmaara(&mut rng);
+                let lmaara = calculate_lmaara(&mut rng);
                 snow.set_count(lmaara, &mut rng);
                 wind.sample(&mut rng);
                 store.eka.set(false);
