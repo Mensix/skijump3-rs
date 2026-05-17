@@ -73,3 +73,14 @@ pub struct JumpSnapshot {
     pub(crate) speed: f64,
     pub(crate) start_gate: i32,
 }
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum SkiSwing {
+    None,
+    LateUp,
+    ReturnUp,
+    GustUp,
+    LateDown,
+    ReturnDown,
+    GustDown,
+}

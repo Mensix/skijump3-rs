@@ -6,19 +6,8 @@ use crate::jump::animation::{
 use crate::gfx::sprites::Sprite;
 use crate::jump::math::{self, nsqrt};
 use crate::jump::scoring;
-use crate::jump::types::{FallType, FlightWind, JumpInput, JumpOutcome, JumpPhase, JumpSnapshot};
+use crate::jump::types::{FallType, FlightWind, JumpInput, JumpOutcome, JumpPhase, JumpSnapshot, SkiSwing};
 use crate::rng::Random;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum SkiSwing {
-    None,
-    LateUp,
-    ReturnUp,
-    GustUp,
-    LateDown,
-    ReturnDown,
-    GustDown,
-}
 
 #[derive(Debug, Clone)]
 pub struct JumpState {
