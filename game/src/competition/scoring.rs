@@ -31,7 +31,7 @@ mod tests {
             .enumerate()
             .map(|(i, &s)| Participant {
                 points: s,
-                ..Participant::computer(i, format!("J {i}"))
+                ..Participant::computer(i, i, format!("J {i}"))
             })
             .collect();
         CompetitionField::new(participants)

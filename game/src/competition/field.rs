@@ -182,7 +182,7 @@ mod tests {
             .enumerate()
             .map(|(i, &s)| Participant {
                 wc_points: s,
-                ..Participant::computer(i, format!("Jumper {i}"))
+                ..Participant::computer(i, i, format!("Jumper {i}"))
             })
             .collect()
     }
@@ -193,7 +193,7 @@ mod tests {
             .enumerate()
             .map(|(i, &s)| Participant {
                 points: s,
-                ..Participant::computer(i, format!("Jumper {i}"))
+                ..Participant::computer(i, i, format!("Jumper {i}"))
             })
             .collect()
     }

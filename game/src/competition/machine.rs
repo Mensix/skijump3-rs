@@ -323,7 +323,7 @@ mod tests {
 
     fn make_50_participants() -> Vec<Participant> {
         (0..50)
-            .map(|i| Participant::computer(i, format!("J {i}")))
+            .map(|i| Participant::computer(i, i, format!("J {i}")))
             .collect()
     }
 

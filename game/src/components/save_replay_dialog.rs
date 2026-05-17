@@ -15,12 +15,16 @@ enum SaveField {
 #[derive(Debug, Clone)]
 enum SaveDialogState {
     Inactive,
-    Browse { selected: usize },
+    Browse {
+        selected: usize,
+    },
     EditField {
         field: SaveField,
         editor: TextEditState,
     },
-    ConfirmOverwrite { filename: String },
+    ConfirmOverwrite {
+        filename: String,
+    },
 }
 
 pub enum SaveAction {

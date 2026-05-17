@@ -32,12 +32,13 @@ pub struct JumpRunner {
     snow: SnowSystem,
     prev_camera: (i32, i32),
     computer_input: Option<ComputerInputProvider>,
+    computer_pre_ai_wind_done: bool,
 }
 
 impl JumpRunner {
     pub(crate) fn new(config: JumpConfig, snow: SnowSystem) -> Self {
         let computer_input = (config.participant.control == JumperControl::Computer)
-            .then(|| ComputerInputProvider::new(config.participant.id));
+            .then(|| ComputerInputProvider::new(config.participant.ai_id));
         let session = JumpSession::new(config.clone());
         let prev_camera = session.camera().unwrap_or((0, 0));
         Self {
@@ -46,6 +47,7 @@ impl JumpRunner {
             snow,
             prev_camera,
             computer_input,
+            computer_pre_ai_wind_done: false,
         }
     }
 
@@ -89,7 +91,8 @@ impl JumpRunner {
             self.session.reset_state(hill, start_gate, record_distance);
         }
         self.computer_input = (self.config.participant.control == JumperControl::Computer)
-            .then(|| ComputerInputProvider::new(self.config.participant.id));
+            .then(|| ComputerInputProvider::new(self.config.participant.ai_id));
+        self.computer_pre_ai_wind_done = false;
     }
 
     /// Fast-forward computer jump simulation to completion without rendering.
@@ -99,12 +102,13 @@ impl JumpRunner {
         rng: &mut Random,
         wind: &mut Wind,
     ) -> JumpOutcome {
+        // Pascal does one Tuuli.Hae before switching to non-draw mode
+        wind.advance_without_sampling(rng);
+        self.computer_pre_ai_wind_done = true;
         if let Some(input) = &mut self.computer_input {
             input.prepare_for_jump(rng);
         }
         self.session.prepare_silent_computer_jump();
-        // Pascal does one Tuuli.Hae before switching to non-draw mode
-        wind.advance_without_sampling(rng);
         for _ in 0..100 {
             wind.advance_without_sampling(rng);
         }
@@ -133,7 +137,8 @@ impl JumpRunner {
     pub(crate) fn set_participant(&mut self, participant: JumpParticipant) {
         self.config.participant = participant;
         self.computer_input = (self.config.participant.control == JumperControl::Computer)
-            .then(|| ComputerInputProvider::new(self.config.participant.id));
+            .then(|| ComputerInputProvider::new(self.config.participant.ai_id));
+        self.computer_pre_ai_wind_done = false;
     }
 
     pub(crate) fn elements(&mut self, env: JumpRunnerRenderEnv<'_>) -> Vec<Element> {
@@ -147,6 +152,12 @@ impl JumpRunner {
     fn elements_for_loaded_session(&mut self, env: JumpRunnerRenderEnv<'_>) -> Vec<Element> {
         if self.session.phase().is_none() {
             return unavailable_elements("jump state not available");
+        }
+
+        if self.computer_input.is_some() && !self.computer_pre_ai_wind_done {
+            // Pascal samples wind once before computer skill/reflex are initialized.
+            env.wind.advance_without_sampling(env.rng);
+            self.computer_pre_ai_wind_done = true;
         }
 
         if let (Some(snapshot), Some(input)) =

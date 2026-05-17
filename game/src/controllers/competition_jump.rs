@@ -184,13 +184,12 @@ impl CompetitionJumpController {
             _ => resources.langbase.lstr(51).to_string(),
         }
     }
-
-
 }
 
 fn to_jump_participant(p: &Participant) -> JumpParticipant {
     JumpParticipant {
         id: p.id,
+        ai_id: p.ai_id,
         name: p.name.clone(),
         real_name: p.real_name.clone(),
         suit_color: p.suit_color,

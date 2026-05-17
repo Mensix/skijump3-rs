@@ -25,8 +25,20 @@ impl JumpScene {
         policy: JumpPolicy,
     ) -> Self {
         store.first_event.set(true);
-        let runner = RefCell::new(Self::build_runner(resources.clone(), &store, hill_idx, start_gate, participant, policy, String::new()));
-        Self { runner, resources, store }
+        let runner = RefCell::new(Self::build_runner(
+            resources.clone(),
+            &store,
+            hill_idx,
+            start_gate,
+            participant,
+            policy,
+            String::new(),
+        ));
+        Self {
+            runner,
+            resources,
+            store,
+        }
     }
 
     pub fn rebuild(
@@ -37,8 +49,15 @@ impl JumpScene {
         policy: JumpPolicy,
         phase_label: String,
     ) {
-        *self.runner.borrow_mut() =
-            Self::build_runner(self.resources.clone(), &self.store, hill_idx, start_gate, participant, policy, phase_label);
+        *self.runner.borrow_mut() = Self::build_runner(
+            self.resources.clone(),
+            &self.store,
+            hill_idx,
+            start_gate,
+            participant,
+            policy,
+            phase_label,
+        );
     }
 
     pub fn rebuild_for_competition(
@@ -48,7 +67,13 @@ impl JumpScene {
         participant: JumpParticipant,
         phase_label: String,
     ) {
-        self.rebuild(hill_idx, start_gate, participant, JumpPolicy::competition(), phase_label);
+        self.rebuild(
+            hill_idx,
+            start_gate,
+            participant,
+            JumpPolicy::competition(),
+            phase_label,
+        );
     }
 
     pub fn set_participant(&self, participant: JumpParticipant) {
@@ -104,7 +129,9 @@ impl JumpScene {
     pub fn simulate_to_completion(&self) -> JumpOutcome {
         let mut rng = self.store.rng.borrow_mut();
         let mut wind = self.store.wind.borrow_mut();
-        self.runner.borrow_mut().simulate_to_completion(&mut rng, &mut wind)
+        self.runner
+            .borrow_mut()
+            .simulate_to_completion(&mut rng, &mut wind)
     }
 
     pub fn elements(&self) -> Vec<Element> {

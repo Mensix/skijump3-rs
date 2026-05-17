@@ -308,19 +308,21 @@ impl View<RouteTarget> for ReplayView {
                 None
             }
             Event::Keyboard(Key::Right) => {
-                self.playback.set_mode(if self.playback.mode() == PlaybackMode::Forward {
-                    PlaybackMode::PlayOnceThenPause
-                } else {
-                    PlaybackMode::Forward
-                });
+                self.playback
+                    .set_mode(if self.playback.mode() == PlaybackMode::Forward {
+                        PlaybackMode::PlayOnceThenPause
+                    } else {
+                        PlaybackMode::Forward
+                    });
                 None
             }
             Event::Keyboard(Key::Left) => {
-                self.playback.set_mode(if self.playback.mode() == PlaybackMode::Rewind {
-                    PlaybackMode::PlayOnceThenPause
-                } else {
-                    PlaybackMode::Rewind
-                });
+                self.playback
+                    .set_mode(if self.playback.mode() == PlaybackMode::Rewind {
+                        PlaybackMode::PlayOnceThenPause
+                    } else {
+                        PlaybackMode::Rewind
+                    });
                 None
             }
             Event::Keyboard(Key::Char(' ')) if self.playback.mode() == PlaybackMode::Pause => {

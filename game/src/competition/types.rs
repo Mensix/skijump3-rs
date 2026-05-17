@@ -46,10 +46,11 @@ impl QualificationStatus {
     }
 }
 
-/// One jumper in the competition field (75 total: user profiles + computer opponents).
+/// One jumper in the Pascal 75-slot competition roster.
 #[derive(Debug, Clone)]
 pub struct Participant {
     pub id: usize,
+    pub ai_id: usize,
     pub name: String,
     pub real_name: String,
     pub suit_color: u8,
@@ -73,9 +74,10 @@ pub struct Participant {
 
 impl Participant {
     #[must_use]
-    pub const fn computer(id: usize, name: String) -> Self {
+    pub const fn computer(id: usize, ai_id: usize, name: String) -> Self {
         Self {
             id,
+            ai_id,
             name,
             real_name: String::new(),
             suit_color: 0,
@@ -119,8 +121,9 @@ mod tests {
 
     #[test]
     fn computer_participant_defaults() {
-        let p = Participant::computer(1, "Test".into());
+        let p = Participant::computer(1, 0, "Test".into());
         assert_eq!(p.id, 1);
+        assert_eq!(p.ai_id, 0);
         assert!(p.is_computer);
         assert_eq!(p.wc_points, 0);
         assert!(!p.qual.can_jump());
@@ -138,7 +141,7 @@ mod tests {
 
     #[test]
     fn reset_event_clears_per_event_state() {
-        let mut p = Participant::computer(0, "Test".into());
+        let mut p = Participant::computer(0, 0, "Test".into());
         p.points = 500;
         p.rank = 1;
         p.round1_len = 120;

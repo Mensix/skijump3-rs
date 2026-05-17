@@ -84,10 +84,8 @@ mod tests {
 
 impl HillTerrain {
     pub fn load(assets: &AssetStore, info: &HillInfo) -> Result<Self, String> {
-        let front =
-            assets.parse::<PcxParser>(&format!("FRONT{}.PCX", info.front_index))?;
-        let mut back =
-            assets.parse::<PcxParser>(&format!("BACK{}.PCX", info.back_index))?;
+        let front = assets.parse::<PcxParser>(&format!("FRONT{}.PCX", info.front_index))?;
+        let mut back = assets.parse::<PcxParser>(&format!("BACK{}.PCX", info.back_index))?;
         if info.back_mirror != 0 {
             Self::mirror_pixels(&mut back.pixels, back.width as usize, back.height as usize);
         }

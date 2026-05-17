@@ -5,6 +5,7 @@ use crate::jump::policy::{JumpPolicy, JumperControl};
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct JumpParticipant {
     pub(crate) id: usize,
+    pub(crate) ai_id: usize,
     pub(crate) name: String,
     pub(crate) real_name: String,
     pub(crate) suit_color: u8,
@@ -17,6 +18,7 @@ impl JumpParticipant {
     pub(crate) fn trainee() -> Self {
         Self {
             id: 0,
+            ai_id: 0,
             name: "TRAINEE".to_string(),
             real_name: String::new(),
             suit_color: 0,

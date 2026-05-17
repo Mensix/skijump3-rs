@@ -40,11 +40,10 @@ impl ComputerInputProvider {
         }
 
         let jumper = self.jumper_id.max(0) + 1;
-        let skill_raw = 63
-            - rng.random_i32(80)
-            - rng.random_i32(24 * jumper)
-            - rng.random_i32(12 * jumper)
-            - rng.random_i32(10 * jumper);
+        let skill_raw = 63 - rng.random_i32(80)
+            + rng.random_i32(24 * jumper)
+            + rng.random_i32(12 * jumper)
+            + rng.random_i32(10 * jumper);
 
         self.skill = 17 - math::round(nsqrt(f64::from(skill_raw)) / 4.0);
         if self.skill > 16 {
@@ -161,6 +160,22 @@ mod tests {
         let far_from_table = snapshot(JumpPhase::Inrun);
 
         assert!(provider.inputs(&far_from_table, &mut rng).is_empty());
+    }
+
+    #[test]
+    fn lower_roster_ids_get_better_takeoff_skill() {
+        let mut best = ComputerInputProvider::new(0);
+        let mut worst = ComputerInputProvider::new(64);
+
+        best.prepare_for_jump(&mut Random::new(5489));
+        worst.prepare_for_jump(&mut Random::new(5489));
+
+        assert!(
+            best.skill > worst.skill,
+            "best skill {} should beat worst skill {}",
+            best.skill,
+            worst.skill
+        );
     }
 
     #[test]
