@@ -160,13 +160,27 @@ fn info_elements(
     ));
 }
 
+fn panel_header(els: &mut Vec<Element>, name: &str, color: u8) {
+    els.push(Element::sprite(sprites::Sprite::InfoPanel as u16, 227, 2));
+    els.push(Element::text(name, 308, 9, color, true));
+}
+
+fn panel_distance(els: &mut Vec<Element>, distance: i32) {
+    els.push(Element::text(
+        format!("{:.1}m", f64::from(distance) / 10.0),
+        308,
+        33,
+        FONT_GREET,
+        true,
+    ));
+}
+
 fn result_elements(
     els: &mut Vec<Element>,
     frame: &JumpRenderFrame,
     ctx: &JumpPresentationContext<'_>,
 ) {
-    els.push(Element::sprite(sprites::Sprite::InfoPanel as u16, 227, 2));
-    els.push(Element::text(ctx.jumper_name, 308, 9, FONT_DEFAULT, true));
+    panel_header(els, ctx.jumper_name, FONT_DEFAULT);
     let style_min = *frame.style_points.iter().min().unwrap_or(&0);
     let style_max = *frame.style_points.iter().max().unwrap_or(&0);
     let first_min_idx = frame.style_points.iter().position(|&p| p == style_min);
@@ -185,13 +199,7 @@ fn result_elements(
             true,
         ));
     }
-    els.push(Element::text(
-        format!("{:.1}m", f64::from(frame.distance) / 10.0),
-        308,
-        33,
-        FONT_GREET,
-        true,
-    ));
+    panel_distance(els, frame.distance);
     els.push(Element::text(
         format!("{:.1}", f64::from(frame.score) / 10.0),
         308,
@@ -213,15 +221,8 @@ fn landing_elements(
     frame: &JumpRenderFrame,
     ctx: &JumpPresentationContext<'_>,
 ) {
-    els.push(Element::sprite(sprites::Sprite::InfoPanel as u16, 227, 2));
-    els.push(Element::text(ctx.jumper_name, 308, 9, FONT_GREET, true));
-    els.push(Element::text(
-        format!("{:.1}m", f64::from(frame.distance) / 10.0),
-        308,
-        33,
-        FONT_GREET,
-        true,
-    ));
+    panel_header(els, ctx.jumper_name, FONT_GREET);
+    panel_distance(els, frame.distance);
     for (i, &point) in frame.style_points.iter().enumerate() {
         if frame.style_revealed[i] {
             els.push(Element::text(

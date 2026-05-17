@@ -130,9 +130,6 @@ impl JumpRunner {
         self.config.phase_label = label;
     }
 
-    /// Swap participant without recreating snow/wind state.
-    /// Used by competition mode to reuse one runner across jumpers.
-    #[allow(dead_code)]
     pub(crate) fn set_participant(&mut self, participant: JumpParticipant) {
         self.config.participant = participant;
         self.computer_input = (self.config.participant.control == JumperControl::Computer)

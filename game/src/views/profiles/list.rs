@@ -103,7 +103,7 @@ impl ProfilesView {
 
     pub(super) const fn col_y(row: usize) -> i32 {
         match row {
-            0..=9 => (row * 8 + 4) as i32,
+            0..=9 => Self::y_for(row),
             10..=15 => (row * 8 + 10) as i32,
             _ => (row * 16 - 118) as i32,
         }
