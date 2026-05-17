@@ -40,7 +40,6 @@ impl PracticeView {
             .practice
             .selected_hill
             .get()
-            .saturating_sub(1)
             .min(total.saturating_sub(1));
         let start = if total > 20 { selected / 20 * 20 } else { 0 };
         let page_n = (total.saturating_sub(start)).min(20);
@@ -111,7 +110,7 @@ impl PracticeView {
             self.menu = self.rebuild_menu();
             None
         } else {
-            let hill_idx = self.start + sel + 1;
+            let hill_idx = self.start + sel;
             self.store.practice.selected_hill.set(hill_idx);
             self.store.selected_hill.set(hill_idx);
             Some(RouteTarget::Jump)
@@ -135,7 +134,7 @@ impl View<RouteTarget> for PracticeView {
 
         let page_n = self.page_items();
         for i in 0..page_n {
-            let pascal_idx = self.start + i + 1;
+            let idx = self.start + i;
             let y = self.item_row(i) as i32 * 8 + 10;
             els.push(Element::text_color_right(
                 format!("{}.", i + 1),
@@ -143,7 +142,7 @@ impl View<RouteTarget> for PracticeView {
                 y,
                 FONT_GOLD,
             ));
-            if let Some(hill) = self.resources.hills.hill(pascal_idx) {
+            if let Some(hill) = self.resources.hills.hill(idx) {
                 els.push(Element::text_color(&hill.name, 140, y, FONT_DEFAULT));
                 let name_w = self.resources.font.string_width(&hill.name) as i32;
                 els.push(Element::text_color(

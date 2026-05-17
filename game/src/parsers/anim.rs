@@ -64,16 +64,14 @@ impl AssetParser<Vec<SpriteData>> for AnimParser {
             if sprites.len() == 83 {
                 let sources = sprites[71..83].to_vec();
                 for src in &sources {
-                    let mut flipped = vec![0u8; src.data.len()];
                     let w = src.width as usize;
                     let h = src.height as usize;
-                    for yy in 0..h {
-                        for xx in 0..w {
-                            let src_idx = yy * w + xx;
-                            let dst_idx = (h - 1 - yy) * w + xx;
-                            flipped[dst_idx] = src.data[src_idx];
-                        }
-                    }
+                    let flipped: Vec<u8> = src.data
+                        .chunks_exact(w)
+                        .rev()
+                        .flatten()
+                        .copied()
+                        .collect();
                     sprites.push(SpriteData {
                         data: flipped,
                         width: src.width,

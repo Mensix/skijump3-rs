@@ -314,29 +314,22 @@ fn decode_frames(data: &[u8], max_turns: usize) -> Result<Vec<ReplayFrame>, Repl
         });
     }
     let count = (max_turns + 1).min(REPLAY_FRAME_CAPACITY);
-    let mut frames = Vec::with_capacity(count);
-    for frame_idx in 0..count {
-        let base = frame_idx * 5;
-        frames.push(ReplayFrame {
-            dx: (i32::from(data[base]) - 128) as i8,
-            dy: (i32::from(data[base + 1]) - 128) as i8,
-            body_anim: data[base + 2].saturating_sub(1),
-            ski_anim: data[base + 3].saturating_sub(1),
-            wind: (i32::from(data[base + 4]) - 128) as i8,
-        });
-    }
-    Ok(frames)
+    Ok(data
+        .chunks_exact(5)
+        .take(count)
+        .map(|chunk| ReplayFrame {
+            dx: (i32::from(chunk[0]) - 128) as i8,
+            dy: (i32::from(chunk[1]) - 128) as i8,
+            body_anim: chunk[2].saturating_sub(1),
+            ski_anim: chunk[3].saturating_sub(1),
+            wind: (i32::from(chunk[4]) - 128) as i8,
+        })
+        .collect())
 }
 
 fn encode_frames(out: &mut Vec<u8>, frames: &[ReplayFrame]) {
-    for idx in 0..REPLAY_FRAME_CAPACITY {
-        let frame = frames.get(idx).copied().unwrap_or(ReplayFrame {
-            dx: 0,
-            dy: 0,
-            body_anim: 0,
-            ski_anim: 0,
-            wind: 0,
-        });
+    let empty = ReplayFrame { dx: 0, dy: 0, body_anim: 0, ski_anim: 0, wind: 0 };
+    for frame in frames.iter().chain(std::iter::repeat(&empty)).take(REPLAY_FRAME_CAPACITY) {
         out.push((i16::from(frame.dx) + 128) as u8);
         out.push((i16::from(frame.dy) + 128) as u8);
         out.push(frame.body_anim + 1);

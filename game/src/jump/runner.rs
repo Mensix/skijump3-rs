@@ -168,14 +168,11 @@ impl JumpRunner {
     }
 
     pub(crate) fn elements(&mut self, resources: &ResourcesRef, store: &StoreRef) -> Vec<Element> {
-        let Err(err) = self.session.terrain() else {
-            if self.session.state().is_some() {
-                return self.elements_for_loaded_session(resources, store);
-            }
-            return unavailable_elements("jump state not available");
-        };
-
-        unavailable_elements(err)
+        match self.session.terrain() {
+            Err(err) => unavailable_elements(err),
+            Ok(_) if self.session.state().is_some() => self.elements_for_loaded_session(resources, store),
+            _ => unavailable_elements("jump state not available"),
+        }
     }
 
     fn elements_for_loaded_session(

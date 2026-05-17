@@ -59,41 +59,42 @@ impl AssetParser<RecordStore> for RecordsParser {
             });
         }
 
-        let mut cursor = 1;
-        let mut top = Vec::with_capacity(NUM_TOPS);
-        for order in 1..=NUM_TOPS {
-            let name = lines[cursor].clone();
-            let pos = uncrypt(&lines[cursor + 1], order) as usize;
-            let score = uncrypt(&lines[cursor + 2], order);
-            top.push(Hiscore {
-                name,
-                pos,
-                score,
-                time: String::new(),
-            });
-            cursor += 3;
-        }
+        let mut top: Vec<Hiscore> = lines[1..]
+            .chunks_exact(3)
+            .take(NUM_TOPS)
+            .enumerate()
+            .map(|(order, chunk)| {
+                let order = order + 1;
+                Hiscore {
+                    name: chunk[0].clone(),
+                    pos: uncrypt(&chunk[1], order) as usize,
+                    score: uncrypt(&chunk[2], order),
+                    time: String::new(),
+                }
+            })
+            .collect();
 
-        let mut hill_records = Vec::with_capacity(NUM_HILL_RECORDS);
-        for order in 1..=NUM_HILL_RECORDS {
-            let name = lines[cursor].clone();
-            let len = uncrypt(&lines[cursor + 1], order);
-            hill_records.push(HillRecord {
-                name,
-                len,
-                time: String::new(),
-            });
-            cursor += 2;
-        }
+        let time_start = 1 + NUM_TOPS * 3;
+        let mut hill_records: Vec<HillRecord> = lines[time_start..]
+            .chunks_exact(2)
+            .take(NUM_HILL_RECORDS)
+            .enumerate()
+            .map(|(order, chunk)| {
+                let order = order + 1;
+                HillRecord {
+                    name: chunk[0].clone(),
+                    len: uncrypt(&chunk[1], order),
+                    time: String::new(),
+                }
+            })
+            .collect();
 
-        cursor += 3;
-        for record in &mut top {
-            record.time = lines[cursor].clone();
-            cursor += 1;
+        let time_offset = time_start + NUM_HILL_RECORDS * 2 + 3;
+        for (i, record) in top.iter_mut().enumerate() {
+            record.time = lines[time_offset + i].clone();
         }
-        for record in &mut hill_records {
-            record.time = lines[cursor].clone();
-            cursor += 1;
+        for (i, record) in hill_records.iter_mut().enumerate() {
+            record.time = lines[time_offset + NUM_TOPS + i].clone();
         }
 
         Ok(RecordStore::new(top, hill_records))

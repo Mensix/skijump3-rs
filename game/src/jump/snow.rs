@@ -32,14 +32,10 @@ pub struct SnowSystem {
 /// Pascal `LMaara` calculation: random snow count used at event start.
 /// Called once per event when `first_event=true`.
 pub fn calculate_snow_count(rng: &mut Random) -> u16 {
-    let mut snow_count = rng.random_i32(2) * rng.random_i32(256);
-    if snow_count > 0 && snow_count < 40 {
-        snow_count += rng.random_i32(150);
-    }
-    if snow_count > 0 && rng.random_i32(4) == 0 {
-        snow_count += 1000;
-    }
-    snow_count as u16
+    let count = rng.random_i32(2) * rng.random_i32(256);
+    let count = if count > 0 && count < 40 { count + rng.random_i32(150) } else { count };
+    let count = if count > 0 && rng.random_i32(4) == 0 { count + 1000 } else { count };
+    count as u16
 }
 
 impl SnowSystem {

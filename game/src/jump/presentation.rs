@@ -160,14 +160,10 @@ fn result_elements(
     ));
     let style_min = *frame.style_points.iter().min().unwrap_or(&0);
     let style_max = *frame.style_points.iter().max().unwrap_or(&0);
-    let mut found_min = false;
-    let mut found_max = false;
+    let first_min_idx = frame.style_points.iter().position(|&p| p == style_min);
+    let first_max_idx = frame.style_points.iter().position(|&p| p == style_max);
     for (i, &point) in frame.style_points.iter().enumerate() {
-        let color = if point == style_min && !found_min {
-            found_min = true;
-            FONT_DIM_TURQUOISE
-        } else if point == style_max && !found_max {
-            found_max = true;
+        let color = if Some(i) == first_min_idx || Some(i) == first_max_idx {
             FONT_DIM_TURQUOISE
         } else {
             FONT_GREET

@@ -21,8 +21,9 @@ pub fn records_to_bytes(store: &RecordStore) -> Vec<u8> {
 
     write_line(&mut out, "HISCORE.SKI - !!! DO NOT ATTEMPT TO EDIT THIS FILE !!!");
 
-    for order in 1..=NUM_TOPS {
-        if let Some(top) = store.top(order) {
+    for idx in 0..NUM_TOPS {
+        let order = idx + 1; // Pascal file format uses 1-based crypt keys
+        if let Some(top) = store.top(idx) {
             write_line(&mut out, &top.name);
             write_crypt(&mut out, top.pos as i64, order);
             write_crypt(&mut out, top.score, order);
@@ -33,8 +34,9 @@ pub fn records_to_bytes(store: &RecordStore) -> Vec<u8> {
         }
     }
 
-    for order in 1..=NUM_HILL_RECORDS {
-        if let Some(record) = store.hill_record(order) {
+    for idx in 0..NUM_HILL_RECORDS {
+        let order = idx + 1;
+        if let Some(record) = store.hill_record(idx) {
             write_line(&mut out, &record.name);
             write_crypt(&mut out, record.len, order);
         } else {
@@ -47,16 +49,16 @@ pub fn records_to_bytes(store: &RecordStore) -> Vec<u8> {
     write_line(&mut out, "");
     write_line(&mut out, "");
 
-    for order in 1..=NUM_TOPS {
-        if let Some(top) = store.top(order) {
+    for idx in 0..NUM_TOPS {
+        if let Some(top) = store.top(idx) {
             write_line(&mut out, &top.time);
         } else {
             write_line(&mut out, "");
         }
     }
 
-    for order in 1..=NUM_HILL_RECORDS {
-        if let Some(record) = store.hill_record(order) {
+    for idx in 0..NUM_HILL_RECORDS {
+        if let Some(record) = store.hill_record(idx) {
             write_line(&mut out, &record.time);
         } else {
             write_line(&mut out, "");
@@ -85,12 +87,12 @@ mod tests {
         let rewritten = records_to_bytes(&store);
         let reparsed = RecordsParser::parse(&rewritten).expect("re-parse rewritten HISCORE.SKI");
 
-        assert_eq!(store.top(1).map(|t| t.name.as_str()), reparsed.top(1).map(|t| t.name.as_str()));
-        assert_eq!(store.top(1).map(|t| t.score), reparsed.top(1).map(|t| t.score));
-        assert_eq!(store.hill_record(1).map(|r| r.name.as_str()), reparsed.hill_record(1).map(|r| r.name.as_str()));
-        assert_eq!(store.hill_record(1).map(|r| r.len), reparsed.hill_record(1).map(|r| r.len));
+        assert_eq!(store.top(0).map(|t| t.name.as_str()), reparsed.top(0).map(|t| t.name.as_str()));
+        assert_eq!(store.top(0).map(|t| t.score), reparsed.top(0).map(|t| t.score));
+        assert_eq!(store.hill_record(0).map(|r| r.name.as_str()), reparsed.hill_record(0).map(|r| r.name.as_str()));
+        assert_eq!(store.hill_record(0).map(|r| r.len), reparsed.hill_record(0).map(|r| r.len));
 
-        for i in 1..=20 {
+        for i in 0..20 {
             assert_eq!(store.top(i).map(|t| t.name.as_str()), reparsed.top(i).map(|t| t.name.as_str()));
             assert_eq!(store.top(i).map(|t| t.score), reparsed.top(i).map(|t| t.score));
         }

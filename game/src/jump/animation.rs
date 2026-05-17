@@ -1,6 +1,9 @@
-const fn rust_sprite(pascal_anim: u16) -> u16 {
-    pascal_anim.saturating_sub(1)
-}
+use crate::jump::types::FallType;
+
+const SKI_SLOPE: u16 = 70;
+const INRUN_BODY: u16 = 100;
+const FLIGHT_BODY: u16 = 105;
+const INRUN_TRANSITION: u16 = 164;
 
 #[must_use]
 pub const fn crash_risk(slope_angle: i32) -> i64 {
@@ -44,12 +47,12 @@ pub const fn slope_ski_anim(slope_angle: i32) -> u16 {
         65..=90 => 12,
         _ => 0,
     };
-    rust_sprite(value + 71)
+    SKI_SLOPE + value
 }
 
 #[must_use]
 pub const fn inrun_body_anim(ski_anim: u16) -> u16 {
-    let ski = ski_anim.saturating_sub(rust_sprite(71));
+    let ski = ski_anim.saturating_sub(SKI_SLOPE);
     let value = match ski {
         2..=4 => 1,
         5..=6 => 2,
@@ -57,36 +60,36 @@ pub const fn inrun_body_anim(ski_anim: u16) -> u16 {
         10..=12 => 4,
         _ => 0,
     };
-    rust_sprite(value + 101)
+    INRUN_BODY + value
 }
 
 #[must_use]
 pub const fn inrun_transition_body_anim(counter: i32) -> u16 {
-    rust_sprite((165 + counter / 7) as u16)
+    INRUN_TRANSITION + (counter / 7) as u16
 }
 
 #[must_use]
 pub const fn landing_body_anim(mut ski_anim: u16, landing_style: u8) -> u16 {
-    if ski_anim >= rust_sprite(71) {
-        ski_anim -= rust_sprite(71);
+    if ski_anim >= SKI_SLOPE {
+        ski_anim -= SKI_SLOPE;
     }
     let mut value = match ski_anim {
-        0..=4 => 127,
-        5..=6 => 126,
-        7 => 125,
-        8..=12 => 124,
-        _ => 127,
+        0..=4 => 126,
+        5..=6 => 125,
+        7 => 124,
+        8..=12 => 123,
+        _ => 126,
     };
     if landing_style == 2 {
         value += 6;
     }
-    rust_sprite(value)
+    value
 }
 
 fn landing_loop_body_anim(counter: i32, slope_ski_anim: u16, landing_style: u8) -> u16 {
     // Pascal: if (counter<7) and (landing>0) then JumperAnim:=113+landing;
     if counter < 7 && landing_style > 0 {
-        return rust_sprite(113 + u16::from(landing_style));
+        return 112 + u16::from(landing_style);
     }
     landing_body_anim(slope_ski_anim, landing_style)
 }
@@ -104,95 +107,96 @@ pub fn post_landing_body_anim(
     }
 
     let phase = ((counter - start_anim) / 12).min(6);
-    let pascal_anim = match phase {
-        0 => 122 + i32::from(landing_style) * 6,
-        1 => 123 + i32::from(landing_style) * 6,
-        2 => 136,
-        3..=6 => match grade {
-            0..=75 => 137,
-            105..=200 => {
-                if phase > 3 {
-                    if grade > 114 {
-                        141
-                    } else {
-                        140
-                    }
-                } else {
-                    139
-                }
-            }
-            _ => 136,
-        },
-        _ => 136,
-    };
-    rust_sprite(pascal_anim as u16)
+    let anim_idx = match phase {
+         0 => 121 + i32::from(landing_style) * 6,
+         1 => 122 + i32::from(landing_style) * 6,
+         2 => 135,
+         3..=6 => match grade {
+             0..=75 => 136,
+             105..=200 => {
+                 if phase > 3 {
+                     if grade > 114 {
+                         140
+                     } else {
+                         139
+                     }
+                 } else {
+                     138
+                 }
+             }
+             _ => 135,
+         },
+         _ => 135,
+     };
+    anim_idx as u16
 }
 
 #[must_use]
 pub fn fall_body_anim(
-    fall_type: u8,
+    fall_type: FallType,
     counter: i32,
     body_angle: i32,
     detached_slope_ski_anim: u16,
     landing_style: u8,
 ) -> u16 {
-    let detached_ski = detached_slope_ski_anim.saturating_sub(rust_sprite(71));
-    let pascal_anim = match fall_type {
-        1 | 2 => {
+    let detached_ski = detached_slope_ski_anim.saturating_sub(SKI_SLOPE);
+    let anim_idx = match fall_type {
+        FallType::Normal | FallType::TwoFooted => {
             let mut extra = 2 - body_angle / 80;
             if extra < 0 {
                 extra = 0;
             }
-            let mut anim = 142 + counter / 10 + extra;
-            if fall_type == 2 {
-                anim = 142 + (counter - 6) / 10 + extra;
+            let mut anim = 141 + counter / 10 + extra;
+            if fall_type == FallType::TwoFooted {
+                anim = 141 + (counter - 6) / 10 + extra;
             }
-            if anim > 145 {
+            if anim > 144 {
                 anim = match detached_ski {
-                    4 => 145,
-                    5 => 146,
-                    6 => 147,
-                    7..=12 => 148,
-                    _ => 144,
+                    4 => 144,
+                    5 => 145,
+                    6 => 146,
+                    7..=12 => 147,
+                    _ => 143,
                 };
             }
-            if fall_type == 2 && counter < 6 {
+            if fall_type == FallType::TwoFooted && counter < 6 {
                 return landing_loop_body_anim(counter, detached_slope_ski_anim, landing_style);
             }
             anim
         }
-        3 if counter > 14 => {
-            let mut anim = 151 + (counter - 14) / 10;
-            if anim > 155 {
+        FallType::Crash if counter > 14 => {
+            let mut anim = 150 + (counter - 14) / 10;
+            if anim > 154 {
                 anim = match detached_ski {
-                    3..=4 => 162,
-                    5..=6 => 161,
-                    7..=12 => 160,
-                    _ => 163,
+                    3..=4 => 161,
+                    5..=6 => 160,
+                    7..=12 => 159,
+                    _ => 162,
                 };
             } else if landing_style == 2 {
                 anim += 5;
             }
             anim
         }
-        _ => return landing_loop_body_anim(counter, detached_slope_ski_anim, landing_style),
+        FallType::Crash => 141 + counter / 10,
+        FallType::None => return landing_loop_body_anim(counter, detached_slope_ski_anim, landing_style),
     };
-    rust_sprite(pascal_anim as u16)
+    anim_idx as u16
 }
 
 pub const fn takeoff_body_anim(phase: &mut u8) -> u16 {
     let value = match *phase {
-        4..=6 => 118,
-        7..=9 => 119,
-        10..=13 => 120,
-        14..=17 => 121,
-        18..=20 => 122,
-        21..=23 => 123,
-        24..=50 => 112,
-        _ => 117,
+        4..=6 => 117,
+        7..=9 => 118,
+        10..=13 => 119,
+        14..=17 => 120,
+        18..=20 => 121,
+        21..=23 => 122,
+        24..=50 => 111,
+        _ => 116,
     };
     *phase = phase.saturating_add(1);
-    rust_sprite(value)
+    value
 }
 
 #[must_use]
@@ -207,7 +211,7 @@ pub const fn flight_body_anim(body_angle: i32) -> u16 {
         187..=1000 => 7,
         _ => 0,
     };
-    rust_sprite(value + 106)
+    FLIGHT_BODY + value
 }
 
 #[must_use]
@@ -228,7 +232,7 @@ pub const fn flight_ski_anim(ski_angle: i32) -> u16 {
         216..=257 => 6,
         _ => 0,
     };
-    rust_sprite(value + 71)
+    SKI_SLOPE + value
 }
 
 #[must_use]
@@ -298,7 +302,7 @@ mod tests {
         assert_eq!(post_landing_body_anim(101, 100, 1, 0, 70), 127);
         assert_eq!(post_landing_body_anim(125, 100, 2, 120, 70), 135);
         assert_eq!(post_landing_body_anim(150, 100, 2, 120, 70), 140);
-        assert_eq!(fall_body_anim(1, 10, 160, 74, 1), 142);
-        assert_eq!(fall_body_anim(3, 24, 160, 76, 2), 156);
+        assert_eq!(fall_body_anim(FallType::Normal, 10, 160, 74, 1), 142);
+        assert_eq!(fall_body_anim(FallType::Crash, 24, 160, 76, 2), 156);
     }
 }

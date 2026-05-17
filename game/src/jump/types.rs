@@ -29,12 +29,31 @@ pub enum JumpInput {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum FallType {
+    None,
+    Normal,
+    TwoFooted,
+    Crash,
+}
+
+impl FallType {
+    pub(crate) const fn as_grade(self) -> i32 {
+        match self {
+            Self::None => 0,
+            Self::Normal => 1,
+            Self::TwoFooted => 2,
+            Self::Crash => 3,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct JumpOutcome {
     pub(crate) distance: i32,
     pub(crate) score: i32,
     pub(crate) style_points: [i32; 5],
     pub(crate) landing_style: u8,
-    pub(crate) fall_type: u8,
+    pub(crate) fall_type: FallType,
     pub(crate) aborted: bool,
 }
 

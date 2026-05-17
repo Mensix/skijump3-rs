@@ -26,17 +26,13 @@ impl RecordStore {
     }
 
     #[must_use] 
-    pub fn top(&self, pascal_index: usize) -> Option<&Hiscore> {
-        pascal_index
-            .checked_sub(1)
-            .and_then(|idx| self.top.get(idx))
+    pub fn top(&self, idx: usize) -> Option<&Hiscore> {
+        self.top.get(idx)
     }
 
     #[must_use] 
-    pub fn hill_record(&self, pascal_index: usize) -> Option<&HillRecord> {
-        pascal_index
-            .checked_sub(1)
-            .and_then(|idx| self.hill_records.get(idx))
+    pub fn hill_record(&self, idx: usize) -> Option<&HillRecord> {
+        self.hill_records.get(idx)
     }
 }
 
@@ -90,9 +86,7 @@ impl HillCatalog {
     }
 
     #[must_use] 
-    pub fn hill(&self, pascal_index: usize) -> Option<&HillInfo> {
-        pascal_index
-            .checked_sub(1)
-            .and_then(|idx| self.hills.get(idx))
+    pub fn hill(&self, idx: usize) -> Option<&HillInfo> {
+        self.hills.get(idx)
     }
 }

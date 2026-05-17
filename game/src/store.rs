@@ -67,7 +67,7 @@ pub struct PracticeState {
 impl Default for PracticeState {
     fn default() -> Self {
         Self {
-            selected_hill: Cell::new(1),
+            selected_hill: Cell::new(0),
             start_gate: Cell::new(15),
         }
     }
@@ -106,7 +106,7 @@ impl Store {
             wind_place: Cell::new(0),
             practice: PracticeState::default(),
             competition: RefCell::new(None),
-            selected_hill: Cell::new(1),
+            selected_hill: Cell::new(0),
             start_gate: Cell::new(15),
             first_event: Cell::new(true),
             selected_replay: RefCell::new(None),

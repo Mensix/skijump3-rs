@@ -9,7 +9,7 @@ pub trait JumpInputProvider {
 
 #[derive(Debug)]
 pub struct ComputerInputProvider {
-    pascal_jumper: i32,
+    jumper_id: i32,
     started: bool,
     initialized: bool,
     skill: i32,
@@ -21,7 +21,7 @@ pub struct ComputerInputProvider {
 impl ComputerInputProvider {
     pub(crate) const fn new(participant_id: usize) -> Self {
         Self {
-            pascal_jumper: participant_id as i32 + 1,
+            jumper_id: participant_id as i32,
             started: false,
             initialized: false,
             skill: 16,
@@ -40,12 +40,11 @@ impl ComputerInputProvider {
             return;
         }
 
-        let jumper = self.pascal_jumper.max(1);
-        let mut skill_raw = rng.random_i32(80);
-        skill_raw -= rng.random_i32(24 * jumper);
-        skill_raw -= rng.random_i32(12 * jumper);
-        skill_raw -= rng.random_i32(10 * jumper);
-        skill_raw = 63 - skill_raw;
+        let jumper = self.jumper_id.max(0) + 1;
+        let skill_raw = 63 - rng.random_i32(80)
+            - rng.random_i32(24 * jumper)
+            - rng.random_i32(12 * jumper)
+            - rng.random_i32(10 * jumper);
 
         self.skill = 17 - math::round(nsqrt(f64::from(skill_raw)) / 4.0);
         if self.skill > 16 {

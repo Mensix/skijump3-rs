@@ -324,13 +324,13 @@ impl HillRecordsView {
 
         let records = self.store.records.borrow();
         let mut ahi_sum = 0i64;
-        for aa in 1..=loop_count {
-            let pascal_idx = aa + start;
-            let y = (aa as i32 - 1) * 8 + 32;
-            let Some(hill) = self.resources.hills.hill(pascal_idx) else {
+        for aa in 0..loop_count {
+            let idx = aa + start;
+            let y = (aa as i32) * 8 + 32;
+            let Some(hill) = self.resources.hills.hill(idx) else {
                 continue;
             };
-            let record = records.hill_record(pascal_idx).cloned().unwrap_or_default();
+            let record = records.hill_record(idx).cloned().unwrap_or_default();
             let display_len = ahi_len(&record, hill.kr);
             if phase == 0 {
                 ahi_sum += display_len;
@@ -369,7 +369,7 @@ impl HillRecordsView {
         }
 
         if phase == 0 {
-            let total: i64 = (1..=self.resources.hills.len().min(PAGE_SIZE))
+            let total: i64 = (0..self.resources.hills.len().min(PAGE_SIZE))
                 .filter_map(|idx| self.resources.hills.hill(idx).map(|hill| hill.kr * 10))
                 .sum();
             if total > 0 {

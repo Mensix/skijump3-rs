@@ -67,7 +67,7 @@ mod tests {
     fn parses_full_official_hill_metadata() {
         let catalog = HillBaseParser::parse(include_bytes!("../../assets/HILLBASE.SKI"))
             .expect("valid HILLBASE.SKI");
-        let kuopio = catalog.hill(1).expect("first hill");
+        let kuopio = catalog.hill(0).expect("first hill");
 
         assert_eq!(kuopio.name, "kuopio");
         assert_eq!(kuopio.kr, 120);

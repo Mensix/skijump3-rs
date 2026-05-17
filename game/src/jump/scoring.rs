@@ -1,3 +1,4 @@
+use crate::jump::types::FallType;
 use crate::data::hill_profile::HillTerrain;
 use crate::jump::animation::crash_risk;
 use crate::jump::math;
@@ -7,7 +8,7 @@ use crate::rng::Random;
 pub struct LandingRisk {
     pub(crate) quality: i32,
     pub(crate) risk: i32,
-    pub(crate) fall_type: u8,
+    pub(crate) fall_type: FallType,
     pub(crate) style_penalty: i32,
 }
 
@@ -36,10 +37,10 @@ pub fn landing_risk(
         risk = math::round(f64::from(risk) * (1.0 + f64::from(63 - quality) * 0.075));
     }
 
-    let mut fall_type = 0;
+    let mut fall_type = FallType::None;
     let mut style_penalty = 0;
     if landing_style == 0 || quality < 56 {
-        fall_type = if landing_style == 0 { 1 } else { 2 };
+        fall_type = if landing_style == 0 { FallType::Normal } else { FallType::TwoFooted };
     }
     if landing_style == 1 {
         risk *= 3;
@@ -63,7 +64,7 @@ pub fn calculate_score(
     style_base: i32,
     hill_kr: i32,
     distance: i32,
-    fall_type: u8,
+    fall_type: FallType,
     landing_style: u8,
     rng: &mut Random,
 ) -> ScoreResult {
@@ -75,7 +76,7 @@ pub fn calculate_score(
         base -= short_jump_penalty_count * 5;
     }
 
-    if fall_type > 0 {
+    if fall_type != FallType::None {
         base -= 100;
     } else if landing_style == 2 {
         base -= 15 + rng.random_i32(2) * 5;

@@ -5,8 +5,19 @@ use crate::jump::animation::{
 };
 use crate::jump::math::{self, nsqrt};
 use crate::jump::scoring;
-use crate::jump::types::{FlightWind, JumpInput, JumpOutcome, JumpPhase, JumpSnapshot};
+use crate::jump::types::{FallType, FlightWind, JumpInput, JumpOutcome, JumpPhase, JumpSnapshot};
 use crate::rng::Random;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum SkiSwing {
+    None,
+    LateUp,
+    ReturnUp,
+    GustUp,
+    LateDown,
+    ReturnDown,
+    GustDown,
+}
 
 #[derive(Debug, Clone)]
 pub struct JumpState {
@@ -26,14 +37,14 @@ pub struct JumpState {
     pub(crate) lift: f64,
     pub(crate) body_angle: i32,
     pub(crate) ski_angle: i32,
-    pub(crate) ski_swing: i32,
+    pub(crate) ski_swing: SkiSwing,
     pub(crate) landing_style: u8,
     pub(crate) height: i32,
     pub(crate) delta_height: [i32; 6],
     pub(crate) first_flight_frame: bool,
     pub(crate) distance: i32,
     pub(crate) landing_counter: i32,
-    pub(crate) fall_type: u8,
+    pub(crate) fall_type: FallType,
     pub(crate) grade: i32,
     pub(crate) start_anim: i32,
     pub(crate) style_base: i32,
@@ -92,14 +103,14 @@ impl JumpState {
             lift,
             body_angle: 0,
             ski_angle: 0,
-            ski_swing: 0,
+            ski_swing: SkiSwing::None,
             landing_style: 0,
             height: 0,
             delta_height: [0; 6],
             first_flight_frame: true,
             distance: 0,
             landing_counter: 0,
-            fall_type: 0,
+            fall_type: FallType::None,
             grade: 0,
             start_anim: 100,
             style_base: 195,
@@ -219,14 +230,14 @@ impl JumpState {
         self.flight_time = 0.0;
         self.body_angle = 0;
         self.ski_angle = 0;
-        self.ski_swing = 0;
+        self.ski_swing = SkiSwing::None;
         self.landing_style = 0;
         self.height = 0;
         self.delta_height = [0; 6];
         self.first_flight_frame = true;
         self.distance = 0;
         self.landing_counter = 0;
-        self.fall_type = 0;
+        self.fall_type = FallType::None;
         self.result_pending = false;
         self.takeoff_requested = false;
         self.takeoff_counter = 0;
@@ -370,11 +381,11 @@ impl JumpState {
                 let gust_angle = rng.random_i32(15) - 6;
                 self.body_angle += gust_angle;
                 if gust_angle > 0 {
-                    self.ski_swing = 3;
+                    self.ski_swing = SkiSwing::GustUp;
                     self.lift -= f64::from(rng.random_i32(wind.strength + 50)) / 15_000.0;
                 }
                 if gust_angle < 0 {
-                    self.ski_swing = 6;
+                    self.ski_swing = SkiSwing::GustDown;
                     self.lift += f64::from(rng.random_i32(wind.strength + 50)) / 15_000.0;
                 }
             }
@@ -398,13 +409,13 @@ impl JumpState {
             self.body_angle = 158;
             self.first_flight_frame = false;
             if self.takeoff_counter < 16 {
-                self.ski_swing = 1;
+                self.ski_swing = SkiSwing::LateUp;
             }
             if self.takeoff_counter > 16 {
-                self.ski_swing = 4;
+                self.ski_swing = SkiSwing::LateDown;
             }
             if self.takeoff_counter == 0 {
-                self.ski_swing = 0;
+                self.ski_swing = SkiSwing::None;
             }
         }
 
@@ -458,7 +469,7 @@ impl JumpState {
         self.detached_vertical_pos =
             f64::from(terrain.height_at(math::round(self.detached_travel + self.qx)));
 
-        if self.fall_type > 0 {
+        if self.fall_type != FallType::None {
             if self.landing_counter > 50 && self.detached_px > 0.0 {
                 self.detached_px -= 0.8;
             }
@@ -495,7 +506,7 @@ impl JumpState {
         self.fall_type = landing_risk.fall_type;
         self.style_base -= landing_risk.style_penalty;
         if rng.random_i32(1000) < landing_risk.risk {
-            self.fall_type = 3;
+            self.fall_type = FallType::Crash;
         }
 
         let score = scoring::calculate_score(
@@ -512,8 +523,8 @@ impl JumpState {
         self.style_revealed = [false; 5];
         self.result_pending = false;
 
-        if self.fall_type > 0 {
-            self.grade = i32::from(self.fall_type);
+        if self.fall_type != FallType::None {
+            self.grade = self.fall_type.as_grade();
         }
         self.skis_stuck = rng.random_i32(2) != 0;
         self.start_anim = if self.landing_style == 2 { 50 } else { 100 };
@@ -523,12 +534,12 @@ impl JumpState {
     }
 
     fn update_ski_swing(&mut self, rng: &mut Option<&mut Random>) {
-        if self.ski_swing <= 0 {
+        if self.ski_swing == SkiSwing::None {
             return;
         }
 
         match self.ski_swing {
-            1 => {
+            SkiSwing::LateUp => {
                 if self.ski_angle == 0 {
                     self.ski_angle = -51 - (16 - i32::from(self.takeoff_counter)) * 6;
                     if self.ski_angle < -105 {
@@ -538,10 +549,10 @@ impl JumpState {
                     self.ski_angle -= 4;
                 }
                 if self.ski_angle < (i32::from(self.takeoff_counter) - 16) * 14 {
-                    self.ski_swing = 2;
+                    self.ski_swing = SkiSwing::ReturnUp;
                 }
             }
-            2 => {
+            SkiSwing::ReturnUp => {
                 if self.ski_angle < 0 {
                     self.ski_angle += 2;
                 }
@@ -549,11 +560,11 @@ impl JumpState {
                     self.ski_angle = 0;
                 }
             }
-            3 => {
+            SkiSwing::GustUp => {
                 self.ski_angle -= rng.as_deref_mut().map_or(0, |rng| rng.random_i32(50)) + 30;
-                self.ski_swing = 2;
+                self.ski_swing = SkiSwing::ReturnUp;
             }
-            4 => {
+            SkiSwing::LateDown => {
                 if self.ski_angle == 0 {
                     self.ski_angle = 70 + (i32::from(self.takeoff_counter) - 16) * 6;
                     if self.ski_angle > 130 {
@@ -563,10 +574,10 @@ impl JumpState {
                     self.ski_angle += 3;
                 }
                 if self.ski_angle > (i32::from(self.takeoff_counter) - 16) * 14 {
-                    self.ski_swing = 5;
+                    self.ski_swing = SkiSwing::ReturnDown;
                 }
             }
-            5 => {
+            SkiSwing::ReturnDown => {
                 if self.ski_angle > 0 {
                     self.ski_angle -= 1;
                 }
@@ -574,15 +585,15 @@ impl JumpState {
                     self.ski_angle = 0;
                 }
             }
-            6 => {
+            SkiSwing::GustDown => {
                 self.ski_angle += rng.as_deref_mut().map_or(0, |rng| rng.random_i32(50)) + 30;
-                self.ski_swing = 5;
+                self.ski_swing = SkiSwing::ReturnDown;
             }
-            _ => {}
+            SkiSwing::None => {}
         }
 
         if self.ski_angle == 0 {
-            self.ski_swing = 0;
+            self.ski_swing = SkiSwing::None;
         }
     }
 
@@ -621,7 +632,7 @@ impl JumpState {
     fn landing_body_anim_for_state(&self, terrain: &HillTerrain) -> u16 {
         let detached_x = math::round(self.detached_travel + self.qx);
         let detached_ski = slope_ski_anim(terrain.hill_angle(detached_x));
-        if self.fall_type > 0 {
+        if self.fall_type != FallType::None {
             fall_body_anim(
                 self.fall_type,
                 self.landing_counter,
@@ -675,7 +686,7 @@ impl JumpState {
                 };
                 let ski = if self.height < 6 && self.travel > 20.0 {
                     if self.ski_angle == 0 {
-                        self.ski_swing = 0;
+                        self.ski_swing = SkiSwing::None;
                     }
                     slope_ski_anim(terrain.hill_angle(self.x) / (self.height + 1))
                 } else {
