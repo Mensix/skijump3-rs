@@ -5,7 +5,7 @@ use crate::jump::{JumpParticipant, JumpPolicy, JumpRunner};
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use engine::palette::Palette;
-use engine::ui::{Element, Event, View};
+use engine::ui::{Component, Element, Event, View};
 use std::cell::RefCell;
 
 pub struct JumpView {
@@ -37,12 +37,18 @@ impl JumpView {
         }
     }
 
-    fn enter_save_dialog(&self) {
+    fn enter_save_dialog(&mut self) {
+        let distance = self
+            .runner
+            .borrow()
+            .outcome()
+            .map(|o| format!("{:.1}", f64::from(o.distance) / 10.0))
+            .unwrap_or_default();
         let hill_name = self
             .resources
             .hills
             .hill(self.runner.borrow().hill_idx())
-            .map(|h| h.name.clone())
+            .map(|h| format!("{} K{}", h.name, h.kr))
             .unwrap_or_default();
         let pb = self.store.profiles.borrow();
         let author_name = pb
@@ -58,20 +64,17 @@ impl JumpView {
             })
             .unwrap_or_default();
         self.save_dialog
-            .open(author_name, format!("Huge Jump in {hill_name}"));
+            .open(author_name, format!("Huge Jump in {hill_name}"), distance, hill_name);
     }
 
-    fn do_save_replay(&self) {
+    fn do_save_replay(&mut self) {
         let runner = self.runner.borrow();
         if let Some(trace) = runner.replay_trace() {
             self.save_dialog.write_replay(&trace);
-        } else {
-            // Session vanished; just close the dialog
         }
     }
 
     fn reset_jump_state(&self) {
-        // Pascal: wind continues between jumps, NOT re-initialized (only F5 resets it)
         let hill_idx = self.runner.borrow().hill_idx();
         let record_distance = self
             .store
@@ -92,7 +95,7 @@ impl JumpView {
         }
     }
 
-    fn handle_jump_event(&self, event: Event) -> Option<RouteTarget> {
+    fn handle_jump_event(&mut self, event: Event) -> Option<RouteTarget> {
         let action = {
             let mut runner = self.runner.borrow_mut();
             TrainingJumpController.handle_event(event, runner.session_mut())
@@ -126,28 +129,17 @@ impl JumpView {
 impl View<RouteTarget> for JumpView {
     fn elements(&self) -> Vec<Element> {
         if self.save_dialog.is_active() {
-            let distance = self
-                .runner
-                .borrow()
-                .outcome()
-                .map(|o| format!("{:.1}", f64::from(o.distance) / 10.0))
-                .unwrap_or_default();
-            let hill_name = self
-                .resources
-                .hills
-                .hill(self.runner.borrow().hill_idx())
-                .map(|h| format!("{} K{}", h.name, h.kr))
-                .unwrap_or_default();
-            return self.save_dialog.elements(&distance, &hill_name);
+            return self.save_dialog.elements();
         }
         runner_elements(&mut self.runner.borrow_mut(), &self.resources, &self.store)
     }
 
     fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {
         if self.save_dialog.is_active() {
-            match self.save_dialog.handle_event(event) {
-                SaveAction::SaveReplay => self.do_save_replay(),
-                SaveAction::Consumed => {}
+            match self.save_dialog.handle_event(&event) {
+                Some(SaveAction::SaveReplay) => self.do_save_replay(),
+                Some(SaveAction::Consumed) => {}
+                None => {}
             }
             None
         } else {

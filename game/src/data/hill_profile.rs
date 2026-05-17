@@ -85,9 +85,9 @@ mod tests {
 impl HillTerrain {
     pub fn load(assets: &AssetStore, info: &HillInfo) -> Result<Self, String> {
         let front =
-            assets.parse::<DecodedPcx, PcxParser>(&format!("FRONT{}.PCX", info.front_index))?;
+            assets.parse::<PcxParser>(&format!("FRONT{}.PCX", info.front_index))?;
         let mut back =
-            assets.parse::<DecodedPcx, PcxParser>(&format!("BACK{}.PCX", info.back_index))?;
+            assets.parse::<PcxParser>(&format!("BACK{}.PCX", info.back_index))?;
         if info.back_mirror != 0 {
             Self::mirror_pixels(&mut back.pixels, back.width as usize, back.height as usize);
         }
@@ -96,7 +96,27 @@ impl HillTerrain {
 
     #[must_use]
     pub fn from_front_pcx(pcx: DecodedPcx, kr: i64, pk: f64) -> Self {
-        Self::from_pcxs(pcx.clone(), pcx, kr, pk)
+        let width = pcx.width as usize;
+        let height = pcx.height as usize;
+        let pixels = pcx.pixels;
+        let line_lengths = Self::line_lengths(&pixels, width, height);
+        let profile_y = Self::profile_y(&line_lengths, width, height);
+        let tip_x = Self::tip_x(&profile_y, width);
+        let mut front_pixels = pixels.clone();
+        Self::draw_distance_markers(&mut front_pixels, width, &profile_y, tip_x, kr, pk);
+        Self {
+            front_pixels: front_pixels.into(),
+            back_pixels: pixels.into(),
+            front_palette: pcx.palette.clone(),
+            back_palette: pcx.palette,
+            width: pcx.width,
+            height: pcx.height,
+            back_width: pcx.width,
+            back_height: pcx.height,
+            line_lengths,
+            profile_y,
+            tip_x,
+        }
     }
 
     #[must_use]

@@ -1,4 +1,4 @@
-use crate::components::replay_playback::{PlaybackMode, ReplayPlayback};
+use crate::components::replay_playback::{PlaybackMode, PlaybackSpeed, ReplayPlayback};
 use crate::data::hill_profile::HillTerrain;
 use crate::data::records::HillInfo;
 use crate::gfx::palette::{FONT_DEFAULT, FONT_GOLD, FONT_GREET, FONT_HELP};
@@ -290,9 +290,8 @@ impl View<RouteTarget> for ReplayView {
         match event {
             Event::Keyboard(Key::Escape | Key::Delete) => Some(RouteTarget::Back),
             Event::Keyboard(Key::Char('+') | Key::Up) => {
-                let s = self.playback.speed();
-                if s < 5 {
-                    self.playback.set_speed(s + 1);
+                if let Some(s) = self.playback.speed().next_up() {
+                    self.playback.set_speed(s);
                     if self.playback.mode() == PlaybackMode::Pause {
                         self.playback.set_mode(PlaybackMode::SpeedChange);
                     }
@@ -300,9 +299,8 @@ impl View<RouteTarget> for ReplayView {
                 None
             }
             Event::Keyboard(Key::Char('-') | Key::Down) => {
-                let s = self.playback.speed();
-                if s > 0 {
-                    self.playback.set_speed(s - 1);
+                if let Some(s) = self.playback.speed().next_down() {
+                    self.playback.set_speed(s);
                     if self.playback.mode() == PlaybackMode::Pause {
                         self.playback.set_mode(PlaybackMode::SpeedChange);
                     }
@@ -341,11 +339,11 @@ impl View<RouteTarget> for ReplayView {
         if let Ok(terrain) = &self.terrain {
             terrain.apply_hill_palette(palette);
         }
-        muuta_replay(palette, self.playback.mode());
+        highlight_active_speed(palette, self.playback.mode());
     }
 }
 
-fn muuta_replay(palette: &mut Palette, mode: PlaybackMode) {
+fn highlight_active_speed(palette: &mut Palette, mode: PlaybackMode) {
     let col: u8 = match mode {
         PlaybackMode::Forward => 250,
         PlaybackMode::Rewind => 253,
@@ -405,14 +403,14 @@ fn replay_gate_text(langbase: &LangBase, gate: i32) -> Option<String> {
     }
 }
 
-fn replay_speed_text(speed: u8, langbase: &LangBase) -> String {
+fn replay_speed_text(speed: PlaybackSpeed, langbase: &LangBase) -> String {
     match speed {
-        0 => langbase.lstr(343).to_string(),
-        1 => "50%".to_string(),
-        2 => "75%".to_string(),
-        4 => "150%".to_string(),
-        5 => "200%".to_string(),
-        _ => "100%".to_string(),
+        PlaybackSpeed::Variable => langbase.lstr(343).to_string(),
+        PlaybackSpeed::Pct25 => "50%".to_string(),
+        PlaybackSpeed::Pct50 => "75%".to_string(),
+        PlaybackSpeed::Pct100 => "100%".to_string(),
+        PlaybackSpeed::Pct150 => "150%".to_string(),
+        PlaybackSpeed::Pct200 => "200%".to_string(),
     }
 }
 

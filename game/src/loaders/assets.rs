@@ -29,7 +29,7 @@ impl AssetStore {
         RecordsParser::parse(&data).map_err(|e| e.to_string())
     }
 
-    pub fn parse<T, P: AssetParser<Output = T>>(&self, name: &str) -> Result<T, String> {
+    pub fn parse<P: AssetParser>(&self, name: &str) -> Result<P::Output, String> {
         let data = self.read(name).map_err(|e| e.to_string())?;
         P::parse(&data).map_err(|e| e.to_string())
     }

@@ -11,10 +11,44 @@ pub enum PlaybackMode {
     OneStep,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PlaybackSpeed {
+    Variable,
+    Pct25,
+    Pct50,
+    Pct100,
+    Pct150,
+    Pct200,
+}
+
+impl PlaybackSpeed {
+    pub fn next_up(self) -> Option<Self> {
+        match self {
+            Self::Variable => Some(Self::Pct25),
+            Self::Pct25 => Some(Self::Pct50),
+            Self::Pct50 => Some(Self::Pct100),
+            Self::Pct100 => Some(Self::Pct150),
+            Self::Pct150 => Some(Self::Pct200),
+            Self::Pct200 => None,
+        }
+    }
+
+    pub fn next_down(self) -> Option<Self> {
+        match self {
+            Self::Variable => None,
+            Self::Pct25 => Some(Self::Variable),
+            Self::Pct50 => Some(Self::Pct25),
+            Self::Pct100 => Some(Self::Pct50),
+            Self::Pct150 => Some(Self::Pct100),
+            Self::Pct200 => Some(Self::Pct150),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct ReplayPlayback {
     mode: Cell<PlaybackMode>,
-    speed: Cell<u8>,
+    speed: Cell<PlaybackSpeed>,
     place_counter: Cell<u32>,
 }
 
@@ -23,7 +57,7 @@ impl ReplayPlayback {
     pub const fn new() -> Self {
         Self {
             mode: Cell::new(PlaybackMode::PlayOnceThenPause),
-            speed: Cell::new(3),
+            speed: Cell::new(PlaybackSpeed::Pct100),
             place_counter: Cell::new(0),
         }
     }
@@ -36,11 +70,11 @@ impl ReplayPlayback {
         self.mode.set(mode);
     }
 
-    pub const fn speed(&self) -> u8 {
+    pub const fn speed(&self) -> PlaybackSpeed {
         self.speed.get()
     }
 
-    pub fn set_speed(&self, speed: u8) {
+    pub fn set_speed(&self, speed: PlaybackSpeed) {
         self.speed.set(speed);
     }
 
@@ -68,7 +102,7 @@ impl ReplayPlayback {
         }
         let place = self.place_counter.get();
         let advance_by: i32 = match speed {
-            0 => {
+            PlaybackSpeed::Variable => {
                 let flight_start = session.trace().meta.flight_start;
                 let flight_stop = session.trace().meta.flight_stop;
                 let dist_to_start = (frame as i32 - flight_start as i32).unsigned_abs();
@@ -86,12 +120,11 @@ impl ReplayPlayback {
                     _ => 1,
                 }
             }
-            1 => i32::from(place.is_multiple_of(4)),
-            2 => (place % 2) as i32,
-            3 => 1,
-            4 => 1 + (place % 2) as i32,
-            5 => 2,
-            _ => 1,
+            PlaybackSpeed::Pct25 => i32::from(place.is_multiple_of(4)),
+            PlaybackSpeed::Pct50 => (place % 2) as i32,
+            PlaybackSpeed::Pct100 => 1,
+            PlaybackSpeed::Pct150 => 1 + (place % 2) as i32,
+            PlaybackSpeed::Pct200 => 2,
         };
 
         match mode {

@@ -190,64 +190,63 @@ impl Config {
         })
     }
 
+    fn write_num(buf: &mut Vec<u8>, val: i32) {
+        let mut s = val.to_string();
+        s.push('\n');
+        buf.extend_from_slice(s.as_bytes());
+    }
+
+    fn write_str(buf: &mut Vec<u8>, val: &str) {
+        buf.extend_from_slice(val.as_bytes());
+        buf.push(b'\n');
+    }
+
     #[must_use]
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut buf = Vec::new();
-        macro_rules! num {
-            ($val:expr) => {{
-                let mut s = $val.to_string();
-                s.push('\n');
-                buf.extend_from_slice(s.as_bytes());
-            }};
-        }
-        macro_rules! s_val {
-            ($val:expr) => {{
-                buf.extend_from_slice($val.as_bytes());
-                buf.push(b'\n');
-            }};
-        }
-        num!(self.reg);
-        num!(self.comphrs);
-        num!(self.lct);
-        num!(self.diff);
-        num!(self.compactlist);
-        num!(self.invback);
-        num!(self.automatichrr);
-        num!(self.beeppi);
-        num!(self.nosamename);
-        num!(self.goals);
-        num!(self.diffwc);
-        num!(self.kosystem);
-        num!(self.languagenumber);
-        num!(self.trainrounds);
-        num!(self.namenumber);
-        s_val!(self.setfile);
-        num!(self.gdetail);
-        num!(self.seecomps);
+
+        Self::write_num(&mut buf, self.reg);
+        Self::write_num(&mut buf, self.comphrs);
+        Self::write_num(&mut buf, self.lct);
+        Self::write_num(&mut buf, self.diff);
+        Self::write_num(&mut buf, self.compactlist);
+        Self::write_num(&mut buf, self.invback);
+        Self::write_num(&mut buf, self.automatichrr);
+        Self::write_num(&mut buf, self.beeppi);
+        Self::write_num(&mut buf, self.nosamename);
+        Self::write_num(&mut buf, self.goals);
+        Self::write_num(&mut buf, self.diffwc);
+        Self::write_num(&mut buf, self.kosystem);
+        Self::write_num(&mut buf, self.languagenumber);
+        Self::write_num(&mut buf, self.trainrounds);
+        Self::write_num(&mut buf, self.namenumber);
+        Self::write_str(&mut buf, &self.setfile);
+        Self::write_num(&mut buf, self.gdetail);
+        Self::write_num(&mut buf, self.seecomps);
         // 3 placeholder lines
         buf.extend_from_slice(b"0\n0\n0\n");
-        num!(self.jumper_count);
+        Self::write_num(&mut buf, self.jumper_count);
         for name in &self.jnimet {
-            s_val!(name);
+            Self::write_str(&mut buf, name);
         }
-        num!(self.player_count);
+        Self::write_num(&mut buf, self.player_count);
         for idx in &self.profileorder {
-            num!(idx);
+            Self::write_num(&mut buf, *idx);
         }
-        num!(self.kothwind);
-        num!(self.kothrounds);
-        num!(self.kothpack);
-        num!(self.kothmaki);
-        num!(self.koth_count);
+        Self::write_num(&mut buf, self.kothwind);
+        Self::write_num(&mut buf, self.kothrounds);
+        Self::write_num(&mut buf, self.kothpack);
+        Self::write_num(&mut buf, self.kothmaki);
+        Self::write_num(&mut buf, self.koth_count);
         for idx in &self.kothpel {
-            num!(idx);
+            Self::write_num(&mut buf, *idx);
         }
-        num!(self.key_up);
-        num!(self.key_right);
-        num!(self.key_left);
-        num!(self.key_telemark);
-        num!(self.key_replay);
-        num!(self.windplace);
+        Self::write_num(&mut buf, self.key_up);
+        Self::write_num(&mut buf, self.key_right);
+        Self::write_num(&mut buf, self.key_left);
+        Self::write_num(&mut buf, self.key_telemark);
+        Self::write_num(&mut buf, self.key_replay);
+        Self::write_num(&mut buf, self.windplace);
         // 2 placeholder lines
         buf.extend_from_slice(b"0\n0\n");
         buf
