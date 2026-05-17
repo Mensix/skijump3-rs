@@ -1,3 +1,6 @@
+use crate::consts::FONT_GLYPH_COUNT;
+use crate::sprite::SpriteData;
+
 #[derive(Debug, Clone)]
 struct Glyph {
     data: Vec<u8>,
@@ -71,8 +74,25 @@ pub struct Font {
 impl Font {
     pub fn new() -> Self {
         Self {
-            glyphs: (0..crate::consts::FONT_GLYPH_COUNT).map(|_| None).collect(),
+            glyphs: (0..FONT_GLYPH_COUNT).map(|_| None).collect(),
         }
+    }
+
+    pub fn from_sprites(sprites: &[SpriteData]) -> Self {
+        let mut font = Self::new();
+        for (i, sprite) in sprites.iter().enumerate() {
+            if i < FONT_GLYPH_COUNT {
+                font.set_glyph(
+                    i,
+                    sprite.data.clone(),
+                    sprite.width,
+                    sprite.height,
+                    sprite.center_x,
+                    sprite.center_y,
+                );
+            }
+        }
+        font
     }
 
     pub fn set_glyph(

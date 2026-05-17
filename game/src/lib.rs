@@ -14,26 +14,18 @@ pub mod text;
 pub mod views;
 
 use crate::components::layout::MainLayout;
-use crate::data::records::{HillCatalog, RecordStore};
 use crate::gfx::palette::apply_standard_ui_palette;
 use crate::save::{SaveManager, SaveRef};
 use crate::store::{Resources, ResourcesRef, Store, StoreRef};
-use engine::consts::{FONT_GLYPH_COUNT, HEIGHT, WIDTH};
+use engine::consts::{HEIGHT, WIDTH};
 use engine::input::Input;
 use engine::palette::Palette;
 use engine::sprite::SpriteData;
-use engine::ui::Font;
-use engine::ui::Router;
+use engine::ui::{Font, PaintCtx, Router, View};
+use engine::video::Renderer;
 use loaders::assets::AssetStore;
-use parsers::{
-    anim::AnimParser,
-    hills::HillBaseParser,
-    langbase::{LangBase, LangBaseParser},
-    names::NamesParser,
-    pcx::PcxParser,
-    records::RecordsParser,
-    AssetParser,
-};
+use parsers::langbase::{LangBase, LangBaseParser};
+use parsers::{anim::AnimParser, pcx::PcxParser, AssetParser};
 use route::RouteTarget;
 use std::rc::Rc;
 use views::{
@@ -46,41 +38,11 @@ const ANIM_SKI: &str = "ANIM.SKI";
 const LANGBASE_SKI: &str = "LANGBASE.SKI";
 const HILLBASE_SKI: &str = "HILLBASE.SKI";
 const HISCORE_SKI: &str = "HISCORE.SKI";
-const NAMES_FILES: &[&str] = &["NAMES0.SKI", "NAMES1.SKI", "NAMES2.SKI"];
 const VERSION: &str = "3.12";
-
-fn load_font(sprites: &[SpriteData]) -> Font {
-    let mut font = Font::new();
-    for (i, sprite) in sprites.iter().enumerate() {
-        if i < FONT_GLYPH_COUNT {
-            font.set_glyph(
-                i,
-                sprite.data.clone(),
-                sprite.width,
-                sprite.height,
-                sprite.center_x,
-                sprite.center_y,
-            );
-        }
-    }
-    font
-}
-
-fn load_player_names(assets: &AssetStore) -> Vec<String> {
-    let mut all_names = Vec::new();
-    for &filename in NAMES_FILES {
-        if let Ok(data) = assets.read(filename) {
-            if let Ok(names) = NamesParser::parse(&data) {
-                all_names.extend(names);
-            }
-        }
-    }
-    all_names
-}
 
 pub struct Game {
     _sdl: sdl2::Sdl,
-    renderer: engine::video::Renderer,
+    renderer: Renderer,
     input: Input,
     font: Font,
     router: Router<RouteTarget>,
@@ -95,7 +57,7 @@ impl Game {
         let assets = AssetStore::new("game/assets");
         let (pixels, pcx_palette, sprites, langbase) = Self::load_assets(&assets)?;
 
-        let font = load_font(&sprites);
+        let font = Font::from_sprites(&sprites);
         let framebuffer = vec![0u8; (WIDTH * HEIGHT) as usize];
 
         let mut base_palette = pcx_palette;
@@ -113,9 +75,9 @@ impl Game {
             RouteTarget::MainMenu
         };
 
-        let player_names = load_player_names(&assets);
-        let hills = Self::load_hills(&assets)?;
-        let records = Self::load_records(&assets)?;
+        let player_names = assets.load_all_names();
+        let hills = assets.load_hills(HILLBASE_SKI)?;
+        let records = assets.load_records(HISCORE_SKI)?;
         let resources: ResourcesRef = Rc::new(Resources::new(
             font.clone(),
             Rc::clone(&langbase),
@@ -138,9 +100,9 @@ impl Game {
         })
     }
 
-    fn init_sdl() -> Result<(sdl2::Sdl, engine::video::Renderer, Input), String> {
+    fn init_sdl() -> Result<(sdl2::Sdl, Renderer, Input), String> {
         let sdl = sdl2::init()?;
-        let renderer = engine::video::Renderer::new(&sdl)?;
+        let renderer = Renderer::new(&sdl)?;
         let input = Input::new(&sdl)?;
         Ok((sdl, renderer, input))
     }
@@ -161,16 +123,6 @@ impl Game {
         Ok((decoded.pixels, decoded.palette, sprites, langbase))
     }
 
-    fn load_hills(assets: &AssetStore) -> Result<HillCatalog, String> {
-        let data = assets.read(HILLBASE_SKI).map_err(|e| e.to_string())?;
-        HillBaseParser::parse(&data).map_err(|e| e.to_string())
-    }
-
-    fn load_records(assets: &AssetStore) -> Result<RecordStore, String> {
-        let data = assets.read(HISCORE_SKI).map_err(|e| e.to_string())?;
-        RecordsParser::parse(&data).map_err(|e| e.to_string())
-    }
-
     fn create_router(
         resources: ResourcesRef,
         background: Vec<u8>,
@@ -184,7 +136,7 @@ impl Game {
             background,
             store.clone(),
         );
-        let initial_view: Box<dyn engine::ui::View<RouteTarget>> = match &start_route {
+        let initial_view: Box<dyn View<RouteTarget>> = match &start_route {
             RouteTarget::Welcome => Box::new(WelcomeScreenView::new(
                 resources.langbase.languages.clone(),
                 Rc::clone(&resources.langbase),
@@ -308,7 +260,7 @@ impl Game {
         self.renderer.set_palette(palette);
 
         self.framebuffer.fill(0);
-        let mut ctx = engine::ui::PaintCtx::new(&mut self.framebuffer, WIDTH, HEIGHT);
+        let mut ctx = PaintCtx::new(&mut self.framebuffer, WIDTH, HEIGHT);
         let elements = self.router.current_view().elements();
         for el in &elements {
             el.render(&mut ctx, &self.font, &self.sprites);
