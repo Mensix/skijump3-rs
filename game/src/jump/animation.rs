@@ -111,23 +111,23 @@ pub fn post_landing_body_anim(
     let anim_idx = match phase {
          0 => 121 + i32::from(landing_style) * 6,
          1 => 122 + i32::from(landing_style) * 6,
-         2 => 135,
-         3..=6 => match grade {
-             0..=75 => Sprite::LandingSlide as i32,
-             105..=200 => {
-                 if phase > 3 {
-                     if grade > 114 {
-                         140
-                     } else {
-                         139
-                     }
-                 } else {
-                     138
-                 }
-             }
-             _ => 135,
-         },
-         _ => 135,
+          2 => Sprite::PostLandingPhase2 as i32,
+          3..=6 => match grade {
+              0..=75 => Sprite::LandingSlide as i32,
+              105..=200 => {
+                  if phase > 3 {
+                      if grade > 114 {
+                          Sprite::PostLandingRecoveryHigh as i32
+                      } else {
+                          Sprite::PostLandingRecoveryUp as i32
+                      }
+                  } else {
+                      Sprite::PostLandingRecovery as i32
+                  }
+              }
+              _ => Sprite::PostLandingPhase2 as i32,
+          },
+          _ => Sprite::PostLandingPhase2 as i32,
      };
     anim_idx as u16
 }
@@ -153,11 +153,11 @@ pub(crate) fn fall_body_anim(
             }
             if anim > 144 {
                 anim = match detached_ski {
-                    4 => 144,
-                    5 => 145,
-                    6 => 146,
-                    7..=12 => 147,
-                    _ => 143,
+                    4 => Sprite::FallSki1 as i32,
+                    5 => Sprite::FallSki2 as i32,
+                    6 => Sprite::FallSki3 as i32,
+                    7..=12 => Sprite::FallSki4 as i32,
+                    _ => Sprite::FallDefault as i32,
                 };
             }
             if fall_type == FallType::TwoFooted && counter < 6 {
@@ -169,10 +169,10 @@ pub(crate) fn fall_body_anim(
             let mut anim = 150 + (counter - 14) / 10;
             if anim > 154 {
                 anim = match detached_ski {
-                    3..=4 => 161,
-                    5..=6 => 160,
-                    7..=12 => 159,
-                    _ => 162,
+                    3..=4 => Sprite::CrashFinalNarrow as i32,
+                    5..=6 => Sprite::CrashFinalMedium as i32,
+                    7..=12 => Sprite::CrashFinalWide as i32,
+                    _ => Sprite::CrashFinalDefault as i32,
                 };
             } else if landing_style == 2 {
                 anim += 5;
