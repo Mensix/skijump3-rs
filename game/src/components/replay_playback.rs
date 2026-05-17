@@ -1,14 +1,19 @@
 use crate::jump::replay_player::ReplaySession;
 use std::cell::Cell;
 
-/// Replay playback state machine: mode, speed, frame‑divisor counter.
-///
-/// Modes (Pascal 1:1):
-/// 0 = pause, 1 = forward, 2 = rewind, 3 = play‑once‑then‑pause,
-/// 4 = speed‑change, 5 = one‑step.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PlaybackMode {
+    Pause,
+    Forward,
+    Rewind,
+    PlayOnceThenPause,
+    SpeedChange,
+    OneStep,
+}
+
 #[derive(Debug)]
 pub struct ReplayPlayback {
-    mode: Cell<u8>,
+    mode: Cell<PlaybackMode>,
     speed: Cell<u8>,
     place_counter: Cell<u32>,
 }
@@ -17,17 +22,17 @@ impl ReplayPlayback {
     #[must_use]
     pub const fn new() -> Self {
         Self {
-            mode: Cell::new(3),
+            mode: Cell::new(PlaybackMode::PlayOnceThenPause),
             speed: Cell::new(3),
             place_counter: Cell::new(0),
         }
     }
 
-    pub const fn mode(&self) -> u8 {
+    pub const fn mode(&self) -> PlaybackMode {
         self.mode.get()
     }
 
-    pub fn set_mode(&self, mode: u8) {
+    pub fn set_mode(&self, mode: PlaybackMode) {
         self.mode.set(mode);
     }
 
@@ -39,32 +44,30 @@ impl ReplayPlayback {
         self.speed.set(speed);
     }
 
-    /// Advance one tick. Returns `true` if the session frame position changed
-    /// (caller should advance snow rendering).
     pub fn advance(&self, session: &mut ReplaySession) -> bool {
         let mode = self.mode.get();
-        if mode == 0 {
+        if mode == PlaybackMode::Pause {
             return false;
         }
 
-        if mode == 3 {
-            self.mode.set(0);
+        if mode == PlaybackMode::PlayOnceThenPause {
+            self.mode.set(PlaybackMode::Pause);
             return false;
         }
 
-        if mode == 4 {
-            self.mode.set(3);
+        if mode == PlaybackMode::SpeedChange {
+            self.mode.set(PlaybackMode::PlayOnceThenPause);
             return false;
         }
 
         let frame = session.frame_index();
         let speed = self.speed.get();
-        if matches!(mode, 1 | 2) {
+        if matches!(mode, PlaybackMode::Forward | PlaybackMode::Rewind) {
             let cnt = self.place_counter.get().wrapping_add(1);
             self.place_counter.set(if cnt > 999 { 0 } else { cnt });
         }
         let place = self.place_counter.get();
-        let advance_by = match speed {
+        let advance_by: i32 = match speed {
             0 => {
                 let flight_start = session.trace().meta.flight_start;
                 let flight_stop = session.trace().meta.flight_stop;
@@ -92,12 +95,12 @@ impl ReplayPlayback {
         };
 
         match mode {
-            1 | 3 | 5 => {
+            PlaybackMode::Forward | PlaybackMode::PlayOnceThenPause | PlaybackMode::OneStep => {
                 for _ in 0..advance_by {
                     session.step_forward();
                 }
             }
-            2 => {
+            PlaybackMode::Rewind => {
                 for _ in 0..advance_by {
                     session.step_back();
                 }
@@ -107,13 +110,14 @@ impl ReplayPlayback {
 
         let changed = session.frame_index() != frame;
 
-        if mode == 5 {
-            self.mode.set(3);
+        if mode == PlaybackMode::OneStep {
+            self.mode.set(PlaybackMode::PlayOnceThenPause);
         }
-        if (mode == 1 && session.frame_index() + 1 >= session.trace().frames.len())
-            || (mode == 2 && session.frame_index() == 0)
+        if (mode == PlaybackMode::Forward
+            && session.frame_index() + 1 >= session.trace().frames.len())
+            || (mode == PlaybackMode::Rewind && session.frame_index() == 0)
         {
-            self.mode.set(3);
+            self.mode.set(PlaybackMode::PlayOnceThenPause);
         }
 
         changed

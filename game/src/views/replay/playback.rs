@@ -1,4 +1,4 @@
-use crate::components::replay_playback::ReplayPlayback;
+use crate::components::replay_playback::{PlaybackMode, ReplayPlayback};
 use crate::data::hill_profile::HillTerrain;
 use crate::data::records::HillInfo;
 use crate::gfx::palette::{FONT_DEFAULT, FONT_GOLD, FONT_GREET, FONT_HELP};
@@ -293,8 +293,8 @@ impl View<RouteTarget> for ReplayView {
                 let s = self.playback.speed();
                 if s < 5 {
                     self.playback.set_speed(s + 1);
-                    if self.playback.mode() == 0 {
-                        self.playback.set_mode(4);
+                    if self.playback.mode() == PlaybackMode::Pause {
+                        self.playback.set_mode(PlaybackMode::SpeedChange);
                     }
                 }
                 None
@@ -303,28 +303,34 @@ impl View<RouteTarget> for ReplayView {
                 let s = self.playback.speed();
                 if s > 0 {
                     self.playback.set_speed(s - 1);
-                    if self.playback.mode() == 0 {
-                        self.playback.set_mode(4);
+                    if self.playback.mode() == PlaybackMode::Pause {
+                        self.playback.set_mode(PlaybackMode::SpeedChange);
                     }
                 }
                 None
             }
             Event::Keyboard(Key::Right) => {
-                self.playback
-                    .set_mode(if self.playback.mode() == 1 { 3 } else { 1 });
+                self.playback.set_mode(if self.playback.mode() == PlaybackMode::Forward {
+                    PlaybackMode::PlayOnceThenPause
+                } else {
+                    PlaybackMode::Forward
+                });
                 None
             }
             Event::Keyboard(Key::Left) => {
-                self.playback
-                    .set_mode(if self.playback.mode() == 2 { 3 } else { 2 });
+                self.playback.set_mode(if self.playback.mode() == PlaybackMode::Rewind {
+                    PlaybackMode::PlayOnceThenPause
+                } else {
+                    PlaybackMode::Rewind
+                });
                 None
             }
-            Event::Keyboard(Key::Char(' ')) if self.playback.mode() == 0 => {
-                self.playback.set_mode(5);
+            Event::Keyboard(Key::Char(' ')) if self.playback.mode() == PlaybackMode::Pause => {
+                self.playback.set_mode(PlaybackMode::OneStep);
                 None
             }
             Event::Keyboard(Key::Char('p' | 'P')) => {
-                self.playback.set_mode(3);
+                self.playback.set_mode(PlaybackMode::PlayOnceThenPause);
                 None
             }
             Event::Keyboard(_) => None,
@@ -339,11 +345,11 @@ impl View<RouteTarget> for ReplayView {
     }
 }
 
-fn muuta_replay(palette: &mut Palette, mode: u8) {
+fn muuta_replay(palette: &mut Palette, mode: PlaybackMode) {
     let col: u8 = match mode {
-        1 => 250,
-        2 => 253,
-        4 => 251,
+        PlaybackMode::Forward => 250,
+        PlaybackMode::Rewind => 253,
+        PlaybackMode::SpeedChange => 251,
         _ => 249,
     };
     for i in 249..=253 {
