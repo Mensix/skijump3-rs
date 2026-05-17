@@ -112,7 +112,7 @@ impl View<RouteTarget> for JumpMenuView {
                     0,
                 );
                 drop(profiles);
-                *self.store.competition.borrow_mut() = Some(comp);
+                self.store.competition.start(comp);
                 Some(RouteTarget::CompetitionJump)
             }
             Some(0) => Some(RouteTarget::MainMenu),

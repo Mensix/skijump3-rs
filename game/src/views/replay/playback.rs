@@ -34,7 +34,7 @@ pub struct ReplayView {
 impl ReplayView {
     #[allow(clippy::needless_pass_by_value)]
     pub fn new(resources: ResourcesRef, store: StoreRef) -> Self {
-        let trace = store.selected_replay.borrow().clone();
+        let trace = store.replay_selection.clone_selected();
         let terrain = trace.as_ref().map_or_else(
             || Err("Replay hill not found".to_string()),
             |trace| {

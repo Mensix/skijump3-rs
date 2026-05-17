@@ -245,7 +245,7 @@ impl View<RouteTarget> for ReplayBrowserView {
             }
             Event::Keyboard(Key::Enter) => {
                 let trace = self.selected_entry()?.trace.clone()?;
-                *self.store.selected_replay.borrow_mut() = Some(trace);
+                self.store.replay_selection.select(trace);
                 Some(RouteTarget::ReplayPlayback)
             }
             Event::Keyboard(_) => None,

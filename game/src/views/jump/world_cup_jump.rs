@@ -56,16 +56,17 @@ impl WorldCupJumpView {
             return;
         }
         let outcome = outcome.unwrap();
-        let comp = self.store.competition.borrow();
-        let is_human = comp.as_ref().is_some_and(|c| c.is_human_current());
-        drop(comp);
-        if !is_human {
+        if !self
+            .store
+            .competition
+            .try_with(|c| c.is_human_current())
+            .unwrap_or(false)
+        {
             return;
         }
-        let mut comp = self.store.competition.borrow_mut();
-        if let Some(c) = comp.as_mut() {
-            c.record_jump(outcome.score, outcome.distance);
-        }
+        self.store
+            .competition
+            .try_with_mut(|c| c.record_jump(outcome.score, outcome.distance));
         self.result_acknowledged.set(false);
     }
 
@@ -88,30 +89,31 @@ impl WorldCupJumpView {
     }
 
     fn results_page(&self) -> Vec<Element> {
-        let comp = self.store.competition.borrow();
-        let Some(c) = comp.as_ref() else {
-            return vec![Element::fillbox(0, 0, 320, 200, 0)];
-        };
-        let page_data = competition_results::build_results_page(c, self.display_page.get());
-        let mut els = competition_results::render_results_page(&page_data, &self.resources);
-        els.extend(competition_results::render_header(c, &self.resources));
-        els
+        self.store
+            .competition
+            .try_with(|c| {
+                let page_data = competition_results::build_results_page(c, self.display_page.get());
+                let mut els = competition_results::render_results_page(&page_data, &self.resources);
+                els.extend(competition_results::render_header(c, &self.resources));
+                els
+            })
+            .unwrap_or_else(|| vec![Element::fillbox(0, 0, 320, 200, 0)])
     }
 
     fn drive_competition(&self) {
-        let mut comp = self.store.competition.borrow_mut();
-        let Some(c) = comp.as_mut() else {
+        let command = self.store.competition.try_with_mut(|c| {
+            let mut simulate_computer = |participant: JumpParticipant,
+                                         hill_idx: usize|
+             -> crate::jump::types::JumpOutcome {
+                self.scene.simulate_hidden(participant, hill_idx)
+            };
+            world_cup_flow::drive(c, &self.last_event, &mut simulate_computer)
+        });
+
+        let Some(command) = command else {
             self.render_mode.set(RenderMode::Done);
             return;
         };
-
-        let mut simulate_computer =
-            |participant: JumpParticipant, hill_idx: usize| -> crate::jump::types::JumpOutcome {
-                self.scene.simulate_hidden(participant, hill_idx)
-            };
-
-        let command = world_cup_flow::drive(c, &self.last_event, &mut simulate_computer);
-        drop(comp);
 
         match command {
             WorldCupCommand::HumanJump {
@@ -206,32 +208,35 @@ impl WorldCupJumpView {
         if self.display_page.get() > 0 {
             return true;
         }
-        self.store.competition.borrow().as_ref().is_some_and(|c| {
-            matches!(
-                c.phase(),
-                CompetitionPhase::QualificationResults
-                    | CompetitionPhase::Round1Results
-                    | CompetitionPhase::Round2Results
-                    | CompetitionPhase::WorldCupStandings
-                    | CompetitionPhase::SeasonComplete
-            ) || matches!(
-                c.phase(),
-                CompetitionPhase::Qualification
-                    | CompetitionPhase::Round1
-                    | CompetitionPhase::Round2
-            ) && c.current_jumper().is_none()
-        })
+        self.store
+            .competition
+            .try_with(|c| {
+                matches!(
+                    c.phase(),
+                    CompetitionPhase::QualificationResults
+                        | CompetitionPhase::Round1Results
+                        | CompetitionPhase::Round2Results
+                        | CompetitionPhase::WorldCupStandings
+                        | CompetitionPhase::SeasonComplete
+                ) || matches!(
+                    c.phase(),
+                    CompetitionPhase::Qualification
+                        | CompetitionPhase::Round1
+                        | CompetitionPhase::Round2
+                ) && c.current_jumper().is_none()
+            })
+            .unwrap_or(false)
     }
 
     fn handle_result_event(&mut self, event: Event) -> Option<RouteTarget> {
         match event {
             Event::Keyboard(Key::Right | Key::Char(' ')) => {
                 let page = self.display_page.get();
-                let total = {
-                    let comp = self.store.competition.borrow();
-                    let c = comp.as_ref()?;
-                    competition_results::total_pages(c)
-                };
+                let total = self
+                    .store
+                    .competition
+                    .try_with(competition_results::total_pages)
+                    .unwrap_or(0);
                 if page + 1 < total {
                     self.display_page.set(page + 1);
                 }
@@ -246,9 +251,7 @@ impl WorldCupJumpView {
             }
             Event::Keyboard(Key::Escape | Key::Enter) => {
                 self.display_page.set(0);
-                if let Some(c) = self.store.competition.borrow_mut().as_mut() {
-                    c.advance();
-                }
+                self.store.competition.try_with_mut(|c| c.advance());
                 None
             }
             _ => None,

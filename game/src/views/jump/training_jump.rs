@@ -17,9 +17,9 @@ pub struct TrainingJumpView {
 
 impl TrainingJumpView {
     pub fn new(resources: ResourcesRef, store: StoreRef) -> Self {
-        let hill_idx = store.practice_selected_hill.get();
+        let hill_idx = store.practice.hill.get();
         let participant = JumpParticipant::trainee();
-        let start_gate = store.practice_start_gate.get();
+        let start_gate = store.practice.start_gate.get();
         JumpScene::setup_event(&store);
         let scene = JumpScene::new(
             ResourcesRef::clone(&resources),
@@ -57,11 +57,11 @@ impl TrainingJumpView {
                 let _ = self.scene.borrow().replay_trace();
                 self.scene
                     .borrow_mut()
-                    .reset_state(self.store.practice_start_gate.get());
+                    .reset_state(self.store.practice.start_gate.get());
                 None
             }
             JumpInputAction::PersistStartGate(start_gate) => {
-                self.store.practice_start_gate.set(start_gate);
+                self.store.practice.start_gate.set(start_gate);
                 self.store.start_gate.set(start_gate);
                 None
             }

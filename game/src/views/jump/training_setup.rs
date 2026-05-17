@@ -36,10 +36,7 @@ impl TrainingSetupView {
 
     pub fn new(resources: ResourcesRef, store: StoreRef) -> Self {
         let total = resources.hills.len();
-        let selected = store
-            .practice_selected_hill
-            .get()
-            .min(total.saturating_sub(1));
+        let selected = store.practice.hill.get().min(total.saturating_sub(1));
         let start = if total > 20 { selected / 20 * 20 } else { 0 };
         let page_n = (total.saturating_sub(start)).min(20);
         let n = page_n + usize::from(total > 20);
@@ -110,7 +107,7 @@ impl TrainingSetupView {
             None
         } else {
             let hill_idx = self.start + sel;
-            self.store.practice_selected_hill.set(hill_idx);
+            self.store.practice.hill.set(hill_idx);
             self.store.selected_hill.set(hill_idx);
             Some(RouteTarget::Jump)
         }

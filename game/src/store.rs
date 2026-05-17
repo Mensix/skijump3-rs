@@ -98,17 +98,122 @@ impl Default for JumpRuntime {
     }
 }
 
+/// Practice-mode hill and start gate settings.
+#[derive(Debug, Clone)]
+pub struct PracticeSettings {
+    pub hill: Cell<usize>,
+    pub start_gate: Cell<i32>,
+}
+
+impl PracticeSettings {
+    pub fn new() -> Self {
+        Self {
+            hill: Cell::new(0),
+            start_gate: Cell::new(DEFAULT_START_GATE),
+        }
+    }
+}
+
+impl Default for PracticeSettings {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// Selected replay for playback.
+#[derive(Debug, Clone)]
+pub struct ReplaySelection {
+    inner: RefCell<Option<ReplayTrace>>,
+}
+
+impl ReplaySelection {
+    pub fn new() -> Self {
+        Self {
+            inner: RefCell::new(None),
+        }
+    }
+
+    pub fn select(&self, trace: ReplayTrace) {
+        *self.inner.borrow_mut() = Some(trace);
+    }
+
+    pub fn clone_selected(&self) -> Option<ReplayTrace> {
+        self.inner.borrow().clone()
+    }
+}
+
+impl Default for ReplaySelection {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// Wraps `Option<Competition>` with scoped access methods so callers
+/// don't need to choreograph `borrow()` / `drop()` manually.
+#[derive(Debug, Clone)]
+pub struct CompetitionSlot {
+    inner: RefCell<Option<Competition>>,
+}
+
+impl CompetitionSlot {
+    pub fn new() -> Self {
+        Self {
+            inner: RefCell::new(None),
+        }
+    }
+
+    pub fn start(&self, comp: Competition) {
+        *self.inner.borrow_mut() = Some(comp);
+    }
+
+    pub fn with<R>(&self, f: impl FnOnce(&Competition) -> R) -> R {
+        f(self
+            .inner
+            .borrow()
+            .as_ref()
+            .expect("competition not started"))
+    }
+
+    pub fn with_mut<R>(&self, f: impl FnOnce(&mut Competition) -> R) -> R {
+        f(self
+            .inner
+            .borrow_mut()
+            .as_mut()
+            .expect("competition not started"))
+    }
+
+    pub fn try_with<R>(&self, f: impl FnOnce(&Competition) -> R) -> Option<R> {
+        self.inner.borrow().as_ref().map(f)
+    }
+
+    /// Pass the inner Competition to a callback that may need
+    /// concurrent access to other Store fields. The borrow is
+    /// released when the callback returns.
+    pub fn try_with_mut<R>(&self, f: impl FnOnce(&mut Competition) -> R) -> Option<R> {
+        self.inner.borrow_mut().as_mut().map(f)
+    }
+
+    pub fn is_some(&self) -> bool {
+        self.inner.borrow().is_some()
+    }
+}
+
+impl Default for CompetitionSlot {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Store {
     pub jump_runtime: JumpRuntime,
+    pub practice: PracticeSettings,
+    pub replay_selection: ReplaySelection,
+    pub competition: CompetitionSlot,
     pub profiles: RefCell<ProfileStore>,
     pub records: RefCell<RecordStore>,
-    pub practice_selected_hill: Cell<usize>,
-    pub practice_start_gate: Cell<i32>,
-    pub(crate) competition: RefCell<Option<Competition>>,
     pub selected_hill: Cell<usize>,
     pub start_gate: Cell<i32>,
-    pub selected_replay: RefCell<Option<ReplayTrace>>,
     pub selected_main_menu: Cell<usize>,
 }
 
@@ -123,14 +228,13 @@ impl Store {
     pub fn new(records: RecordStore) -> Self {
         Self {
             jump_runtime: JumpRuntime::new(),
+            practice: PracticeSettings::new(),
+            replay_selection: ReplaySelection::new(),
+            competition: CompetitionSlot::new(),
             profiles: RefCell::new(ProfileStore::new()),
             records: RefCell::new(records),
-            practice_selected_hill: Cell::new(0),
-            practice_start_gate: Cell::new(DEFAULT_START_GATE),
-            competition: RefCell::new(None),
             selected_hill: Cell::new(0),
             start_gate: Cell::new(DEFAULT_START_GATE),
-            selected_replay: RefCell::new(None),
             selected_main_menu: Cell::new(0),
         }
     }
