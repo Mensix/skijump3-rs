@@ -1,8 +1,9 @@
 use crate::competition::types::CompetitionPhase;
 use crate::controllers::jump_input::{JumpInputAction, JumpInputController};
 use crate::controllers::jump_scene::JumpScene;
-use crate::controllers::world_cup_flow::{WorldCupFlow, WorldCupScreenState};
+use crate::controllers::world_cup_flow::{WorldCupCommand, WorldCupFlow};
 use crate::gfx::palette::apply_menu_tint;
+use crate::jump::types::JumpOutcome;
 use crate::jump::JumpParticipant;
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
@@ -37,25 +38,77 @@ impl WorldCupJumpView {
             display_page: Cell::new(0),
         }
     }
+
+    fn record_finished_human_jump(&self) {
+        let Some(outcome) = self.scene.outcome() else {
+            return;
+        };
+        let comp = self.store.competition.borrow();
+        let is_human = comp.as_ref().is_some_and(|c| c.is_human_current());
+        drop(comp);
+        if !is_human {
+            return;
+        }
+        let mut comp = self.store.competition.borrow_mut();
+        if let Some(c) = comp.as_mut() {
+            c.record_jump(outcome.score, outcome.distance);
+        }
+    }
+
+    fn handle_human_jump(
+        &self,
+        participant: JumpParticipant,
+        hill_idx: usize,
+        phase_label: String,
+    ) {
+        let needs_rebuild = self.scene.participant_id() != participant.id;
+        if needs_rebuild {
+            self.controller.note_event_change(&self.store);
+            self.scene
+                .rebuild_for_competition(hill_idx, 15, participant, phase_label);
+        } else {
+            self.scene.set_phase_label(phase_label);
+        }
+    }
+
+    fn results_page(&self) -> Vec<Element> {
+        let comp = self.store.competition.borrow();
+        let Some(c) = comp.as_ref() else {
+            return vec![Element::fillbox(0, 0, 320, 200, 0)];
+        };
+        let page_data = competition_results::build_results_page(c, self.display_page.get());
+        let mut els = competition_results::render_results_page(&page_data, &self.resources);
+        els.extend(competition_results::render_header(c, &self.resources));
+        els
+    }
 }
 
 impl View<RouteTarget> for WorldCupJumpView {
     fn elements(&self) -> Vec<Element> {
+        self.record_finished_human_jump();
+
+        let mut simulate_computer =
+            |participant: JumpParticipant, hill_idx: usize| -> JumpOutcome {
+                self.scene.set_hill(hill_idx);
+                self.scene.set_participant(participant);
+                self.scene.reset_state(15);
+                self.scene.simulate_to_completion()
+            };
+
         match self
             .controller
-            .drive(&self.resources, &self.store, &self.scene)
+            .drive(&self.resources, &self.store, &mut simulate_computer)
         {
-            WorldCupScreenState::HumanJump => self.scene.elements(),
-            WorldCupScreenState::DisplayList => {
-                let comp = self.store.competition.borrow();
-                let Some(c) = comp.as_ref() else {
-                    return vec![Element::fillbox(0, 0, 320, 200, 0)];
-                };
-                let page_data = competition_results::build_results_page(c, self.display_page.get());
-                let mut els = competition_results::render_results_page(&page_data, &self.resources);
-                els.extend(competition_results::render_header(c, &self.resources));
-                els
+            WorldCupCommand::HumanJump {
+                participant,
+                hill_idx,
+                phase_label,
+            } => {
+                self.handle_human_jump(participant, hill_idx, phase_label);
+                self.scene.elements()
             }
+            WorldCupCommand::ShowResults => self.results_page(),
+            WorldCupCommand::Done => vec![],
         }
     }
 
