@@ -27,8 +27,8 @@ enum ResultScreen {
     Stats,
 }
 
-/// Default key names matching Pascal defaults (keyname(K[1..5])).
-const KEY_NAMES: [&str; 5] = ["SPACE", "UP", "DOWN", "SHIFT", "CTRL"];
+/// Default key names matching our input bindings (K[1..5]).
+const KEY_NAMES: [&str; 5] = ["UP", "RIGHT", "LEFT", "T", "R"];
 
 pub struct WorldCupJumpView {
     resources: ResourcesRef,
