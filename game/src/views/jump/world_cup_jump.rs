@@ -28,7 +28,7 @@ enum ResultScreen {
 }
 
 /// Default key names matching our input bindings (K[1..5]).
-const KEY_NAMES: [&str; 5] = ["ARROW UP", "ARROW RIGHT", "ARROW LEFT", "t", "r"];
+const KEY_NAMES: [&str; 5] = ["ARROW UP", "ARROW RIGHT", "ARROW LEFT", "T", "R"];
 
 pub struct WorldCupJumpView {
     resources: ResourcesRef,
