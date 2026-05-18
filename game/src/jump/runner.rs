@@ -4,7 +4,7 @@ use crate::jump::config::JumpConfig;
 use crate::jump::presentation;
 use crate::jump::replay::ReplayTrace;
 use crate::jump::snow::SnowSystem;
-use crate::jump::types::{FlightWind, JumpOutcome};
+use crate::jump::types::{FlightWind, JumpOutcome, JumpPhase};
 use crate::jump::wind::Wind;
 use crate::jump::wind::WindPosition;
 use crate::jump::{ComputerInputProvider, JumpPresentationContext, JumpSession, JumperControl};
@@ -64,6 +64,10 @@ impl JumpRunner {
 
     pub(crate) fn frame_counter(&self) -> i32 {
         self.session.frame_counter()
+    }
+
+    pub(crate) fn phase(&self) -> Option<JumpPhase> {
+        self.session.phase()
     }
 
     pub(crate) fn outcome(&self) -> Option<JumpOutcome> {

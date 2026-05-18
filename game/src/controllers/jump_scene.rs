@@ -3,7 +3,7 @@ use crate::data::records::HillInfo;
 use crate::jump::config::JumpConfig;
 use crate::jump::replay::ReplayTrace;
 use crate::jump::snow::{calculate_snow_count, SnowSystem};
-use crate::jump::types::JumpOutcome;
+use crate::jump::types::{JumpOutcome, JumpPhase};
 use crate::jump::{JumpParticipant, JumpPolicy, JumpRunner, JumpRunnerRenderEnv, JumpSession};
 use crate::store::{ResourcesRef, StoreRef};
 use engine::palette::Palette;
@@ -123,6 +123,10 @@ impl JumpScene {
 
     pub fn frame_counter(&self) -> i32 {
         self.runner.borrow().frame_counter()
+    }
+
+    pub fn phase(&self) -> Option<JumpPhase> {
+        self.runner.borrow().phase()
     }
 
     pub fn outcome(&self) -> Option<JumpOutcome> {

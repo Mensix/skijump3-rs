@@ -4,7 +4,7 @@ use crate::controllers::jump_scene::JumpScene;
 use crate::controllers::world_cup_flow::{self, WorldCupCommand};
 use crate::gfx::palette::{apply_menu_tint, FONT_GOLD};
 use crate::gfx::sprites;
-use crate::jump::types::FallType;
+use crate::jump::types::{FallType, JumpPhase};
 use crate::jump::JumpParticipant;
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
@@ -196,7 +196,7 @@ impl WorldCupJumpView {
     fn info_cycle_elements(&self, els: &mut Vec<Element>) {
         let fc = self.scene.frame_counter();
         let l = fc % 438;
-        let (has_wc, top5_wc, top5_event, gap_label, gap_pts) = self
+        let (has_wc, top5_wc, _top5_event, gap_label, gap_pts) = self
             .store
             .competition
             .try_with(|c| {
@@ -232,20 +232,12 @@ impl WorldCupJumpView {
 
         let panel_x = 227;
 
-        if l <= 130 {
-            if has_wc {
-                self.info_panel_with_hill_record(els, panel_x);
-            } else {
-                self.info_panel_with_top5(els, panel_x, &top5_event, false);
-            }
-        } else if (146..=276).contains(&l) {
-            if has_wc && !top5_wc.is_empty() {
-                self.info_panel_with_top5(els, panel_x, &top5_wc, true);
-            } else {
-                self.info_panel_with_hill_record(els, panel_x);
-            }
-        } else if (292..=422).contains(&l) && has_wc && !top5_wc.is_empty() {
+        // Panel always visible. Hill record by default;
+        // WC top-5 during designated cycle segments when available.
+        if has_wc && !top5_wc.is_empty() && ((146..=276).contains(&l) || (292..=422).contains(&l)) {
             self.info_panel_with_top5(els, panel_x, &top5_wc, true);
+        } else {
+            self.info_panel_with_hill_record(els, panel_x);
         }
 
         // Round 2 gap/position overlay at (308, 62)
@@ -391,7 +383,14 @@ impl View<RouteTarget> for WorldCupJumpView {
         match self.render_mode.get() {
             RenderMode::Jump => {
                 let mut els = self.scene.elements();
-                self.info_cycle_elements(&mut els);
+                // Info cycle overlay only during flight phases — the scene already
+                // renders its own InfoPanel during Info/Result/Landing phases.
+                if matches!(
+                    self.scene.phase(),
+                    Some(JumpPhase::OnBar | JumpPhase::Inrun | JumpPhase::Flight)
+                ) {
+                    self.info_cycle_elements(&mut els);
+                }
                 els
             }
             RenderMode::Results => self.results_page(),
