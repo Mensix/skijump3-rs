@@ -62,6 +62,10 @@ impl JumpRunner {
         &mut self.session
     }
 
+    pub(crate) fn frame_counter(&self) -> i32 {
+        self.session.frame_counter()
+    }
+
     pub(crate) fn outcome(&self) -> Option<JumpOutcome> {
         self.session.outcome()
     }

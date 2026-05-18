@@ -2,6 +2,7 @@ use crate::competition::machine::{Competition, StepDecision};
 use crate::competition::types::{CompetitionPhase, Participant};
 use crate::jump::config::JumpParticipant;
 use crate::jump::policy::JumperControl;
+use crate::jump::types::FallType;
 use crate::jump::types::JumpOutcome;
 use std::cell::Cell;
 
@@ -64,23 +65,24 @@ pub(crate) fn drive(
             StepDecision::Jump {
                 idx,
                 hill_idx,
-                is_human: true,
+                is_human,
             } => {
-                let participant = participant_to_jump(competition.participant(idx));
-                return WorldCupCommand::HumanJump {
-                    participant,
-                    hill_idx,
-                    phase: competition.phase(),
-                    is_new_event: check_event_change(competition.current_event, last_event),
-                };
-            }
-            StepDecision::Jump {
-                idx,
-                hill_idx,
-                is_human: false,
-            } => {
+                let is_training = matches!(competition.phase(), CompetitionPhase::Training(_));
+                if is_human && !is_training {
+                    let participant = participant_to_jump(competition.participant(idx));
+                    return WorldCupCommand::HumanJump {
+                        participant,
+                        hill_idx,
+                        phase: competition.phase(),
+                        is_new_event: check_event_change(competition.current_event, last_event),
+                    };
+                }
+
                 let participant = participant_to_jump(competition.participant(idx));
                 let outcome = simulate_computer(participant, hill_idx);
+                if outcome.fall_type == FallType::Crash {
+                    competition.injure_current(3);
+                }
 
                 competition.record_jump(outcome.score, outcome.distance);
                 competition.advance();
@@ -90,7 +92,7 @@ pub(crate) fn drive(
                 }
 
                 if let Some(next_idx) = competition.current_jumper() {
-                    if !competition.participant(next_idx).is_computer {
+                    if !competition.participant(next_idx).is_computer && !is_training {
                         let next_participant =
                             participant_to_jump(competition.participant(next_idx));
                         return WorldCupCommand::HumanJump {
@@ -121,6 +123,7 @@ mod tests {
             ski_color: 0,
             team: None,
             is_computer: false,
+            skip_quali: false,
             wc_points: 0,
             four_hills_points: 0,
             injury: 0,

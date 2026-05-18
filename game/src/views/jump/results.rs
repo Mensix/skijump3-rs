@@ -1,6 +1,6 @@
 use crate::competition::machine::Competition;
 use crate::competition::types::{
-    CompetitionPhase, Participant, QualificationStatus, DID_NOT_START_SCORE,
+    CompetitionPhase, CupStyle, Participant, QualificationStatus, DID_NOT_START_SCORE,
 };
 use crate::components::screen::{new_screen, page_hints};
 use crate::gfx::palette::{FONT_DEFAULT, FONT_GREET, FONT_HEADER};
@@ -22,6 +22,13 @@ const OTHER_NAME: u8 = 241;
 const OTHER_RANK: u8 = 251;
 const OTHER_DISTANCE: u8 = 252;
 const INJURY_COLOR: u8 = 249;
+
+const KO_LEFT_POINTS: i32 = 40;
+const KO_LEFT_NAME: i32 = 145;
+const KO_RIGHT_NAME: i32 = 175;
+const KO_RIGHT_POINTS: i32 = 303;
+const KO_LEFT_STATUS: i32 = 12;
+const KO_RIGHT_STATUS: i32 = 308;
 
 pub struct ResultsPage {
     pub(crate) phase: CompetitionPhase,
@@ -80,6 +87,46 @@ pub fn build_results_page(competition: &Competition, page: usize) -> ResultsPage
     }
 }
 
+pub fn build_compact_results_page(competition: &Competition) -> ResultsPage {
+    let standings = standings_for_phase(competition);
+    let mut selected: Vec<&Participant> = standings.iter().take(10).copied().collect();
+    for &p in &standings {
+        if !p.is_computer && !selected.iter().any(|existing| existing.id == p.id) {
+            selected.push(p);
+        }
+    }
+
+    let mut items = Vec::with_capacity(selected.len());
+    for p in selected {
+        let (points, dist, dist2) = match competition.phase() {
+            CompetitionPhase::QualificationResults => (p.points, p.qual_len, 0),
+            CompetitionPhase::Round1Results => (p.points, p.round1_len, 0),
+            CompetitionPhase::Round2Results => (p.points, p.round1_len, p.round2_len),
+            CompetitionPhase::WorldCupStandings | CompetitionPhase::SeasonComplete => {
+                (p.wc_points, 0, 0)
+            }
+            _ => (p.points, 0, 0),
+        };
+        items.push(ResultsEntry {
+            is_own: !p.is_computer,
+            rank: p.rank,
+            name: p.display_name().to_string(),
+            points,
+            distance: dist,
+            distance2: dist2,
+            qual: p.qual,
+            injury: p.injury,
+        });
+    }
+
+    ResultsPage {
+        phase: competition.phase(),
+        page: 0,
+        total_pages: 1,
+        items,
+    }
+}
+
 pub fn total_pages(competition: &Competition) -> usize {
     standings_for_phase(competition)
         .len()
@@ -89,7 +136,7 @@ pub fn total_pages(competition: &Competition) -> usize {
 
 fn standings_for_phase(competition: &Competition) -> Vec<&Participant> {
     match competition.phase() {
-        CompetitionPhase::WorldCupStandings => competition
+        CompetitionPhase::WorldCupStandings | CompetitionPhase::SeasonComplete => competition
             .overall_standings()
             .into_iter()
             .filter(|p| p.wc_points > 0)
@@ -144,6 +191,15 @@ pub fn render_header(competition: &Competition, resources: &ResourcesRef) -> Vec
             lang.lstr(8),
             total
         ),
+        CompetitionPhase::SeasonComplete => {
+            let cup_idx = match competition.style() {
+                CupStyle::WorldCup => 0,
+                CupStyle::CustomCup => 1,
+                CupStyle::FourHills => 2,
+                CupStyle::TeamCup => 3,
+            };
+            format!("{} {}", lang.lstr(90), lang.lstr(27 + cup_idx))
+        }
         _ => String::new(),
     };
 
@@ -171,6 +227,16 @@ pub fn render_results_page(page: &ResultsPage, resources: &ResourcesRef) -> Vec<
         resources.langbase.lstr(247),
         resources.langbase.lstr(248),
     ));
+
+    if page.total_pages == 1 && page.items.len() <= 20 {
+        els.push(Element::text(
+            resources.langbase.lstr(86),
+            30,
+            190,
+            FONT_GREET,
+            false,
+        ));
+    }
 
     let mut last_rank = 0;
     for (i, entry) in page.items.iter().enumerate() {
@@ -248,6 +314,257 @@ pub fn render_results_page(page: &ResultsPage, resources: &ResourcesRef) -> Vec<
         }
     }
 
+    els
+}
+
+pub fn render_ko_pairs(
+    competition: &Competition,
+    resources: &ResourcesRef,
+    show_results: bool,
+) -> Vec<Element> {
+    let mut els = new_screen(4);
+    els.push(Element::text(
+        resources.langbase.lstr(94),
+        30,
+        6,
+        FONT_DEFAULT,
+        false,
+    ));
+
+    let standings = competition.event_standings();
+    let count = standings.len().min(50);
+    let pairs = count / 2;
+    for pair in 0..pairs.min(25) {
+        let y = 24 + pair as i32 * 7;
+        let left = standings[count - 1 - pair];
+        let right = standings[pair];
+        render_ko_side(&mut els, left, y, true, show_results);
+        els.push(Element::text("vs.", 154, y, FONT_GREET, false));
+        render_ko_side(&mut els, right, y, false, show_results);
+    }
+
+    els.extend(page_hints(0, 1, "", "", resources.langbase.lstr(248)));
+    els
+}
+
+fn render_ko_side(els: &mut Vec<Element>, p: &Participant, y: i32, left: bool, show_results: bool) {
+    let own = !p.is_computer;
+    let color = if own { FONT_DEFAULT } else { FONT_GREET };
+    let qual_color = match p.qual {
+        QualificationStatus::Qualified | QualificationStatus::KoSeed(_) => FONT_HEADER,
+        QualificationStatus::LuckyLoser => OTHER_DISTANCE,
+        _ => color,
+    };
+    let status = match p.qual {
+        QualificationStatus::Qualified | QualificationStatus::KoSeed(_) => "Q",
+        QualificationStatus::LuckyLoser => "LL",
+        _ => "",
+    };
+
+    if left {
+        els.push(Element::text(
+            truncate_name(p.display_name()),
+            KO_LEFT_NAME,
+            y,
+            qual_color,
+            true,
+        ));
+        if show_results {
+            els.push(Element::text(
+                format_tenths(p.points),
+                KO_LEFT_POINTS,
+                y,
+                color,
+                true,
+            ));
+            els.push(Element::text(status, KO_LEFT_STATUS, y, qual_color, true));
+        } else {
+            els.push(Element::text(
+                format!("({})", p.rank),
+                KO_LEFT_NAME - 105,
+                y,
+                color,
+                true,
+            ));
+        }
+    } else {
+        els.push(Element::text(
+            truncate_name(p.display_name()),
+            KO_RIGHT_NAME,
+            y,
+            qual_color,
+            false,
+        ));
+        if show_results {
+            els.push(Element::text(
+                format_tenths(p.points),
+                KO_RIGHT_POINTS,
+                y,
+                color,
+                true,
+            ));
+            els.push(Element::text(status, KO_RIGHT_STATUS, y, qual_color, false));
+        } else {
+            els.push(Element::text(
+                format!("({})", p.rank),
+                KO_RIGHT_NAME + 105,
+                y,
+                color,
+                false,
+            ));
+        }
+    }
+}
+
+pub fn render_stats_page(
+    competition: &Competition,
+    resources: &ResourcesRef,
+    page: usize,
+) -> Vec<Element> {
+    let mut humans: Vec<_> = competition
+        .overall_standings()
+        .into_iter()
+        .filter(|p| !p.is_computer)
+        .collect();
+    if humans.is_empty() {
+        humans = competition
+            .overall_standings()
+            .into_iter()
+            .take(1)
+            .collect();
+    }
+    let idx = page.min(humans.len().saturating_sub(1));
+    let Some(player) = humans.get(idx) else {
+        return new_screen(1);
+    };
+
+    let mut els = new_screen(1);
+    els.push(Element::text(
+        resources.langbase.lstr(89),
+        30,
+        6,
+        FONT_DEFAULT,
+        false,
+    ));
+    els.push(Element::text(
+        player.display_name(),
+        36 + resources.langbase.lstr(89).len() as i32 * 6,
+        6,
+        FONT_DEFAULT,
+        false,
+    ));
+    els.push(Element::text(
+        resources.langbase.lstr(106),
+        16,
+        23,
+        FONT_GREET,
+        false,
+    ));
+    els.push(Element::text(
+        resources.langbase.lstr(108),
+        70,
+        23,
+        FONT_GREET,
+        true,
+    ));
+    els.push(Element::text(
+        resources.langbase.lstr(109),
+        90,
+        23,
+        FONT_GREET,
+        true,
+    ));
+    els.push(Element::text(
+        resources.langbase.lstr(98),
+        110,
+        23,
+        FONT_GREET,
+        true,
+    ));
+    els.push(Element::text(
+        resources.langbase.lstr(97),
+        140,
+        23,
+        FONT_GREET,
+        true,
+    ));
+    els.push(Element::text("R 1", 170, 23, FONT_GREET, true));
+    els.push(Element::text("R 2", 268, 23, FONT_GREET, true));
+
+    let y = 37;
+    let hill_name = resources
+        .hills
+        .hill(competition.current_hill())
+        .map(|h| format!("{} {}", h.name.chars().take(3).collect::<String>(), h.kr))
+        .unwrap_or_default();
+    els.push(Element::text(
+        format!("{}.", competition.current_event + 1),
+        15,
+        y,
+        FONT_DEFAULT,
+        true,
+    ));
+    els.push(Element::text(hill_name, 16, y, FONT_DEFAULT, false));
+    els.push(Element::text(
+        format!("{}.", player.rank),
+        70,
+        y,
+        FONT_DEFAULT,
+        true,
+    ));
+    els.push(Element::text(
+        player.wc_points.to_string(),
+        90,
+        y,
+        FONT_DEFAULT,
+        true,
+    ));
+    els.push(Element::text(
+        format!("{}.", player.rank),
+        110,
+        y,
+        FONT_DEFAULT,
+        true,
+    ));
+    els.push(Element::text(
+        format_tenths(player.points),
+        140,
+        y,
+        FONT_DEFAULT,
+        true,
+    ));
+    if player.round1_len > 0 {
+        els.push(Element::text(
+            format_tenths(player.points - player.round2_len),
+            170,
+            y,
+            FONT_DEFAULT,
+            true,
+        ));
+        els.push(Element::text(
+            format!("({}µ)", format_tenths(player.round1_len)),
+            210,
+            y,
+            FONT_GREET,
+            true,
+        ));
+    }
+    if player.round2_len > 0 {
+        els.push(Element::text(
+            format!("({}µ)", format_tenths(player.round2_len)),
+            308,
+            y,
+            FONT_GREET,
+            true,
+        ));
+    }
+    els.extend(page_hints(
+        idx,
+        humans.len().max(1),
+        resources.langbase.lstr(246),
+        resources.langbase.lstr(247),
+        resources.langbase.lstr(248),
+    ));
     els
 }
 

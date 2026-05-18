@@ -135,6 +135,31 @@ impl CompetitionField {
                 })
                 .collect(),
 
+            CompetitionPhase::Round1
+                if self
+                    .participants
+                    .iter()
+                    .any(|p| matches!(p.qual, QualificationStatus::KoSeed(_))) =>
+            {
+                let mut seeded: Vec<_> = self
+                    .participants
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(idx, p)| match p.qual {
+                        QualificationStatus::KoSeed(seed) if p.injury == 0 => Some((seed, idx)),
+                        _ => None,
+                    })
+                    .collect();
+                seeded.sort_by_key(|&(seed, _)| seed);
+                let count = seeded.len().min(50);
+                let mut list = Vec::with_capacity(count);
+                for pair in (1..=count / 2).rev() {
+                    list.push(seeded[count - pair].1);
+                    list.push(seeded[pair - 1].1);
+                }
+                list
+            }
+
             CompetitionPhase::Round1 | CompetitionPhase::Round2 => self
                 .event_order
                 .iter()

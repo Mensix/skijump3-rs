@@ -68,6 +68,11 @@ impl Competition {
     }
 
     #[must_use]
+    pub fn style(&self) -> CupStyle {
+        self.style
+    }
+
+    #[must_use]
     pub fn current_hill(&self) -> usize {
         self.hill_order
             .get(self.current_event)
@@ -185,6 +190,8 @@ impl Competition {
                     let next = n + 1;
                     if next <= self.trainrounds {
                         self.enter_phase(CompetitionPhase::Training(next));
+                    } else if self.style == CupStyle::CustomCup {
+                        self.enter_custom_round1();
                     } else {
                         self.enter_phase(CompetitionPhase::Qualification);
                     }
@@ -260,6 +267,13 @@ impl Competition {
         self.start_pos += 1;
     }
 
+    pub fn injure_current(&mut self, rounds: u8) {
+        let Some(&idx) = self.start_list.get(self.start_pos) else {
+            return;
+        };
+        self.field.get_mut(idx).injury = self.field.get(idx).injury.max(rounds);
+    }
+
     // ── internal ───────────────────────────────────────────────
 
     fn enter_phase(&mut self, phase: CompetitionPhase) {
@@ -300,13 +314,49 @@ impl Competition {
 
         if self.trainrounds > 0 {
             self.enter_phase(CompetitionPhase::Training(1));
+        } else if self.style == CupStyle::CustomCup {
+            self.enter_custom_round1();
         } else {
             self.enter_phase(CompetitionPhase::Qualification);
         }
     }
 
+    fn is_ko_event(&self) -> bool {
+        self.style == CupStyle::FourHills
+    }
+
+    fn enter_custom_round1(&mut self) {
+        for idx in 0..self.field.len() {
+            if self.field.get(idx).injury == 0 {
+                self.field.get_mut(idx).qual = QualificationStatus::Qualified;
+                self.field.get_mut(idx).points = 0;
+            } else {
+                self.field.get_mut(idx).qual = QualificationStatus::Eliminated;
+                self.field.get_mut(idx).points = DID_NOT_START_SCORE;
+            }
+        }
+        self.field.sort_field(SortBy::EventPoints);
+        self.enter_phase(CompetitionPhase::Round1);
+    }
+
     fn resolve_qualification(&mut self) {
         self.field.sort_field(SortBy::EventPoints);
+
+        if self.is_ko_event() {
+            for (seed, idx) in self
+                .field
+                .event_order
+                .clone()
+                .into_iter()
+                .take(50)
+                .enumerate()
+            {
+                if self.field.get(idx).injury == 0 {
+                    self.field.get_mut(idx).qual = QualificationStatus::KoSeed(seed + 1);
+                }
+            }
+            return;
+        }
 
         let pre_qualified = self
             .field
@@ -344,6 +394,37 @@ impl Competition {
 
     fn cut_to_round2(&mut self) {
         self.field.sort_field(SortBy::EventPoints);
+        if self.is_ko_event() {
+            for idx in 0..self.field.len() {
+                self.field.get_mut(idx).qual = QualificationStatus::Eliminated;
+            }
+            let order = self.field.event_order.clone();
+            let count = order.len().min(50);
+            for pair in 0..(count / 2).min(25) {
+                let a = order[count - 1 - pair];
+                let b = order[pair];
+                let winner = if self.field.get(a).points >= self.field.get(b).points {
+                    a
+                } else {
+                    b
+                };
+                self.field.get_mut(winner).qual = QualificationStatus::Qualified;
+            }
+            let mut lucky = 0usize;
+            for idx in self.field.event_order.clone() {
+                if lucky >= 5 {
+                    break;
+                }
+                if self.field.get(idx).qual == QualificationStatus::Eliminated
+                    && self.field.get(idx).injury == 0
+                    && self.field.get(idx).points != DID_NOT_START_SCORE
+                {
+                    self.field.get_mut(idx).qual = QualificationStatus::LuckyLoser;
+                    lucky += 1;
+                }
+            }
+            return;
+        }
         for idx in 0..self.field.len() {
             let rank = self.field.get(idx).rank;
             if rank <= ROUND2_SPOTS && self.field.get(idx).injury == 0 {

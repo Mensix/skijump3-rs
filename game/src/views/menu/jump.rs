@@ -16,8 +16,8 @@ pub struct JumpMenuView {
 
 const JUMP_MENU_ACTIONS: &[Option<RouteTarget>] = &[
     None,                        // 1 - WorldCup (special, builds competition)
-    Some(RouteTarget::MainMenu), // 2 - CustomCup (not implemented)
-    Some(RouteTarget::MainMenu), // 3 - FourHills (not implemented)
+    None,                        // 2 - CustomCup (special, builds competition)
+    None,                        // 3 - FourHills (special, builds competition)
     Some(RouteTarget::MainMenu), // 4 - TeamCup (not implemented)
     Some(RouteTarget::MainMenu), // 5 - SeasonComplete (not implemented)
     Some(RouteTarget::Practice), // 6 - Practice
@@ -102,22 +102,28 @@ impl View<RouteTarget> for JumpMenuView {
 
     fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {
         match self.menu.handle_event(&event) {
-            Some(1) => {
-                let profiles = self.store.profiles.borrow();
-                let comp = build_competition(
-                    CupStyle::WorldCup,
-                    &profiles,
-                    &self.resources.player_names,
-                    self.resources.hills.len(),
-                    0,
-                );
-                drop(profiles);
-                self.store.competition.start(comp);
-                Some(RouteTarget::CompetitionJump)
-            }
+            Some(1) => self.start_competition(CupStyle::WorldCup),
+            Some(2) => self.start_competition(CupStyle::CustomCup),
+            Some(3) => self.start_competition(CupStyle::FourHills),
             Some(0) => Some(RouteTarget::MainMenu),
             Some(n) => JUMP_MENU_ACTIONS.get(n - 1).and_then(|&a| a),
             _ => None,
         }
+    }
+}
+
+impl JumpMenuView {
+    fn start_competition(&self, style: CupStyle) -> Option<RouteTarget> {
+        let profiles = self.store.profiles.borrow();
+        let comp = build_competition(
+            style,
+            &profiles,
+            &self.resources.player_names,
+            self.resources.hills.len(),
+            2,
+        );
+        drop(profiles);
+        self.store.competition.start(comp);
+        Some(RouteTarget::CompetitionJump)
     }
 }

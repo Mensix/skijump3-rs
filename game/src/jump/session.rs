@@ -152,6 +152,10 @@ impl JumpSession {
         }
     }
 
+    pub(crate) fn frame_counter(&self) -> i32 {
+        self.state.as_ref().map_or(0, |state| state.frame)
+    }
+
     pub(crate) fn phase(&self) -> Option<JumpPhase> {
         self.state.as_ref().map(|state| state.phase)
     }

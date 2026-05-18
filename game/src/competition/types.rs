@@ -57,6 +57,7 @@ pub struct Participant {
     pub ski_color: u8,
     pub team: Option<usize>,
     pub is_computer: bool,
+    pub skip_quali: bool,
 
     // Season-wide state
     pub wc_points: i32,
@@ -84,6 +85,7 @@ impl Participant {
             ski_color: 0,
             team: None,
             is_computer: true,
+            skip_quali: false,
             wc_points: 0,
             four_hills_points: 0,
             injury: 0,
