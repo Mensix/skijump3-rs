@@ -27,6 +27,9 @@ enum ResultScreen {
     Stats,
 }
 
+/// Default key names matching Pascal defaults (keyname(K[1..5])).
+const KEY_NAMES: [&str; 5] = ["SPACE", "UP", "DOWN", "SHIFT", "CTRL"];
+
 pub struct WorldCupJumpView {
     resources: ResourcesRef,
     store: StoreRef,
@@ -269,6 +272,31 @@ impl WorldCupJumpView {
         }
     }
 
+    /// Pascal drawkeymap: key binding hints shown when jumper is on bar.
+    fn drawkeymap_elements(&self, els: &mut Vec<Element>) {
+        els.push(Element::sprite(sprites::Sprite::InfoPanel as u16, 227, 2));
+        els.push(Element::text(
+            self.resources.langbase.lstr(330),
+            308,
+            9,
+            FONT_GOLD,
+            true,
+        ));
+        for i in 1..=5 {
+            els.push(Element::text(
+                format!(
+                    "{}: {}",
+                    self.resources.langbase.lstr(330 + i),
+                    KEY_NAMES[i - 1]
+                ),
+                308,
+                i as i32 * 10 + 9,
+                FONT_GOLD,
+                true,
+            ));
+        }
+    }
+
     fn info_panel_with_hill_record(&self, els: &mut Vec<Element>, panel_x: i32) {
         els.push(Element::sprite(
             sprites::Sprite::InfoPanel as u16,
@@ -383,13 +411,14 @@ impl View<RouteTarget> for WorldCupJumpView {
         match self.render_mode.get() {
             RenderMode::Jump => {
                 let mut els = self.scene.elements();
-                // Info cycle overlay only during flight phases — the scene already
-                // renders its own InfoPanel during Info/Result/Landing phases.
-                if matches!(
-                    self.scene.phase(),
-                    Some(JumpPhase::OnBar | JumpPhase::Inrun | JumpPhase::Flight)
-                ) {
-                    self.info_cycle_elements(&mut els);
+                match self.scene.phase() {
+                    // Key bindings during OnBar (jumper sitting at gate)
+                    Some(JumpPhase::OnBar) => self.drawkeymap_elements(&mut els),
+                    // Info cycle during flight
+                    Some(JumpPhase::Inrun | JumpPhase::Flight) => {
+                        self.info_cycle_elements(&mut els)
+                    }
+                    _ => {}
                 }
                 els
             }
