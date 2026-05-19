@@ -218,6 +218,33 @@ impl WorldCupJumpView {
 }
 
 impl WorldCupJumpView {
+    /// Pascal: rank calculation — counts participants with points <= jumper's total.
+    /// Shows `($X.)` at (255,45), left of the score at (308,45).
+    fn rank_element(&self) -> Option<Element> {
+        let outcome = self.scene.outcome()?;
+        if self.scene.phase() != Some(JumpPhase::Result) {
+            return None;
+        }
+        let own_id = self.scene.participant_id();
+        self.store.competition.try_with(|c| {
+            let standings = c.event_standings();
+            let total = standings.len() as i32;
+            let own_before = standings
+                .iter()
+                .find(|p| p.id == own_id)
+                .map(|p| p.points)
+                .unwrap_or(0);
+            let own_total = own_before + outcome.score;
+            // Count participants with points <= own_total (includes self)
+            let fy = standings
+                .iter()
+                .filter(|p| p.id == own_id || p.points <= own_total)
+                .count() as i32;
+            let rank = total - fy + 1;
+            Element::text(format!("(${}.)", rank), 255, 45, FONT_GOLD, true)
+        })
+    }
+
     fn select_default_result_screen(&self) {
         self.result_screen.set(
             self.store
@@ -257,6 +284,10 @@ impl View<RouteTarget> for WorldCupJumpView {
                 // Nothing extra during Inrun/Flight — only wind gauge from scene.elements()
                 if let Some(JumpPhase::OnBar | JumpPhase::Disqualified) = self.scene.phase() {
                     self.drawkeymap_elements(&mut els);
+                }
+                // Pascal: show rank ($X.) left of score at (255,45) during Result phase
+                if let Some(rank_el) = self.rank_element() {
+                    els.push(rank_el);
                 }
                 els
             }
