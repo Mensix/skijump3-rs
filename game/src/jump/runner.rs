@@ -62,10 +62,6 @@ impl JumpRunner {
         &mut self.session
     }
 
-    pub(crate) fn frame_counter(&self) -> i32 {
-        self.session.frame_counter()
-    }
-
     pub(crate) fn phase(&self) -> Option<JumpPhase> {
         self.session.phase()
     }

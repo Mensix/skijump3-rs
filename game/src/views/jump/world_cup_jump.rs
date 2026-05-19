@@ -1,4 +1,4 @@
-use crate::competition::types::{CompetitionPhase, CupStyle, DID_NOT_START_SCORE};
+use crate::competition::types::{CompetitionPhase, CupStyle};
 use crate::controllers::jump_input::{JumpInputAction, JumpInputController};
 use crate::controllers::jump_scene::JumpScene;
 use crate::controllers::world_cup_flow::{self, WorldCupCommand};
@@ -190,88 +190,6 @@ impl WorldCupJumpView {
         }
     }
 
-    /// Pascal info cycle: l = frame_counter % 438.
-    /// Ranges (SJ3.PAS:965-996):
-    ///   0-130:   hill record (WC cycle) or top-5 event (general)
-    ///   146-276: WC standings or hill record
-    ///   292-422: WC standings if available
-    ///   437:     reset l
-    fn info_cycle_elements(&self, els: &mut Vec<Element>) {
-        let fc = self.scene.frame_counter();
-        let l = fc % 438;
-        let (has_wc, top5_wc, _top5_event, gap_label, gap_pts) = self
-            .store
-            .competition
-            .try_with(|c| {
-                let has_wc = c
-                    .overall_standings()
-                    .first()
-                    .is_some_and(|p| p.wc_points > 0);
-                let top5_wc: Vec<_> = c
-                    .overall_standings()
-                    .iter()
-                    .filter(|p| p.wc_points > 0)
-                    .take(5)
-                    .map(|p| (p.display_name().to_string(), p.wc_points))
-                    .collect();
-                let top5_event: Vec<_> = c
-                    .event_standings()
-                    .iter()
-                    .filter(|p| p.points != DID_NOT_START_SCORE)
-                    .take(5)
-                    .map(|p| (p.display_name().to_string(), p.points))
-                    .collect();
-                let (gap_label, gap_pts) = {
-                    let standings = c.event_standings();
-                    let leader_pts = standings.first().map(|p| p.points).unwrap_or(0);
-                    let is_round2 = c.phase() == CompetitionPhase::Round2;
-                    let label_idx = if is_round2 { 63 } else { 62 };
-                    let label = self.resources.langbase.lstr(label_idx).to_string();
-                    (label, leader_pts)
-                };
-                (has_wc, top5_wc, top5_event, gap_label, gap_pts)
-            })
-            .unwrap_or((false, vec![], vec![], String::new(), 0));
-
-        let panel_x = 227;
-
-        // Panel always visible. Hill record by default;
-        // WC top-5 during designated cycle segments when available.
-        if has_wc && !top5_wc.is_empty() && ((146..=276).contains(&l) || (292..=422).contains(&l)) {
-            self.info_panel_with_top5(els, panel_x, &top5_wc, true);
-        } else {
-            self.info_panel_with_hill_record(els, panel_x);
-        }
-
-        // Round 2 gap/position overlay at (308, 62)
-        if !gap_label.is_empty() && gap_pts > 0 {
-            let current_id = self.scene.participant_id();
-            let current_pts = self
-                .store
-                .competition
-                .try_with(|c| {
-                    c.event_standings()
-                        .iter()
-                        .find(|p| p.id == current_id)
-                        .map(|p| p.points)
-                        .unwrap_or(0)
-                })
-                .unwrap_or(0);
-            if current_pts > 0 && gap_pts > 0 {
-                let diff = gap_pts - current_pts;
-                if diff > 0 {
-                    els.push(Element::text(
-                        format!("{}: {}", gap_label, diff),
-                        308,
-                        62,
-                        FONT_GOLD,
-                        false,
-                    ));
-                }
-            }
-        }
-    }
-
     /// Pascal drawkeymap: key binding hints shown when jumper is on bar.
     fn drawkeymap_elements(&self, els: &mut Vec<Element>) {
         els.push(Element::sprite(sprites::Sprite::InfoPanel as u16, 227, 2));
@@ -297,84 +215,6 @@ impl WorldCupJumpView {
         }
     }
 
-    fn info_panel_with_hill_record(&self, els: &mut Vec<Element>, panel_x: i32) {
-        els.push(Element::sprite(
-            sprites::Sprite::InfoPanel as u16,
-            panel_x,
-            2,
-        ));
-        let hill_idx = self.scene.hill_idx();
-        if let Some(hill) = self.resources.hills.hill(hill_idx) {
-            els.push(Element::text(
-                format!("{} K{}", hill.name, hill.kr),
-                308,
-                9,
-                FONT_GOLD,
-                true,
-            ));
-        }
-        if let Some(record) = self.store.records.borrow().hill_record(hill_idx) {
-            if record.len > 0 {
-                els.push(Element::text(&record.name, 308, 19, FONT_GOLD, true));
-                els.push(Element::text(
-                    format!("{:.1}m", record.len as f64 / 10.0),
-                    308,
-                    29,
-                    FONT_GOLD,
-                    true,
-                ));
-            }
-        }
-    }
-
-    fn info_panel_with_top5(
-        &self,
-        els: &mut Vec<Element>,
-        panel_x: i32,
-        top5: &[(String, i32)],
-        is_wc: bool,
-    ) {
-        els.push(Element::sprite(
-            sprites::Sprite::InfoPanel as u16,
-            panel_x,
-            2,
-        ));
-        if is_wc {
-            els.push(Element::text(
-                self.resources.langbase.lstr(70),
-                308,
-                9,
-                FONT_GOLD,
-                true,
-            ));
-        } else {
-            let hill_idx = self.scene.hill_idx();
-            if let Some(hill) = self.resources.hills.hill(hill_idx) {
-                els.push(Element::text(
-                    format!("{} K{}", hill.name, hill.kr),
-                    308,
-                    9,
-                    FONT_GOLD,
-                    true,
-                ));
-            }
-        }
-        let leader_pts = top5.first().map(|(_, pts)| *pts).unwrap_or(0);
-        for (i, (name, pts)) in top5.iter().enumerate() {
-            let val = if is_wc && i > 0 && leader_pts > 0 {
-                format!("{}", pts - leader_pts)
-            } else {
-                pts.to_string()
-            };
-            els.push(Element::text(
-                format!("{name}${val}"),
-                308,
-                13 + i as i32 * 7,
-                FONT_GOLD,
-                true,
-            ));
-        }
-    }
 }
 
 impl WorldCupJumpView {
@@ -411,18 +251,12 @@ impl View<RouteTarget> for WorldCupJumpView {
         match self.render_mode.get() {
             RenderMode::Jump => {
                 let mut els = self.scene.elements();
-                match self.scene.phase() {
-                    // Key bindings during OnBar (jumper sitting at gate)
-                    // Also shown during Disqualified (matches Pascal drawscreen
-                    // capture of the last OnBar frame before the DQ overlay).
-                    Some(JumpPhase::OnBar | JumpPhase::Disqualified) => {
-                        self.drawkeymap_elements(&mut els)
-                    }
-                    // Info cycle during flight
-                    Some(JumpPhase::Inrun | JumpPhase::Flight) => {
-                        self.info_cycle_elements(&mut els)
-                    }
-                    _ => {}
+                // Key bindings during OnBar (jumper sitting at gate)
+                // Also shown during Disqualified (matches Pascal drawscreen
+                // capture of the last OnBar frame before the DQ overlay).
+                // Nothing extra during Inrun/Flight — only wind gauge from scene.elements()
+                if let Some(JumpPhase::OnBar | JumpPhase::Disqualified) = self.scene.phase() {
+                    self.drawkeymap_elements(&mut els);
                 }
                 els
             }
