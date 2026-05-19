@@ -413,7 +413,11 @@ impl View<RouteTarget> for WorldCupJumpView {
                 let mut els = self.scene.elements();
                 match self.scene.phase() {
                     // Key bindings during OnBar (jumper sitting at gate)
-                    Some(JumpPhase::OnBar) => self.drawkeymap_elements(&mut els),
+                    // Also shown during Disqualified (matches Pascal drawscreen
+                    // capture of the last OnBar frame before the DQ overlay).
+                    Some(JumpPhase::OnBar | JumpPhase::Disqualified) => {
+                        self.drawkeymap_elements(&mut els)
+                    }
                     // Info cycle during flight
                     Some(JumpPhase::Inrun | JumpPhase::Flight) => {
                         self.info_cycle_elements(&mut els)
@@ -434,7 +438,14 @@ impl View<RouteTarget> for WorldCupJumpView {
 
         // Pascal: wait for key after human jump before advancing
         if self.scene.outcome().is_some() && !self.result_acknowledged.get() {
-            if matches!(event, Event::Keyboard(Key::Enter | Key::Escape)) {
+            let is_dq = self.scene.phase() == Some(JumpPhase::Disqualified);
+            let accepted = if is_dq {
+                // Pascal waitforkey: ANY key dismisses the DQ screen
+                matches!(event, Event::Keyboard(_))
+            } else {
+                matches!(event, Event::Keyboard(Key::Enter | Key::Escape))
+            };
+            if accepted {
                 self.result_acknowledged.set(true);
                 return None;
             }

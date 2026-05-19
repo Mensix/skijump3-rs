@@ -234,7 +234,10 @@ impl JumpSession {
 
     pub(crate) fn tick_with_wind(&mut self, rng: &mut Random, wind: &mut Wind) -> FlightWind {
         let phase = self.phase();
-        let wind_value = if matches!(phase, Some(JumpPhase::Info | JumpPhase::Result)) {
+        let wind_value = if matches!(
+            phase,
+            Some(JumpPhase::Info | JumpPhase::Result | JumpPhase::Disqualified)
+        ) {
             wind.value
         } else {
             wind.sample(rng)
@@ -259,7 +262,10 @@ impl JumpSession {
             self.replay.mark_flight_stop();
         }
         if let Some(state) = &self.state {
-            if current_phase == JumpPhase::Landing || current_phase == JumpPhase::Result {
+            if matches!(
+                current_phase,
+                JumpPhase::Landing | JumpPhase::Result | JumpPhase::Disqualified
+            ) {
                 self.replay.set_distance(state.distance);
             }
         }
@@ -279,6 +285,7 @@ impl JumpSession {
                     | JumpPhase::Inrun
                     | JumpPhase::Flight
                     | JumpPhase::Landing
+                    | JumpPhase::Disqualified
             )
         )
     }
@@ -326,7 +333,7 @@ impl JumpSession {
             (frame, current_pos, body_anim, ski_anim)
         };
         let previous = self.replay_prev_pos.unwrap_or(current_pos);
-        if frame.phase == JumpPhase::Result {
+        if matches!(frame.phase, JumpPhase::Result | JumpPhase::Disqualified) {
             self.replay.stop();
         } else {
             self.replay

@@ -8,6 +8,7 @@ pub enum JumpPhase {
     Flight,
     Landing,
     Result,
+    Disqualified,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]

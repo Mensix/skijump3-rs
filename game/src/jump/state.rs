@@ -150,17 +150,25 @@ impl JumpState {
     }
 
     pub(crate) fn outcome(&self) -> Option<JumpOutcome> {
-        if self.phase != JumpPhase::Result {
-            return None;
+        match self.phase {
+            JumpPhase::Result => Some(JumpOutcome {
+                distance: self.distance,
+                score: self.score,
+                style_points: self.style_points,
+                landing_style: self.landing_style,
+                fall_type: self.fall_type,
+                aborted: false,
+            }),
+            JumpPhase::Disqualified => Some(JumpOutcome {
+                distance: 0,
+                score: 0,
+                style_points: [0; 5],
+                landing_style: LandingStyle::Telemark,
+                fall_type: FallType::None,
+                aborted: false,
+            }),
+            _ => None,
         }
-        Some(JumpOutcome {
-            distance: self.distance,
-            score: self.score,
-            style_points: self.style_points,
-            landing_style: self.landing_style,
-            fall_type: self.fall_type,
-            aborted: false,
-        })
     }
 
     pub(crate) const fn snapshot(&self) -> JumpSnapshot {
@@ -255,6 +263,14 @@ impl JumpState {
                 if count_onbar_frames {
                     self.frame += 1;
                 }
+                // Pascal: laskuri > 700 → disqualified
+                if count_onbar_frames && self.frame > 700 {
+                    self.phase = JumpPhase::Disqualified;
+                    self.score = 0;
+                    self.distance = 0;
+                    self.landing_style = LandingStyle::Telemark;
+                    self.fall_type = FallType::None;
+                }
             }
             JumpPhase::Inrun => {
                 self.frame += 1;
@@ -269,6 +285,7 @@ impl JumpState {
                 self.tick_landing(terrain, rng);
             }
             JumpPhase::Result => {}
+            JumpPhase::Disqualified => {}
         }
     }
 
@@ -702,6 +719,10 @@ impl JumpState {
                 };
                 (body, ski)
             }
+            JumpPhase::Disqualified => (
+                Sprite::IdleBody as u16,
+                slope_ski_anim(terrain.hill_angle(self.x)),
+            ),
             JumpPhase::Landing | JumpPhase::Result => {
                 let ski = slope_ski_anim(terrain.hill_angle(self.x));
                 (self.landing_body_anim_for_state(terrain), ski)

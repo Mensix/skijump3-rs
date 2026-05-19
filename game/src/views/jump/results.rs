@@ -270,10 +270,13 @@ pub fn render_results_page(page: &ResultsPage, resources: &ResourcesRef) -> Vec<
             false,
         ));
 
-        let points = if entry.distance == 0 && entry.distance2 == 0 {
-            entry.points.to_string()
-        } else {
-            format_tenths(entry.points)
+        let points = match page.phase {
+            // Season standings: points are WC points (integers, not tenths)
+            CompetitionPhase::WorldCupStandings | CompetitionPhase::SeasonComplete => {
+                entry.points.to_string()
+            }
+            // Event results: points are in tenths (including DQ where score=0 → "0.0")
+            _ => format_tenths(entry.points),
         };
         els.push(Element::text(points, COL_POINTS, y, col_text, true));
 

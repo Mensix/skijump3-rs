@@ -198,8 +198,16 @@ impl JumpRunner {
         if let Ok(terrain) = self.session.terrain() {
             terrain.apply_hill_palette(palette);
         }
-        palette.set(253, [10, 54, 10]);
-        palette.set(254, [0, 47, 0]);
+        let is_dq = self.session.phase() == Some(JumpPhase::Disqualified);
+        if is_dq {
+            // Pascal MuutaLogo(4) — red start light
+            palette.set(253, [54, 10, 10]);
+            palette.set(254, [47, 0, 0]);
+        } else {
+            // Pascal MuutaLogo(6) — green start light
+            palette.set(253, [10, 54, 10]);
+            palette.set(254, [0, 47, 0]);
+        }
     }
 }
 

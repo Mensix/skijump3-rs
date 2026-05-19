@@ -42,6 +42,7 @@ pub fn elements(frame: &JumpRenderFrame, ctx: &JumpPresentationContext<'_>) -> V
         JumpPhase::Landing => landing_elements(&mut els, frame, ctx),
         JumpPhase::Flight => {}
         JumpPhase::OnBar | JumpPhase::Inrun => {}
+        JumpPhase::Disqualified => dq_elements(&mut els, frame, ctx),
     }
 
     let jumper_x = frame.x - frame.sx;
@@ -234,6 +235,32 @@ fn landing_elements(
             ));
         }
     }
+}
+
+fn dq_elements(
+    els: &mut Vec<Element>,
+    frame: &JumpRenderFrame,
+    ctx: &JumpPresentationContext<'_>,
+) {
+    let jumper_x = frame.x - frame.sx;
+    let jumper_y = frame.y - frame.sy;
+    els.push(Element::sprite(
+        sprites::Sprite::StartLight as u16,
+        jumper_x + 60,
+        jumper_y - 10,
+    ));
+    els.push(Element::sprite(
+        sprites::Sprite::JumperInfoBox as u16,
+        3,
+        150,
+    ));
+    els.push(Element::text(
+        format!("{} {}", ctx.jumper_name, ctx.langbase.lstr(79)),
+        12,
+        160,
+        FONT_DEFAULT,
+        false,
+    ));
 }
 
 pub fn wind_elements(els: &mut Vec<Element>, position: WindPosition, value: i32) {
