@@ -127,7 +127,7 @@ mod tests {
             wc_points: 0,
             four_hills_points: 0,
             injury: 0,
-            points: 0,
+            points: None,
             rank: 0,
             qual: QualificationStatus::NotQualified,
             round1_len: 0,
@@ -160,7 +160,7 @@ mod tests {
             !c.field.get(jumper_before).is_computer,
             "first jumper should be human"
         );
-        assert_eq!(c.field.get(jumper_before).points, 0);
+        assert_eq!(c.field.get(jumper_before).points, None);
 
         let last_event = Cell::new(0);
         let mut simulate = |_: JumpParticipant, _: usize| -> JumpOutcome {
@@ -183,7 +183,7 @@ mod tests {
                 );
                 assert_eq!(
                     c.field.get(jumper_before).points,
-                    0,
+                    None,
                     "should not be implicitly recorded"
                 );
             }
@@ -205,14 +205,14 @@ mod tests {
         let _ = drive(&mut c, &last_event, &mut simulate);
         assert_eq!(
             c.field.get(jumper).points,
-            0,
+            None,
             "points unchanged after first HumanJump"
         );
 
         let _ = drive(&mut c, &last_event, &mut simulate);
         assert_eq!(
             c.field.get(jumper).points,
-            0,
+            None,
             "points still unchanged after second HumanJump"
         );
     }

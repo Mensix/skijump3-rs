@@ -1,8 +1,6 @@
 use crate::competition::field::{CompetitionField, SortBy};
 use crate::competition::scoring;
-use crate::competition::types::{
-    CompetitionPhase, CupStyle, Participant, QualificationStatus, DID_NOT_START_SCORE,
-};
+use crate::competition::types::{CompetitionPhase, CupStyle, Participant, QualificationStatus};
 
 const QUALIFICATION_SPOTS: usize = 50;
 const ROUND2_SPOTS: usize = 30;
@@ -193,6 +191,7 @@ impl Competition {
                     } else if self.style == CupStyle::CustomCup {
                         self.enter_custom_round1();
                     } else {
+                        self.clear_event_points();
                         self.enter_phase(CompetitionPhase::Qualification);
                     }
                 }
@@ -250,21 +249,29 @@ impl Competition {
             return;
         };
         match self.phase {
-            CompetitionPhase::Training(_) | CompetitionPhase::Qualification => {
-                self.field.get_mut(idx).points = jump_points;
+            CompetitionPhase::Training(_) => {}
+            CompetitionPhase::Qualification => {
+                self.field.get_mut(idx).points = Some(jump_points);
                 self.field.get_mut(idx).qual_len = length;
             }
             CompetitionPhase::Round1 => {
-                self.field.get_mut(idx).points = jump_points;
+                self.field.get_mut(idx).points = Some(jump_points);
                 self.field.get_mut(idx).round1_len = length;
             }
             CompetitionPhase::Round2 => {
-                self.field.get_mut(idx).points += jump_points;
+                let existing = self.field.get(idx).points.unwrap_or(0);
+                self.field.get_mut(idx).points = Some(existing + jump_points);
                 self.field.get_mut(idx).round2_len = length;
             }
             _ => {}
         }
         self.start_pos += 1;
+    }
+
+    fn clear_event_points(&mut self) {
+        for idx in 0..self.field.len() {
+            self.field.get_mut(idx).points = None;
+        }
     }
 
     pub fn injure_current(&mut self, rounds: u8) {
@@ -329,13 +336,12 @@ impl Competition {
         for idx in 0..self.field.len() {
             if self.field.get(idx).injury == 0 {
                 self.field.get_mut(idx).qual = QualificationStatus::Qualified;
-                self.field.get_mut(idx).points = 0;
+                self.field.get_mut(idx).points = None;
             } else {
                 self.field.get_mut(idx).qual = QualificationStatus::Eliminated;
-                self.field.get_mut(idx).points = DID_NOT_START_SCORE;
+                self.field.get_mut(idx).points = None;
             }
         }
-        self.field.sort_field(SortBy::EventPoints);
         self.enter_phase(CompetitionPhase::Round1);
     }
 
@@ -383,13 +389,8 @@ impl Competition {
 
     fn prepare_round1_scores(&mut self) {
         for idx in 0..self.field.len() {
-            if self.field.get(idx).qual.can_jump() {
-                self.field.get_mut(idx).points = 0;
-            } else {
-                self.field.get_mut(idx).points = DID_NOT_START_SCORE;
-            }
+            self.field.get_mut(idx).points = None;
         }
-        self.field.sort_field(SortBy::EventPoints);
     }
 
     fn cut_to_round2(&mut self) {
@@ -403,7 +404,9 @@ impl Competition {
             for pair in 0..(count / 2).min(25) {
                 let a = order[count - 1 - pair];
                 let b = order[pair];
-                let winner = if self.field.get(a).points >= self.field.get(b).points {
+                let winner = if self.field.get(a).points.unwrap_or(0)
+                    >= self.field.get(b).points.unwrap_or(0)
+                {
                     a
                 } else {
                     b
@@ -417,7 +420,7 @@ impl Competition {
                 }
                 if self.field.get(idx).qual == QualificationStatus::Eliminated
                     && self.field.get(idx).injury == 0
-                    && self.field.get(idx).points != DID_NOT_START_SCORE
+                    && self.field.get(idx).points.is_some()
                 {
                     self.field.get_mut(idx).qual = QualificationStatus::LuckyLoser;
                     lucky += 1;
@@ -442,15 +445,16 @@ impl Competition {
             }
             CupStyle::FourHills => {
                 for idx in 0..self.field.len() {
-                    let pts = self.field.get(idx).points;
-                    if pts != DID_NOT_START_SCORE {
+                    if let Some(pts) = self.field.get(idx).points {
                         self.field.get_mut(idx).four_hills_points += pts;
                     }
                 }
             }
             CupStyle::CustomCup => {
                 for idx in 0..self.field.len() {
-                    self.field.get_mut(idx).four_hills_points += self.field.get(idx).points;
+                    if let Some(pts) = self.field.get(idx).points {
+                        self.field.get_mut(idx).four_hills_points += pts;
+                    }
                 }
             }
             CupStyle::TeamCup => {}
@@ -600,7 +604,7 @@ mod tests {
 
         m.advance();
         assert_eq!(m.phase, CompetitionPhase::Round1);
-        assert!((0..m.field.len()).all(|i| m.field.get(i).points == 0));
+        assert!((0..m.field.len()).all(|i| m.field.get(i).points.is_none()));
 
         while m.current_jumper().is_some() {
             let score = 200 - m.start_pos as i32;

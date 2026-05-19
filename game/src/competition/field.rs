@@ -60,7 +60,7 @@ impl CompetitionField {
         match by {
             SortBy::WcPoints => self.participants[idx].wc_points,
             SortBy::FourHillsPoints => self.participants[idx].four_hills_points,
-            SortBy::EventPoints => self.participants[idx].points,
+            SortBy::EventPoints => self.participants[idx].points.unwrap_or(i32::MIN),
         }
     }
 
@@ -217,7 +217,7 @@ mod tests {
             .iter()
             .enumerate()
             .map(|(i, &s)| Participant {
-                points: s,
+                points: Some(s),
                 ..Participant::computer(i, i, format!("Jumper {i}"))
             })
             .collect()
@@ -252,8 +252,8 @@ mod tests {
     #[test]
     fn event_order_separate_from_master() {
         let mut participants = make_from_wc(&[100, 0]);
-        participants[0].points = 10;
-        participants[1].points = 999;
+        participants[0].points = Some(10);
+        participants[1].points = Some(999);
         let mut f = CompetitionField::new(participants);
         f.sort_field(SortBy::WcPoints);
         assert_eq!(f.master_order, vec![0, 1], "master by wc");
@@ -276,9 +276,9 @@ mod tests {
     #[test]
     fn round1_uses_event_order_qualified_only() {
         let mut participants = make_from_event(&[0; 5]);
-        participants[0].points = 300;
-        participants[1].points = 200;
-        participants[2].points = 100;
+        participants[0].points = Some(300);
+        participants[1].points = Some(200);
+        participants[2].points = Some(100);
         participants[3].qual = QualificationStatus::PreQualified;
         participants[4].qual = QualificationStatus::Qualified;
         let mut f = CompetitionField::new(participants);
@@ -303,10 +303,10 @@ mod tests {
     #[test]
     fn reset_event_zeroes_all() {
         let mut f = CompetitionField::new(make_from_wc(&[0; 2]));
-        f.participants[0].points = 500;
+        f.participants[0].points = Some(500);
         f.participants[0].qual = QualificationStatus::Qualified;
         f.reset_event();
-        assert_eq!(f.participants[0].points, 0);
+        assert_eq!(f.participants[0].points, None);
         assert_eq!(f.participants[0].qual, QualificationStatus::NotQualified);
     }
 

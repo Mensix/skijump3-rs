@@ -2,7 +2,7 @@ use crate::competition::types::{CompetitionPhase, CupStyle};
 use crate::controllers::jump_input::{JumpInputAction, JumpInputController};
 use crate::controllers::jump_scene::JumpScene;
 use crate::controllers::world_cup_flow::{self, WorldCupCommand};
-use crate::gfx::palette::{apply_menu_tint, FONT_GOLD};
+use crate::gfx::palette::{apply_menu_tint, FONT_GOLD, FONT_GREET};
 use crate::gfx::sprites;
 use crate::jump::types::{FallType, JumpPhase};
 use crate::jump::JumpParticipant;
@@ -214,7 +214,6 @@ impl WorldCupJumpView {
             ));
         }
     }
-
 }
 
 impl WorldCupJumpView {
@@ -228,20 +227,18 @@ impl WorldCupJumpView {
         let own_id = self.scene.participant_id();
         self.store.competition.try_with(|c| {
             let standings = c.event_standings();
-            let total = standings.len() as i32;
             let own_before = standings
                 .iter()
                 .find(|p| p.id == own_id)
-                .map(|p| p.points)
+                .and_then(|p| p.points)
                 .unwrap_or(0);
             let own_total = own_before + outcome.score;
-            // Count participants with points <= own_total (includes self)
-            let fy = standings
+            let rank = standings
                 .iter()
-                .filter(|p| p.id == own_id || p.points <= own_total)
-                .count() as i32;
-            let rank = total - fy + 1;
-            Element::text(format!("(${}.)", rank), 255, 45, FONT_GOLD, true)
+                .filter(|p| p.id != own_id && p.points.is_some_and(|pts| pts > own_total))
+                .count()
+                + 1;
+            Element::text(format!("(${}.)", rank), 255, 45, FONT_GREET, true)
         })
     }
 

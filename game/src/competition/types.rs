@@ -1,5 +1,3 @@
-pub(crate) const DID_NOT_START_SCORE: i32 = -5555;
-
 /// Identifies the scoring/ruleset for a competition series.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CupStyle {
@@ -64,8 +62,8 @@ pub struct Participant {
     pub four_hills_points: i32,
     pub injury: u8,
 
-    // Per-event state
-    pub points: i32,
+    // Per-event state. None = hasn't started (DNS)
+    pub points: Option<i32>,
     pub rank: usize,
     pub qual: QualificationStatus,
     pub round1_len: i32,
@@ -89,7 +87,7 @@ impl Participant {
             wc_points: 0,
             four_hills_points: 0,
             injury: 0,
-            points: 0,
+            points: None,
             rank: 0,
             qual: QualificationStatus::NotQualified,
             round1_len: 0,
@@ -108,7 +106,7 @@ impl Participant {
     }
 
     pub const fn reset_event(&mut self) {
-        self.points = 0;
+        self.points = None;
         self.rank = 0;
         self.qual = QualificationStatus::NotQualified;
         self.round1_len = 0;
@@ -144,7 +142,7 @@ mod tests {
     #[test]
     fn reset_event_clears_per_event_state() {
         let mut p = Participant::computer(0, 0, "Test".into());
-        p.points = 500;
+        p.points = Some(500);
         p.rank = 1;
         p.round1_len = 120;
         p.round2_len = 130;
@@ -152,7 +150,7 @@ mod tests {
 
         p.reset_event();
 
-        assert_eq!(p.points, 0);
+        assert_eq!(p.points, None);
         assert_eq!(p.rank, 0);
         assert_eq!(p.round1_len, 0);
         assert_eq!(p.round2_len, 0);

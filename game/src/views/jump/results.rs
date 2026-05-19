@@ -1,7 +1,5 @@
 use crate::competition::machine::Competition;
-use crate::competition::types::{
-    CompetitionPhase, CupStyle, Participant, QualificationStatus, DID_NOT_START_SCORE,
-};
+use crate::competition::types::{CompetitionPhase, CupStyle, Participant, QualificationStatus};
 use crate::components::screen::{new_screen, page_hints};
 use crate::gfx::palette::{FONT_DEFAULT, FONT_GREET, FONT_HEADER};
 use crate::store::ResourcesRef;
@@ -61,11 +59,11 @@ pub fn build_results_page(competition: &Competition, page: usize) -> ResultsPage
     let mut items = Vec::with_capacity(end - start);
     for &p in &standings[start..end] {
         let (points, dist, dist2) = match competition.phase() {
-            CompetitionPhase::QualificationResults => (p.points, p.qual_len, 0),
-            CompetitionPhase::Round1Results => (p.points, p.round1_len, 0),
-            CompetitionPhase::Round2Results => (p.points, p.round1_len, p.round2_len),
+            CompetitionPhase::QualificationResults => (p.points.unwrap_or(0), p.qual_len, 0),
+            CompetitionPhase::Round1Results => (p.points.unwrap_or(0), p.round1_len, 0),
+            CompetitionPhase::Round2Results => (p.points.unwrap_or(0), p.round1_len, p.round2_len),
             CompetitionPhase::WorldCupStandings => (p.wc_points, 0, 0),
-            _ => (p.points, 0, 0),
+            _ => (p.points.unwrap_or(0), 0, 0),
         };
         items.push(ResultsEntry {
             is_own: !p.is_computer,
@@ -99,13 +97,13 @@ pub fn build_compact_results_page(competition: &Competition) -> ResultsPage {
     let mut items = Vec::with_capacity(selected.len());
     for p in selected {
         let (points, dist, dist2) = match competition.phase() {
-            CompetitionPhase::QualificationResults => (p.points, p.qual_len, 0),
-            CompetitionPhase::Round1Results => (p.points, p.round1_len, 0),
-            CompetitionPhase::Round2Results => (p.points, p.round1_len, p.round2_len),
+            CompetitionPhase::QualificationResults => (p.points.unwrap_or(0), p.qual_len, 0),
+            CompetitionPhase::Round1Results => (p.points.unwrap_or(0), p.round1_len, 0),
+            CompetitionPhase::Round2Results => (p.points.unwrap_or(0), p.round1_len, p.round2_len),
             CompetitionPhase::WorldCupStandings | CompetitionPhase::SeasonComplete => {
                 (p.wc_points, 0, 0)
             }
-            _ => (p.points, 0, 0),
+            _ => (p.points.unwrap_or(0), 0, 0),
         };
         items.push(ResultsEntry {
             is_own: !p.is_computer,
@@ -144,7 +142,7 @@ fn standings_for_phase(competition: &Competition) -> Vec<&Participant> {
         CompetitionPhase::Round1Results => competition
             .event_standings()
             .into_iter()
-            .filter(|p| p.points != DID_NOT_START_SCORE)
+            .filter(|p| p.points.is_some())
             .collect(),
         CompetitionPhase::Round2Results => competition
             .event_standings()
@@ -374,7 +372,7 @@ fn render_ko_side(els: &mut Vec<Element>, p: &Participant, y: i32, left: bool, s
         ));
         if show_results {
             els.push(Element::text(
-                format_tenths(p.points),
+                format_tenths(p.points.unwrap_or(0)),
                 KO_LEFT_POINTS,
                 y,
                 color,
@@ -400,7 +398,7 @@ fn render_ko_side(els: &mut Vec<Element>, p: &Participant, y: i32, left: bool, s
         ));
         if show_results {
             els.push(Element::text(
-                format_tenths(p.points),
+                format_tenths(p.points.unwrap_or(0)),
                 KO_RIGHT_POINTS,
                 y,
                 color,
@@ -530,7 +528,7 @@ pub fn render_stats_page(
         true,
     ));
     els.push(Element::text(
-        format_tenths(player.points),
+        format_tenths(player.points.unwrap_or(0)),
         140,
         y,
         FONT_DEFAULT,
@@ -538,7 +536,7 @@ pub fn render_stats_page(
     ));
     if player.round1_len > 0 {
         els.push(Element::text(
-            format_tenths(player.points - player.round2_len),
+            format_tenths(player.points.unwrap_or(0) - player.round2_len),
             170,
             y,
             FONT_DEFAULT,

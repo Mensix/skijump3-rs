@@ -30,7 +30,7 @@ mod tests {
             .iter()
             .enumerate()
             .map(|(i, &s)| Participant {
-                points: s,
+                points: Some(s),
                 ..Participant::computer(i, i, format!("J {i}"))
             })
             .collect();
@@ -43,8 +43,12 @@ mod tests {
         let mut field = make_field(&scores);
         field.sort_field(SortBy::EventPoints);
 
-        let top3: Vec<i32> = (0..3).map(|i| field.get(i).points).collect();
-        assert_eq!(top3, [1000, 900, 800], "sorted descending");
+        let top3: Vec<Option<i32>> = (0..3).map(|i| field.get(i).points).collect();
+        assert_eq!(
+            top3,
+            [Some(1000), Some(900), Some(800)],
+            "sorted descending"
+        );
 
         award_wc_points(&mut field);
         assert_eq!(field.get(0).wc_points, 100);
@@ -57,7 +61,7 @@ mod tests {
     fn beyond_30_get_no_points() {
         let mut field = make_field(&[0i32; 35]);
         for i in 0..35 {
-            field.get_mut(i).points = (35 - i) as i32;
+            field.get_mut(i).points = Some((35 - i) as i32);
         }
         field.sort_field(SortBy::EventPoints);
         award_wc_points(&mut field);

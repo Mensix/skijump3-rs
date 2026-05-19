@@ -237,11 +237,7 @@ fn landing_elements(
     }
 }
 
-fn dq_elements(
-    els: &mut Vec<Element>,
-    frame: &JumpRenderFrame,
-    ctx: &JumpPresentationContext<'_>,
-) {
+fn dq_elements(els: &mut Vec<Element>, frame: &JumpRenderFrame, ctx: &JumpPresentationContext<'_>) {
     let jumper_x = frame.x - frame.sx;
     let jumper_y = frame.y - frame.sy;
     els.push(Element::sprite(
