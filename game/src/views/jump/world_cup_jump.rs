@@ -36,6 +36,7 @@ pub struct WorldCupJumpView {
     scene: JumpScene,
     last_event: Cell<usize>,
     result_acknowledged: Cell<bool>,
+    outcome_recorded: Cell<bool>,
     display_page: Cell<usize>,
     render_mode: Cell<RenderMode>,
     result_screen: Cell<ResultScreen>,
@@ -59,6 +60,7 @@ impl WorldCupJumpView {
             scene,
             last_event: Cell::new(0),
             result_acknowledged: Cell::new(false),
+            outcome_recorded: Cell::new(false),
             display_page: Cell::new(0),
             render_mode: Cell::new(RenderMode::Jump),
             result_screen: Cell::new(ResultScreen::List),
@@ -68,7 +70,7 @@ impl WorldCupJumpView {
 
     fn record_finished_human_jump(&self) {
         let outcome = self.scene.outcome();
-        if outcome.is_none() || !self.result_acknowledged.get() {
+        if outcome.is_none() || !self.result_acknowledged.get() || self.outcome_recorded.get() {
             return;
         }
         let outcome = outcome.unwrap();
@@ -87,6 +89,7 @@ impl WorldCupJumpView {
             c.record_jump(outcome.score, outcome.distance);
         });
         self.result_acknowledged.set(false);
+        self.outcome_recorded.set(true);
     }
 
     fn handle_human_jump(
@@ -97,9 +100,11 @@ impl WorldCupJumpView {
     ) {
         let needs_rebuild = self.scene.participant_id() != participant.id
             || self.scene.hill_idx() != hill_idx
+            || self.outcome_recorded.get()
             || (self.scene.outcome().is_some() && self.result_acknowledged.get());
         if needs_rebuild {
             self.result_acknowledged.set(false);
+            self.outcome_recorded.set(false);
             self.scene
                 .rebuild_for_competition(hill_idx, 15, participant, phase_label);
         } else {

@@ -160,7 +160,17 @@ impl CompetitionField {
                 list
             }
 
-            CompetitionPhase::Round1 | CompetitionPhase::Round2 => self
+            CompetitionPhase::Round1 => self
+                .master_order
+                .iter()
+                .rev()
+                .copied()
+                .filter(|&idx| {
+                    self.participants[idx].injury == 0 && self.participants[idx].qual.can_jump()
+                })
+                .collect(),
+
+            CompetitionPhase::Round2 => self
                 .event_order
                 .iter()
                 .rev()
@@ -207,17 +217,6 @@ mod tests {
             .enumerate()
             .map(|(i, &s)| Participant {
                 wc_points: s,
-                ..Participant::computer(i, i, format!("Jumper {i}"))
-            })
-            .collect()
-    }
-
-    fn make_from_event(scores: &[i32]) -> Vec<Participant> {
-        scores
-            .iter()
-            .enumerate()
-            .map(|(i, &s)| Participant {
-                points: Some(s),
                 ..Participant::computer(i, i, format!("Jumper {i}"))
             })
             .collect()
@@ -274,17 +273,16 @@ mod tests {
     }
 
     #[test]
-    fn round1_uses_event_order_qualified_only() {
-        let mut participants = make_from_event(&[0; 5]);
-        participants[0].points = Some(300);
-        participants[1].points = Some(200);
-        participants[2].points = Some(100);
+    fn round1_uses_master_order_qualified_only() {
+        let mut participants = make_from_wc(&[50, 40, 30, 20, 10]);
         participants[3].qual = QualificationStatus::PreQualified;
         participants[4].qual = QualificationStatus::Qualified;
         let mut f = CompetitionField::new(participants);
-        f.sort_field(SortBy::EventPoints);
+        f.sort_field(SortBy::WcPoints);
 
         let list = f.build_start_list(CompetitionPhase::Round1);
+        // master_order = [0,1,2,3,4] (wc_points sorted), reversed = [4,3,2,1,0]
+        // filter by can_jump: 4(Qualified) and 3(PreQualified) can jump
         assert_eq!(list, vec![4, 3]);
     }
 

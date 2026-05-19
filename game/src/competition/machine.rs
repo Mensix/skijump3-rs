@@ -105,6 +105,7 @@ impl Competition {
                 self.phase,
                 CompetitionPhase::Training(_)
                     | CompetitionPhase::Setup
+                    | CompetitionPhase::Qualification
                     | CompetitionPhase::EventComplete
             );
             if auto {
