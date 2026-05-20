@@ -1,4 +1,5 @@
 use crate::competition::types::{CompetitionPhase, CupStyle, Participant, QualificationStatus};
+use crate::controllers::competition_ui::{CompetitionUiState, RenderMode, ResultScreen};
 use crate::controllers::jump_input::{JumpInputAction, JumpInputController};
 use crate::controllers::jump_scene::JumpScene;
 use crate::controllers::world_cup_flow::{self, WorldCupCommand};
@@ -38,20 +39,6 @@ fn fmt_tenths(val: i32) -> String {
     format!("{}{}.{}", sign, abs / 10, abs % 10)
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum RenderMode {
-    Jump,
-    Results,
-    Done,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum ResultScreen {
-    List,
-    KoPairs(bool),
-    Stats,
-}
-
 /// Default key names matching our input bindings (K[1..5]).
 const KEY_NAMES: [&str; 5] = ["ARROW UP", "ARROW RIGHT", "ARROW LEFT", "T", "R"];
 
@@ -60,13 +47,7 @@ pub struct WorldCupJumpView {
     store: StoreRef,
     scene: JumpScene,
     last_event: Cell<usize>,
-    result_acknowledged: Cell<bool>,
-    outcome_recorded: Cell<bool>,
-    first_human_onbar: Cell<bool>,
-    display_page: Cell<usize>,
-    render_mode: Cell<RenderMode>,
-    result_screen: Cell<ResultScreen>,
-    compact_list: Cell<bool>,
+    ui_state: CompetitionUiState,
 }
 
 impl WorldCupJumpView {
@@ -85,19 +66,13 @@ impl WorldCupJumpView {
             store,
             scene,
             last_event: Cell::new(0),
-            result_acknowledged: Cell::new(false),
-            outcome_recorded: Cell::new(false),
-            first_human_onbar: Cell::new(true),
-            display_page: Cell::new(0),
-            render_mode: Cell::new(RenderMode::Jump),
-            result_screen: Cell::new(ResultScreen::List),
-            compact_list: Cell::new(false),
+            ui_state: CompetitionUiState::new(),
         }
     }
 
     fn record_finished_human_jump(&self) {
         let outcome = self.scene.outcome();
-        if outcome.is_none() || !self.result_acknowledged.get() || self.outcome_recorded.get() {
+        if outcome.is_none() || !self.ui_state.result_acknowledged.get() || self.ui_state.outcome_recorded.get() {
             return;
         }
         let outcome = outcome.unwrap();
@@ -115,9 +90,7 @@ impl WorldCupJumpView {
             }
             c.record_jump(outcome.score, outcome.distance);
         });
-        self.result_acknowledged.set(false);
-        self.outcome_recorded.set(true);
-        self.first_human_onbar.set(false);
+        self.ui_state.mark_outcome_recorded();
     }
 
     fn handle_human_jump(
@@ -128,11 +101,11 @@ impl WorldCupJumpView {
     ) {
         let needs_rebuild = self.scene.participant_id() != participant.id
             || self.scene.hill_idx() != hill_idx
-            || self.outcome_recorded.get()
-            || (self.scene.outcome().is_some() && self.result_acknowledged.get());
+            || self.ui_state.is_outcome_recorded()
+            || (self.scene.outcome().is_some() && self.ui_state.result_acknowledged.get());
         if needs_rebuild {
-            self.result_acknowledged.set(false);
-            self.outcome_recorded.set(false);
+            self.ui_state.result_acknowledged.set(false);
+            self.ui_state.outcome_recorded.set(false);
             self.scene
                 .rebuild_for_competition(hill_idx, 15, participant, phase_label);
         } else {
@@ -144,7 +117,7 @@ impl WorldCupJumpView {
         self.store
             .competition
             .try_with(|c| {
-                match self.result_screen.get() {
+                match self.ui_state.current_screen() {
                     ResultScreen::KoPairs(show_results) => {
                         return competition_results::render_ko_pairs(
                             c,
@@ -156,15 +129,15 @@ impl WorldCupJumpView {
                         return competition_results::render_stats_page(
                             c,
                             &self.resources,
-                            self.display_page.get(),
+                            self.ui_state.current_page(),
                         );
                     }
                     ResultScreen::List => {}
                 }
-                let page_data = if self.compact_list.get() {
+                let page_data = if self.ui_state.is_compact() {
                     competition_results::build_compact_results_page(c)
                 } else {
-                    competition_results::build_results_page(c, self.display_page.get())
+                    competition_results::build_results_page(c, self.ui_state.current_page())
                 };
                 let mut els = competition_results::render_results_page(&page_data, &self.resources);
                 els.extend(competition_results::render_header(c, &self.resources));
@@ -184,7 +157,7 @@ impl WorldCupJumpView {
         });
 
         let Some(command) = command else {
-            self.render_mode.set(RenderMode::Done);
+            self.ui_state.enter_done();
             return;
         };
 
@@ -200,15 +173,14 @@ impl WorldCupJumpView {
                 }
                 let phase_label = Self::phase_label(&self.resources, phase);
                 self.handle_human_jump(participant, hill_idx, phase_label);
-                self.render_mode.set(RenderMode::Jump);
-                self.result_screen.set(ResultScreen::List);
+                self.ui_state.enter_jump();
             }
             WorldCupCommand::ShowResults => {
                 self.select_default_result_screen();
-                self.render_mode.set(RenderMode::Results);
+                self.ui_state.enter_results();
             }
             WorldCupCommand::Done => {
-                self.render_mode.set(RenderMode::Done);
+                self.ui_state.enter_done();
             }
         }
     }
@@ -276,24 +248,9 @@ impl WorldCupJumpView {
     }
 
     fn select_default_result_screen(&self) {
-        self.result_screen.set(
-            self.store
-                .competition
-                .try_with(|c| {
-                    if c.style() == CupStyle::FourHills {
-                        if c.phase() == CompetitionPhase::QualificationResults {
-                            ResultScreen::KoPairs(false)
-                        } else if c.phase() == CompetitionPhase::Round1Results {
-                            ResultScreen::KoPairs(true)
-                        } else {
-                            ResultScreen::List
-                        }
-                    } else {
-                        ResultScreen::List
-                    }
-                })
-                .unwrap_or(ResultScreen::List),
-        );
+        if let Some(c) = self.store.competition.try_with(|c| (c.style(), c.phase())) {
+            self.ui_state.select_default_screen(c.0 == CupStyle::FourHills, c.1);
+        }
     }
 }
 
@@ -310,7 +267,7 @@ impl WorldCupJumpView {
                 (c.phase(), p.clone(), c.style())
             })?;
             let first_event = self.store.competition.try_with(|c| c.current_event == 0).unwrap_or(false);
-            let show_keymap = self.first_human_onbar.get() && first_event && !participant.is_computer;
+            let show_keymap = self.ui_state.is_first_human_onbar() && first_event && !participant.is_computer;
 
             match (phase, scene_phase) {
                 (CompetitionPhase::Round2, JumpPhase::Info) if style != CupStyle::CustomCup => {
@@ -582,20 +539,20 @@ impl View<RouteTarget> for WorldCupJumpView {
     fn update(&mut self) {
         self.record_finished_human_jump();
         self.drive_competition();
-        if self.render_mode.get() == RenderMode::Jump {
+        if self.ui_state.render_mode.get() == RenderMode::Jump {
             self.scene.update();
         }
     }
 
     fn elements(&self) -> Vec<Element> {
-        match self.render_mode.get() {
+        match self.ui_state.render_mode.get() {
             RenderMode::Jump => {
                 // Suppress static InfoPanel text when overlays provide their own content:
                 // Round 2 cycling info, or the keymap for the first human's first event.
                 let hide = self.store.competition.try_with(|c| {
                     let cycling = c.phase().needs_event_results()
                         && !matches!(c.style(), CupStyle::CustomCup);
-                    let keymap_active = self.first_human_onbar.get()
+                    let keymap_active = self.ui_state.is_first_human_onbar()
                         && c.current_event == 0
                         && c.current_jumper().is_some_and(|idx| !c.participant(idx).is_computer);
                     cycling || keymap_active
@@ -620,7 +577,7 @@ impl View<RouteTarget> for WorldCupJumpView {
         }
 
         // Pascal: wait for key after human jump before advancing
-        if self.scene.outcome().is_some() && !self.result_acknowledged.get() {
+        if self.scene.outcome().is_some() && !self.ui_state.result_acknowledged.get() {
             let is_dq = self.scene.phase() == Some(JumpPhase::Disqualified);
             let accepted = if is_dq {
                 // Pascal waitforkey: ANY key dismisses the DQ screen
@@ -629,7 +586,7 @@ impl View<RouteTarget> for WorldCupJumpView {
                 matches!(event, Event::Keyboard(Key::Enter | Key::Escape))
             };
             if accepted {
-                self.result_acknowledged.set(true);
+                self.ui_state.acknowledge_outcome();
                 return None;
             }
             return None;
@@ -678,7 +635,7 @@ impl View<RouteTarget> for WorldCupJumpView {
 
 impl WorldCupJumpView {
     fn is_result_display_state(&self) -> bool {
-        if self.display_page.get() > 0 {
+        if self.ui_state.has_page() {
             return true;
         }
         self.store
@@ -693,8 +650,7 @@ impl WorldCupJumpView {
     fn handle_result_event(&mut self, event: Event) -> Option<RouteTarget> {
         match event {
             Event::Keyboard(Key::Right | Key::Char(' ')) => {
-                let page = self.display_page.get();
-                let total = match self.result_screen.get() {
+                let total = match self.ui_state.current_screen() {
                     ResultScreen::Stats => self
                         .store
                         .competition
@@ -707,36 +663,28 @@ impl WorldCupJumpView {
                         })
                         .unwrap_or(1),
                     ResultScreen::KoPairs(_) => 1,
-                    ResultScreen::List if self.compact_list.get() => 1,
+                    ResultScreen::List if self.ui_state.is_compact() => 1,
                     ResultScreen::List => self
                         .store
                         .competition
                         .try_with(competition_results::total_pages)
                         .unwrap_or(0),
                 };
-                if page + 1 < total {
-                    self.display_page.set(page + 1);
+                if self.ui_state.next_page(total) {
                     return None;
                 }
                 // Pascal WaitForKey(0): any key on the last entry exits the list
-                self.display_page.set(0);
-                self.result_screen.set(ResultScreen::List);
+                self.ui_state.dismiss_results();
                 self.store.competition.try_with_mut(|c| c.advance());
                 self.drive_competition();
                 None
             }
             Event::Keyboard(Key::Char('c') | Key::Char('C')) => {
-                self.compact_list.set(!self.compact_list.get());
-                self.result_screen.set(ResultScreen::List);
-                self.display_page.set(0);
+                self.ui_state.toggle_compact();
                 None
             }
             Event::Keyboard(Key::Char('s') | Key::Char('S')) => {
-                self.result_screen.set(match self.result_screen.get() {
-                    ResultScreen::Stats => ResultScreen::List,
-                    _ => ResultScreen::Stats,
-                });
-                self.display_page.set(0);
+                self.ui_state.toggle_stats();
                 None
             }
             Event::Keyboard(Key::Char('k') | Key::Char('K')) => {
@@ -745,11 +693,9 @@ impl WorldCupJumpView {
                     .competition
                     .try_with(|c| {
                         c.style() == CupStyle::FourHills
-                            && matches!(
-                                c.phase(),
-                                CompetitionPhase::QualificationResults
-                                    | CompetitionPhase::Round1Results
-                            )
+                            && c.phase().is_result_phase()
+                            && c.phase() != CompetitionPhase::WorldCupStandings
+                            && c.phase() != CompetitionPhase::SeasonComplete
                     })
                     .unwrap_or(false);
                 if ko {
@@ -758,18 +704,12 @@ impl WorldCupJumpView {
                         .competition
                         .try_with(|c| c.phase() == CompetitionPhase::Round1Results)
                         .unwrap_or(false);
-                    self.result_screen.set(match self.result_screen.get() {
-                        ResultScreen::KoPairs(_) => ResultScreen::List,
-                        _ => ResultScreen::KoPairs(round1),
-                    });
+                    self.ui_state.toggle_ko_pairs(round1);
                 }
                 None
             }
             Event::Keyboard(Key::Left) => {
-                let page = self.display_page.get();
-                if page > 0 {
-                    self.display_page.set(page - 1);
-                }
+                self.ui_state.prev_page();
                 None
             }
             Event::Keyboard(Key::Escape | Key::Enter) => {
@@ -781,8 +721,7 @@ impl WorldCupJumpView {
                 if is_season_complete {
                     return Some(RouteTarget::Back);
                 }
-                self.display_page.set(0);
-                self.result_screen.set(ResultScreen::List);
+                self.ui_state.dismiss_results();
                 self.store.competition.try_with_mut(|c| c.advance());
                 self.drive_competition();
                 None
