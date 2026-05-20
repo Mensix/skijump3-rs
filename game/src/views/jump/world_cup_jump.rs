@@ -726,6 +726,7 @@ impl WorldCupJumpView {
                 self.display_page.set(0);
                 self.result_screen.set(ResultScreen::List);
                 self.store.competition.try_with_mut(|c| c.advance());
+                self.drive_competition();
                 None
             }
             Event::Keyboard(Key::Char('c') | Key::Char('C')) => {
@@ -787,6 +788,7 @@ impl WorldCupJumpView {
                 self.display_page.set(0);
                 self.result_screen.set(ResultScreen::List);
                 self.store.competition.try_with_mut(|c| c.advance());
+                self.drive_competition();
                 None
             }
             _ => None,

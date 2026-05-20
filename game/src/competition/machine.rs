@@ -108,6 +108,8 @@ impl Competition {
                 CompetitionPhase::Training(_)
                     | CompetitionPhase::Setup
                     | CompetitionPhase::Qualification
+                    | CompetitionPhase::Round1
+                    | CompetitionPhase::Round2
                     | CompetitionPhase::EventComplete
             );
             if auto {
@@ -641,6 +643,35 @@ mod tests {
         m.advance();
         assert_eq!(m.phase, CompetitionPhase::Round2);
         assert_eq!(m.field.num_qualified(), 30);
+    }
+
+    #[test]
+    fn completed_round_phases_advance_to_result_phases() {
+        let mut m = make_season(1);
+        m.advance();
+        while m.current_jumper().is_some() {
+            m.record_jump(100, 80);
+        }
+        assert_eq!(m.decide_next(), StepDecision::AdvancePhase);
+        m.advance();
+
+        m.advance();
+        while m.current_jumper().is_some() {
+            m.record_jump(200 - m.start_pos as i32, 90);
+        }
+        assert_eq!(m.phase, CompetitionPhase::Round1);
+        assert_eq!(m.decide_next(), StepDecision::AdvancePhase);
+        m.advance();
+        assert_eq!(m.phase, CompetitionPhase::Round1Results);
+
+        m.advance();
+        while m.current_jumper().is_some() {
+            m.record_jump(200 - m.start_pos as i32, 90);
+        }
+        assert_eq!(m.phase, CompetitionPhase::Round2);
+        assert_eq!(m.decide_next(), StepDecision::AdvancePhase);
+        m.advance();
+        assert_eq!(m.phase, CompetitionPhase::Round2Results);
     }
 
     #[test]
