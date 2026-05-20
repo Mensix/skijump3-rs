@@ -569,7 +569,7 @@ impl View<RouteTarget> for WorldCupJumpView {
                 // Suppress static InfoPanel text when overlays provide their own content:
                 // Round 2 cycling info, or the keymap for the first human's first event.
                 let hide = self.store.competition.try_with(|c| {
-                    let cycling = matches!(c.phase(), CompetitionPhase::Qualification | CompetitionPhase::Round2)
+                    let cycling = matches!(c.phase(), CompetitionPhase::Qualification | CompetitionPhase::Round1 | CompetitionPhase::Round2)
                         && !matches!(c.style(), CupStyle::CustomCup);
                     let keymap_active = self.first_human_onbar.get()
                         && c.current_event == 0
