@@ -407,22 +407,43 @@ impl WorldCupJumpView {
         ));
     }
 
-    /// Pascal drawinfo cycling: event top5 (0..130) / hill record (146..276) / WC standings (292..)
-    /// Pascal drawinfo: cycling info with 131-frame content windows separated
-    /// by 15-frame blank gaps. Each content block pushes the InfoPanel sprite;
-    /// gap frames push only the sprite to mask the static text from
-    /// presentation::info_elements.
-    /// WC standings (292..422) are only shown when the WC leader has points
-    /// (Pascal `if (mcpisteet[mcluett[1]]>0)`); otherwise Pascal resets the
-    /// counter (`l:=0`) so the cycle is top5(130) → gap(15) → hr(130) → gap(15)
-    /// = 292 frames. We use modulo 292 in that case.
+    /// Pascal drawinfo: cycling info on the InfoPanel.
+    ///
+    /// When no event results exist (`pisteet[top5[1]]=0`):
+    ///   - WC leader has points: hill record ↔ WC standings (292-cycle)
+    ///   - WC leader has no points: static hill record
+    /// When results exist:
+    ///   - WC leader has points: top5 ↔ hill record ↔ WC standings (438-cycle)
+    ///   - WC leader has no points: top5 ↔ hill record (292-cycle)
     fn cycling_info_elements(&self, els: &mut Vec<Element>, frame_counter: i32, hill_idx: usize) {
-        let has_wc_leader = self.store.competition.try_with(|c| {
-            c.overall_standings()
+        let (has_wc_leader, has_event_leader) = self.store.competition.try_with(|c| {
+            let wc = c.overall_standings()
                 .first()
                 .map(|p| p.wc_points > 0)
-                .unwrap_or(false)
-        }).unwrap_or(false);
+                .unwrap_or(false);
+            let event = c.event_standings()
+                .first()
+                .and_then(|p| p.points)
+                .unwrap_or(0) > 0;
+            (wc, event)
+        }).unwrap_or((false, false));
+
+        if !has_event_leader {
+            // Pascal: ei tuloksia näytettävänä
+            if has_wc_leader {
+                let phase = (frame_counter as usize) % 292;
+                if phase <= 130 {
+                    self.hill_info_elements(els, hill_idx);
+                } else if (146..=276).contains(&phase) {
+                    self.wc_standings_elements(els);
+                } else {
+                    els.push(Element::sprite(sprites::Sprite::InfoPanel as u16, 227, 2));
+                }
+            } else {
+                self.hill_info_elements(els, hill_idx);
+            }
+            return;
+        }
 
         let cycle = if has_wc_leader { 438 } else { 292 };
         let phase = (frame_counter as usize) % cycle;
