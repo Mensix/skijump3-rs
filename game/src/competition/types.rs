@@ -18,6 +18,7 @@ pub enum CompetitionPhase {
     Round1Results,
     Round2,
     Round2Results,
+    FourHillsStandings,
     WorldCupStandings,
     EventComplete,
     SeasonComplete,
@@ -37,6 +38,7 @@ impl CompetitionPhase {
             Self::QualificationResults
                 | Self::Round1Results
                 | Self::Round2Results
+                | Self::FourHillsStandings
                 | Self::WorldCupStandings
                 | Self::SeasonComplete
         )
@@ -47,7 +49,12 @@ impl CompetitionPhase {
     pub const fn auto_advances_when_empty(self) -> bool {
         matches!(
             self,
-            Self::Training(_) | Self::Setup | Self::Qualification | Self::Round1 | Self::Round2 | Self::EventComplete
+            Self::Training(_)
+                | Self::Setup
+                | Self::Qualification
+                | Self::Round1
+                | Self::Round2
+                | Self::EventComplete
         )
     }
 

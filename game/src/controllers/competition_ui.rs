@@ -170,18 +170,21 @@ impl CompetitionUiState {
     }
 
     /// Select default screen based on competition style.
-    pub fn select_default_screen(&self, is_four_hills: bool, phase: crate::competition::types::CompetitionPhase) {
+    pub fn select_default_screen(
+        &self,
+        is_four_hills: bool,
+        phase: crate::competition::types::CompetitionPhase,
+    ) {
         use crate::competition::types::CompetitionPhase;
         if is_four_hills {
-            self.result_screen.set(
-                if phase == CompetitionPhase::QualificationResults {
+            self.result_screen
+                .set(if phase == CompetitionPhase::QualificationResults {
                     ResultScreen::KoPairs(false)
                 } else if phase == CompetitionPhase::Round1Results {
                     ResultScreen::KoPairs(true)
                 } else {
                     ResultScreen::List
-                },
-            );
+                });
         } else {
             self.result_screen.set(ResultScreen::List);
         }

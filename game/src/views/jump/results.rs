@@ -60,14 +60,23 @@ pub struct ResultsEntry {
     pub(crate) injury: u8,
 }
 
-fn competition_results_entry_data(phase: CompetitionPhase, p: &Participant) -> (i32, i32, i32) {
+fn competition_results_entry_data(
+    phase: CompetitionPhase,
+    style: CupStyle,
+    p: &Participant,
+) -> (i32, i32, i32) {
     match phase {
         CompetitionPhase::QualificationResults => (p.points.unwrap_or(0), p.qual_len, 0),
         CompetitionPhase::Round1Results => (p.points.unwrap_or(0), p.round1_len, 0),
         CompetitionPhase::Round2Results => (p.points.unwrap_or(0), p.round1_len, p.round2_len),
-        CompetitionPhase::WorldCupStandings | CompetitionPhase::SeasonComplete => {
-            (p.wc_points, 0, 0)
+        CompetitionPhase::FourHillsStandings => (p.four_hills_points, 0, 0),
+        CompetitionPhase::WorldCupStandings => (p.wc_points, 0, 0),
+        CompetitionPhase::SeasonComplete
+            if matches!(style, CupStyle::FourHills | CupStyle::CustomCup) =>
+        {
+            (p.four_hills_points, 0, 0)
         }
+        CompetitionPhase::SeasonComplete => (p.wc_points, 0, 0),
         _ => (p.points.unwrap_or(0), 0, 0),
     }
 }
@@ -75,7 +84,9 @@ fn competition_results_entry_data(phase: CompetitionPhase, p: &Participant) -> (
 fn items_per_page(phase: CompetitionPhase) -> usize {
     if matches!(
         phase,
-        CompetitionPhase::WorldCupStandings | CompetitionPhase::SeasonComplete
+        CompetitionPhase::FourHillsStandings
+            | CompetitionPhase::WorldCupStandings
+            | CompetitionPhase::SeasonComplete
     ) {
         WC_ITEMS_PER_PAGE
     } else if phase.result_round_number().is_some() {
@@ -95,7 +106,8 @@ pub fn build_results_page(competition: &Competition, page: usize) -> ResultsPage
 
     let mut items = Vec::with_capacity(end - start);
     for &p in &standings[start..end] {
-        let (points, dist, dist2) = competition_results_entry_data(competition.phase(), p);
+        let (points, dist, dist2) =
+            competition_results_entry_data(competition.phase(), competition.style(), p);
         items.push(ResultsEntry {
             is_own: !p.is_computer,
             rank: p.rank,
@@ -134,7 +146,8 @@ pub fn build_compact_results_page(competition: &Competition) -> ResultsPage {
 
     let mut items = Vec::with_capacity(selected.len());
     for p in selected {
-        let (points, dist, dist2) = competition_results_entry_data(competition.phase(), p);
+        let (points, dist, dist2) =
+            competition_results_entry_data(competition.phase(), competition.style(), p);
         items.push(ResultsEntry {
             is_own: !p.is_computer,
             rank: p.rank,
@@ -159,12 +172,27 @@ pub fn build_compact_results_page(competition: &Competition) -> ResultsPage {
 
 pub fn total_pages(competition: &Competition) -> usize {
     let per_page = items_per_page(competition.phase());
-    standings_for_phase(competition).len().div_ceil(per_page).max(1)
+    standings_for_phase(competition)
+        .len()
+        .div_ceil(per_page)
+        .max(1)
 }
 
 fn standings_for_phase(competition: &Competition) -> Vec<&Participant> {
     let phase = competition.phase();
-    if matches!(
+    if phase == CompetitionPhase::FourHillsStandings
+        || phase == CompetitionPhase::SeasonComplete
+            && matches!(
+                competition.style(),
+                CupStyle::FourHills | CupStyle::CustomCup
+            )
+    {
+        competition
+            .overall_standings()
+            .into_iter()
+            .filter(|p| p.four_hills_points > 0)
+            .collect()
+    } else if matches!(
         phase,
         CompetitionPhase::WorldCupStandings | CompetitionPhase::SeasonComplete
     ) {
@@ -231,12 +259,51 @@ pub fn render_header(competition: &Competition, resources: &ResourcesRef) -> Vec
         _ if phase == CompetitionPhase::Round2Results => {
             round_header(lang.lstr(81), event, lang.lstr(8), total, &hill_str, 2)
         }
+        _ if phase == CompetitionPhase::FourHillsStandings => {
+            if competition.style() == CupStyle::FourHills && event >= total {
+                lang.lstr(85).to_string()
+            } else if competition.style() == CupStyle::FourHills {
+                format!(
+                    "{} {} {} {} - {}",
+                    lang.lstr(84),
+                    event,
+                    lang.lstr(8),
+                    total,
+                    hill_str
+                )
+            } else {
+                let prefix = cup_style_str(competition.style(), 27);
+                format!(
+                    "{} {} {} {} {}",
+                    prefix,
+                    lang.lstr(87),
+                    event,
+                    lang.lstr(8),
+                    total
+                )
+            }
+        }
         _ if phase == CompetitionPhase::WorldCupStandings => {
             let prefix = cup_style_str(competition.style(), 27);
-            format!("{} {} {} {} {}", prefix, lang.lstr(87), event, lang.lstr(8), total)
+            format!(
+                "{} {} {} {} {}",
+                prefix,
+                lang.lstr(87),
+                event,
+                lang.lstr(8),
+                total
+            )
         }
         _ if phase == CompetitionPhase::SeasonComplete => {
-            format!("{} {}", lang.lstr(90), cup_style_str(competition.style(), 27))
+            if competition.style() == CupStyle::FourHills {
+                lang.lstr(85).to_string()
+            } else {
+                format!(
+                    "{} {}",
+                    lang.lstr(90),
+                    cup_style_str(competition.style(), 27)
+                )
+            }
         }
         _ => String::new(),
     };
@@ -273,13 +340,26 @@ fn render_results_entry(
     };
 
     if entry.rank != *last_rank {
-        els.push(Element::text(format!("{}.", entry.rank), rank_x, y, col_rank, true));
+        els.push(Element::text(
+            format!("{}.", entry.rank),
+            rank_x,
+            y,
+            col_rank,
+            true,
+        ));
     }
     *last_rank = entry.rank;
 
-    els.push(Element::text(truncate_name(&entry.name), name_x, y, col_text, false));
+    els.push(Element::text(
+        truncate_name(&entry.name),
+        name_x,
+        y,
+        col_text,
+        false,
+    ));
 
-    let points = if phase == CompetitionPhase::WorldCupStandings
+    let points = if phase == CompetitionPhase::FourHillsStandings
+        || phase == CompetitionPhase::WorldCupStandings
         || phase == CompetitionPhase::SeasonComplete
     {
         entry.points.to_string()
@@ -346,7 +426,8 @@ pub fn render_results_page(page: &ResultsPage, resources: &ResourcesRef) -> Vec<
         ));
     }
 
-    let is_wc = page.phase == CompetitionPhase::WorldCupStandings
+    let is_wc = page.phase == CompetitionPhase::FourHillsStandings
+        || page.phase == CompetitionPhase::WorldCupStandings
         || page.phase == CompetitionPhase::SeasonComplete;
     // Pascal: Quali=plus7(phase0), Rounds=plus8(phase1), WC=plus8(phase3)
     let row_step = if is_wc {
@@ -364,7 +445,17 @@ pub fn render_results_page(page: &ResultsPage, resources: &ResourcesRef) -> Vec<
             let col = if i >= WC_COL_SPLIT { 1 } else { 0 };
             let col_off = col * WC_COL2_OFFSET;
             let y = START_Y + (i % WC_COL_SPLIT) as i32 * row_step;
-            render_results_entry(&mut els, entry, page.phase, y, WC_RANK + col_off, WC_NAME + col_off, WC_POINTS + col_off, &mut last_rank, false);
+            render_results_entry(
+                &mut els,
+                entry,
+                page.phase,
+                y,
+                WC_RANK + col_off,
+                WC_NAME + col_off,
+                WC_POINTS + col_off,
+                &mut last_rank,
+                false,
+            );
         }
     } else {
         let mut y = START_Y;
@@ -382,14 +473,30 @@ pub fn render_results_page(page: &ResultsPage, resources: &ResourcesRef) -> Vec<
                 && (i > 0 && page.items[i - 1].rank <= 30 || i == 0 && page.prev_last_rank <= 30)
             {
                 let half = row_step / 2;
-                els.push(Element::text("- - -", COL_NAME, y + half, FONT_HEADER, false));
+                els.push(Element::text(
+                    "- - -",
+                    COL_NAME,
+                    y + half,
+                    FONT_HEADER,
+                    false,
+                ));
                 y += half + row_step + half;
                 if y > 191 {
                     break;
                 }
             }
 
-            render_results_entry(&mut els, entry, page.phase, y, COL_RANK, COL_NAME, COL_POINTS, &mut last_rank, true);
+            render_results_entry(
+                &mut els,
+                entry,
+                page.phase,
+                y,
+                COL_RANK,
+                COL_NAME,
+                COL_POINTS,
+                &mut last_rank,
+                true,
+            );
             y += row_step;
         }
     }

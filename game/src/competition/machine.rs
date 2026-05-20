@@ -222,8 +222,20 @@ impl Competition {
             }
             CompetitionPhase::Round2Results => {
                 self.award_points();
-                self.field.sort_field(SortBy::WcPoints);
-                self.enter_phase(CompetitionPhase::WorldCupStandings);
+                if matches!(self.style, CupStyle::FourHills | CupStyle::CustomCup) {
+                    self.field.sort_field(SortBy::FourHillsPoints);
+                    if self.current_event + 1 >= self.hill_order.len() {
+                        self.phase = CompetitionPhase::SeasonComplete;
+                    } else {
+                        self.enter_phase(CompetitionPhase::FourHillsStandings);
+                    }
+                } else {
+                    self.field.sort_field(SortBy::WcPoints);
+                    self.enter_phase(CompetitionPhase::WorldCupStandings);
+                }
+            }
+            CompetitionPhase::FourHillsStandings => {
+                self.enter_phase(CompetitionPhase::EventComplete);
             }
             CompetitionPhase::WorldCupStandings => {
                 self.enter_phase(CompetitionPhase::EventComplete);
@@ -304,7 +316,7 @@ impl Competition {
     fn enter_setup(&mut self) {
         self.field.reset_event();
         self.field.tick_injuries();
-        self.field.sort_field(SortBy::WcPoints);
+        self.sort_overall_field();
 
         // Top 10 in overall WC classification skip qualification
         if self.current_event > 0 {
@@ -328,6 +340,14 @@ impl Competition {
 
     fn is_ko_event(&self) -> bool {
         self.style == CupStyle::FourHills
+    }
+
+    fn sort_overall_field(&mut self) {
+        if matches!(self.style, CupStyle::FourHills | CupStyle::CustomCup) {
+            self.field.sort_field(SortBy::FourHillsPoints);
+        } else {
+            self.field.sort_field(SortBy::WcPoints);
+        }
     }
 
     fn enter_custom_round1(&mut self) {
@@ -651,6 +671,42 @@ mod tests {
     }
 
     #[test]
+    fn four_hills_shows_tour_standings_between_events() {
+        let mut c = Competition::new(CupStyle::FourHills, make_50_participants(), vec![8, 9]);
+        c.trainrounds = 0;
+
+        while c.phase != CompetitionPhase::Round2Results {
+            if c.current_jumper().is_none() {
+                c.advance();
+                continue;
+            }
+            while c.current_jumper().is_some() {
+                c.record_jump(150, 90);
+            }
+        }
+
+        c.advance();
+
+        assert_eq!(c.phase, CompetitionPhase::FourHillsStandings);
+        assert!(c.field.iter().any(|p| p.four_hills_points > 0));
+        assert!(c.field.iter().all(|p| p.wc_points == 0));
+    }
+
+    #[test]
+    fn four_hills_final_uses_tour_points() {
+        let mut c = Competition::new(CupStyle::FourHills, make_50_participants(), vec![8]);
+        c.trainrounds = 0;
+
+        run_all_jumps(&mut c);
+
+        assert_eq!(c.phase, CompetitionPhase::SeasonComplete);
+        assert!(c.field.iter().any(|p| p.four_hills_points > 0));
+        assert!(c.field.iter().all(|p| p.wc_points == 0));
+        let leader = c.field.master_order[0];
+        assert_eq!(c.field.get(leader).rank, 1);
+    }
+
+    #[test]
     fn skip_for_prequalified_human_in_qualification() {
         let mut participants = make_50_participants();
         // Turn the last participant (lowest WC rank) into a human with skipquali
@@ -679,8 +735,7 @@ mod tests {
         c.advance(); // -> Round2Results
         c.advance(); // -> WC standings
         c.advance(); // -> EventComplete
-        c.advance(); // advance to Setup
-        // Now at Setup for event 2
+        c.advance(); // advance to Setup for event 2
         c.advance(); // Setup -> Qualification for event 2
 
         assert_eq!(c.phase, CompetitionPhase::Qualification);

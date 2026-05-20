@@ -40,10 +40,12 @@ impl OverlayData {
                 .iter()
                 .take(5)
                 .filter_map(|p| {
-                    p.points.filter(|&pts| pts > 0).map(|pts| EventStandingEntry {
-                        name: p.display_name().to_string(),
-                        points: pts,
-                    })
+                    p.points
+                        .filter(|&pts| pts > 0)
+                        .map(|pts| EventStandingEntry {
+                            name: p.display_name().to_string(),
+                            points: pts,
+                        })
                 })
                 .collect();
 
@@ -104,22 +106,44 @@ impl CompetitionOverlay {
     }
 
     /// Determine what overlay to draw, without rendering.
-    pub fn context(&self, scene_phase: Option<JumpPhase>, frame_counter: i32, ui_state: &CompetitionUiState) -> Option<OverlayContext> {
+    pub fn context(
+        &self,
+        scene_phase: Option<JumpPhase>,
+        frame_counter: i32,
+        ui_state: &CompetitionUiState,
+    ) -> Option<OverlayContext> {
         let scene_phase = scene_phase?;
         let data = OverlayData::collect(&self.store)?;
         let kind = self.resolve_kind(&data, scene_phase, ui_state);
-        let participant = data.current_participant.clone()
+        let participant = data
+            .current_participant
+            .clone()
             .unwrap_or_else(|| Participant::computer(0, 0, String::new()));
-        Some(OverlayContext { kind, participant, hill_idx: data.current_hill, frame_counter, data })
+        Some(OverlayContext {
+            kind,
+            participant,
+            hill_idx: data.current_hill,
+            frame_counter,
+            data,
+        })
     }
 
-    fn resolve_kind(&self, data: &OverlayData, scene_phase: JumpPhase, ui_state: &CompetitionUiState) -> OverlayKind {
+    fn resolve_kind(
+        &self,
+        data: &OverlayData,
+        scene_phase: JumpPhase,
+        ui_state: &CompetitionUiState,
+    ) -> OverlayKind {
         if scene_phase == JumpPhase::Disqualified {
             return OverlayKind::None;
         }
         let first_event = data.current_event == 0;
-        let show_keymap = ui_state.is_first_human_onbar() && first_event
-            && data.current_participant.as_ref().is_some_and(|p| !p.is_computer);
+        let show_keymap = ui_state.is_first_human_onbar()
+            && first_event
+            && data
+                .current_participant
+                .as_ref()
+                .is_some_and(|p| !p.is_computer);
 
         match (data.phase, scene_phase) {
             (CompetitionPhase::Round2, JumpPhase::Info) if data.style != CupStyle::CustomCup => {
@@ -181,23 +205,40 @@ impl CompetitionOverlay {
     }
 
     /// Pascal JumperInfoBox at (3,150).
-    fn jumper_info_box(&self, els: &mut Vec<Element>, participant: &Participant, round2_with_r1: bool) {
-        els.push(Element::sprite(sprites::Sprite::JumperInfoBox as u16, 3, 150));
+    fn jumper_info_box(
+        &self,
+        els: &mut Vec<Element>,
+        participant: &Participant,
+        round2_with_r1: bool,
+    ) {
+        els.push(Element::sprite(
+            sprites::Sprite::JumperInfoBox as u16,
+            3,
+            150,
+        ));
         let label56 = self.resources.langbase.lstr(56);
         let label56_w = self.resources.font.string_width(label56) as i32;
 
-        let (phase, rank, quali_wc) = self.store.competition.try_with(|c| {
-            let phase = c.phase();
-            let rank = if round2_with_r1 {
-                participant.round1_rank
-            } else {
-                let standings = c.event_standings();
-                standings.iter().position(|p| p.id == participant.id).map(|i| i + 1).unwrap_or(0)
-            };
-            let quali_wc = phase == CompetitionPhase::Qualification
-                && matches!(participant.qual, QualificationStatus::PreQualified);
-            (phase, rank, quali_wc)
-        }).unwrap_or((CompetitionPhase::Qualification, 0, false));
+        let (phase, rank, quali_wc) = self
+            .store
+            .competition
+            .try_with(|c| {
+                let phase = c.phase();
+                let rank = if round2_with_r1 {
+                    participant.round1_rank
+                } else {
+                    let standings = c.event_standings();
+                    standings
+                        .iter()
+                        .position(|p| p.id == participant.id)
+                        .map(|i| i + 1)
+                        .unwrap_or(0)
+                };
+                let quali_wc = phase == CompetitionPhase::Qualification
+                    && matches!(participant.qual, QualificationStatus::PreQualified);
+                (phase, rank, quali_wc)
+            })
+            .unwrap_or((CompetitionPhase::Qualification, 0, false));
 
         let phase_label = match phase {
             CompetitionPhase::Training(n) => format!("{} {}", self.resources.langbase.lstr(52), n),
@@ -217,7 +258,13 @@ impl CompetitionOverlay {
         } else {
             participant.display_name().to_string()
         };
-        els.push(Element::text(name, 12 + label56_w, 172, FONT_DEFAULT, false));
+        els.push(Element::text(
+            name,
+            12 + label56_w,
+            172,
+            FONT_DEFAULT,
+            false,
+        ));
 
         if round2_with_r1 {
             let r1text = format!(
@@ -237,9 +284,23 @@ impl CompetitionOverlay {
     }
 
     /// Pascal drawinfo: cycling info on the InfoPanel.
-    fn cycling_info_elements(&self, els: &mut Vec<Element>, frame_counter: i32, hill_idx: usize, data: &OverlayData) {
-        let has_wc_leader = data.wc_standings_top5.first().map(|e| e.points > 0).unwrap_or(false);
-        let has_event_leader = data.event_standings_top5.first().map(|e| e.points > 0).unwrap_or(false);
+    fn cycling_info_elements(
+        &self,
+        els: &mut Vec<Element>,
+        frame_counter: i32,
+        hill_idx: usize,
+        data: &OverlayData,
+    ) {
+        let has_wc_leader = data
+            .wc_standings_top5
+            .first()
+            .map(|e| e.points > 0)
+            .unwrap_or(false);
+        let has_event_leader = data
+            .event_standings_top5
+            .first()
+            .map(|e| e.points > 0)
+            .unwrap_or(false);
 
         if !has_event_leader {
             if has_wc_leader {
@@ -274,7 +335,10 @@ impl CompetitionOverlay {
     /// Pascal drawtop5info: hill name + top 5 event points with gap behind leader
     fn top5_event_elements(&self, els: &mut Vec<Element>, data: &OverlayData) {
         els.push(Element::sprite(sprites::Sprite::InfoPanel as u16, 227, 2));
-        let hill_name_k = self.resources.hills.hill(data.current_hill)
+        let hill_name_k = self
+            .resources
+            .hills
+            .hill(data.current_hill)
             .map(|h| format!("{} K{}", h.name, h.kr))
             .unwrap_or_default();
         els.push(Element::text(hill_name_k, 308, 9, FONT_GOLD, true));
@@ -293,7 +357,11 @@ impl CompetitionOverlay {
 
         // Gap-to-leader line
         if let Some(ref pel) = data.current_participant {
-            let leader_pts = data.event_standings_top5.first().map(|e| e.points).unwrap_or(0);
+            let leader_pts = data
+                .event_standings_top5
+                .first()
+                .map(|e| e.points)
+                .unwrap_or(0);
             let current_pts = pel.points.unwrap_or(0);
             let temp = leader_pts - current_pts;
             if temp > 0 {
@@ -312,7 +380,10 @@ impl CompetitionOverlay {
     /// Pascal drawhrinfo: hill record name + distance
     fn hill_info_elements(&self, els: &mut Vec<Element>, hill_idx: usize) {
         els.push(Element::sprite(sprites::Sprite::InfoPanel as u16, 227, 2));
-        let hill_name_k = self.resources.hills.hill(hill_idx)
+        let hill_name_k = self
+            .resources
+            .hills
+            .hill(hill_idx)
             .map(|h| format!("{} K{}", h.name, h.kr))
             .unwrap_or_default();
         els.push(Element::text(hill_name_k, 308, 9, FONT_GOLD, true));

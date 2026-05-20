@@ -40,13 +40,19 @@ impl WorldCupJumpView {
             scene,
             last_event: Cell::new(0),
             ui_state: CompetitionUiState::new(),
-            overlay: CompetitionOverlay::new(ResourcesRef::clone(&resources), StoreRef::clone(&store)),
+            overlay: CompetitionOverlay::new(
+                ResourcesRef::clone(&resources),
+                StoreRef::clone(&store),
+            ),
         }
     }
 
     fn record_finished_human_jump(&self) {
         let outcome = self.scene.outcome();
-        if outcome.is_none() || !self.ui_state.is_result_acknowledged() || self.ui_state.is_outcome_recorded() {
+        if outcome.is_none()
+            || !self.ui_state.is_result_acknowledged()
+            || self.ui_state.is_outcome_recorded()
+        {
             return;
         }
         let outcome = outcome.unwrap();
@@ -190,7 +196,8 @@ impl WorldCupJumpView {
 
     fn select_default_result_screen(&self) {
         if let Some((style, phase)) = self.store.competition.try_with(|c| (c.style(), c.phase())) {
-            self.ui_state.select_default_screen(style == CupStyle::FourHills, phase);
+            self.ui_state
+                .select_default_screen(style == CupStyle::FourHills, phase);
         }
     }
 
@@ -203,7 +210,6 @@ impl WorldCupJumpView {
             _ => resources.langbase.lstr(51).to_string(),
         }
     }
-
 }
 
 impl View<RouteTarget> for WorldCupJumpView {
@@ -220,18 +226,27 @@ impl View<RouteTarget> for WorldCupJumpView {
             RenderMode::Jump => {
                 // Suppress static InfoPanel text when overlays provide their own content:
                 // Round 2 cycling info, or the keymap for the first human's first event.
-                let hide = self.store.competition.try_with(|c| {
-                    let cycling = c.phase().needs_event_results()
-                        && c.style() != CupStyle::CustomCup;
-                    let keymap_active = self.ui_state.is_first_human_onbar()
-                        && c.current_event == 0
-                        && c.current_jumper().is_some_and(|idx| !c.participant(idx).is_computer);
-                    cycling || keymap_active
-                }).unwrap_or(false);
+                let hide = self
+                    .store
+                    .competition
+                    .try_with(|c| {
+                        let cycling =
+                            c.phase().needs_event_results() && c.style() != CupStyle::CustomCup;
+                        let keymap_active = self.ui_state.is_first_human_onbar()
+                            && c.current_event == 0
+                            && c.current_jumper()
+                                .is_some_and(|idx| !c.participant(idx).is_computer);
+                        cycling || keymap_active
+                    })
+                    .unwrap_or(false);
                 self.scene.set_hide_info_panel_text(hide);
                 let mut els = self.scene.elements();
                 // Overlay: keymap / cycling info / jumper info box
-                if let Some(ctx) = self.overlay.context(self.scene.phase(), self.scene.frame_counter(), &self.ui_state) {
+                if let Some(ctx) = self.overlay.context(
+                    self.scene.phase(),
+                    self.scene.frame_counter(),
+                    &self.ui_state,
+                ) {
                     els.extend(self.overlay.render_elements(&ctx));
                 }
                 // Pascal: show rank ($X.) left of score at (255,45) during Result phase
@@ -292,7 +307,13 @@ impl View<RouteTarget> for WorldCupJumpView {
                     if c.phase() == CompetitionPhase::WorldCupStandings
                         || c.phase() == CompetitionPhase::SeasonComplete
                     {
-                        5
+                        if c.style() == CupStyle::FourHills {
+                            1
+                        } else {
+                            5
+                        }
+                    } else if c.phase() == CompetitionPhase::FourHillsStandings {
+                        1
                     } else {
                         0
                     }
