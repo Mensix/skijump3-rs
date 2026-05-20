@@ -1,12 +1,10 @@
 use crate::competition::types::{CompetitionPhase, CupStyle};
-use crate::competition::types::Participant;
 use crate::controllers::jump_input::{JumpInputAction, JumpInputController};
 use crate::controllers::jump_scene::JumpScene;
 use crate::controllers::world_cup_flow::{self, WorldCupCommand};
 use crate::gfx::palette::{apply_menu_tint, FONT_DEFAULT, FONT_GOLD, FONT_GREET, FONT_HELP};
 use crate::gfx::sprites;
-use crate::jump::presentation::JumpPresentationContext;
-use crate::jump::types::{FallType, JumpOutcome, JumpPhase};
+use crate::jump::types::{FallType, JumpPhase};
 use crate::jump::JumpParticipant;
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
