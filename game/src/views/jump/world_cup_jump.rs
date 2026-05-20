@@ -277,9 +277,10 @@ impl WorldCupJumpView {
 }
 
 impl WorldCupJumpView {
-    /// Pascal OnBar draw sequence:
-    ///   Right panel only — drawkeymap or cycling info.
-    ///   JumperInfoBox at (3,150) is NOT shown during OnBar — only wind gauge + keyinfo.
+    /// Pascal OnBar draw sequence (second loop, sitting on bar):
+    ///   Right panel only shows during Qualification (kierros=0) —
+    ///   keymap if (eka and osakilpailu=1 and not cjumper), else nothing.
+    ///   Round 1 and Round 2 have NO right panel at all.
     fn onbar_overlay(&self, els: &mut Vec<Element>) {
         if !matches!(self.scene.phase(), Some(JumpPhase::OnBar | JumpPhase::Disqualified)) {
             return;
@@ -287,17 +288,22 @@ impl WorldCupJumpView {
 
         let frame_counter = self.scene.frame_counter();
 
-        let (show_keymap, hill_idx) = self
+        let (show_keymap, is_qualification, hill_idx) = self
             .store
             .competition
             .try_with(|c| {
+                let is_quali = c.phase() == CompetitionPhase::Qualification;
                 let idx = c.current_jumper().unwrap_or(0);
                 let p = c.participant(idx);
                 let first_event = c.current_event == 0;
-                let key = self.first_human_onbar.get() && first_event && !p.is_computer;
-                (key, c.current_hill())
+                let key = is_quali && self.first_human_onbar.get() && first_event && !p.is_computer;
+                (key, is_quali, c.current_hill())
             })
             .unwrap_or_default();
+
+        if !is_qualification {
+            return;
+        }
 
         if show_keymap {
             self.drawkeymap_elements(els);
