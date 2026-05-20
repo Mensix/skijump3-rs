@@ -277,13 +277,19 @@ impl WorldCupJumpView {
 }
 
 impl WorldCupJumpView {
-    /// Pascal OnBar draw sequence (second loop, sitting on bar):
-    ///   Qualification — right panel: keymap (eka+osakilpailu=1+human) or cycling info.
-    ///   Round 1 — nothing.
-    ///   Round 2 — JumperInfoBox with R1 total + length (pisteet[pel] + Cstats[1,pel]).
+    /// Pascal OnBar draw sequence:
+    ///   Info phase — JumperInfoBox with R1 score for Round 2
+    ///   OnBar — only wind gauge + traffic light (second loop, sitting on bar)
+    ///   Disqualified — only DQ info bar (provided by presentation::dq_elements)
+    ///   Qualification (OnBar) — right panel: keymap (eka+osakilpailu=1+human) or cycling info.
     fn onbar_overlay(&self, els: &mut Vec<Element>) {
         let scene_phase = self.scene.phase();
         if !matches!(scene_phase, Some(JumpPhase::Info | JumpPhase::OnBar | JumpPhase::Disqualified)) {
+            return;
+        }
+
+        // DQ: nothing extra — presentation::dq_elements already draws the DQ info bar.
+        if matches!(scene_phase, Some(JumpPhase::Disqualified)) {
             return;
         }
 
@@ -296,10 +302,15 @@ impl WorldCupJumpView {
         }) else { return };
 
         match phase {
-            CompetitionPhase::Round2 if !matches!(style, CupStyle::CustomCup) => {
+            // Round 2: cycling info + JumperInfoBox with R1 data during Info phase
+            CompetitionPhase::Round2
+                if !matches!(style, CupStyle::CustomCup) && scene_phase == Some(JumpPhase::Info) =>
+            {
+                self.cycling_info_elements(els, frame_counter, hill_idx);
                 self.round2_jumper_info_box(els, &participant);
             }
-            CompetitionPhase::Qualification if matches!(scene_phase, Some(JumpPhase::OnBar | JumpPhase::Disqualified)) => {
+            // Qualification: keymap or cycling info during OnBar only
+            CompetitionPhase::Qualification if scene_phase == Some(JumpPhase::OnBar) => {
                 let first_event = self.store.competition.try_with(|c| c.current_event == 0).unwrap_or(false);
                 let show_keymap = self.first_human_onbar.get() && first_event && !participant.is_computer;
                 if show_keymap {
@@ -349,14 +360,33 @@ impl WorldCupJumpView {
     }
 
     /// Pascal drawinfo cycling: event top5 (0..130) / hill record (146..276) / WC standings (292..)
+    /// Pascal drawinfo: cycling info with 131-frame content windows separated
+    /// by 15-frame blank gaps. Each content block pushes the InfoPanel sprite;
+    /// gap frames push only the sprite to mask the static text from
+    /// presentation::info_elements.
+    /// WC standings (292..422) are only shown when the WC leader has points
+    /// (Pascal `if (mcpisteet[mcluett[1]]>0)`); otherwise Pascal resets the
+    /// counter (`l:=0`) so the cycle is top5(130) → gap(15) → hr(130) → gap(15)
+    /// = 292 frames. We use modulo 292 in that case.
     fn cycling_info_elements(&self, els: &mut Vec<Element>, frame_counter: i32, hill_idx: usize) {
-        let phase = (frame_counter as usize) % 438;
+        let has_wc_leader = self.store.competition.try_with(|c| {
+            c.overall_standings()
+                .first()
+                .map(|p| p.wc_points > 0)
+                .unwrap_or(false)
+        }).unwrap_or(false);
+
+        let cycle = if has_wc_leader { 438 } else { 292 };
+        let phase = (frame_counter as usize) % cycle;
+
         if phase <= 130 {
             self.top5_event_elements(els);
         } else if (146..=276).contains(&phase) {
             self.hill_info_elements(els, hill_idx);
-        } else if phase >= 292 {
+        } else if has_wc_leader && (292..=422).contains(&phase) {
             self.wc_standings_elements(els);
+        } else {
+            els.push(Element::sprite(sprites::Sprite::InfoPanel as u16, 227, 2));
         }
     }
 
@@ -374,13 +404,7 @@ impl WorldCupJumpView {
             })
             .flatten()
             .unwrap_or_default();
-        els.push(Element::text(
-            hill_name_k,
-            308,
-            9,
-            FONT_GOLD,
-            true,
-        ));
+        els.push(Element::text(hill_name_k, 308, 9, FONT_GOLD, true));
 
         self.store.competition.try_with(|c| {
             let standings = c.event_standings();
@@ -390,11 +414,29 @@ impl WorldCupJumpView {
                         els.push(Element::text(
                             format!("{}  {}", p.name, fmt_tenths(pts)),
                             308,
-                            13 + i as i32 * 7,
+                            20 + i as i32 * 7,
                             FONT_GOLD,
                             true,
                         ));
                     }
+                }
+            }
+
+            // Pascal: gap-to-leader line at y=62 (behind/lead label)
+            if let Some(current) = c.current_jumper() {
+                let pel = c.participant(current);
+                let leader_pts = standings.first().and_then(|p| p.points).unwrap_or(0);
+                let current_pts = pel.points.unwrap_or(0);
+                let temp = leader_pts - current_pts;
+                if temp > 0 {
+                    let label = self.resources.langbase.lstr(62);
+                    els.push(Element::text(
+                        format!("{}: {}", label, fmt_tenths(temp + 1)),
+                        308,
+                        62,
+                        FONT_GOLD,
+                        true,
+                    ));
                 }
             }
         });
@@ -458,7 +500,7 @@ impl WorldCupJumpView {
                 if p.wc_points > 0 {
                     // Pascal: nimet[who] + '$' + txt(mcpisteet[who]) — raw points
                     let s = format!("{}  {}", p.name, p.wc_points);
-                    els.push(Element::text(s, 308, 13 + i as i32 * 7, FONT_GOLD, true));
+                    els.push(Element::text(s, 308, 20 + i as i32 * 7, FONT_GOLD, true));
                 }
             }
         });
@@ -477,6 +519,12 @@ impl View<RouteTarget> for WorldCupJumpView {
     fn elements(&self) -> Vec<Element> {
         match self.render_mode.get() {
             RenderMode::Jump => {
+                // Suppress static InfoPanel text when the overlay provides cycling info.
+                let hide = self.store.competition.try_with(|c| {
+                    matches!(c.phase(), CompetitionPhase::Round2)
+                        && !matches!(c.style(), CupStyle::CustomCup)
+                }).unwrap_or(false);
+                self.scene.set_hide_info_panel_text(hide);
                 let mut els = self.scene.elements();
                 self.onbar_overlay(&mut els);
                 // Pascal: show rank ($X.) left of score at (255,45) during Result phase

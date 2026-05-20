@@ -267,6 +267,7 @@ impl Competition {
             }
             _ => {}
         }
+        self.field.sort_field(SortBy::EventPoints);
         self.start_pos += 1;
     }
 

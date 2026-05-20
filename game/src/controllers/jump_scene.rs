@@ -102,6 +102,10 @@ impl JumpScene {
         self.runner.borrow_mut().set_phase_label(label);
     }
 
+    pub fn set_hide_info_panel_text(&self, hide: bool) {
+        self.runner.borrow().hide_info_panel_text.set(hide);
+    }
+
     pub fn reset_state(&self, start_gate: i32) {
         let hill_idx = self.runner.borrow().hill_idx();
         let record_distance = self

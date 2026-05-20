@@ -13,6 +13,7 @@ use crate::rng::Random;
 use engine::consts::{HEIGHT, WIDTH};
 use engine::palette::Palette;
 use engine::ui::{Element, Font};
+use std::cell::Cell;
 
 pub(crate) struct JumpRunnerRenderEnv<'a> {
     pub(crate) font: &'a Font,
@@ -31,6 +32,7 @@ pub struct JumpRunner {
     computer_input: Option<ComputerInputProvider>,
     computer_pre_ai_wind_done: bool,
     last_wind: FlightWind,
+    pub(crate) hide_info_panel_text: Cell<bool>,
 }
 
 impl JumpRunner {
@@ -47,6 +49,7 @@ impl JumpRunner {
             computer_input,
             computer_pre_ai_wind_done: false,
             last_wind: FlightWind::default(),
+            hide_info_panel_text: Cell::new(false),
         }
     }
 
@@ -147,6 +150,7 @@ impl JumpRunner {
             },
             phase_label: &self.config.phase_label,
             allow_gate_adjust: self.config.policy.allow_start_gate_adjust,
+            hide_info_panel_text: self.hide_info_panel_text.get(),
         };
         presentation::elements(&frame, &ctx)
     }

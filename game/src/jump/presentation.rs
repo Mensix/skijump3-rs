@@ -21,6 +21,7 @@ pub struct JumpPresentationContext<'a> {
     pub(crate) wind_position: WindPosition,
     pub(crate) phase_label: &'a str,
     pub(crate) allow_gate_adjust: bool,
+    pub(crate) hide_info_panel_text: bool,
 }
 
 pub fn elements(frame: &JumpRenderFrame, ctx: &JumpPresentationContext<'_>) -> Vec<Element> {
@@ -155,24 +156,26 @@ fn info_elements(
     ctx: &JumpPresentationContext<'_>,
 ) {
     els.push(Element::sprite(sprites::Sprite::InfoPanel as u16, 227, 2));
-    els.push(Element::text(ctx.hill_name_k, 308, 9, FONT_GOLD, true));
-    els.push(Element::text(
-        ctx.langbase.lstr(65),
-        308,
-        19,
-        FONT_GOLD,
-        true,
-    ));
-    if let Some(record) = ctx.hill_record {
-        if record.len > 0 {
-            els.push(Element::text(&record.name, 308, 29, FONT_GOLD, true));
-            els.push(Element::text(
-                format!("{:.1}m", record.len as f64 / 10.0),
-                308,
-                39,
-                FONT_GOLD,
-                true,
-            ));
+    if !ctx.hide_info_panel_text {
+        els.push(Element::text(ctx.hill_name_k, 308, 9, FONT_GOLD, true));
+        els.push(Element::text(
+            ctx.langbase.lstr(65),
+            308,
+            19,
+            FONT_GOLD,
+            true,
+        ));
+        if let Some(record) = ctx.hill_record {
+            if record.len > 0 {
+                els.push(Element::text(&record.name, 308, 29, FONT_GOLD, true));
+                els.push(Element::text(
+                    format!("{:.1}m", record.len as f64 / 10.0),
+                    308,
+                    39,
+                    FONT_GOLD,
+                    true,
+                ));
+            }
         }
     }
     gate_info_elements(els, frame, ctx);
