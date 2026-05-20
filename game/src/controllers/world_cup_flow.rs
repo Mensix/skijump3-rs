@@ -94,19 +94,6 @@ pub(crate) fn drive(
                 if competition.is_over() {
                     return WorldCupCommand::Done;
                 }
-
-                if let Some(next_idx) = competition.current_jumper() {
-                    if !competition.participant(next_idx).is_computer && !is_training {
-                        let next_participant =
-                            participant_to_jump(competition.participant(next_idx));
-                        return WorldCupCommand::HumanJump {
-                            participant: next_participant,
-                            hill_idx,
-                            phase: competition.phase(),
-                            is_new_event: check_event_change(competition.current_event, last_event),
-                        };
-                    }
-                }
             }
         }
     }
