@@ -1,3 +1,4 @@
+pub(crate) mod competition_overlay;
 pub(crate) mod results;
 pub mod training_jump;
 pub mod training_setup;
