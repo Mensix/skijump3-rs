@@ -72,6 +72,8 @@ pub(crate) fn drive(
                 is_human,
             } => {
                 let is_training = matches!(competition.phase(), CompetitionPhase::Training(_));
+
+
                 if is_human && !is_training {
                     let participant = participant_to_jump(competition.participant(idx));
                     return WorldCupCommand::HumanJump {

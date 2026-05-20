@@ -177,13 +177,7 @@ impl CompetitionField {
                 })
                 .collect(),
 
-            CompetitionPhase::Setup
-            | CompetitionPhase::QualificationResults
-            | CompetitionPhase::Round1Results
-            | CompetitionPhase::Round2Results
-            | CompetitionPhase::WorldCupStandings
-            | CompetitionPhase::EventComplete
-            | CompetitionPhase::SeasonComplete => Vec::new(),
+            _ => Vec::new(),
         }
     }
 

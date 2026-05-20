@@ -23,6 +23,49 @@ pub enum CompetitionPhase {
     SeasonComplete,
 }
 
+impl CompetitionPhase {
+    pub const fn is_jump_phase(self) -> bool {
+        matches!(
+            self,
+            Self::Training(_) | Self::Qualification | Self::Round1 | Self::Round2
+        )
+    }
+
+    pub const fn is_result_phase(self) -> bool {
+        matches!(
+            self,
+            Self::QualificationResults
+                | Self::Round1Results
+                | Self::Round2Results
+                | Self::WorldCupStandings
+                | Self::SeasonComplete
+        )
+    }
+
+    /// Phases that auto-advance when the start list is empty
+    /// (no human interaction needed).
+    pub const fn auto_advances_when_empty(self) -> bool {
+        matches!(
+            self,
+            Self::Training(_) | Self::Setup | Self::Qualification | Self::Round1 | Self::Round2 | Self::EventComplete
+        )
+    }
+
+    /// Phases whose overlay needs live event results (top5, gap-to-leader).
+    pub const fn needs_event_results(self) -> bool {
+        matches!(self, Self::Qualification | Self::Round1 | Self::Round2)
+    }
+
+    /// Result phase that corresponds to a numbered round (1 or 2).
+    pub const fn result_round_number(self) -> Option<usize> {
+        match self {
+            Self::Round1Results => Some(1),
+            Self::Round2Results => Some(2),
+            _ => None,
+        }
+    }
+}
+
 /// Whether a jumper made the cut for the current round.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum QualificationStatus {

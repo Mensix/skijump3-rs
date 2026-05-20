@@ -91,28 +91,12 @@ impl Competition {
     /// No mutation, no store access — just reads current state.
     #[must_use]
     pub fn decide_next(&self) -> StepDecision {
-        if matches!(
-            self.phase,
-            CompetitionPhase::QualificationResults
-                | CompetitionPhase::Round1Results
-                | CompetitionPhase::Round2Results
-                | CompetitionPhase::WorldCupStandings
-                | CompetitionPhase::SeasonComplete
-        ) {
+        if self.phase.is_result_phase() {
             return StepDecision::ShowResults;
         }
 
         if self.current_jumper().is_none() {
-            let auto = matches!(
-                self.phase,
-                CompetitionPhase::Training(_)
-                    | CompetitionPhase::Setup
-                    | CompetitionPhase::Qualification
-                    | CompetitionPhase::Round1
-                    | CompetitionPhase::Round2
-                    | CompetitionPhase::EventComplete
-            );
-            if auto {
+            if self.phase.auto_advances_when_empty() {
                 return StepDecision::AdvancePhase;
             }
             return StepDecision::ShowResults;
@@ -312,15 +296,7 @@ impl Competition {
 
         // Only jump phases can be skipped when there is nobody to jump.
         // Result-list phases must be observable by UI.
-        if self.start_list.is_empty()
-            && matches!(
-                phase,
-                CompetitionPhase::Training(_)
-                    | CompetitionPhase::Qualification
-                    | CompetitionPhase::Round1
-                    | CompetitionPhase::Round2
-            )
-        {
+        if self.start_list.is_empty() && phase.is_jump_phase() {
             self.advance();
         }
     }

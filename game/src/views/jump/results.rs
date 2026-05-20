@@ -60,11 +60,28 @@ pub struct ResultsEntry {
     pub(crate) injury: u8,
 }
 
-fn items_per_page(phase: CompetitionPhase) -> usize {
+fn competition_results_entry_data(phase: CompetitionPhase, p: &Participant) -> (i32, i32, i32) {
     match phase {
-        CompetitionPhase::WorldCupStandings | CompetitionPhase::SeasonComplete => WC_ITEMS_PER_PAGE,
-        CompetitionPhase::Round1Results | CompetitionPhase::Round2Results => 22,
-        _ => QUALIFICATION_ITEMS_PER_PAGE,
+        CompetitionPhase::QualificationResults => (p.points.unwrap_or(0), p.qual_len, 0),
+        CompetitionPhase::Round1Results => (p.points.unwrap_or(0), p.round1_len, 0),
+        CompetitionPhase::Round2Results => (p.points.unwrap_or(0), p.round1_len, p.round2_len),
+        CompetitionPhase::WorldCupStandings | CompetitionPhase::SeasonComplete => {
+            (p.wc_points, 0, 0)
+        }
+        _ => (p.points.unwrap_or(0), 0, 0),
+    }
+}
+
+fn items_per_page(phase: CompetitionPhase) -> usize {
+    if matches!(
+        phase,
+        CompetitionPhase::WorldCupStandings | CompetitionPhase::SeasonComplete
+    ) {
+        WC_ITEMS_PER_PAGE
+    } else if phase.result_round_number().is_some() {
+        22
+    } else {
+        QUALIFICATION_ITEMS_PER_PAGE
     }
 }
 
@@ -78,13 +95,7 @@ pub fn build_results_page(competition: &Competition, page: usize) -> ResultsPage
 
     let mut items = Vec::with_capacity(end - start);
     for &p in &standings[start..end] {
-        let (points, dist, dist2) = match competition.phase() {
-            CompetitionPhase::QualificationResults => (p.points.unwrap_or(0), p.qual_len, 0),
-            CompetitionPhase::Round1Results => (p.points.unwrap_or(0), p.round1_len, 0),
-            CompetitionPhase::Round2Results => (p.points.unwrap_or(0), p.round1_len, p.round2_len),
-            CompetitionPhase::WorldCupStandings => (p.wc_points, 0, 0),
-            _ => (p.points.unwrap_or(0), 0, 0),
-        };
+        let (points, dist, dist2) = competition_results_entry_data(competition.phase(), p);
         items.push(ResultsEntry {
             is_own: !p.is_computer,
             rank: p.rank,
@@ -123,15 +134,7 @@ pub fn build_compact_results_page(competition: &Competition) -> ResultsPage {
 
     let mut items = Vec::with_capacity(selected.len());
     for p in selected {
-        let (points, dist, dist2) = match competition.phase() {
-            CompetitionPhase::QualificationResults => (p.points.unwrap_or(0), p.qual_len, 0),
-            CompetitionPhase::Round1Results => (p.points.unwrap_or(0), p.round1_len, 0),
-            CompetitionPhase::Round2Results => (p.points.unwrap_or(0), p.round1_len, p.round2_len),
-            CompetitionPhase::WorldCupStandings | CompetitionPhase::SeasonComplete => {
-                (p.wc_points, 0, 0)
-            }
-            _ => (p.points.unwrap_or(0), 0, 0),
-        };
+        let (points, dist, dist2) = competition_results_entry_data(competition.phase(), p);
         items.push(ResultsEntry {
             is_own: !p.is_computer,
             rank: p.rank,
@@ -160,28 +163,32 @@ pub fn total_pages(competition: &Competition) -> usize {
 }
 
 fn standings_for_phase(competition: &Competition) -> Vec<&Participant> {
-    match competition.phase() {
-        CompetitionPhase::WorldCupStandings | CompetitionPhase::SeasonComplete => competition
+    let phase = competition.phase();
+    if matches!(
+        phase,
+        CompetitionPhase::WorldCupStandings | CompetitionPhase::SeasonComplete
+    ) {
+        competition
             .overall_standings()
             .into_iter()
             .filter(|p| p.wc_points > 0)
-            .collect(),
-        CompetitionPhase::Round1Results => competition
-            .event_standings()
-            .into_iter()
-            .filter(|p| p.points.is_some())
-            .collect(),
-        CompetitionPhase::Round2Results => competition
+            .collect()
+    } else if phase == CompetitionPhase::Round2Results {
+        competition
             .event_standings()
             .into_iter()
             .filter(|p| p.qual.can_jump())
-            .collect(),
-        CompetitionPhase::QualificationResults => competition
+            .collect()
+    } else if phase == CompetitionPhase::QualificationResults
+        || phase == CompetitionPhase::Round1Results
+    {
+        competition
             .event_standings()
             .into_iter()
             .filter(|p| p.points.is_some())
-            .collect(),
-        _ => competition.event_standings(),
+            .collect()
+    } else {
+        competition.event_standings()
     }
 }
 
@@ -196,8 +203,19 @@ pub fn render_header(competition: &Competition, resources: &ResourcesRef) -> Vec
         .map(|h| format!("{} K{}", h.name, h.kr))
         .unwrap_or_default();
 
-    let header = match competition.phase() {
-        CompetitionPhase::QualificationResults => {
+    let cup_style_str = |style: CupStyle, offset: usize| -> String {
+        let cup_idx = match style {
+            CupStyle::WorldCup => 0,
+            CupStyle::CustomCup => 1,
+            CupStyle::FourHills => 2,
+            CupStyle::TeamCup => 3,
+        };
+        lang.lstr(offset + cup_idx).to_string()
+    };
+
+    let phase = competition.phase();
+    let header = match phase {
+        _ if phase == CompetitionPhase::QualificationResults => {
             format!(
                 "{} {} {} {} - {}",
                 lang.lstr(82),
@@ -207,30 +225,18 @@ pub fn render_header(competition: &Competition, resources: &ResourcesRef) -> Vec
                 hill_str
             )
         }
-        CompetitionPhase::Round1Results => {
+        _ if phase == CompetitionPhase::Round1Results => {
             round_header(lang.lstr(81), event, lang.lstr(8), total, &hill_str, 1)
         }
-        CompetitionPhase::Round2Results => {
+        _ if phase == CompetitionPhase::Round2Results => {
             round_header(lang.lstr(81), event, lang.lstr(8), total, &hill_str, 2)
         }
-        CompetitionPhase::WorldCupStandings => {
-            let cup_idx = match competition.style() {
-                CupStyle::WorldCup => 0,
-                CupStyle::CustomCup => 1,
-                CupStyle::FourHills => 2,
-                CupStyle::TeamCup => 3,
-            };
-            let prefix = lang.lstr(27 + cup_idx);
+        _ if phase == CompetitionPhase::WorldCupStandings => {
+            let prefix = cup_style_str(competition.style(), 27);
             format!("{} {} {} {} {}", prefix, lang.lstr(87), event, lang.lstr(8), total)
         }
-        CompetitionPhase::SeasonComplete => {
-            let cup_idx = match competition.style() {
-                CupStyle::WorldCup => 0,
-                CupStyle::CustomCup => 1,
-                CupStyle::FourHills => 2,
-                CupStyle::TeamCup => 3,
-            };
-            format!("{} {}", lang.lstr(90), lang.lstr(27 + cup_idx))
+        _ if phase == CompetitionPhase::SeasonComplete => {
+            format!("{} {}", lang.lstr(90), cup_style_str(competition.style(), 27))
         }
         _ => String::new(),
     };
@@ -273,11 +279,12 @@ fn render_results_entry(
 
     els.push(Element::text(truncate_name(&entry.name), name_x, y, col_text, false));
 
-    let points = match phase {
-        CompetitionPhase::WorldCupStandings | CompetitionPhase::SeasonComplete => {
-            entry.points.to_string()
-        }
-        _ => format_tenths(entry.points),
+    let points = if phase == CompetitionPhase::WorldCupStandings
+        || phase == CompetitionPhase::SeasonComplete
+    {
+        entry.points.to_string()
+    } else {
+        format_tenths(entry.points)
     };
     els.push(Element::text(points, points_x, y, col_text, true));
 
@@ -292,8 +299,8 @@ fn render_results_entry(
     }
 
     if show_extra {
-        match phase {
-            CompetitionPhase::QualificationResults => match entry.qual {
+        if phase == CompetitionPhase::QualificationResults {
+            match entry.qual {
                 QualificationStatus::Qualified => {
                     els.push(Element::text("Q", COL_QUAL, y, col_rank, false));
                 }
@@ -301,11 +308,9 @@ fn render_results_entry(
                     els.push(Element::text("Q WC", COL_QUAL, y, col_dist, false));
                 }
                 _ => {}
-            },
-            CompetitionPhase::Round1Results if entry.rank <= 30 => {
-                els.push(Element::text("Q", COL_QUAL, y, col_rank, false));
             }
-            _ => {}
+        } else if phase == CompetitionPhase::Round1Results && entry.rank <= 30 {
+            els.push(Element::text("Q", COL_QUAL, y, col_rank, false));
         }
 
         if entry.injury > 0 {
@@ -341,14 +346,12 @@ pub fn render_results_page(page: &ResultsPage, resources: &ResourcesRef) -> Vec<
         ));
     }
 
-    let is_wc = matches!(
-        page.phase,
-        CompetitionPhase::WorldCupStandings | CompetitionPhase::SeasonComplete
-    );
+    let is_wc = page.phase == CompetitionPhase::WorldCupStandings
+        || page.phase == CompetitionPhase::SeasonComplete;
     // Pascal: Quali=plus7(phase0), Rounds=plus8(phase1), WC=plus8(phase3)
     let row_step = if is_wc {
         WC_ROW_STEP
-    } else if matches!(page.phase, CompetitionPhase::Round1Results | CompetitionPhase::Round2Results) {
+    } else if page.phase.result_round_number().is_some() {
         8
     } else {
         ROW_STEP_QUALIFICATION
@@ -374,7 +377,7 @@ pub fn render_results_page(page: &ResultsPage, resources: &ResourcesRef) -> Vec<
             // sija[who]>30 && sija[prev]<=30 — the actual predecessor in the FULL list
             // For paginated display, check either previous visible item or prev page's last rank
             if !page.compact
-                && matches!(page.phase, CompetitionPhase::Round1Results)
+                && page.phase == CompetitionPhase::Round1Results
                 && entry.rank > 30
                 && (i > 0 && page.items[i - 1].rank <= 30 || i == 0 && page.prev_last_rank <= 30)
             {

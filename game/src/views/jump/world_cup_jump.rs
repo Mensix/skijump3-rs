@@ -281,10 +281,12 @@ impl WorldCupJumpView {
                 .competition
                 .try_with(|c| {
                     if c.style() == CupStyle::FourHills {
-                        match c.phase() {
-                            CompetitionPhase::QualificationResults => ResultScreen::KoPairs(false),
-                            CompetitionPhase::Round1Results => ResultScreen::KoPairs(true),
-                            _ => ResultScreen::List,
+                        if c.phase() == CompetitionPhase::QualificationResults {
+                            ResultScreen::KoPairs(false)
+                        } else if c.phase() == CompetitionPhase::Round1Results {
+                            ResultScreen::KoPairs(true)
+                        } else {
+                            ResultScreen::List
                         }
                     } else {
                         ResultScreen::List
@@ -311,13 +313,13 @@ impl WorldCupJumpView {
             let show_keymap = self.first_human_onbar.get() && first_event && !participant.is_computer;
 
             match (phase, scene_phase) {
-                (CompetitionPhase::Round2, JumpPhase::Info) if !matches!(style, CupStyle::CustomCup) => {
+                (CompetitionPhase::Round2, JumpPhase::Info) if style != CupStyle::CustomCup => {
                     OverlayKind::Round2WithInfoBox
                 }
                 (CompetitionPhase::Qualification, JumpPhase::Info) if show_keymap => {
                     OverlayKind::Keymap
                 }
-                (CompetitionPhase::Qualification | CompetitionPhase::Round1, JumpPhase::Info) => {
+                _ if phase.needs_event_results() && scene_phase == JumpPhase::Info => {
                     OverlayKind::CyclingWithInfoBox
                 }
                 _ => OverlayKind::None,
@@ -371,7 +373,7 @@ impl WorldCupJumpView {
                 let standings = c.event_standings();
                 standings.iter().position(|p| p.id == participant.id).map(|i| i + 1).unwrap_or(0)
             };
-            let quali_wc = matches!(phase, CompetitionPhase::Qualification)
+            let quali_wc = phase == CompetitionPhase::Qualification
                 && matches!(participant.qual, QualificationStatus::PreQualified);
             (phase, rank, quali_wc)
         }).unwrap_or((CompetitionPhase::Qualification, 0, false));
@@ -591,7 +593,7 @@ impl View<RouteTarget> for WorldCupJumpView {
                 // Suppress static InfoPanel text when overlays provide their own content:
                 // Round 2 cycling info, or the keymap for the first human's first event.
                 let hide = self.store.competition.try_with(|c| {
-                    let cycling = matches!(c.phase(), CompetitionPhase::Qualification | CompetitionPhase::Round1 | CompetitionPhase::Round2)
+                    let cycling = c.phase().needs_event_results()
                         && !matches!(c.style(), CupStyle::CustomCup);
                     let keymap_active = self.first_human_onbar.get()
                         && c.current_event == 0
@@ -655,9 +657,14 @@ impl View<RouteTarget> for WorldCupJumpView {
             let tint = self
                 .store
                 .competition
-                .try_with(|c| match c.phase() {
-                    CompetitionPhase::WorldCupStandings | CompetitionPhase::SeasonComplete => 5,
-                    _ => 0,
+                .try_with(|c| {
+                    if c.phase() == CompetitionPhase::WorldCupStandings
+                        || c.phase() == CompetitionPhase::SeasonComplete
+                    {
+                        5
+                    } else {
+                        0
+                    }
                 })
                 .unwrap_or(0);
             if tint > 0 {
@@ -677,19 +684,8 @@ impl WorldCupJumpView {
         self.store
             .competition
             .try_with(|c| {
-                matches!(
-                    c.phase(),
-                    CompetitionPhase::QualificationResults
-                        | CompetitionPhase::Round1Results
-                        | CompetitionPhase::Round2Results
-                        | CompetitionPhase::WorldCupStandings
-                        | CompetitionPhase::SeasonComplete
-                ) || matches!(
-                    c.phase(),
-                    CompetitionPhase::Qualification
-                        | CompetitionPhase::Round1
-                        | CompetitionPhase::Round2
-                ) && c.current_jumper().is_none()
+                c.phase().is_result_phase()
+                    || c.phase().needs_event_results() && c.current_jumper().is_none()
             })
             .unwrap_or(false)
     }
@@ -757,14 +753,14 @@ impl WorldCupJumpView {
                     })
                     .unwrap_or(false);
                 if ko {
+                    let round1 = self
+                        .store
+                        .competition
+                        .try_with(|c| c.phase() == CompetitionPhase::Round1Results)
+                        .unwrap_or(false);
                     self.result_screen.set(match self.result_screen.get() {
                         ResultScreen::KoPairs(_) => ResultScreen::List,
-                        _ => ResultScreen::KoPairs(
-                            self.store
-                                .competition
-                                .try_with(|c| c.phase() == CompetitionPhase::Round1Results)
-                                .unwrap_or(false),
-                        ),
+                        _ => ResultScreen::KoPairs(round1),
                     });
                 }
                 None
@@ -777,12 +773,12 @@ impl WorldCupJumpView {
                 None
             }
             Event::Keyboard(Key::Escape | Key::Enter) => {
-                if self
+                let is_season_complete = self
                     .store
                     .competition
                     .try_with(|c| c.phase() == CompetitionPhase::SeasonComplete)
-                    .unwrap_or(false)
-                {
+                    .unwrap_or(false);
+                if is_season_complete {
                     return Some(RouteTarget::Back);
                 }
                 self.display_page.set(0);
