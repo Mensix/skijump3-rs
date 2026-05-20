@@ -278,10 +278,9 @@ impl WorldCupJumpView {
 
 impl WorldCupJumpView {
     /// Pascal OnBar draw sequence:
-    ///   Info phase — JumperInfoBox with R1 score for Round 2
-    ///   OnBar — only wind gauge + traffic light (second loop, sitting on bar)
+    ///   Info phase (first loop) — InfoPanel with cycling info or keymap
+    ///   OnBar (second loop, sitting on bar) — only keymap for first event's first human
     ///   Disqualified — only DQ info bar (provided by presentation::dq_elements)
-    ///   Qualification (OnBar) — right panel: keymap (eka+osakilpailu=1+human) or cycling info.
     fn onbar_overlay(&self, els: &mut Vec<Element>) {
         let scene_phase = self.scene.phase();
         if !matches!(scene_phase, Some(JumpPhase::Info | JumpPhase::OnBar | JumpPhase::Disqualified)) {
@@ -301,23 +300,29 @@ impl WorldCupJumpView {
             (c.phase(), p.clone(), c.current_hill(), c.style())
         }) else { return };
 
-        match phase {
-            // Round 2: cycling info + JumperInfoBox with R1 data during Info phase
-            CompetitionPhase::Round2
-                if !matches!(style, CupStyle::CustomCup) && scene_phase == Some(JumpPhase::Info) =>
+        let first_event = self.store.competition.try_with(|c| c.current_event == 0).unwrap_or(false);
+        let show_keymap = self.first_human_onbar.get() && first_event && !participant.is_computer;
+
+        match (phase, scene_phase) {
+            // Round 2 Info: cycling info + JumperInfoBox with R1 data
+            (CompetitionPhase::Round2, Some(JumpPhase::Info))
+                if !matches!(style, CupStyle::CustomCup) =>
             {
                 self.cycling_info_elements(els, frame_counter, hill_idx);
                 self.round2_jumper_info_box(els, &participant);
             }
-            // Qualification: keymap or cycling info during OnBar only
-            CompetitionPhase::Qualification if scene_phase == Some(JumpPhase::OnBar) => {
-                let first_event = self.store.competition.try_with(|c| c.current_event == 0).unwrap_or(false);
-                let show_keymap = self.first_human_onbar.get() && first_event && !participant.is_computer;
+            // Qualification Info: keymap or cycling info (Pascal first info loop)
+            (CompetitionPhase::Qualification, Some(JumpPhase::Info)) => {
                 if show_keymap {
                     self.drawkeymap_elements(els);
                 } else {
                     self.cycling_info_elements(els, frame_counter, hill_idx);
                 }
+            }
+            // Qualification OnBar: only keymap for first event first human
+            // Pascal second loop has NO InfoPanel otherwise — only wind gauge + traffic light
+            (CompetitionPhase::Qualification, Some(JumpPhase::OnBar)) if show_keymap => {
+                self.drawkeymap_elements(els);
             }
             _ => {}
         }
