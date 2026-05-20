@@ -89,39 +89,6 @@ impl JumpRunner {
         self.computer_pre_ai_wind_done = false;
     }
 
-    /// Fast-forward computer jump simulation to completion without rendering.
-    /// Drives computer AI inputs and ticks physics until outcome is available.
-    pub(crate) fn simulate_to_completion(
-        &mut self,
-        rng: &mut Random,
-        wind: &mut Wind,
-    ) -> JumpOutcome {
-        // Pascal does one Tuuli.Hae before switching to non-draw mode
-        wind.advance_without_sampling(rng);
-        self.computer_pre_ai_wind_done = true;
-        if let Some(input) = &mut self.computer_input {
-            input.prepare_for_jump(rng);
-        }
-        self.session.prepare_silent_computer_jump();
-        for _ in 0..100 {
-            wind.advance_without_sampling(rng);
-        }
-
-        loop {
-            if let Some(outcome) = self.session.outcome() {
-                return outcome;
-            }
-            if let Some(snapshot) = self.session.snapshot() {
-                if let Some(input) = &mut self.computer_input {
-                    for inp in input.inputs(&snapshot, rng) {
-                        self.session.handle_input(inp);
-                    }
-                }
-            }
-            self.session.tick_with_wind(rng, wind);
-        }
-    }
-
     pub(crate) fn set_phase_label(&mut self, label: String) {
         self.config.phase_label = label;
     }

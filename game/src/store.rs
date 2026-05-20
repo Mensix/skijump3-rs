@@ -1,4 +1,5 @@
 use crate::competition::machine::Competition;
+use crate::data::hill_profile::HillTerrain;
 use crate::data::profile::ProfileStore;
 use crate::data::records::{HillCatalog, RecordStore};
 use crate::jump::replay::ReplayTrace;
@@ -9,6 +10,7 @@ use crate::parsers::langbase::LangBase;
 use crate::rng::Random;
 use engine::ui::Font;
 use std::cell::{Cell, RefCell};
+use std::collections::HashMap;
 use std::rc::Rc;
 
 #[derive(Debug, Clone)]
@@ -18,6 +20,7 @@ pub struct Resources {
     pub player_names: Vec<String>,
     pub hills: HillCatalog,
     pub(crate) assets: AssetStore,
+    pub(crate) terrain_cache: RefCell<HashMap<usize, Rc<HillTerrain>>>,
 }
 
 impl Resources {
@@ -35,7 +38,25 @@ impl Resources {
             player_names,
             hills,
             assets,
+            terrain_cache: RefCell::new(HashMap::new()),
         }
+    }
+
+    /// Load (or retrieve cached) terrain for a given hill index.
+    /// Parses FRONT/BACK PCX on first access, reuses `Rc<HillTerrain>` thereafter.
+    pub(crate) fn terrain(&self, hill_idx: usize) -> Result<Rc<HillTerrain>, String> {
+        let mut cache = self.terrain_cache.borrow_mut();
+        if let Some(terrain) = cache.get(&hill_idx) {
+            return Ok(terrain.clone());
+        }
+        let info = self
+            .hills
+            .hill(hill_idx)
+            .ok_or_else(|| format!("Hill {hill_idx} not found"))?;
+        let terrain = HillTerrain::load(&self.assets, info)?;
+        let terrain = Rc::new(terrain);
+        cache.insert(hill_idx, terrain.clone());
+        Ok(terrain)
     }
 }
 

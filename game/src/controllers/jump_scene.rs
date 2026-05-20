@@ -1,5 +1,3 @@
-use crate::data::hill_profile::HillTerrain;
-use crate::data::records::HillInfo;
 use crate::jump::config::JumpConfig;
 use crate::jump::replay::ReplayTrace;
 use crate::jump::snow::{calculate_snow_count, SnowSystem};
@@ -145,39 +143,22 @@ impl JumpScene {
         self.runner.borrow().participant_id()
     }
 
-    /// Build a temporary runner and simulate a computer jump invisibly.
-    /// Does not mutate the visible runner — safe to call from a `&self`
-    /// context alongside the view's own `&self` scene usage.
+    /// Simulate a computer jump invisibly using the lightweight path:
+    /// no `JumpRunner`, `JumpSession`, `SnowSystem`, or `ReplayRecorder` overhead.
+    /// Terrain is cached in `Resources` so PCX parsing happens at most once per hill.
     pub fn simulate_hidden(&self, participant: JumpParticipant, hill_idx: usize) -> JumpOutcome {
-        let mut runner =
-            Self::build_hidden_runner(&self.resources, &self.store, participant, hill_idx);
+        let terrain = self
+            .resources
+            .terrain(hill_idx)
+            .expect("terrain must be loadable");
+        let hill = self
+            .resources
+            .hills
+            .hill(hill_idx)
+            .expect("hill must exist");
         let mut rng = self.store.jump_runtime.rng.borrow_mut();
         let mut wind = self.store.jump_runtime.wind.borrow_mut();
-        runner.simulate_to_completion(&mut rng, &mut wind)
-    }
-
-    /// Build a hidden computer-runner (no snow, no wind init).
-    fn build_hidden_runner(
-        resources: &ResourcesRef,
-        store: &StoreRef,
-        participant: JumpParticipant,
-        hill_idx: usize,
-    ) -> JumpRunner {
-        let (hill, terrain, record_distance) = Self::load_hill_data(resources, store, hill_idx);
-        JumpRunner::new(
-            JumpConfig {
-                hill_idx,
-                hill,
-                terrain,
-                start_gate: 15,
-                snow_count: 0,
-                participant,
-                policy: JumpPolicy::competition(),
-                record_distance,
-                phase_label: String::new(),
-            },
-            SnowSystem::new(),
-        )
+        crate::jump::sim::simulate_computer(&participant, &terrain, hill, &mut rng, &mut wind)
     }
 
     pub fn elements(&self) -> Vec<Element> {
@@ -212,25 +193,6 @@ impl JumpScene {
         }
     }
 
-    /// Load hill data common to both visible and hidden runner construction.
-    fn load_hill_data(
-        resources: &ResourcesRef,
-        store: &StoreRef,
-        hill_idx: usize,
-    ) -> (Option<HillInfo>, Result<HillTerrain, String>, i32) {
-        let hill = resources.hills.hill(hill_idx).cloned();
-        let terrain = hill.as_ref().map_or_else(
-            || Err(format!("Hill {hill_idx} not found")),
-            |info| HillTerrain::load(&resources.assets, info),
-        );
-        let record_distance = store
-            .records
-            .borrow()
-            .hill_record(hill_idx)
-            .map_or(0, |r| r.len as i32);
-        (hill, terrain, record_distance)
-    }
-
     #[allow(clippy::too_many_arguments)]
     fn build_runner(
         resources: ResourcesRef,
@@ -242,7 +204,13 @@ impl JumpScene {
         phase_label: String,
         snow: SnowSystem,
     ) -> JumpRunner {
-        let (hill, terrain, record_distance) = Self::load_hill_data(&resources, store, hill_idx);
+        let hill = resources.hills.hill(hill_idx).cloned();
+        let terrain = resources.terrain(hill_idx).map(|t| (*t).clone());
+        let record_distance = store
+            .records
+            .borrow()
+            .hill_record(hill_idx)
+            .map_or(0, |r| r.len as i32);
         let snow_count = snow.count();
         JumpRunner::new(
             JumpConfig {

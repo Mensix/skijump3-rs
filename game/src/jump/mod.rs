@@ -10,6 +10,7 @@ pub mod replay_player;
 pub(crate) mod runner;
 pub(crate) mod scoring;
 pub(crate) mod session;
+pub(crate) mod sim;
 pub(crate) mod snow;
 pub(crate) mod state;
 pub(crate) mod types;
