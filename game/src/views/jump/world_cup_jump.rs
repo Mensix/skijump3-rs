@@ -382,7 +382,8 @@ impl WorldCupJumpView {
 
         let name = if quali_wc {
             format!("{} Q WC", participant.display_name())
-        } else if rank > 0 {
+        } else if round2_with_r1 && rank > 0 {
+            // Pascal: rank suffix only in Round 2 (kierros=2)
             format!("{} ({}.)", participant.display_name(), rank)
         } else {
             participant.display_name().to_string()
