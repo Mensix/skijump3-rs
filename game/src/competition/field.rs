@@ -129,10 +129,7 @@ impl CompetitionField {
                 .iter()
                 .rev()
                 .copied()
-                .filter(|&idx| {
-                    self.participants[idx].injury == 0
-                        && self.participants[idx].qual != QualificationStatus::PreQualified
-                })
+                .filter(|&idx| self.participants[idx].injury == 0)
                 .collect(),
 
             CompetitionPhase::Round1
@@ -261,7 +258,7 @@ mod tests {
     }
 
     #[test]
-    fn qualification_skips_pre_qualified() {
+    fn qualification_includes_all_non_injured() {
         let mut participants = make_from_wc(&[100, 90, 80, 70, 60]);
         participants[0].qual = QualificationStatus::PreQualified;
         participants[1].qual = QualificationStatus::PreQualified;
@@ -269,7 +266,8 @@ mod tests {
         f.sort_field(SortBy::WcPoints);
 
         let list = f.build_start_list(CompetitionPhase::Qualification);
-        assert_eq!(list, vec![4, 3, 2]);
+        // PreQualified are included; Pascal still runs hyppy for AI pre-qualified.
+        assert_eq!(list, vec![4, 3, 2, 1, 0]);
     }
 
     #[test]

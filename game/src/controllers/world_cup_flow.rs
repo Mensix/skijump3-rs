@@ -1,5 +1,5 @@
 use crate::competition::machine::{Competition, StepDecision};
-use crate::competition::types::{CompetitionPhase, Participant};
+use crate::competition::types::{CompetitionPhase, Participant, QualificationStatus};
 use crate::jump::config::JumpParticipant;
 use crate::jump::policy::JumperControl;
 use crate::jump::types::FallType;
@@ -69,6 +69,15 @@ pub(crate) fn drive(
             } => {
                 let is_training = matches!(competition.phase(), CompetitionPhase::Training(_));
                 if is_human && !is_training {
+                    // Pascal: pre-qualified human with skipquali skips the quali jump entirely.
+                    let p = competition.participant(idx);
+                    if matches!(competition.phase(), CompetitionPhase::Qualification)
+                        && p.qual == QualificationStatus::PreQualified
+                        && p.skip_quali
+                    {
+                        competition.skip_current_jumper();
+                        continue;
+                    }
                     let participant = participant_to_jump(competition.participant(idx));
                     return WorldCupCommand::HumanJump {
                         participant,
@@ -93,6 +102,15 @@ pub(crate) fn drive(
 
                 if let Some(next_idx) = competition.current_jumper() {
                     if !competition.participant(next_idx).is_computer && !is_training {
+                        // Pascal: pre-qualified human with skipquali skips the quali jump.
+                        let next = competition.participant(next_idx);
+                        if matches!(competition.phase(), CompetitionPhase::Qualification)
+                            && next.qual == QualificationStatus::PreQualified
+                            && next.skip_quali
+                        {
+                            competition.skip_current_jumper();
+                            continue;
+                        }
                         let next_participant =
                             participant_to_jump(competition.participant(next_idx));
                         return WorldCupCommand::HumanJump {

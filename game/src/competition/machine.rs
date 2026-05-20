@@ -271,6 +271,12 @@ impl Competition {
         self.start_pos += 1;
     }
 
+    /// Advance past the current jumper without recording a jump.
+    /// Used when a pre-qualified human has skipquali enabled.
+    pub fn skip_current_jumper(&mut self) {
+        self.start_pos += 1;
+    }
+
     fn clear_event_points(&mut self) {
         for idx in 0..self.field.len() {
             self.field.get_mut(idx).points = None;

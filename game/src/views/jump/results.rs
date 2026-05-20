@@ -7,8 +7,8 @@ use engine::ui::Element;
 
 pub const QUALIFICATION_ITEMS_PER_PAGE: usize = 25;
 
-const WC_ITEMS_PER_PAGE: usize = 42;
-const WC_COL_SPLIT: usize = 21;
+const WC_ITEMS_PER_PAGE: usize = 44;
+const WC_COL_SPLIT: usize = 22;
 const WC_ROW_STEP: i32 = 8;
 
 const START_Y: i32 = 23;
@@ -175,6 +175,11 @@ fn standings_for_phase(competition: &Competition) -> Vec<&Participant> {
             .event_standings()
             .into_iter()
             .filter(|p| p.qual.can_jump())
+            .collect(),
+        CompetitionPhase::QualificationResults => competition
+            .event_standings()
+            .into_iter()
+            .filter(|p| p.points.is_some())
             .collect(),
         _ => competition.event_standings(),
     }
