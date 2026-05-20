@@ -22,6 +22,8 @@ pub enum StepDecision {
         hill_idx: usize,
         is_human: bool,
     },
+    /// Skip the current jumper (pre-qualified human with skipquali in quali).
+    Skip,
 }
 
 /// Drives a single competition event (or a full season).
@@ -117,6 +119,15 @@ impl Competition {
         let idx = self.current_jumper().unwrap();
         let hill_idx = self.current_hill();
         let is_human = !self.participant(idx).is_computer;
+
+        // Pascal: pre-qualified human with skipquali skips the quali jump entirely
+        if is_human && self.phase == CompetitionPhase::Qualification {
+            let p = self.participant(idx);
+            if p.qual == QualificationStatus::PreQualified && p.skip_quali {
+                return StepDecision::Skip;
+            }
+        }
+
         StepDecision::Jump {
             idx,
             hill_idx,
@@ -404,6 +415,10 @@ impl Competition {
 
     fn cut_to_round2(&mut self) {
         self.field.sort_field(SortBy::EventPoints);
+        // Freeze Round 1 rank before Round 2 AI jumps re-sort event_order
+        for idx in 0..self.field.len() {
+            self.field.get_mut(idx).round1_rank = self.field.get(idx).rank;
+        }
         if self.is_ko_event() {
             for idx in 0..self.field.len() {
                 self.field.get_mut(idx).qual = QualificationStatus::Eliminated;

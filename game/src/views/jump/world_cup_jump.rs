@@ -1,10 +1,12 @@
 use crate::competition::types::{CompetitionPhase, CupStyle};
+use crate::competition::types::Participant;
 use crate::controllers::jump_input::{JumpInputAction, JumpInputController};
 use crate::controllers::jump_scene::JumpScene;
 use crate::controllers::world_cup_flow::{self, WorldCupCommand};
 use crate::gfx::palette::{apply_menu_tint, FONT_DEFAULT, FONT_GOLD, FONT_GREET, FONT_HELP};
 use crate::gfx::sprites;
-use crate::jump::types::{FallType, JumpPhase};
+use crate::jump::presentation::JumpPresentationContext;
+use crate::jump::types::{FallType, JumpOutcome, JumpPhase};
 use crate::jump::JumpParticipant;
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
@@ -12,6 +14,15 @@ use crate::views::jump::results as competition_results;
 use engine::palette::Palette;
 use engine::ui::{Element, Event, Key, View};
 use std::cell::Cell;
+
+/// What overlay to draw on top of the jump scene during competition phases.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum OverlayKind {
+    None,
+    Keymap,
+    CyclingInfo,
+    Round2CyclingWithInfoBox,
+}
 
 fn fmt_tenths(val: i32) -> String {
     let sign = if val < 0 { "-" } else { "" };
@@ -277,54 +288,67 @@ impl WorldCupJumpView {
 }
 
 impl WorldCupJumpView {
-    /// Pascal OnBar draw sequence:
-    ///   Info phase (first loop) — InfoPanel with cycling info or keymap
-    ///   OnBar (second loop, sitting on bar) — only keymap for first event's first human
-    ///   Disqualified — only DQ info bar (provided by presentation::dq_elements)
-    fn onbar_overlay(&self, els: &mut Vec<Element>) {
-        let scene_phase = self.scene.phase();
-        if !matches!(scene_phase, Some(JumpPhase::Info | JumpPhase::OnBar | JumpPhase::Disqualified)) {
-            return;
+    /// Pure decision: what overlay kind to draw for the current state.
+    fn overlay_kind(&self) -> Option<OverlayKind> {
+        let scene_phase = self.scene.phase()?;
+        if scene_phase == JumpPhase::Disqualified {
+            return Some(OverlayKind::None);
         }
 
-        // DQ: nothing extra — presentation::dq_elements already draws the DQ info bar.
-        if matches!(scene_phase, Some(JumpPhase::Disqualified)) {
-            return;
-        }
-
-        let frame_counter = self.scene.frame_counter();
-
-        let Some((phase, participant, hill_idx, style)) = self.store.competition.try_with(|c| {
+        let (phase, participant, style) = self.store.competition.try_with(|c| {
             let idx = c.current_jumper().unwrap_or(0);
             let p = c.participant(idx);
-            (c.phase(), p.clone(), c.current_hill(), c.style())
-        }) else { return };
+            (c.phase(), p.clone(), c.style())
+        })?;
 
         let first_event = self.store.competition.try_with(|c| c.current_event == 0).unwrap_or(false);
         let show_keymap = self.first_human_onbar.get() && first_event && !participant.is_computer;
 
         match (phase, scene_phase) {
-            // Round 2 Info: cycling info + JumperInfoBox with R1 data
-            (CompetitionPhase::Round2, Some(JumpPhase::Info))
-                if !matches!(style, CupStyle::CustomCup) =>
-            {
-                self.cycling_info_elements(els, frame_counter, hill_idx);
-                self.round2_jumper_info_box(els, &participant);
+            (CompetitionPhase::Round2, JumpPhase::Info) if !matches!(style, CupStyle::CustomCup) => {
+                Some(OverlayKind::Round2CyclingWithInfoBox)
             }
-            // Qualification Info: keymap or cycling info (Pascal first info loop)
-            (CompetitionPhase::Qualification, Some(JumpPhase::Info)) => {
-                if show_keymap {
-                    self.drawkeymap_elements(els);
-                } else {
-                    self.cycling_info_elements(els, frame_counter, hill_idx);
+            (CompetitionPhase::Qualification, JumpPhase::Info) => {
+                Some(if show_keymap { OverlayKind::Keymap } else { OverlayKind::CyclingInfo })
+            }
+            (CompetitionPhase::Qualification, JumpPhase::OnBar) if show_keymap => {
+                Some(OverlayKind::Keymap)
+            }
+            _ => Some(OverlayKind::None),
+        }
+    }
+
+    /// Pascal OnBar draw sequence:
+    ///   Info phase (first loop) — InfoPanel with cycling info or keymap
+    ///   OnBar (second loop, sitting on bar) — only keymap for first event's first human
+    ///   Disqualified — only DQ info bar (provided by presentation::dq_elements)
+    fn onbar_overlay(&self, els: &mut Vec<Element>) {
+        let kind = match self.overlay_kind() {
+            Some(k) => k,
+            None => return,
+        };
+        let frame_counter = self.scene.frame_counter();
+        let Some((_, _, hill_idx, _)) = self.store.competition.try_with(|c| {
+            let idx = c.current_jumper().unwrap_or(0);
+            let p = c.participant(idx);
+            Some((c.phase(), p.clone(), c.current_hill(), c.style()))
+        }).flatten() else { return };
+
+        let participant = self.store.competition.try_with(|c| {
+            let idx = c.current_jumper().unwrap_or(0);
+            Some(c.participant(idx).clone())
+        }).flatten();
+
+        match kind {
+            OverlayKind::None => {}
+            OverlayKind::Keymap => self.drawkeymap_elements(els),
+            OverlayKind::CyclingInfo => self.cycling_info_elements(els, frame_counter, hill_idx),
+            OverlayKind::Round2CyclingWithInfoBox => {
+                self.cycling_info_elements(els, frame_counter, hill_idx);
+                if let Some(ref p) = participant {
+                    self.round2_jumper_info_box(els, p);
                 }
             }
-            // Qualification OnBar: only keymap for first event first human
-            // Pascal second loop has NO InfoPanel otherwise — only wind gauge + traffic light
-            (CompetitionPhase::Qualification, Some(JumpPhase::OnBar)) if show_keymap => {
-                self.drawkeymap_elements(els);
-            }
-            _ => {}
         }
     }
 
@@ -338,12 +362,7 @@ impl WorldCupJumpView {
 
         els.push(Element::text(phase_label, 12, 160, FONT_GREET, false));
         els.push(Element::text(label56, 12, 172, FONT_GREET, false));
-        let rank = self.store.competition.try_with(|c| {
-            // Pascal: rank based on Round 1 scores, not the current combined standings
-            let mut round1: Vec<_> = c.event_standings();
-            round1.sort_by(|a, b| b.round1_score.cmp(&a.round1_score));
-            round1.iter().position(|p| p.id == participant.id).map(|i| i + 1)
-        }).flatten().unwrap_or(0);
+        let rank = participant.round1_rank;
         let name = if rank > 0 {
             format!("{} ({}.)", participant.display_name(), rank)
         } else {

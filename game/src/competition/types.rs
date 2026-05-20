@@ -65,6 +65,7 @@ pub struct Participant {
     // Per-event state. None = hasn't started (DNS)
     pub points: Option<i32>,
     pub rank: usize,
+    pub round1_rank: usize,
     pub qual: QualificationStatus,
     pub round1_len: i32,
     pub round1_score: i32,
@@ -90,6 +91,7 @@ impl Participant {
             injury: 0,
             points: None,
             rank: 0,
+            round1_rank: 0,
             qual: QualificationStatus::NotQualified,
             round1_len: 0,
             round1_score: 0,
@@ -110,6 +112,7 @@ impl Participant {
     pub const fn reset_event(&mut self) {
         self.points = None;
         self.rank = 0;
+        self.round1_rank = 0;
         self.qual = QualificationStatus::NotQualified;
         self.round1_len = 0;
         self.round1_score = 0;

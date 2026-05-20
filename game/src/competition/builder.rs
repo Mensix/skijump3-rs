@@ -58,6 +58,7 @@ fn build_participants(profiles: &ProfileStore, computer_names: &[String]) -> Vec
                 injury: 0,
                 points: None,
                 rank: 0,
+                round1_rank: 0,
                 qual: QualificationStatus::NotQualified,
                 round1_len: 0,
                 round1_score: 0,
