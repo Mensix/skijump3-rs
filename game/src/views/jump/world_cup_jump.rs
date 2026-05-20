@@ -11,7 +11,7 @@ use crate::store::{ResourcesRef, StoreRef};
 use crate::views::jump::competition_overlay::CompetitionOverlay;
 use crate::views::jump::results as competition_results;
 use engine::palette::Palette;
-use engine::ui::{Element, Event, Key, View};
+use engine::ui::{Blinker, Element, Event, Key, View};
 use std::cell::Cell;
 
 pub struct WorldCupJumpView {
@@ -21,6 +21,7 @@ pub struct WorldCupJumpView {
     last_event: Cell<usize>,
     ui_state: CompetitionUiState,
     overlay: CompetitionOverlay,
+    blinker: Blinker,
 }
 
 impl WorldCupJumpView {
@@ -44,6 +45,7 @@ impl WorldCupJumpView {
                 ResourcesRef::clone(&resources),
                 StoreRef::clone(&store),
             ),
+            blinker: Blinker::new(),
         }
     }
 
@@ -99,10 +101,12 @@ impl WorldCupJumpView {
             .try_with(|c| {
                 match self.ui_state.current_screen() {
                     ResultScreen::KoPairs(show_results) => {
+                        let show_cursor = self.blinker.visible(10, 10);
                         return competition_results::render_ko_pairs(
                             c,
                             &self.resources,
                             show_results,
+                            show_cursor,
                         );
                     }
                     ResultScreen::Stats => {
@@ -369,6 +373,7 @@ impl WorldCupJumpView {
                     return None;
                 }
                 // Pascal WaitForKey(0): any key on the last entry exits the list
+                self.blinker.reset();
                 self.ui_state.dismiss_results();
                 self.store.competition.try_with_mut(|c| c.advance());
                 self.drive_competition();
@@ -418,6 +423,7 @@ impl WorldCupJumpView {
                 if is_season_complete {
                     return Some(RouteTarget::Back);
                 }
+                self.blinker.reset();
                 self.ui_state.dismiss_results();
                 self.store.competition.try_with_mut(|c| c.advance());
                 self.drive_competition();

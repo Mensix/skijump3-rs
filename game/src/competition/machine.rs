@@ -45,6 +45,9 @@ pub struct Competition {
 
     start_list: Vec<usize>,
     start_pos: usize,
+
+    /// Pascal mcluett: saved seed-pairing order for KO results display.
+    ko_pairings: Vec<usize>,
 }
 
 impl Competition {
@@ -59,6 +62,7 @@ impl Competition {
             trainrounds: 2,
             start_list: Vec::new(),
             start_pos: 0,
+            ko_pairings: Vec::new(),
         }
     }
 
@@ -172,6 +176,15 @@ impl Competition {
             .collect()
     }
 
+    /// Participants in the saved KO seed-pairing order (Pascal luett/mcluett).
+    /// Used for the KO pairs results display after Round 1.
+    pub fn ko_pairing_standings(&self) -> Vec<&Participant> {
+        self.ko_pairings
+            .iter()
+            .map(|&idx| self.field.get(idx))
+            .collect()
+    }
+
     // ── drive ──────────────────────────────────────────────────
 
     /// Advance to the next state. Call after recording a jump or
@@ -207,6 +220,10 @@ impl Competition {
             CompetitionPhase::Round1 => {
                 if self.start_pos >= self.start_list.len() {
                     self.field.sort_field(SortBy::EventPoints);
+                    // Pascal: assign KO winners/lucky losers BEFORE showing results
+                    if self.is_ko_event() {
+                        self.apply_ko_results();
+                    }
                     self.enter_phase(CompetitionPhase::Round1Results);
                 }
             }
@@ -367,6 +384,8 @@ impl Competition {
         self.field.sort_field(SortBy::EventPoints);
 
         if self.is_ko_event() {
+            // Save seed-pairing order (Pascal mcluett) for KO results display
+            self.ko_pairings = self.field.event_order.iter().take(50).copied().collect();
             for (seed, idx) in self
                 .field
                 .event_order
@@ -411,6 +430,52 @@ impl Competition {
         }
     }
 
+    /// Pascal lines 5487-5499: assign KO winners and lucky losers
+    /// Uses saved ko_pairings (seed order, Pascal luett/mcluett) for correct pairing.
+    fn apply_ko_results(&mut self) {
+        let pairings = self.ko_pairings.clone();
+        // Reset all to Eliminated first
+        for idx in 0..self.field.len() {
+            self.field.get_mut(idx).qual = QualificationStatus::Eliminated;
+        }
+        let count = pairings.len().min(50);
+        let half = count / 2;
+        // Winners: qual=1 in Pascal (same pairing as display)
+        // Pascal: luett[25..1] (RIGHT) vs luett[26..50] (LEFT)
+        // Pascal: RIGHT.points >= LEFT.points → RIGHT wins
+        for pair in 0..half.min(25) {
+            let left = pairings[half + pair];
+            let right = pairings[half - 1 - pair];
+            let winner = if self.field.get(right).points.unwrap_or(0)
+                >= self.field.get(left).points.unwrap_or(0)
+            {
+                right
+            } else {
+                left
+            };
+            self.field.get_mut(winner).qual = QualificationStatus::Qualified;
+        }
+        // 5 lucky losers: qual=2 in Pascal
+        // Pascal: jarjestys(2,1,NumPl) — sort by points, then take first 5 with qual=0
+        // We use event_order which is already sorted by Round 1 points
+        // (sort_field was called at the start of the Round1 → Round1Results transition)
+        let order = self.field.event_order.clone();
+        let mut lucky = 0usize;
+        for idx in &order {
+            if lucky >= 5 {
+                break;
+            }
+            let idx = *idx;
+            if self.field.get(idx).qual == QualificationStatus::Eliminated
+                && self.field.get(idx).injury == 0
+                && self.field.get(idx).points.is_some()
+            {
+                self.field.get_mut(idx).qual = QualificationStatus::LuckyLoser;
+                lucky += 1;
+            }
+        }
+    }
+
     fn cut_to_round2(&mut self) {
         self.field.sort_field(SortBy::EventPoints);
         // Freeze Round 1 rank before Round 2 AI jumps re-sort event_order
@@ -418,36 +483,7 @@ impl Competition {
             self.field.get_mut(idx).round1_rank = self.field.get(idx).rank;
         }
         if self.is_ko_event() {
-            for idx in 0..self.field.len() {
-                self.field.get_mut(idx).qual = QualificationStatus::Eliminated;
-            }
-            let order = self.field.event_order.clone();
-            let count = order.len().min(50);
-            for pair in 0..(count / 2).min(25) {
-                let a = order[count - 1 - pair];
-                let b = order[pair];
-                let winner = if self.field.get(a).points.unwrap_or(0)
-                    >= self.field.get(b).points.unwrap_or(0)
-                {
-                    a
-                } else {
-                    b
-                };
-                self.field.get_mut(winner).qual = QualificationStatus::Qualified;
-            }
-            let mut lucky = 0usize;
-            for idx in self.field.event_order.clone() {
-                if lucky >= 5 {
-                    break;
-                }
-                if self.field.get(idx).qual == QualificationStatus::Eliminated
-                    && self.field.get(idx).injury == 0
-                    && self.field.get(idx).points.is_some()
-                {
-                    self.field.get_mut(idx).qual = QualificationStatus::LuckyLoser;
-                    lucky += 1;
-                }
-            }
+            // Qual already assigned by apply_ko_results — nothing more to do here
             return;
         }
         for idx in 0..self.field.len() {
