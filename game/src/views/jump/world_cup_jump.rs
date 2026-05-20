@@ -46,7 +46,7 @@ impl WorldCupJumpView {
 
     fn record_finished_human_jump(&self) {
         let outcome = self.scene.outcome();
-        if outcome.is_none() || !self.ui_state.result_acknowledged.get() || self.ui_state.outcome_recorded.get() {
+        if outcome.is_none() || !self.ui_state.is_result_acknowledged() || self.ui_state.is_outcome_recorded() {
             return;
         }
         let outcome = outcome.unwrap();
@@ -76,10 +76,10 @@ impl WorldCupJumpView {
         let needs_rebuild = self.scene.participant_id() != participant.id
             || self.scene.hill_idx() != hill_idx
             || self.ui_state.is_outcome_recorded()
-            || (self.scene.outcome().is_some() && self.ui_state.result_acknowledged.get());
+            || (self.scene.outcome().is_some() && self.ui_state.is_result_acknowledged());
         if needs_rebuild {
-            self.ui_state.result_acknowledged.set(false);
-            self.ui_state.outcome_recorded.set(false);
+            self.ui_state.reset_acknowledged();
+            self.ui_state.reset_outcome_recorded();
             self.scene
                 .rebuild_for_competition(hill_idx, 15, participant, phase_label);
         } else {
@@ -206,13 +206,13 @@ impl View<RouteTarget> for WorldCupJumpView {
     fn update(&mut self) {
         self.record_finished_human_jump();
         self.drive_competition();
-        if self.ui_state.render_mode.get() == RenderMode::Jump {
+        if self.ui_state.render_mode() == RenderMode::Jump {
             self.scene.update();
         }
     }
 
     fn elements(&self) -> Vec<Element> {
-        match self.ui_state.render_mode.get() {
+        match self.ui_state.render_mode() {
             RenderMode::Jump => {
                 // Suppress static InfoPanel text when overlays provide their own content:
                 // Round 2 cycling info, or the keymap for the first human's first event.
@@ -247,7 +247,7 @@ impl View<RouteTarget> for WorldCupJumpView {
         }
 
         // Pascal: wait for key after human jump before advancing
-        if self.scene.outcome().is_some() && !self.ui_state.result_acknowledged.get() {
+        if self.scene.outcome().is_some() && !self.ui_state.is_result_acknowledged() {
             let is_dq = self.scene.phase() == Some(JumpPhase::Disqualified);
             let accepted = if is_dq {
                 // Pascal waitforkey: ANY key dismisses the DQ screen
@@ -363,9 +363,11 @@ impl WorldCupJumpView {
                     .competition
                     .try_with(|c| {
                         c.style() == CupStyle::FourHills
-                            && c.phase().is_result_phase()
-                            && c.phase() != CompetitionPhase::WorldCupStandings
-                            && c.phase() != CompetitionPhase::SeasonComplete
+                            && matches!(
+                                c.phase(),
+                                CompetitionPhase::QualificationResults
+                                    | CompetitionPhase::Round1Results
+                            )
                     })
                     .unwrap_or(false);
                 if ko {

@@ -21,13 +21,13 @@ pub enum ResultScreen {
 /// auditable in one place.
 #[derive(Debug, Clone)]
 pub struct CompetitionUiState {
-    pub render_mode: Cell<RenderMode>,
-    pub result_screen: Cell<ResultScreen>,
-    pub display_page: Cell<usize>,
-    pub compact_list: Cell<bool>,
-    pub result_acknowledged: Cell<bool>,
-    pub outcome_recorded: Cell<bool>,
-    pub first_human_onbar: Cell<bool>,
+    render_mode: Cell<RenderMode>,
+    result_screen: Cell<ResultScreen>,
+    display_page: Cell<usize>,
+    compact_list: Cell<bool>,
+    result_acknowledged: Cell<bool>,
+    outcome_recorded: Cell<bool>,
+    first_human_onbar: Cell<bool>,
 }
 
 impl CompetitionUiState {
@@ -41,6 +41,16 @@ impl CompetitionUiState {
             outcome_recorded: Cell::new(false),
             first_human_onbar: Cell::new(true),
         }
+    }
+
+    // ── Getters ─────────────────────────────────────────────────
+
+    pub fn render_mode(&self) -> RenderMode {
+        self.render_mode.get()
+    }
+
+    pub fn is_result_acknowledged(&self) -> bool {
+        self.result_acknowledged.get()
     }
 
     // ── Mode transitions ────────────────────────────────────────
@@ -70,9 +80,18 @@ impl CompetitionUiState {
         self.result_acknowledged.set(true);
     }
 
+    /// Reset the acknowledged flag (for the next jumper).
+    pub fn reset_acknowledged(&self) {
+        self.result_acknowledged.set(false);
+    }
+
     /// Whether the outcome has already been recorded into the competition store.
     pub fn is_outcome_recorded(&self) -> bool {
         self.outcome_recorded.get()
+    }
+
+    pub fn reset_outcome_recorded(&self) {
+        self.outcome_recorded.set(false);
     }
 
     /// Mark the outcome as recorded (prevents double-recording on scene rebuild).

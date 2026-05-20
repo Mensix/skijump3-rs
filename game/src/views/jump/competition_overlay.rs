@@ -40,7 +40,7 @@ impl OverlayData {
                 .iter()
                 .take(5)
                 .filter_map(|p| {
-                    p.points.map(|pts| EventStandingEntry {
+                    p.points.filter(|&pts| pts > 0).map(|pts| EventStandingEntry {
                         name: p.display_name().to_string(),
                         points: pts,
                     })
@@ -77,6 +77,7 @@ pub struct OverlayContext {
     pub participant: Participant,
     pub hill_idx: usize,
     pub frame_counter: i32,
+    pub data: OverlayData,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -107,9 +108,9 @@ impl CompetitionOverlay {
         let scene_phase = scene_phase?;
         let data = OverlayData::collect(&self.store)?;
         let kind = self.resolve_kind(&data, scene_phase, ui_state);
-        let participant = data.current_participant
+        let participant = data.current_participant.clone()
             .unwrap_or_else(|| Participant::computer(0, 0, String::new()));
-        Some(OverlayContext { kind, participant, hill_idx: data.current_hill, frame_counter })
+        Some(OverlayContext { kind, participant, hill_idx: data.current_hill, frame_counter, data })
     }
 
     fn resolve_kind(&self, data: &OverlayData, scene_phase: JumpPhase, ui_state: &CompetitionUiState) -> OverlayKind {
@@ -127,7 +128,9 @@ impl CompetitionOverlay {
             (CompetitionPhase::Qualification, JumpPhase::Info) if show_keymap => {
                 OverlayKind::Keymap
             }
-            _ if data.phase.needs_event_results() && scene_phase == JumpPhase::Info => {
+            // Explicitly list phases that get cycling info — not needs_event_results()
+            // which would also match Round2 (and CustomCup Round2 must show no overlay).
+            (CompetitionPhase::Qualification | CompetitionPhase::Round1, JumpPhase::Info) => {
                 OverlayKind::CyclingWithInfoBox
             }
             _ => OverlayKind::None,
@@ -141,11 +144,11 @@ impl CompetitionOverlay {
             OverlayKind::None => {}
             OverlayKind::Keymap => self.drawkeymap_elements(&mut els),
             OverlayKind::CyclingWithInfoBox => {
-                self.cycling_info_elements(&mut els, ctx.frame_counter, ctx.hill_idx);
+                self.cycling_info_elements(&mut els, ctx.frame_counter, ctx.hill_idx, &ctx.data);
                 self.jumper_info_box(&mut els, &ctx.participant, false);
             }
             OverlayKind::Round2WithInfoBox => {
-                self.cycling_info_elements(&mut els, ctx.frame_counter, ctx.hill_idx);
+                self.cycling_info_elements(&mut els, ctx.frame_counter, ctx.hill_idx, &ctx.data);
                 self.jumper_info_box(&mut els, &ctx.participant, true);
             }
         }
@@ -234,12 +237,7 @@ impl CompetitionOverlay {
     }
 
     /// Pascal drawinfo: cycling info on the InfoPanel.
-    fn cycling_info_elements(&self, els: &mut Vec<Element>, frame_counter: i32, hill_idx: usize) {
-        let data = match OverlayData::collect(&self.store) {
-            Some(d) => d,
-            None => return,
-        };
-
+    fn cycling_info_elements(&self, els: &mut Vec<Element>, frame_counter: i32, hill_idx: usize, data: &OverlayData) {
         let has_wc_leader = data.wc_standings_top5.first().map(|e| e.points > 0).unwrap_or(false);
         let has_event_leader = data.event_standings_top5.first().map(|e| e.points > 0).unwrap_or(false);
 
@@ -281,14 +279,16 @@ impl CompetitionOverlay {
             .unwrap_or_default();
         els.push(Element::text(hill_name_k, 308, 9, FONT_GOLD, true));
 
-        for (i, entry) in data.event_standings_top5.iter().enumerate().take(5) {
-            els.push(Element::text(
-                format!("{}  {}", entry.name, fmt_tenths(entry.points)),
-                308,
-                20 + i as i32 * 7,
-                FONT_GOLD,
-                true,
-            ));
+        for (i, entry) in data.event_standings_top5.iter().enumerate() {
+            if entry.points > 0 {
+                els.push(Element::text(
+                    format!("{}  {}", entry.name, fmt_tenths(entry.points)),
+                    308,
+                    20 + i as i32 * 7,
+                    FONT_GOLD,
+                    true,
+                ));
+            }
         }
 
         // Gap-to-leader line
