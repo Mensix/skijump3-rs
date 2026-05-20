@@ -65,11 +65,6 @@ impl CompetitionUiState {
 
     // ── Outcome acknowledgment ──────────────────────────────────
 
-    /// Whether the outcome from the visible scene has been shown to the user.
-    pub fn needs_acknowledgment(&self) -> bool {
-        !self.result_acknowledged.get() && !self.outcome_recorded.get()
-    }
-
     /// Record that the user has seen the outcome (pressed Enter/Escape/DQ key).
     pub fn acknowledge_outcome(&self) {
         self.result_acknowledged.set(true);
@@ -101,10 +96,6 @@ impl CompetitionUiState {
 
     pub fn current_page(&self) -> usize {
         self.display_page.get()
-    }
-
-    pub fn total_pages(&self, last_page: usize) -> usize {
-        last_page.max(1)
     }
 
     /// Advance to next page. Returns true if there was a next page.
