@@ -1,4 +1,4 @@
-use crate::competition::types::{CompetitionPhase, CupStyle, Participant};
+use crate::competition::types::{CompetitionPhase, CupStyle, Participant, QualificationStatus};
 use crate::controllers::jump_input::{JumpInputAction, JumpInputController};
 use crate::controllers::jump_scene::JumpScene;
 use crate::controllers::world_cup_flow::{self, WorldCupCommand};
@@ -14,12 +14,13 @@ use engine::ui::{Element, Event, Key, View};
 use std::cell::Cell;
 
 /// What overlay to draw on top of the jump scene during competition phases.
-#[derive(Clone, Copy, PartialEq, Eq)]
 enum OverlayKind {
     None,
     Keymap,
-    CyclingInfo,
-    Round2CyclingWithInfoBox,
+    /// Cycling info + general JumperInfoBox (Qualification, Round 1).
+    CyclingWithInfoBox,
+    /// Cycling info + Round 2 JumperInfoBox with R1 score.
+    Round2WithInfoBox,
 }
 
 /// All data needed to render the overlay. Returned by `overlay_context()`
@@ -311,10 +312,13 @@ impl WorldCupJumpView {
 
             match (phase, scene_phase) {
                 (CompetitionPhase::Round2, JumpPhase::Info) if !matches!(style, CupStyle::CustomCup) => {
-                    OverlayKind::Round2CyclingWithInfoBox
+                    OverlayKind::Round2WithInfoBox
                 }
-                (CompetitionPhase::Qualification, JumpPhase::Info) => {
-                    if show_keymap { OverlayKind::Keymap } else { OverlayKind::CyclingInfo }
+                (CompetitionPhase::Qualification, JumpPhase::Info) if show_keymap => {
+                    OverlayKind::Keymap
+                }
+                (CompetitionPhase::Qualification | CompetitionPhase::Round1, JumpPhase::Info) => {
+                    OverlayKind::CyclingWithInfoBox
                 }
                 _ => OverlayKind::None,
             }
@@ -330,8 +334,8 @@ impl WorldCupJumpView {
     }
 
     /// Pascal OnBar draw sequence:
-    ///   Info phase (first loop) — InfoPanel with cycling info or keymap
-    ///   OnBar (second loop, sitting on bar) — only keymap for first event's first human
+    ///   Info phase (first loop) — InfoPanel with cycling info + JumperInfoBox
+    ///   OnBar (second loop, sitting on bar) — only wind gauge + traffic light
     ///   Disqualified — only DQ info bar (provided by presentation::dq_elements)
     fn onbar_overlay(&self, els: &mut Vec<Element>) {
         let ctx = match self.overlay_context() {
@@ -341,38 +345,58 @@ impl WorldCupJumpView {
         match ctx.kind {
             OverlayKind::None => {}
             OverlayKind::Keymap => self.drawkeymap_elements(els),
-            OverlayKind::CyclingInfo => self.cycling_info_elements(els, ctx.frame_counter, ctx.hill_idx),
-            OverlayKind::Round2CyclingWithInfoBox => {
+            OverlayKind::CyclingWithInfoBox => {
                 self.cycling_info_elements(els, ctx.frame_counter, ctx.hill_idx);
-                self.round2_jumper_info_box(els, &ctx.participant);
+                self.jumper_info_box(els, &ctx.participant, ctx.frame_counter, false);
+            }
+            OverlayKind::Round2WithInfoBox => {
+                self.cycling_info_elements(els, ctx.frame_counter, ctx.hill_idx);
+                self.jumper_info_box(els, &ctx.participant, ctx.frame_counter, true);
             }
         }
     }
 
-    /// Pascal: JumperInfoBox at (3,150) during Round 2 OnBar showing R1 total + length.
-    fn round2_jumper_info_box(&self, els: &mut Vec<Element>, participant: &crate::competition::types::Participant) {
+    /// Pascal JumperInfoBox at (3,150). Shown for all phases during the first info loop.
+    /// `round2_with_r1` adds the Round 1 score + length line.
+    fn jumper_info_box(&self, els: &mut Vec<Element>, participant: &Participant, _frame_counter: i32, round2_with_r1: bool) {
         els.push(Element::sprite(sprites::Sprite::JumperInfoBox as u16, 3, 150));
-
-        let phase_label = Self::phase_label(&self.resources, CompetitionPhase::Round2);
         let label56 = self.resources.langbase.lstr(56);
         let label56_w = self.resources.font.string_width(label56) as i32;
 
+        let (phase, rank, quali_wc) = self.store.competition.try_with(|c| {
+            let phase = c.phase();
+            let rank = if round2_with_r1 {
+                participant.round1_rank
+            } else {
+                let standings = c.event_standings();
+                standings.iter().position(|p| p.id == participant.id).map(|i| i + 1).unwrap_or(0)
+            };
+            let quali_wc = matches!(phase, CompetitionPhase::Qualification)
+                && matches!(participant.qual, QualificationStatus::PreQualified);
+            (phase, rank, quali_wc)
+        }).unwrap_or((CompetitionPhase::Qualification, 0, false));
+
+        let phase_label = Self::phase_label(&self.resources, phase);
         els.push(Element::text(phase_label, 12, 160, FONT_GREET, false));
         els.push(Element::text(label56, 12, 172, FONT_GREET, false));
-        let rank = participant.round1_rank;
-        let name = if rank > 0 {
+
+        let name = if quali_wc {
+            format!("{} Q WC", participant.display_name())
+        } else if rank > 0 {
             format!("{} ({}.)", participant.display_name(), rank)
         } else {
             participant.display_name().to_string()
         };
         els.push(Element::text(name, 12 + label56_w, 172, FONT_DEFAULT, false));
 
-        let r1text = format!(
-            "{} ({}µ)",
-            fmt_tenths(participant.round1_score),
-            fmt_tenths(participant.round1_len)
-        );
-        els.push(Element::text(r1text, 14 + label56_w, 179, FONT_HELP, false));
+        if round2_with_r1 {
+            let r1text = format!(
+                "{} ({}µ)",
+                fmt_tenths(participant.round1_score),
+                fmt_tenths(participant.round1_len)
+            );
+            els.push(Element::text(r1text, 14 + label56_w, 179, FONT_HELP, false));
+        }
         els.push(Element::text(
             self.resources.langbase.lstr(59),
             12,
