@@ -316,9 +316,6 @@ impl WorldCupJumpView {
                 (CompetitionPhase::Qualification, JumpPhase::Info) => {
                     if show_keymap { OverlayKind::Keymap } else { OverlayKind::CyclingInfo }
                 }
-                (CompetitionPhase::Qualification, JumpPhase::OnBar) if show_keymap => {
-                    OverlayKind::Keymap
-                }
                 _ => OverlayKind::None,
             }
         };
