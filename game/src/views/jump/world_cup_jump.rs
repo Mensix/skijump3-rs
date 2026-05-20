@@ -13,6 +13,12 @@ use engine::palette::Palette;
 use engine::ui::{Element, Event, Key, View};
 use std::cell::Cell;
 
+fn fmt_tenths(val: i32) -> String {
+    let sign = if val < 0 { "-" } else { "" };
+    let abs = val.abs();
+    format!("{}{}.{}", sign, abs / 10, abs % 10)
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum RenderMode {
     Jump,
@@ -37,6 +43,7 @@ pub struct WorldCupJumpView {
     last_event: Cell<usize>,
     result_acknowledged: Cell<bool>,
     outcome_recorded: Cell<bool>,
+    first_human_onbar: Cell<bool>,
     display_page: Cell<usize>,
     render_mode: Cell<RenderMode>,
     result_screen: Cell<ResultScreen>,
@@ -61,6 +68,7 @@ impl WorldCupJumpView {
             last_event: Cell::new(0),
             result_acknowledged: Cell::new(false),
             outcome_recorded: Cell::new(false),
+            first_human_onbar: Cell::new(true),
             display_page: Cell::new(0),
             render_mode: Cell::new(RenderMode::Jump),
             result_screen: Cell::new(ResultScreen::List),
@@ -90,6 +98,7 @@ impl WorldCupJumpView {
         });
         self.result_acknowledged.set(false);
         self.outcome_recorded.set(true);
+        self.first_human_onbar.set(false);
     }
 
     fn handle_human_jump(
@@ -267,6 +276,171 @@ impl WorldCupJumpView {
     }
 }
 
+impl WorldCupJumpView {
+    /// Pascal OnBar draw sequence: only the right panel — drawkeymap
+    /// or cycling info (drawtop5info / drawhrinfo / drawwcinfo).
+    /// The JumperInfoBox at (3,150) is overwritten by Maki.Tulosta (hill redraw)
+    /// during OnBar in Pascal, so it's NOT shown here — only during Info phase
+    /// (via presentation::info_elements). The left side shows only the hill + jumper.
+    fn onbar_overlay(&self, els: &mut Vec<Element>) {
+        if !matches!(self.scene.phase(), Some(JumpPhase::OnBar | JumpPhase::Disqualified)) {
+            return;
+        }
+
+        let frame_counter = self.scene.frame_counter();
+
+        let (show_keymap, hill_idx) = self
+            .store
+            .competition
+            .try_with(|c| {
+                let idx = c.current_jumper().unwrap_or(0);
+                let p = c.participant(idx);
+                let first_event = c.current_event == 0;
+                let key = self.first_human_onbar.get() && first_event && !p.is_computer;
+                (key, c.current_hill())
+            })
+            .unwrap_or_default();
+
+        if show_keymap {
+            self.drawkeymap_elements(els);
+        } else {
+            self.cycling_info_elements(els, frame_counter, hill_idx);
+        }
+    }
+
+    /// Pascal drawinfo cycling: event top5 (0..130) / hill record (146..276) / WC standings (292..)
+    fn cycling_info_elements(&self, els: &mut Vec<Element>, frame_counter: i32, hill_idx: usize) {
+        let phase = (frame_counter as usize) % 438;
+        if phase <= 130 {
+            self.top5_event_elements(els);
+        } else if (146..=276).contains(&phase) {
+            self.hill_info_elements(els, hill_idx);
+        } else if phase >= 292 {
+            self.wc_standings_elements(els);
+        }
+    }
+
+    /// Pascal drawtop5info: hill name + top 5 event points with gap behind leader
+    fn top5_event_elements(&self, els: &mut Vec<Element>) {
+        els.push(Element::sprite(sprites::Sprite::InfoPanel as u16, 227, 2));
+        let hill_name_k = self
+            .store
+            .competition
+            .try_with(|c| {
+                self.resources
+                    .hills
+                    .hill(c.current_hill())
+                    .map(|h| format!("{} K{}", h.name, h.kr))
+            })
+            .flatten()
+            .unwrap_or_default();
+        els.push(Element::text(
+            hill_name_k,
+            308,
+            9,
+            FONT_GOLD,
+            true,
+        ));
+
+        self.store.competition.try_with(|c| {
+            let standings = c.event_standings();
+            for (i, p) in standings.iter().enumerate().take(5) {
+                if let Some(pts) = p.points {
+                    let value = if i == 0 {
+                        fmt_tenths(pts)
+                    } else {
+                        let leader = standings[0].points.unwrap_or(0);
+                        fmt_tenths(pts - leader)
+                    };
+                    els.push(Element::text(
+                        format!("{}  {}", p.name, value),
+                        308,
+                        13 + i as i32 * 7,
+                        FONT_GOLD,
+                        true,
+                    ));
+                }
+            }
+        });
+    }
+
+    /// Pascal drawhrinfo: hill record name + distance
+    fn hill_info_elements(&self, els: &mut Vec<Element>, hill_idx: usize) {
+        els.push(Element::sprite(sprites::Sprite::InfoPanel as u16, 227, 2));
+        let hill_name_k = self
+            .resources
+            .hills
+            .hill(hill_idx)
+            .map(|h| format!("{} K{}", h.name, h.kr))
+            .unwrap_or_default();
+        els.push(Element::text(
+            hill_name_k,
+            308,
+            9,
+            FONT_GOLD,
+            true,
+        ));
+        els.push(Element::text(
+            self.resources.langbase.lstr(65).to_string(),
+            308,
+            19,
+            FONT_GOLD,
+            true,
+        ));
+        let records = self.store.records.borrow();
+        let record = records.hill_record(hill_idx);
+        if let Some(r) = record {
+            if r.len > 0 {
+                els.push(Element::text(r.name.clone(), 308, 29, FONT_GOLD, true));
+                els.push(Element::text(
+                    format!("{:.1}m", r.len as f64 / 10.0),
+                    308,
+                    39,
+                    FONT_GOLD,
+                    true,
+                ));
+            }
+        }
+    }
+
+    /// Pascal drawwcinfo: top 5 World Cup / season standings
+    fn wc_standings_elements(&self, els: &mut Vec<Element>) {
+        els.push(Element::sprite(sprites::Sprite::InfoPanel as u16, 227, 2));
+        els.push(Element::text(
+            self.resources.langbase.lstr(70).to_string(),
+            308,
+            9,
+            FONT_GOLD,
+            true,
+        ));
+
+        self.store.competition.try_with(|c| {
+            let standings = c.overall_standings();
+            for (i, p) in standings.iter().enumerate().take(5) {
+                if p.wc_points > 0 {
+                    let value = if i == 0 {
+                        p.wc_points.to_string()
+                    } else {
+                        let gap = standings[0].wc_points - p.wc_points;
+                        if gap > 0 {
+                            format!("-{}", gap)
+                        } else {
+                            p.wc_points.to_string()
+                        }
+                    };
+                    els.push(Element::text(
+                        format!("{}  {}", p.name, value),
+                        308,
+                        13 + i as i32 * 7,
+                        FONT_GOLD,
+                        true,
+                    ));
+                }
+            }
+        });
+    }
+}
+
 impl View<RouteTarget> for WorldCupJumpView {
     fn update(&mut self) {
         self.record_finished_human_jump();
@@ -280,13 +454,7 @@ impl View<RouteTarget> for WorldCupJumpView {
         match self.render_mode.get() {
             RenderMode::Jump => {
                 let mut els = self.scene.elements();
-                // Key bindings during OnBar (jumper sitting at gate)
-                // Also shown during Disqualified (matches Pascal drawscreen
-                // capture of the last OnBar frame before the DQ overlay).
-                // Nothing extra during Inrun/Flight — only wind gauge from scene.elements()
-                if let Some(JumpPhase::OnBar | JumpPhase::Disqualified) = self.scene.phase() {
-                    self.drawkeymap_elements(&mut els);
-                }
+                self.onbar_overlay(&mut els);
                 // Pascal: show rank ($X.) left of score at (255,45) during Result phase
                 if let Some(rank_el) = self.rank_element() {
                     els.push(rank_el);

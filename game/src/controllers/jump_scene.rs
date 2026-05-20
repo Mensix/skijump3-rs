@@ -125,6 +125,10 @@ impl JumpScene {
         self.runner.borrow().phase()
     }
 
+    pub fn frame_counter(&self) -> i32 {
+        self.runner.borrow().frame_counter()
+    }
+
     pub fn outcome(&self) -> Option<JumpOutcome> {
         self.runner.borrow().outcome()
     }

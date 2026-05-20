@@ -70,6 +70,10 @@ impl JumpRunner {
         self.session.outcome()
     }
 
+    pub(crate) fn frame_counter(&self) -> i32 {
+        self.session.state().map_or(0, |s| s.frame)
+    }
+
     pub(crate) fn replay_trace(&self) -> Option<ReplayTrace> {
         self.session.replay_trace()
     }
