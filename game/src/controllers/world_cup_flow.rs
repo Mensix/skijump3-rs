@@ -131,6 +131,7 @@ mod tests {
             rank: 0,
             qual: QualificationStatus::NotQualified,
             round1_len: 0,
+            round1_score: 0,
             round2_len: 0,
             qual_len: 0,
         }

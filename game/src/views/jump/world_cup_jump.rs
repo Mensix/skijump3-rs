@@ -2,7 +2,7 @@ use crate::competition::types::{CompetitionPhase, CupStyle};
 use crate::controllers::jump_input::{JumpInputAction, JumpInputController};
 use crate::controllers::jump_scene::JumpScene;
 use crate::controllers::world_cup_flow::{self, WorldCupCommand};
-use crate::gfx::palette::{apply_menu_tint, FONT_GOLD, FONT_GREET};
+use crate::gfx::palette::{apply_menu_tint, FONT_DEFAULT, FONT_GOLD, FONT_GREET, FONT_HELP};
 use crate::gfx::sprites;
 use crate::jump::types::{FallType, JumpPhase};
 use crate::jump::JumpParticipant;
@@ -278,38 +278,74 @@ impl WorldCupJumpView {
 
 impl WorldCupJumpView {
     /// Pascal OnBar draw sequence (second loop, sitting on bar):
-    ///   Right panel only shows during Qualification (kierros=0) —
-    ///   keymap if (eka and osakilpailu=1 and not cjumper), else nothing.
-    ///   Round 1 and Round 2 have NO right panel at all.
+    ///   Qualification — right panel: keymap (eka+osakilpailu=1+human) or cycling info.
+    ///   Round 1 — nothing.
+    ///   Round 2 — JumperInfoBox with R1 total + length (pisteet[pel] + Cstats[1,pel]).
     fn onbar_overlay(&self, els: &mut Vec<Element>) {
-        if !matches!(self.scene.phase(), Some(JumpPhase::OnBar | JumpPhase::Disqualified)) {
+        let scene_phase = self.scene.phase();
+        if !matches!(scene_phase, Some(JumpPhase::Info | JumpPhase::OnBar | JumpPhase::Disqualified)) {
             return;
         }
 
         let frame_counter = self.scene.frame_counter();
 
-        let (show_keymap, is_qualification, hill_idx) = self
-            .store
-            .competition
-            .try_with(|c| {
-                let is_quali = c.phase() == CompetitionPhase::Qualification;
-                let idx = c.current_jumper().unwrap_or(0);
-                let p = c.participant(idx);
-                let first_event = c.current_event == 0;
-                let key = is_quali && self.first_human_onbar.get() && first_event && !p.is_computer;
-                (key, is_quali, c.current_hill())
-            })
-            .unwrap_or_default();
+        let Some((phase, participant, hill_idx, style)) = self.store.competition.try_with(|c| {
+            let idx = c.current_jumper().unwrap_or(0);
+            let p = c.participant(idx);
+            (c.phase(), p.clone(), c.current_hill(), c.style())
+        }) else { return };
 
-        if !is_qualification {
-            return;
+        match phase {
+            CompetitionPhase::Round2 if !matches!(style, CupStyle::CustomCup) => {
+                self.round2_jumper_info_box(els, &participant);
+            }
+            CompetitionPhase::Qualification if matches!(scene_phase, Some(JumpPhase::OnBar | JumpPhase::Disqualified)) => {
+                let first_event = self.store.competition.try_with(|c| c.current_event == 0).unwrap_or(false);
+                let show_keymap = self.first_human_onbar.get() && first_event && !participant.is_computer;
+                if show_keymap {
+                    self.drawkeymap_elements(els);
+                } else {
+                    self.cycling_info_elements(els, frame_counter, hill_idx);
+                }
+            }
+            _ => {}
         }
+    }
 
-        if show_keymap {
-            self.drawkeymap_elements(els);
+    /// Pascal: JumperInfoBox at (3,150) during Round 2 OnBar showing R1 total + length.
+    fn round2_jumper_info_box(&self, els: &mut Vec<Element>, participant: &crate::competition::types::Participant) {
+        els.push(Element::sprite(sprites::Sprite::JumperInfoBox as u16, 3, 150));
+
+        let phase_label = Self::phase_label(&self.resources, CompetitionPhase::Round2);
+        let label56 = self.resources.langbase.lstr(56);
+        let label56_w = self.resources.font.string_width(label56) as i32;
+
+        els.push(Element::text(phase_label, 12, 160, FONT_GREET, false));
+        els.push(Element::text(label56, 12, 172, FONT_GREET, false));
+        let rank = self.store.competition.try_with(|c| {
+            let standings = c.event_standings();
+            standings.iter().position(|p| p.id == participant.id).map(|i| i + 1)
+        }).flatten().unwrap_or(0);
+        let name = if rank > 0 {
+            format!("{} ({}.)", participant.display_name(), rank)
         } else {
-            self.cycling_info_elements(els, frame_counter, hill_idx);
-        }
+            participant.display_name().to_string()
+        };
+        els.push(Element::text(name, 12 + label56_w, 172, FONT_DEFAULT, false));
+
+        let r1text = format!(
+            "{} ({}µ)",
+            fmt_tenths(participant.round1_score),
+            fmt_tenths(participant.round1_len)
+        );
+        els.push(Element::text(r1text, 14 + label56_w, 179, FONT_HELP, false));
+        els.push(Element::text(
+            self.resources.langbase.lstr(59),
+            12,
+            191,
+            FONT_HELP,
+            false,
+        ));
     }
 
     /// Pascal drawinfo cycling: event top5 (0..130) / hill record (146..276) / WC standings (292..)

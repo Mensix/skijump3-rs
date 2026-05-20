@@ -257,6 +257,7 @@ impl Competition {
             }
             CompetitionPhase::Round1 => {
                 self.field.get_mut(idx).points = Some(jump_points);
+                self.field.get_mut(idx).round1_score = jump_points;
                 self.field.get_mut(idx).round1_len = length;
             }
             CompetitionPhase::Round2 => {

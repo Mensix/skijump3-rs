@@ -67,6 +67,7 @@ pub struct Participant {
     pub rank: usize,
     pub qual: QualificationStatus,
     pub round1_len: i32,
+    pub round1_score: i32,
     pub round2_len: i32,
     pub qual_len: i32,
 }
@@ -91,6 +92,7 @@ impl Participant {
             rank: 0,
             qual: QualificationStatus::NotQualified,
             round1_len: 0,
+            round1_score: 0,
             round2_len: 0,
             qual_len: 0,
         }
@@ -110,6 +112,7 @@ impl Participant {
         self.rank = 0;
         self.qual = QualificationStatus::NotQualified;
         self.round1_len = 0;
+        self.round1_score = 0;
         self.round2_len = 0;
         self.qual_len = 0;
     }
