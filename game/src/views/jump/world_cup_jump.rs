@@ -277,11 +277,9 @@ impl WorldCupJumpView {
 }
 
 impl WorldCupJumpView {
-    /// Pascal OnBar draw sequence: only the right panel — drawkeymap
-    /// or cycling info (drawtop5info / drawhrinfo / drawwcinfo).
-    /// The JumperInfoBox at (3,150) is overwritten by Maki.Tulosta (hill redraw)
-    /// during OnBar in Pascal, so it's NOT shown here — only during Info phase
-    /// (via presentation::info_elements). The left side shows only the hill + jumper.
+    /// Pascal OnBar draw sequence:
+    ///   Right panel only — drawkeymap or cycling info.
+    ///   JumperInfoBox at (3,150) is NOT shown during OnBar — only wind gauge + keyinfo.
     fn onbar_overlay(&self, els: &mut Vec<Element>) {
         if !matches!(self.scene.phase(), Some(JumpPhase::OnBar | JumpPhase::Disqualified)) {
             return;

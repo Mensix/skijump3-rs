@@ -41,7 +41,10 @@ pub fn elements(frame: &JumpRenderFrame, ctx: &JumpPresentationContext<'_>) -> V
         JumpPhase::Result => result_elements(&mut els, frame, ctx),
         JumpPhase::Landing => landing_elements(&mut els, frame, ctx),
         JumpPhase::Flight => {}
-        JumpPhase::OnBar | JumpPhase::Inrun => {}
+        JumpPhase::OnBar => {
+            gate_info_elements(&mut els, frame, ctx);
+        }
+        JumpPhase::Inrun => {}
         JumpPhase::Disqualified => dq_elements(&mut els, frame, ctx),
     }
 
@@ -85,17 +88,73 @@ pub fn elements(frame: &JumpRenderFrame, ctx: &JumpPresentationContext<'_>) -> V
     els
 }
 
+fn gate_info_elements(
+    els: &mut Vec<Element>,
+    frame: &JumpRenderFrame,
+    ctx: &JumpPresentationContext<'_>,
+) {
+    if ctx.allow_gate_adjust {
+        let label58 = ctx.langbase.lstr(58);
+        let label58_w = ctx.font.string_width(label58) as i32;
+        els.push(Element::text(label58, 64, 19, FONT_DEFAULT, false));
+        els.push(Element::text(
+            format!("{}", frame.start_gate),
+            70 + label58_w,
+            19,
+            FONT_GOLD,
+            false,
+        ));
+        els.push(Element::text(
+            "(+/-)",
+            67 + label58_w,
+            27,
+            FONT_GREET,
+            false,
+        ));
+    }
+}
+
+fn jumper_info_box_elements(
+    els: &mut Vec<Element>,
+    _frame: &JumpRenderFrame,
+    ctx: &JumpPresentationContext<'_>,
+) {
+    els.push(Element::sprite(
+        sprites::Sprite::JumperInfoBox as u16,
+        3,
+        150,
+    ));
+    let phase_label = if ctx.phase_label.is_empty() {
+        ctx.langbase.lstr(51)
+    } else {
+        ctx.phase_label
+    };
+    let label56 = ctx.langbase.lstr(56);
+    let label_w = ctx.font.string_width(label56) as i32;
+    els.push(Element::text(phase_label, 12, 160, FONT_GREET, false));
+    els.push(Element::text(label56, 12, 172, FONT_GREET, false));
+    els.push(Element::text(
+        ctx.jumper_name,
+        12 + label_w,
+        172,
+        FONT_DEFAULT,
+        false,
+    ));
+    els.push(Element::text(
+        ctx.langbase.lstr(59),
+        12,
+        191,
+        FONT_HELP,
+        false,
+    ));
+}
+
 fn info_elements(
     els: &mut Vec<Element>,
     frame: &JumpRenderFrame,
     ctx: &JumpPresentationContext<'_>,
 ) {
     els.push(Element::sprite(sprites::Sprite::InfoPanel as u16, 227, 2));
-    els.push(Element::sprite(
-        sprites::Sprite::JumperInfoBox as u16,
-        3,
-        150,
-    ));
     els.push(Element::text(ctx.hill_name_k, 308, 9, FONT_GOLD, true));
     els.push(Element::text(
         ctx.langbase.lstr(65),
@@ -116,49 +175,8 @@ fn info_elements(
             ));
         }
     }
-
-    let label56 = ctx.langbase.lstr(56);
-    let label_w = ctx.font.string_width(label56) as i32;
-    if ctx.allow_gate_adjust {
-        let label58 = ctx.langbase.lstr(58);
-        let label58_w = ctx.font.string_width(label58) as i32;
-        els.push(Element::text(label58, 64, 19, FONT_DEFAULT, false));
-        els.push(Element::text(
-            format!("{}", frame.start_gate),
-            70 + label58_w,
-            19,
-            FONT_GOLD,
-            false,
-        ));
-        els.push(Element::text(
-            "(+/-)",
-            67 + label58_w,
-            27,
-            FONT_GREET,
-            false,
-        ));
-    }
-    let phase_label = if ctx.phase_label.is_empty() {
-        ctx.langbase.lstr(51)
-    } else {
-        ctx.phase_label
-    };
-    els.push(Element::text(phase_label, 12, 160, FONT_GREET, false));
-    els.push(Element::text(label56, 12, 172, FONT_GREET, false));
-    els.push(Element::text(
-        ctx.jumper_name,
-        12 + label_w,
-        172,
-        FONT_DEFAULT,
-        false,
-    ));
-    els.push(Element::text(
-        ctx.langbase.lstr(59),
-        12,
-        191,
-        FONT_HELP,
-        false,
-    ));
+    gate_info_elements(els, frame, ctx);
+    jumper_info_box_elements(els, frame, ctx);
 }
 
 fn panel_header(els: &mut Vec<Element>, name: &str, color: u8) {
