@@ -316,4 +316,31 @@ mod tests {
         let list = f.build_start_list(CompetitionPhase::Training(1));
         assert_eq!(list, vec![2, 0]);
     }
+
+    #[test]
+    fn qualification_start_order_reverse_wc_rank() {
+        let mut wc_scores: Vec<i32> = (0..75).map(|i| 100 - i as i32).collect();
+        let mut participants = make_from_wc(&wc_scores);
+        let human_idx = 9;
+        participants[human_idx].is_computer = false;
+
+        let mut f = CompetitionField::new(participants);
+        f.sort_field(SortBy::WcPoints);
+
+        let list = f.build_start_list(CompetitionPhase::Qualification);
+        assert_eq!(list[65], human_idx, "human 10th WC at position 65");
+        for i in 0..65 {
+            assert!(f.get(list[i]).is_computer, "pos {i} should be AI");
+        }
+    }
+
+    #[test]
+    fn qualification_starts_with_lowest_wc() {
+        let mut participants = make_from_wc(&[50, 100, 30, 80, 10]);
+        let mut f = CompetitionField::new(participants);
+        f.sort_field(SortBy::WcPoints);
+        let list = f.build_start_list(CompetitionPhase::Qualification);
+        assert_eq!(list[0], 4, "lowest WC first");
+        assert_eq!(list[4], 1, "highest WC last");
+    }
 }

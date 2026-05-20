@@ -748,4 +748,71 @@ mod tests {
         let first_in_event = c.field.event_order[0];
         assert_eq!(c.field.get(first_in_event).round1_rank, 1);
     }
+
+    #[test]
+    fn decide_next_skip_for_manually_prequalified_human() {
+        let mut participants = make_50_participants();
+        let human_idx = 5;
+        participants[human_idx].is_computer = false;
+        participants[human_idx].skip_quali = true;
+        participants[human_idx].qual = QualificationStatus::PreQualified;
+
+        let mut c = Competition::new(CupStyle::WorldCup, participants, vec![0]);
+        c.trainrounds = 0;
+        c.phase = CompetitionPhase::Qualification;
+        c.start_list = vec![human_idx];
+        c.start_pos = 0;
+
+        assert_eq!(c.decide_next(), StepDecision::Skip);
+    }
+
+    #[test]
+    fn decide_next_jump_for_manually_prequalified_ai() {
+        let mut participants = make_50_participants();
+        let ai_idx = 5;
+        participants[ai_idx].qual = QualificationStatus::PreQualified;
+
+        let mut c = Competition::new(CupStyle::WorldCup, participants, vec![0]);
+        c.trainrounds = 0;
+        c.phase = CompetitionPhase::Qualification;
+        c.start_list = vec![ai_idx];
+        c.start_pos = 0;
+
+        assert!(matches!(c.decide_next(), StepDecision::Jump { .. }));
+    }
+
+    #[test]
+    fn non_prequalified_human_gets_jump_not_skip() {
+        let mut participants = make_50_participants();
+        let human_idx = 5;
+        participants[human_idx].is_computer = false;
+        participants[human_idx].skip_quali = true;
+        // NOT prequalified — should get Jump, not Skip
+        participants[human_idx].qual = QualificationStatus::NotQualified;
+
+        let mut c = Competition::new(CupStyle::WorldCup, participants, vec![0]);
+        c.trainrounds = 0;
+        c.phase = CompetitionPhase::Qualification;
+        c.start_list = vec![human_idx];
+        c.start_pos = 0;
+
+        assert!(matches!(c.decide_next(), StepDecision::Jump { .. }));
+    }
+
+    #[test]
+    fn prequalified_human_without_skipquali_gets_jump() {
+        let mut participants = make_50_participants();
+        let human_idx = 5;
+        participants[human_idx].is_computer = false;
+        participants[human_idx].skip_quali = false; // no skip
+        participants[human_idx].qual = QualificationStatus::PreQualified;
+
+        let mut c = Competition::new(CupStyle::WorldCup, participants, vec![0]);
+        c.trainrounds = 0;
+        c.phase = CompetitionPhase::Qualification;
+        c.start_list = vec![human_idx];
+        c.start_pos = 0;
+
+        assert!(matches!(c.decide_next(), StepDecision::Jump { .. }));
+    }
 }
