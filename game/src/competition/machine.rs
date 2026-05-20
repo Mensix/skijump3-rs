@@ -642,4 +642,110 @@ mod tests {
         assert_eq!(m.phase, CompetitionPhase::Round2);
         assert_eq!(m.field.num_qualified(), 30);
     }
+
+    #[test]
+    fn skip_for_prequalified_human_in_qualification() {
+        let mut participants = make_50_participants();
+        // Turn the last participant (lowest WC rank) into a human with skipquali
+        let human_idx = 49;
+        participants[human_idx].is_computer = false;
+        participants[human_idx].skip_quali = true;
+
+        let mut c = Competition::new(CupStyle::WorldCup, participants, vec![0, 1]);
+        c.trainrounds = 0;
+
+        // Run event 1 so setup for event 2 marks PreQualified
+        c.advance(); // Setup -> Qualification
+        while c.current_jumper().is_some() {
+            c.record_jump(150, 90);
+        }
+        c.advance(); // -> QualificationResults
+        c.advance(); // -> Round1
+        while c.current_jumper().is_some() {
+            c.record_jump(150, 90);
+        }
+        c.advance(); // -> Round1Results
+        c.advance(); // -> Round2
+        while c.current_jumper().is_some() {
+            c.record_jump(150, 90);
+        }
+        c.advance(); // -> Round2Results
+        c.advance(); // -> WC standings
+        c.advance(); // -> EventComplete
+        c.advance(); // advance to Setup
+        // Now at Setup for event 2
+        c.advance(); // Setup -> Qualification for event 2
+
+        assert_eq!(c.phase, CompetitionPhase::Qualification);
+
+        // Consume AI jumpers until we reach the human
+        while let Some(idx) = c.current_jumper() {
+            if idx == human_idx {
+                assert_eq!(c.decide_next(), StepDecision::Skip);
+                return;
+            }
+            c.record_jump(0, 0);
+        }
+        panic!("human never reached current jumper in qualification");
+    }
+
+    #[test]
+    fn prequalified_ai_still_gets_jump() {
+        let mut participants = make_50_participants();
+        let human_idx = 49;
+        participants[human_idx].is_computer = false;
+        participants[human_idx].skip_quali = true;
+
+        let mut c = Competition::new(CupStyle::WorldCup, participants, vec![0, 1]);
+        c.trainrounds = 0;
+
+        c.advance(); // -> Qualification
+        while let Some(idx) = c.current_jumper() {
+            if idx == human_idx {
+                break;
+            }
+            // All AI jumpers (some may be PreQualified from previous season) get Jump
+            assert!(
+                matches!(c.decide_next(), StepDecision::Jump { .. }),
+                "AI should get Jump, got {:?}",
+                c.decide_next()
+            );
+            c.record_jump(0, 0);
+        }
+    }
+
+    #[test]
+    fn round1_rank_is_frozen_before_round2() {
+        let mut participants = make_50_participants();
+        // Give participants varied scores so we can verify ranks
+        for (i, p) in participants.iter_mut().enumerate() {
+            p.points = Some(1000 - i as i32 * 10); // 1000, 990, 980, ...
+        }
+        let mut c = Competition::new(CupStyle::WorldCup, participants, vec![0]);
+        c.trainrounds = 0;
+
+        c.advance(); // -> Qualification
+        while c.current_jumper().is_some() {
+            c.record_jump(0, 90);
+        }
+        c.advance(); // -> QualificationResults
+        c.advance(); // -> Round1
+        while c.current_jumper().is_some() {
+            c.record_jump(0, 90);
+        }
+        c.advance(); // -> Round1Results (event_order sorted, rank set)
+        c.advance(); // -> Round2 (cut_to_round2 freezes round1_rank)
+
+        // Round1 rank should be set for all participants, not just those in Round 2
+        for i in 0..c.field.len() {
+            assert!(
+                c.field.get(i).round1_rank > 0,
+                "participant {i} should have round1_rank > 0, got {}",
+                c.field.get(i).round1_rank
+            );
+        }
+        // Top-ranked participant should have round1_rank = 1
+        let first_in_event = c.field.event_order[0];
+        assert_eq!(c.field.get(first_in_event).round1_rank, 1);
+    }
 }
