@@ -346,19 +346,15 @@ impl WorldCupJumpView {
             let standings = c.event_standings();
             for (i, p) in standings.iter().enumerate().take(5) {
                 if let Some(pts) = p.points {
-                    let value = if i == 0 {
-                        fmt_tenths(pts)
-                    } else {
-                        let leader = standings[0].points.unwrap_or(0);
-                        fmt_tenths(pts - leader)
-                    };
-                    els.push(Element::text(
-                        format!("{}  {}", p.name, value),
-                        308,
-                        13 + i as i32 * 7,
-                        FONT_GOLD,
-                        true,
-                    ));
+                    if pts > 0 {
+                        els.push(Element::text(
+                            format!("{}  {}", p.name, fmt_tenths(pts)),
+                            308,
+                            13 + i as i32 * 7,
+                            FONT_GOLD,
+                            true,
+                        ));
+                    }
                 }
             }
         });
@@ -403,7 +399,9 @@ impl WorldCupJumpView {
         }
     }
 
-    /// Pascal drawwcinfo: top 5 World Cup / season standings
+    /// Pascal drawwcinfo: top 5 World Cup / season standings.
+    /// Pascal renders name + '$' (space) + points as one right-aligned string.
+    /// diffwc defaults to false — full points shown, not gaps.
     fn wc_standings_elements(&self, els: &mut Vec<Element>) {
         els.push(Element::sprite(sprites::Sprite::InfoPanel as u16, 227, 2));
         els.push(Element::text(
@@ -418,23 +416,9 @@ impl WorldCupJumpView {
             let standings = c.overall_standings();
             for (i, p) in standings.iter().enumerate().take(5) {
                 if p.wc_points > 0 {
-                    let value = if i == 0 {
-                        p.wc_points.to_string()
-                    } else {
-                        let gap = standings[0].wc_points - p.wc_points;
-                        if gap > 0 {
-                            format!("-{}", gap)
-                        } else {
-                            p.wc_points.to_string()
-                        }
-                    };
-                    els.push(Element::text(
-                        format!("{}  {}", p.name, value),
-                        308,
-                        13 + i as i32 * 7,
-                        FONT_GOLD,
-                        true,
-                    ));
+                    // Pascal: nimet[who] + '$' + txt(mcpisteet[who]) — raw points
+                    let s = format!("{}  {}", p.name, p.wc_points);
+                    els.push(Element::text(s, 308, 13 + i as i32 * 7, FONT_GOLD, true));
                 }
             }
         });
@@ -503,6 +487,9 @@ impl View<RouteTarget> for WorldCupJumpView {
 
     fn apply_palette(&self, palette: &mut Palette) {
         if self.is_result_display_state() {
+            // Pascal: for style 1 screens, always MuutaMenu(3, 0) (gray base)
+            apply_menu_tint(palette, 3, 0);
+            // Pascal: color-specific tint on index 1 — col=5 (red) for WC standings
             let tint = self
                 .store
                 .competition
@@ -511,7 +498,9 @@ impl View<RouteTarget> for WorldCupJumpView {
                     _ => 0,
                 })
                 .unwrap_or(0);
-            apply_menu_tint(palette, 3, tint);
+            if tint > 0 {
+                apply_menu_tint(palette, 1, tint);
+            }
             return;
         }
         self.scene.apply_palette(palette);
@@ -569,7 +558,12 @@ impl WorldCupJumpView {
                 };
                 if page + 1 < total {
                     self.display_page.set(page + 1);
+                    return None;
                 }
+                // Pascal WaitForKey(0): any key on the last entry exits the list
+                self.display_page.set(0);
+                self.result_screen.set(ResultScreen::List);
+                self.store.competition.try_with_mut(|c| c.advance());
                 None
             }
             Event::Keyboard(Key::Char('c') | Key::Char('C')) => {
