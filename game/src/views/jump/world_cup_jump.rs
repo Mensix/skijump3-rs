@@ -150,8 +150,12 @@ impl WorldCupJumpView {
                 self.ui_state.enter_jump();
             }
             WorldCupCommand::ShowResults => {
-                self.select_default_result_screen();
-                self.ui_state.enter_results();
+                // Only initialize result UI on first entry — not every
+                // frame, otherwise paging/toggles are instantly reset.
+                if self.ui_state.render_mode() != RenderMode::Results {
+                    self.select_default_result_screen();
+                    self.ui_state.enter_results();
+                }
             }
             WorldCupCommand::Done => {
                 self.ui_state.enter_done();
