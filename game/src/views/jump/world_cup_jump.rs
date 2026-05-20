@@ -339,8 +339,10 @@ impl WorldCupJumpView {
         els.push(Element::text(phase_label, 12, 160, FONT_GREET, false));
         els.push(Element::text(label56, 12, 172, FONT_GREET, false));
         let rank = self.store.competition.try_with(|c| {
-            let standings = c.event_standings();
-            standings.iter().position(|p| p.id == participant.id).map(|i| i + 1)
+            // Pascal: rank based on Round 1 scores, not the current combined standings
+            let mut round1: Vec<_> = c.event_standings();
+            round1.sort_by(|a, b| b.round1_score.cmp(&a.round1_score));
+            round1.iter().position(|p| p.id == participant.id).map(|i| i + 1)
         }).flatten().unwrap_or(0);
         let name = if rank > 0 {
             format!("{} ({}.)", participant.display_name(), rank)
