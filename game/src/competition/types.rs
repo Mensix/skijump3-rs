@@ -64,7 +64,9 @@ pub struct Participant {
 
     // Per-event state. None = hasn't started (DNS)
     pub points: Option<i32>,
+    /// Current live rank in the event standings (updated by sort_field after each jump).
     pub rank: usize,
+    /// Frozen Round 1 rank stored before Round 2 starts (Pascal's `sija` from `luett`).
     pub round1_rank: usize,
     pub qual: QualificationStatus,
     pub round1_len: i32,

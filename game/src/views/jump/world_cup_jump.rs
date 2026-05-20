@@ -1,4 +1,4 @@
-use crate::competition::types::{CompetitionPhase, CupStyle};
+use crate::competition::types::{CompetitionPhase, CupStyle, Participant};
 use crate::controllers::jump_input::{JumpInputAction, JumpInputController};
 use crate::controllers::jump_scene::JumpScene;
 use crate::controllers::world_cup_flow::{self, WorldCupCommand};
@@ -20,6 +20,15 @@ enum OverlayKind {
     Keymap,
     CyclingInfo,
     Round2CyclingWithInfoBox,
+}
+
+/// All data needed to render the overlay. Returned by `overlay_context()`
+/// so `onbar_overlay()` never repeats competition reads.
+struct OverlayContext {
+    kind: OverlayKind,
+    participant: Participant,
+    hill_idx: usize,
+    frame_counter: i32,
 }
 
 fn fmt_tenths(val: i32) -> String {
@@ -286,34 +295,41 @@ impl WorldCupJumpView {
 }
 
 impl WorldCupJumpView {
-    /// Pure decision: what overlay kind to draw for the current state.
-    fn overlay_kind(&self) -> Option<OverlayKind> {
+    /// Pure decision: what overlay to draw for the current state.
+    fn overlay_context(&self) -> Option<OverlayContext> {
         let scene_phase = self.scene.phase()?;
-        if scene_phase == JumpPhase::Disqualified {
-            return Some(OverlayKind::None);
-        }
+        let kind = if scene_phase == JumpPhase::Disqualified {
+            OverlayKind::None
+        } else {
+            let (phase, participant, style) = self.store.competition.try_with(|c| {
+                let idx = c.current_jumper().unwrap_or(0);
+                let p = c.participant(idx);
+                (c.phase(), p.clone(), c.style())
+            })?;
+            let first_event = self.store.competition.try_with(|c| c.current_event == 0).unwrap_or(false);
+            let show_keymap = self.first_human_onbar.get() && first_event && !participant.is_computer;
 
-        let (phase, participant, style) = self.store.competition.try_with(|c| {
+            match (phase, scene_phase) {
+                (CompetitionPhase::Round2, JumpPhase::Info) if !matches!(style, CupStyle::CustomCup) => {
+                    OverlayKind::Round2CyclingWithInfoBox
+                }
+                (CompetitionPhase::Qualification, JumpPhase::Info) => {
+                    if show_keymap { OverlayKind::Keymap } else { OverlayKind::CyclingInfo }
+                }
+                (CompetitionPhase::Qualification, JumpPhase::OnBar) if show_keymap => {
+                    OverlayKind::Keymap
+                }
+                _ => OverlayKind::None,
+            }
+        };
+
+        let frame_counter = self.scene.frame_counter();
+        let (participant, hill_idx) = self.store.competition.try_with(|c| {
             let idx = c.current_jumper().unwrap_or(0);
-            let p = c.participant(idx);
-            (c.phase(), p.clone(), c.style())
+            (c.participant(idx).clone(), c.current_hill())
         })?;
 
-        let first_event = self.store.competition.try_with(|c| c.current_event == 0).unwrap_or(false);
-        let show_keymap = self.first_human_onbar.get() && first_event && !participant.is_computer;
-
-        match (phase, scene_phase) {
-            (CompetitionPhase::Round2, JumpPhase::Info) if !matches!(style, CupStyle::CustomCup) => {
-                Some(OverlayKind::Round2CyclingWithInfoBox)
-            }
-            (CompetitionPhase::Qualification, JumpPhase::Info) => {
-                Some(if show_keymap { OverlayKind::Keymap } else { OverlayKind::CyclingInfo })
-            }
-            (CompetitionPhase::Qualification, JumpPhase::OnBar) if show_keymap => {
-                Some(OverlayKind::Keymap)
-            }
-            _ => Some(OverlayKind::None),
-        }
+        Some(OverlayContext { kind, participant, hill_idx, frame_counter })
     }
 
     /// Pascal OnBar draw sequence:
@@ -321,31 +337,17 @@ impl WorldCupJumpView {
     ///   OnBar (second loop, sitting on bar) — only keymap for first event's first human
     ///   Disqualified — only DQ info bar (provided by presentation::dq_elements)
     fn onbar_overlay(&self, els: &mut Vec<Element>) {
-        let kind = match self.overlay_kind() {
-            Some(k) => k,
+        let ctx = match self.overlay_context() {
+            Some(c) => c,
             None => return,
         };
-        let frame_counter = self.scene.frame_counter();
-        let Some((_, _, hill_idx, _)) = self.store.competition.try_with(|c| {
-            let idx = c.current_jumper().unwrap_or(0);
-            let p = c.participant(idx);
-            Some((c.phase(), p.clone(), c.current_hill(), c.style()))
-        }).flatten() else { return };
-
-        let participant = self.store.competition.try_with(|c| {
-            let idx = c.current_jumper().unwrap_or(0);
-            Some(c.participant(idx).clone())
-        }).flatten();
-
-        match kind {
+        match ctx.kind {
             OverlayKind::None => {}
             OverlayKind::Keymap => self.drawkeymap_elements(els),
-            OverlayKind::CyclingInfo => self.cycling_info_elements(els, frame_counter, hill_idx),
+            OverlayKind::CyclingInfo => self.cycling_info_elements(els, ctx.frame_counter, ctx.hill_idx),
             OverlayKind::Round2CyclingWithInfoBox => {
-                self.cycling_info_elements(els, frame_counter, hill_idx);
-                if let Some(ref p) = participant {
-                    self.round2_jumper_info_box(els, p);
-                }
+                self.cycling_info_elements(els, ctx.frame_counter, ctx.hill_idx);
+                self.round2_jumper_info_box(els, &ctx.participant);
             }
         }
     }

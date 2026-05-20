@@ -319,7 +319,7 @@ mod tests {
 
     #[test]
     fn qualification_start_order_reverse_wc_rank() {
-        let mut wc_scores: Vec<i32> = (0..75).map(|i| 100 - i as i32).collect();
+        let wc_scores: Vec<i32> = (0..75).map(|i| 100 - i as i32).collect();
         let mut participants = make_from_wc(&wc_scores);
         let human_idx = 9;
         participants[human_idx].is_computer = false;
@@ -336,7 +336,7 @@ mod tests {
 
     #[test]
     fn qualification_starts_with_lowest_wc() {
-        let mut participants = make_from_wc(&[50, 100, 30, 80, 10]);
+        let participants = make_from_wc(&[50, 100, 30, 80, 10]);
         let mut f = CompetitionField::new(participants);
         f.sort_field(SortBy::WcPoints);
         let list = f.build_start_list(CompetitionPhase::Qualification);
