@@ -42,6 +42,11 @@ pub struct ResultsPage {
     pub(crate) page: usize,
     pub(crate) total_pages: usize,
     pub(crate) items: Vec<ResultsEntry>,
+    pub(crate) compact: bool,
+    /// Rank of the last entry on the previous page (0 for page 0).
+    /// Used to correctly place the --- separator at the 30→31 transition
+    /// even when it spans across pages.
+    pub(crate) prev_last_rank: usize,
 }
 
 pub struct ResultsEntry {
@@ -58,6 +63,7 @@ pub struct ResultsEntry {
 fn items_per_page(phase: CompetitionPhase) -> usize {
     match phase {
         CompetitionPhase::WorldCupStandings | CompetitionPhase::SeasonComplete => WC_ITEMS_PER_PAGE,
+        CompetitionPhase::Round1Results | CompetitionPhase::Round2Results => 22,
         _ => QUALIFICATION_ITEMS_PER_PAGE,
     }
 }
@@ -91,11 +97,18 @@ pub fn build_results_page(competition: &Competition, page: usize) -> ResultsPage
         });
     }
 
+    let prev_last_rank = if page > 0 {
+        standings.get(start - 1).map_or(0, |p| p.rank)
+    } else {
+        0
+    };
     ResultsPage {
         phase: competition.phase(),
         page,
         total_pages,
         items,
+        compact: false,
+        prev_last_rank,
     }
 }
 
@@ -136,6 +149,8 @@ pub fn build_compact_results_page(competition: &Competition) -> ResultsPage {
         page: 0,
         total_pages: 1,
         items,
+        compact: true,
+        prev_last_rank: 0,
     }
 }
 
@@ -229,6 +244,77 @@ fn round_header(
     format!("{prefix} {event} {of} {total} - {hill} - R {round}")
 }
 
+fn render_results_entry(
+    els: &mut Vec<Element>,
+    entry: &ResultsEntry,
+    phase: CompetitionPhase,
+    y: i32,
+    rank_x: i32,
+    name_x: i32,
+    points_x: i32,
+    last_rank: &mut usize,
+    show_extra: bool,
+) {
+    let (col_text, col_rank, col_dist) = if entry.is_own {
+        (FONT_DEFAULT, FONT_HEADER, FONT_GREET)
+    } else {
+        (OTHER_NAME, OTHER_RANK, OTHER_DISTANCE)
+    };
+
+    if entry.rank != *last_rank {
+        els.push(Element::text(format!("{}.", entry.rank), rank_x, y, col_rank, true));
+    }
+    *last_rank = entry.rank;
+
+    els.push(Element::text(truncate_name(&entry.name), name_x, y, col_text, false));
+
+    let points = match phase {
+        CompetitionPhase::WorldCupStandings | CompetitionPhase::SeasonComplete => {
+            entry.points.to_string()
+        }
+        _ => format_tenths(entry.points),
+    };
+    els.push(Element::text(points, points_x, y, col_text, true));
+
+    if show_extra && entry.distance > 0 {
+        els.push(Element::text(
+            format_distance(entry.distance, entry.distance2),
+            COL_DISTANCE,
+            y,
+            col_dist,
+            false,
+        ));
+    }
+
+    if show_extra {
+        match phase {
+            CompetitionPhase::QualificationResults => match entry.qual {
+                QualificationStatus::Qualified => {
+                    els.push(Element::text("Q", COL_QUAL, y, col_rank, false));
+                }
+                QualificationStatus::PreQualified => {
+                    els.push(Element::text("Q WC", COL_QUAL, y, col_dist, false));
+                }
+                _ => {}
+            },
+            CompetitionPhase::Round1Results if entry.rank <= 30 => {
+                els.push(Element::text("Q", COL_QUAL, y, col_rank, false));
+            }
+            _ => {}
+        }
+
+        if entry.injury > 0 {
+            els.push(Element::text(
+                format!("INJ-{}", entry.injury.saturating_sub(1)),
+                COL_EXTRA,
+                y,
+                INJURY_COLOR,
+                false,
+            ));
+        }
+    }
+}
+
 pub fn render_results_page(page: &ResultsPage, resources: &ResourcesRef) -> Vec<Element> {
     let mut els = new_screen(1);
 
@@ -254,82 +340,49 @@ pub fn render_results_page(page: &ResultsPage, resources: &ResourcesRef) -> Vec<
         page.phase,
         CompetitionPhase::WorldCupStandings | CompetitionPhase::SeasonComplete
     );
-    let row_step = if is_wc { WC_ROW_STEP } else { ROW_STEP_QUALIFICATION };
+    // Pascal: Quali=plus7(phase0), Rounds=plus8(phase1), WC=plus8(phase3)
+    let row_step = if is_wc {
+        WC_ROW_STEP
+    } else if matches!(page.phase, CompetitionPhase::Round1Results | CompetitionPhase::Round2Results) {
+        8
+    } else {
+        ROW_STEP_QUALIFICATION
+    };
 
     let mut last_rank = 0;
-    for (i, entry) in page.items.iter().enumerate() {
-        // Two-column layout: split at WC_COL_SPLIT, second column at x=160
-        let col = if is_wc && i >= WC_COL_SPLIT { 1 } else { 0 };
-        let col_off = col * WC_COL2_OFFSET;
-        let row_in_col = if is_wc { i % WC_COL_SPLIT } else { i };
-        let y = START_Y + row_in_col as i32 * row_step;
-        if !is_wc && y > 191 {
-            break;
+    if is_wc {
+        // Two-column layout: y computed from column/row, no separator needed
+        for (i, entry) in page.items.iter().enumerate() {
+            let col = if i >= WC_COL_SPLIT { 1 } else { 0 };
+            let col_off = col * WC_COL2_OFFSET;
+            let y = START_Y + (i % WC_COL_SPLIT) as i32 * row_step;
+            render_results_entry(&mut els, entry, page.phase, y, WC_RANK + col_off, WC_NAME + col_off, WC_POINTS + col_off, &mut last_rank, false);
         }
-
-        let (rank_x, name_x, points_x) = if is_wc {
-            (WC_RANK + col_off, WC_NAME + col_off, WC_POINTS + col_off)
-        } else {
-            (COL_RANK, COL_NAME, COL_POINTS)
-        };
-
-        let (col_text, col_rank, col_dist) = if entry.is_own {
-            (FONT_DEFAULT, FONT_HEADER, FONT_GREET)
-        } else {
-            (OTHER_NAME, OTHER_RANK, OTHER_DISTANCE)
-        };
-
-        if entry.rank != last_rank {
-            els.push(Element::text(format!("{}.", entry.rank), rank_x, y, col_rank, true));
-        }
-        last_rank = entry.rank;
-
-        els.push(Element::text(truncate_name(&entry.name), name_x, y, col_text, false));
-
-        let points = match page.phase {
-            CompetitionPhase::WorldCupStandings | CompetitionPhase::SeasonComplete => {
-                entry.points.to_string()
+    } else {
+        let mut y = START_Y;
+        for (i, entry) in page.items.iter().enumerate() {
+            if y > 191 {
+                break;
             }
-            _ => format_tenths(entry.points),
-        };
-        els.push(Element::text(points, points_x, y, col_text, true));
 
-        if !is_wc && entry.distance > 0 {
-            els.push(Element::text(
-                format_distance(entry.distance, entry.distance2),
-                COL_DISTANCE,
-                y,
-                col_dist,
-                false,
-            ));
-        }
-
-        if !is_wc {
-            match page.phase {
-                CompetitionPhase::QualificationResults => match entry.qual {
-                    QualificationStatus::Qualified => {
-                        els.push(Element::text("Q", COL_QUAL, y, col_rank, false));
-                    }
-                    QualificationStatus::PreQualified => {
-                        els.push(Element::text("Q WC", COL_QUAL, y, col_dist, false));
-                    }
-                    _ => {}
-                },
-                CompetitionPhase::Round1Results if entry.rank <= 30 => {
-                    els.push(Element::text("Q", COL_QUAL, y, col_rank, false));
+            // Pascal: - - - separator between rank 30 and 31 in Round 1 results
+            // sija[who]>30 && sija[prev]<=30 — the actual predecessor in the FULL list
+            // For paginated display, check either previous visible item or prev page's last rank
+            if !page.compact
+                && matches!(page.phase, CompetitionPhase::Round1Results)
+                && entry.rank > 30
+                && (i > 0 && page.items[i - 1].rank <= 30 || i == 0 && page.prev_last_rank <= 30)
+            {
+                let half = row_step / 2;
+                els.push(Element::text("- - -", COL_NAME, y + half, FONT_HEADER, false));
+                y += half + row_step + half;
+                if y > 191 {
+                    break;
                 }
-                _ => {}
             }
 
-            if entry.injury > 0 {
-                els.push(Element::text(
-                    format!("INJ-{}", entry.injury.saturating_sub(1)),
-                    COL_EXTRA,
-                    y,
-                    INJURY_COLOR,
-                    false,
-                ));
-            }
+            render_results_entry(&mut els, entry, page.phase, y, COL_RANK, COL_NAME, COL_POINTS, &mut last_rank, true);
+            y += row_step;
         }
     }
 
