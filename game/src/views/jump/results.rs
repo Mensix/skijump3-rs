@@ -848,7 +848,7 @@ fn truncate_name(name: &str) -> String {
     name.chars().take(MAX_CHARS).collect()
 }
 
-fn format_tenths(value: i32) -> String {
+pub fn format_tenths(value: i32) -> String {
     if value == 0 {
         return "0.0".to_string();
     }

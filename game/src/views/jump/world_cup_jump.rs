@@ -1,3 +1,4 @@
+use crate::competition::scoring::WC_POINTS;
 use crate::competition::types::{CompetitionPhase, CupStyle};
 use crate::controllers::competition_ui::{CompetitionUiState, RenderMode, ResultScreen};
 use crate::controllers::jump_input::{JumpInputAction, JumpInputController};
@@ -194,21 +195,36 @@ impl WorldCupJumpView {
                 };
 
                 match style {
-                    CupStyle::WorldCup | CupStyle::TeamCup => {
+                    CupStyle::WorldCup => {
                         profile.world_cups += 1;
-                        if p.wc_points > profile.bestpoints as i32 {
-                            profile.bestpoints = p.wc_points as usize;
+                        let my_points = p.points.unwrap_or(0);
+                        let event_rank = 1 + c
+                            .event_standings()
+                            .iter()
+                            .filter(|ep| ep.points.unwrap_or(i32::MIN) > my_points)
+                            .count();
+                        let pts = if event_rank <= 30 {
+                            WC_POINTS[event_rank - 1]
+                        } else {
+                            0
+                        };
+                        if pts > profile.bestpoints as i32 {
+                            profile.bestpoints = pts as usize;
                             profile.best_result =
-                                format!("{} ({})", p.wc_points, profile.world_cups);
+                                format!("{} ({}.)", pts, event_rank);
                         }
                     }
                     CupStyle::FourHills => {
                         if p.four_hills_points > profile.best4points as i32 {
                             profile.best4points = p.four_hills_points as usize;
-                            profile.best_4h_result = format!("{}", p.four_hills_points);
+                            profile.best_4h_result = format!(
+                                "{} ({}.)",
+                                competition_results::format_tenths(p.four_hills_points),
+                                p.rank,
+                            );
                         }
                     }
-                    CupStyle::CustomCup => {}
+                    CupStyle::CustomCup | CupStyle::TeamCup => {}
                 }
             }
         });
