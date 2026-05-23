@@ -62,9 +62,14 @@ pub struct ResultsEntry {
 }
 
 fn use_tenths_for_phase(phase: CompetitionPhase, style: CupStyle) -> bool {
-    matches!(phase, CompetitionPhase::FourHillsStandings)
-        || (phase == CompetitionPhase::SeasonComplete
-            && matches!(style, CupStyle::FourHills | CupStyle::CustomCup))
+    matches!(
+        phase,
+        CompetitionPhase::QualificationResults
+            | CompetitionPhase::Round1Results
+            | CompetitionPhase::Round2Results
+            | CompetitionPhase::FourHillsStandings
+    ) || (phase == CompetitionPhase::SeasonComplete
+        && matches!(style, CupStyle::FourHills | CupStyle::CustomCup))
 }
 
 fn competition_results_entry_data(

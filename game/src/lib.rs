@@ -30,8 +30,9 @@ use parsers::pcx::PcxParser;
 use route::RouteTarget;
 use std::rc::Rc;
 use views::{
-    HallOfFameView, HillRecordsView, JumpMenuView, MainMenuView, ProfilesView, ReplayBrowserView,
-    ReplayView, TrainingJumpView, TrainingSetupView, WelcomeScreenView, WorldCupJumpView,
+    CustomCupSetupView, HallOfFameView, HillRecordsView, JumpMenuView, MainMenuView, ProfilesView,
+    ReplayBrowserView, ReplayView, TrainingJumpView, TrainingSetupView, WelcomeScreenView,
+    WorldCupJumpView,
 };
 
 const MAIN_PCX: &str = "MAIN.PCX";
@@ -199,6 +200,12 @@ impl Game {
                     RouteTarget::CompetitionJump,
                     rs(&resources, &store, |r, s| {
                         Box::new(WorldCupJumpView::new(r, s))
+                    }),
+                ),
+                (
+                    RouteTarget::CustomCupSetup,
+                    rs(&resources, &store, |r, s| {
+                        Box::new(CustomCupSetupView::new(s, r))
                     }),
                 ),
                 (RouteTarget::Replays, {

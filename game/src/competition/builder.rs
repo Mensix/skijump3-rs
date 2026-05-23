@@ -20,6 +20,20 @@ pub fn build_competition(
     c
 }
 
+/// Build a Competition with a custom hill order (for Custom Cup).
+#[must_use]
+pub fn build_custom_competition(
+    profiles: &ProfileStore,
+    computer_names: &[String],
+    hill_order: Vec<usize>,
+    trainrounds: usize,
+) -> Competition {
+    let participants = build_participants(profiles, computer_names);
+    let mut c = Competition::new(CupStyle::CustomCup, participants, hill_order);
+    c.trainrounds = trainrounds;
+    c
+}
+
 fn build_hill_order(style: CupStyle, hill_count: usize) -> Vec<usize> {
     match style {
         CupStyle::FourHills => vec![8, 9, 10, 11],

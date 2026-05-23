@@ -103,7 +103,7 @@ impl View<RouteTarget> for JumpMenuView {
     fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {
         match self.menu.handle_event(&event) {
             Some(1) => self.start_competition(CupStyle::WorldCup),
-            Some(2) => self.start_competition(CupStyle::CustomCup),
+            Some(2) => Some(RouteTarget::CustomCupSetup),
             Some(3) => self.start_competition(CupStyle::FourHills),
             Some(0) => Some(RouteTarget::MainMenu),
             Some(n) => JUMP_MENU_ACTIONS.get(n - 1).and_then(|&a| a),
