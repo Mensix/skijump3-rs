@@ -260,10 +260,14 @@ fn load_replays(files: &crate::save::files::FileStore) -> Vec<ReplayEntry> {
     names
         .into_iter()
         .map(|filename| {
-            let stem = filename
-                .strip_suffix(".SJR")
-                .unwrap_or(&filename)
-                .to_string();
+            let stem = if filename.len() > 4
+                && filename.as_bytes()[filename.len() - 4..]
+                    .eq_ignore_ascii_case(b".SJR")
+            {
+                filename[..filename.len() - 4].to_string()
+            } else {
+                filename.clone()
+            };
             let intro = stem.eq_ignore_ascii_case("INTRO");
             match files
                 .read(&filename)

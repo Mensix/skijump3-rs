@@ -193,13 +193,22 @@ impl WorldCupJumpView {
                     continue;
                 };
 
-                if style != CupStyle::FourHills {
-                    if p.wc_points > profile.bestpoints as i32 {
-                        profile.bestpoints = p.wc_points as usize;
+                match style {
+                    CupStyle::WorldCup | CupStyle::TeamCup => {
+                        profile.world_cups += 1;
+                        if p.wc_points > profile.bestpoints as i32 {
+                            profile.bestpoints = p.wc_points as usize;
+                            profile.best_result =
+                                format!("{} ({})", p.wc_points, profile.world_cups);
+                        }
                     }
-                }
-                if style == CupStyle::FourHills && p.four_hills_points > profile.best4points as i32 {
-                    profile.best4points = p.four_hills_points as usize;
+                    CupStyle::FourHills => {
+                        if p.four_hills_points > profile.best4points as i32 {
+                            profile.best4points = p.four_hills_points as usize;
+                            profile.best_4h_result = format!("{}", p.four_hills_points);
+                        }
+                    }
+                    CupStyle::CustomCup => {}
                 }
             }
         });

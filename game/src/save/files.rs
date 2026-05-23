@@ -58,7 +58,7 @@ impl FileStore {
         self.list_by_ext_in(&self.save_dir, ext)
     }
 
-    /// List filenames from both save dir and asset dir (save entries first, deduplicated).
+    /// List filenames from both save dir and asset dir, deduplicated.
     pub fn list_by_ext_all(&self, ext: &str) -> Result<Vec<String>, std::io::Error> {
         let mut names = self.list_by_ext(ext).unwrap_or_default();
         if let Ok(asset_names) = self.list_by_ext_in(&self.asset_dir, ext) {
