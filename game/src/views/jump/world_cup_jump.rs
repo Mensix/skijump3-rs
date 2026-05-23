@@ -208,14 +208,14 @@ impl WorldCupJumpView {
                         } else {
                             0
                         };
-                        if pts > profile.bestpoints as i32 {
+                        if pts >= profile.bestpoints as i32 {
                             profile.bestpoints = pts as usize;
                             profile.best_result =
                                 format!("{} ({}.)", pts, event_rank);
                         }
                     }
                     CupStyle::FourHills => {
-                        if p.four_hills_points > profile.best4points as i32 {
+                        if p.four_hills_points >= profile.best4points as i32 {
                             profile.best4points = p.four_hills_points as usize;
                             profile.best_4h_result = format!(
                                 "{} ({}.)",
