@@ -3,7 +3,7 @@ use crate::competition::types::{CompetitionPhase, CupStyle, Participant, Qualifi
 use crate::components::screen::{new_screen, page_hints};
 use crate::gfx::palette::{FONT_DEFAULT, FONT_GREET, FONT_HEADER};
 use crate::store::ResourcesRef;
-use crate::text::format::format_tenths;
+use crate::text::format::{format_tenths, ordinal_dot};
 use engine::ui::Element;
 
 pub const QUALIFICATION_ITEMS_PER_PAGE: usize = 25;
@@ -360,7 +360,7 @@ fn render_results_entry(
 
     if entry.rank != *last_rank {
         els.push(Element::text(
-            format!("{}.", entry.rank),
+            ordinal_dot(entry.rank),
             rank_x,
             y,
             col_rank,
@@ -770,7 +770,7 @@ pub fn render_stats_page(
         .map(|h| format!("{} {}", h.name.chars().take(3).collect::<String>(), h.kr))
         .unwrap_or_default();
     els.push(Element::text(
-        format!("{}.", competition.current_event + 1),
+        ordinal_dot(competition.current_event + 1),
         15,
         y,
         FONT_DEFAULT,
@@ -778,7 +778,7 @@ pub fn render_stats_page(
     ));
     els.push(Element::text(hill_name, 16, y, FONT_DEFAULT, false));
     els.push(Element::text(
-        format!("{}.", player.rank),
+        ordinal_dot(player.rank),
         70,
         y,
         FONT_DEFAULT,
@@ -792,7 +792,7 @@ pub fn render_stats_page(
         true,
     ));
     els.push(Element::text(
-        format!("{}.", player.rank),
+        ordinal_dot(player.rank),
         110,
         y,
         FONT_DEFAULT,

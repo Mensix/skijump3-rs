@@ -143,7 +143,7 @@ impl View<RouteTarget> for TrainingSetupView {
             let idx = self.start + i;
             let y = self.item_row(i) as i32 * 8 + 10;
             els.push(Element::right_text(
-                format!("{}.", i + 1),
+                crate::text::format::ordinal_dot(i + 1),
                 130,
                 y,
                 FONT_GOLD,

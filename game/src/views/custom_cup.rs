@@ -41,7 +41,7 @@ impl CustomCupSetupView {
                 let kr_str = format!("K{}", h.kr);
                 els.push(Element::text(&kr_str, x + 18 + name_w, y, FONT_HELP, false));
             } else {
-                let num_str = format!("{}.", slot + 1);
+                let num_str = crate::text::format::ordinal_dot(slot + 1);
                 els.push(Element::right_text(&num_str, x + 14, y, FONT_HEADER));
                 els.push(Element::text(&h.name, x + 15, y, FONT_DEFAULT, false));
                 let name_w = self.resources.font.string_width(&h.name) as i32;

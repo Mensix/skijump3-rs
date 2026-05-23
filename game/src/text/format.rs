@@ -15,6 +15,16 @@ pub fn format_tenths(value: i32) -> String {
     buf
 }
 
+/// i64 overload that delegates to `format_tenths`.
+pub fn format_tenths_i64(value: i64) -> String {
+    format_tenths(value as i32)
+}
+
+/// `"5."`, `"12."`, etc.
+pub fn ordinal_dot(n: usize) -> String {
+    format!("{n}.")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -47,5 +57,19 @@ mod tests {
     #[test]
     fn negative_single() {
         assert_eq!(format_tenths(-3), "-0.3");
+    }
+
+    #[test]
+    fn i64_roundtrip() {
+        assert_eq!(format_tenths_i64(1234), "123.4");
+        assert_eq!(format_tenths_i64(-15), "-1.5");
+        assert_eq!(format_tenths_i64(0), "0.0");
+    }
+
+    #[test]
+    fn ordinal() {
+        assert_eq!(ordinal_dot(0), "0.");
+        assert_eq!(ordinal_dot(5), "5.");
+        assert_eq!(ordinal_dot(12), "12.");
     }
 }

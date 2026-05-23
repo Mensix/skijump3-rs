@@ -3,6 +3,7 @@ use crate::data::records::{HillRecord, Hiscore};
 use crate::gfx::palette::{apply_menu_tint, FONT_DEFAULT, FONT_GREET, FONT_HELP, FONT_NEW};
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
+use crate::text::format::{format_tenths_i64, ordinal_dot};
 use crate::text::layout::{is_computer_name, lstr, shorten_name};
 use engine::ui::{Cell, Table};
 use engine::ui::{Element, Event, Key, View};
@@ -16,20 +17,6 @@ enum PageAction {
     Prev,
     First,
     Back,
-}
-
-fn txtp(value: i64) -> String {
-    if value == 0 {
-        return "0.0".to_string();
-    }
-    let sign = if value < 0 { "-" } else { "" };
-    let mut out = value.abs().to_string();
-    let pos = out.len().saturating_sub(1);
-    out.insert(pos, '.');
-    if out.len() < 3 {
-        out.insert(0, '0');
-    }
-    format!("{sign}{out}")
 }
 
 const fn handle_page_event(event: Event, page: &mut usize, pages: usize) -> Option<PageAction> {
@@ -173,7 +160,7 @@ impl HallOfFameView {
         } else {
             FONT_DEFAULT
         };
-        table.push(Cell::right(format!("{place}."), 24, y, FONT_NEW));
+        table.push(Cell::right(ordinal_dot(place), 24, y, FONT_NEW));
         table.push(Cell::left(
             shorten_name(&hi.name, &self.resources.font, 110),
             col[0],
@@ -181,13 +168,13 @@ impl HallOfFameView {
             name_color,
         ));
         table.push(Cell::right(
-            format!("{}.", hi.pos),
+            ordinal_dot(hi.pos),
             col[1] + 14,
             y,
             name_color,
         ));
         let score = if sortby_points {
-            txtp(hi.score)
+            format_tenths_i64(hi.score)
         } else {
             hi.score.to_string()
         };
@@ -377,7 +364,7 @@ impl HillRecordsView {
             } else {
                 FONT_NEW
             };
-            table.push(Cell::right(txtp(record.len), col[2], y, length_color));
+            table.push(Cell::right(format_tenths_i64(record.len), col[2], y, length_color));
             table.push(Cell::right(
                 format!("({})", hill.kr),
                 col[3] + 11,

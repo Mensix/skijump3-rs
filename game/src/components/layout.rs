@@ -60,7 +60,7 @@ impl MainLayout {
             let profile = &pb.profiles[profile_idx];
             let y = (i as i32) * 9 + 64;
             els.push(Element::right_text(
-                format!("{}.", i + 1),
+                crate::text::format::ordinal_dot(i + 1),
                 162,
                 y,
                 FONT_HELP,
