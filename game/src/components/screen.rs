@@ -1,4 +1,4 @@
-use crate::gfx::palette::FONT_HELP;
+use crate::gfx::palette::{BG_LEFT, FONT_HELP};
 use crate::gfx::sprites;
 use engine::ui::Element;
 
@@ -10,6 +10,11 @@ pub fn new_screen(style: u8) -> Vec<Element> {
         1 => {
             els.push(Element::fillbox(0, 0, 320, 19, 245));
             els.push(Element::fillbox(0, 20, 320, 180, 243));
+        }
+        2 => {
+            els.push(Element::fillbox(0, 0, 11, 200, 245));
+            els.push(Element::fillbox(12, 0, 296, 200, BG_LEFT));
+            els.push(Element::fillbox(309, 0, 11, 200, 245));
         }
         4 => {
             els.push(Element::fillbox(0, 0, 320, 19, 245));
@@ -27,6 +32,7 @@ pub fn new_screen(style: u8) -> Vec<Element> {
 
     match style {
         1 => els.push(Element::sprite(sprites::Sprite::Logo as u16, 5, 2)),
+        2 => els.push(Element::sprite(sprites::Sprite::Logo as u16, 30, 8)),
         4 => {
             els.push(Element::sprite(sprites::Sprite::Logo as u16, 5, 2));
             els.push(Element::sprite(sprites::Sprite::Logo as u16, 5, 122));
@@ -35,6 +41,16 @@ pub fn new_screen(style: u8) -> Vec<Element> {
     }
 
     els
+}
+
+/// Two-tone modal box overlay with dither.
+#[must_use]
+pub fn modal_background(x: i32, y: i32, w: i32, h: i32) -> Vec<Element> {
+    vec![
+        Element::fillbox(x, y, w, h, 242),
+        Element::fillbox(x + 1, y + 1, w - 2, h - 2, 244),
+        Element::fill_area(63),
+    ]
 }
 
 #[must_use]

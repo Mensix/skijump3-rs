@@ -1,6 +1,5 @@
 use crate::components::menu::{Menu, MenuItem};
 use crate::gfx::palette::{apply_menu_tint, FONT_DEFAULT, FONT_GOLD, FONT_GREET};
-use crate::gfx::sprites;
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use engine::ui::{Component, Element, Event, Key, View};
@@ -116,35 +115,28 @@ impl TrainingSetupView {
 
 impl View<RouteTarget> for TrainingSetupView {
     fn elements(&self) -> Vec<Element> {
-        let mut els = vec![
-            Element::fillbox(0, 0, 320, 200, 0),
-            Element::fillbox(0, 0, 11, 200, 245),
-            Element::fillbox(12, 0, 296, 200, 243),
-            Element::fillbox(309, 0, 11, 200, 245),
-            Element::fill_area(63),
-            Element::sprite(sprites::Sprite::Logo as u16, 30, 8),
-            Element::text(
-                self.resources.langbase.lstr(151),
-                30,
-                31,
-                FONT_DEFAULT,
-                false,
-            ),
-            Element::text(
-                self.resources.langbase.lstr(152),
-                30,
-                41,
-                FONT_DEFAULT,
-                false,
-            ),
-            Element::text(
-                self.resources.langbase.lstr(153),
-                30,
-                51,
-                FONT_DEFAULT,
-                false,
-            ),
-        ];
+        let mut els = crate::components::screen::new_screen(2);
+        els.push(Element::text(
+            self.resources.langbase.lstr(151),
+            30,
+            31,
+            FONT_DEFAULT,
+            false,
+        ));
+        els.push(Element::text(
+            self.resources.langbase.lstr(152),
+            30,
+            41,
+            FONT_DEFAULT,
+            false,
+        ));
+        els.push(Element::text(
+            self.resources.langbase.lstr(153),
+            30,
+            51,
+            FONT_DEFAULT,
+            false,
+        ));
 
         let page_n = self.page_items();
         for i in 0..page_n {

@@ -260,9 +260,7 @@ impl Component for SaveReplayDialog {
         }
 
         if let SaveDialogState::ConfirmOverwrite { ref filename } = self.state {
-            els.push(Element::fillbox(59, 79, 203, 53, 242));
-            els.push(Element::fillbox(60, 80, 201, 51, 244));
-            els.push(Element::fill_area(63));
+            els.extend(screen::modal_background(59, 79, 203, 53));
 
             els.push(Element::text(
                 format!("{}.SJR {}", filename, self.resources.langbase.lstr(345)),

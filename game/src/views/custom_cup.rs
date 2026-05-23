@@ -1,5 +1,6 @@
+use crate::components::screen::new_screen;
 use crate::competition::builder::build_custom_competition;
-use crate::gfx::palette::{apply_menu_tint, BG_LEFT, FONT_DEFAULT, FONT_GREET, FONT_HEADER, FONT_HELP};
+use crate::gfx::palette::{apply_menu_tint, FONT_DEFAULT, FONT_GREET, FONT_HEADER, FONT_HELP};
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use engine::ui::{Element, Event, Key, View};
@@ -61,18 +62,11 @@ impl View<RouteTarget> for CustomCupSetupView {
             lang.lstr(286),
             lang.lstr(287)
         );
-        let mut els = vec![
-            Element::fillbox(0, 0, 320, 200, 0),
-            Element::fillbox(0, 0, 11, 200, 245),
-            Element::fillbox(12, 0, 296, 200, BG_LEFT),
-            Element::fillbox(309, 0, 11, 200, 245),
-            Element::fill_area(63),
-            Element::Sprite(61, 30, 8),
-            Element::text(lang.lstr(118).to_string(), 68, 8, FONT_DEFAULT, false),
-            Element::text(lang.lstr(119).to_string(), 78, 16, FONT_HELP, false),
-            Element::text(help_line, 78, 23, FONT_HELP, false),
-            Element::text(lang.lstr(288).to_string(), 78, 30, FONT_HELP, false),
-        ];
+        let mut els = new_screen(2);
+        els.push(Element::text(lang.lstr(118).to_string(), 68, 8, FONT_DEFAULT, false));
+        els.push(Element::text(lang.lstr(119).to_string(), 78, 16, FONT_HELP, false));
+        els.push(Element::text(help_line, 78, 23, FONT_HELP, false));
+        els.push(Element::text(lang.lstr(288).to_string(), 78, 30, FONT_HELP, false));
 
         for (i, &hill_idx) in self.selected.iter().enumerate() {
             els.extend(self.hill_elements(i, hill_idx, false));
