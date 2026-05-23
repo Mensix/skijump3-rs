@@ -253,7 +253,7 @@ impl View<RouteTarget> for ReplayBrowserView {
 }
 
 fn load_replays(files: &crate::save::files::FileStore) -> Vec<ReplayEntry> {
-    let names = match files.list_by_ext("SJR") {
+    let names = match files.list_by_ext_all("SJR") {
         Ok(n) => n,
         Err(_) => return Vec::new(),
     };

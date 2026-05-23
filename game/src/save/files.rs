@@ -16,15 +16,16 @@ impl FileStore {
         }
     }
 
-    /// Read first from save_dir, fallback to asset_dir.
+    /// Read first from save_dir, fallback to asset_dir on NotFound.
     pub fn read(&self, name: &str) -> Result<Vec<u8>, std::io::Error> {
         let save_path = self.save_dir.join(name);
         match std::fs::read(&save_path) {
             Ok(data) => Ok(data),
-            Err(_) => {
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
                 let asset_path = self.asset_dir.join(name);
                 std::fs::read(&asset_path)
             }
+            Err(e) => Err(e),
         }
     }
 
@@ -54,13 +55,33 @@ impl FileStore {
 
     /// List filenames in save dir with a given extension (without leading dot).
     pub fn list_by_ext(&self, ext: &str) -> Result<Vec<String>, std::io::Error> {
+        self.list_by_ext_in(&self.save_dir, ext)
+    }
+
+    /// List filenames from both save dir and asset dir (save entries first, deduplicated).
+    pub fn list_by_ext_all(&self, ext: &str) -> Result<Vec<String>, std::io::Error> {
+        let mut names = self.list_by_ext(ext).unwrap_or_default();
+        if let Ok(asset_names) = self.list_by_ext_in(&self.asset_dir, ext) {
+            for n in asset_names {
+                if !names.contains(&n) {
+                    names.push(n);
+                }
+            }
+        }
+        names.sort();
+        Ok(names)
+    }
+
+    fn list_by_ext_in(&self, dir: &Path, ext: &str) -> Result<Vec<String>, std::io::Error> {
         let dot_ext = format!(".{}", ext);
         let mut result = Vec::new();
-        for entry in std::fs::read_dir(&self.save_dir)? {
+        for entry in std::fs::read_dir(dir)? {
             let entry = entry?;
             if entry.file_type()?.is_file() {
                 if let Some(name) = entry.file_name().to_str() {
-                    if name.ends_with(&dot_ext) {
+                    if name.len() > dot_ext.len()
+                        && name[name.len() - dot_ext.len()..].eq_ignore_ascii_case(&dot_ext)
+                    {
                         result.push(name.to_string());
                     }
                 }

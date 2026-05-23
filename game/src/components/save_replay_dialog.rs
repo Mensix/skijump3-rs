@@ -50,6 +50,18 @@ const fn field_idx(field: &SaveField) -> usize {
     }
 }
 
+fn sanitize_filename(name: &str) -> String {
+    name.chars()
+        .map(|c| {
+            if c.is_alphanumeric() || c == '-' || c == '_' {
+                c
+            } else {
+                '_'
+            }
+        })
+        .collect()
+}
+
 impl SaveReplayDialog {
     pub fn new(resources: ResourcesRef) -> Self {
         Self {
@@ -115,9 +127,9 @@ impl SaveReplayDialog {
             }
              4 => {
                 self.cursor_blink.reset();
-                let filename = self.filename.clone();
-                if self.resources.files.exists_save(&format!("{filename}.SJR")) {
-                    self.state = SaveDialogState::ConfirmOverwrite { filename };
+                let safe = sanitize_filename(&self.filename);
+                if self.resources.files.exists_save(&format!("{safe}.SJR")) {
+                    self.state = SaveDialogState::ConfirmOverwrite { filename: safe };
                 } else {
                     return SaveAction::SaveReplay;
                 }
@@ -141,17 +153,7 @@ impl SaveReplayDialog {
     }
 
     pub fn write_replay(&mut self, trace: &ReplayTrace) {
-        let safe_name: String = self
-            .filename
-            .chars()
-            .map(|c| {
-                if c.is_alphanumeric() || c == '-' || c == '_' {
-                    c
-                } else {
-                    '_'
-                }
-            })
-            .collect();
+        let safe_name = sanitize_filename(&self.filename);
         let filename = format!("{}.SJR", safe_name);
         if let Err(e) = self.resources.files.write(&filename, &trace.to_sjr_bytes()) {
             eprintln!("Warning: failed to save replay {filename}: {e}");

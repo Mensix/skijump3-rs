@@ -170,13 +170,13 @@ impl WorldCupJumpView {
                 }
             }
             WorldCupCommand::Done => {
-                self.save_profiles_from_competition();
+                self.save_competition_results();
                 self.ui_state.enter_done();
             }
         }
     }
 
-    fn save_profiles_from_competition(&self) {
+    fn save_competition_results(&self) {
         if self.profiles_saved.replace(true) {
             return;
         }
@@ -193,18 +193,13 @@ impl WorldCupJumpView {
                     continue;
                 };
 
-                profile.total_jumps += 1;
-                profile.world_cups += 1;
-
-                if p.wc_points > profile.bestpoints as i32 {
-                    profile.bestpoints = p.wc_points as usize;
-                    profile.best_result = format!("{} ({})", p.wc_points, profile.world_cups);
+                if style != CupStyle::FourHills {
+                    if p.wc_points > profile.bestpoints as i32 {
+                        profile.bestpoints = p.wc_points as usize;
+                    }
                 }
-
                 if style == CupStyle::FourHills && p.four_hills_points > profile.best4points as i32 {
                     profile.best4points = p.four_hills_points as usize;
-                    profile.best_4h_result =
-                        format!("{} ({})", p.four_hills_points, profile.world_cups);
                 }
             }
         });
@@ -462,6 +457,7 @@ impl WorldCupJumpView {
                     .try_with(|c| c.phase() == CompetitionPhase::SeasonComplete)
                     .unwrap_or(false);
                 if is_season_complete {
+                    self.save_competition_results();
                     return Some(RouteTarget::Back);
                 }
                 self.blinker.reset();
