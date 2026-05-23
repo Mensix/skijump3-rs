@@ -1,5 +1,6 @@
 use crate::components::layout::{self, MainLayout};
 use crate::components::menu::{Menu, MenuItem};
+use crate::components::page_nav::cycle_index;
 use crate::gfx::palette::{BG_ERASE, FONT_DEFAULT, FONT_GOLD, FONT_HEADER, FONT_HELP};
 use crate::jump::replay::ReplayTrace;
 use crate::route::RouteTarget;
@@ -87,20 +88,12 @@ impl ReplayBrowserView {
         self.entries.get(self.selected)
     }
 
-    const fn move_next(&mut self) {
-        if !self.entries.is_empty() {
-            self.selected = (self.selected + 1) % self.entries.len();
-        }
+    fn move_next(&mut self) {
+        self.selected = cycle_index(self.selected, self.entries.len(), 1);
     }
 
-    const fn move_prev(&mut self) {
-        if !self.entries.is_empty() {
-            self.selected = if self.selected == 0 {
-                self.entries.len() - 1
-            } else {
-                self.selected - 1
-            };
-        }
+    fn move_prev(&mut self) {
+        self.selected = cycle_index(self.selected, self.entries.len(), -1);
     }
 }
 

@@ -1,6 +1,7 @@
 pub mod confirm_dialog;
 pub mod layout;
 pub mod menu;
+pub mod page_nav;
 pub mod replay_playback;
 pub mod save_replay_dialog;
 pub mod screen;
