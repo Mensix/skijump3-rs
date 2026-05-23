@@ -81,115 +81,11 @@ impl View<RouteTarget> for ReplayBrowserView {
         ));
         els.extend(self.menu.elements());
         els.extend(self.layout.footer());
-
-        // Pascal clearscreen: right panel background with dither + labels
-        els.push(Element::fillbox(145, 50, 174, 149, 243));
-        els.push(Element::fillbox(128, 70, 17, 129, 243));
-        els.push(Element::fill_area(64));
-        els.push(Element::text(
-            format!("{}:", self.resources.langbase.lstr(25)),
-            170,
-            51,
-            FONT_HELP,
-            false,
+        els.extend(replay_panel_elements(
+            &self.resources,
+            &self.entries,
+            self.selected,
         ));
-        els.push(Element::text(
-            self.resources.langbase.lstr(146),
-            150,
-            185,
-            FONT_HELP,
-            false,
-        ));
-
-        if self.entries.is_empty() {
-            els.push(Element::text(
-                self.resources.langbase.lstr(290),
-                170,
-                80,
-                FONT_GOLD,
-                false,
-            ));
-            return els;
-        }
-
-        let entry = self.selected_entry().expect("selected replay");
-        els.push(Element::text(
-            format!("{}/{}", self.selected + 1, self.entries.len()),
-            272,
-            85,
-            FONT_HELP,
-            false,
-        ));
-        els.push(Element::text(
-            self.resources.langbase.lstr(293),
-            150,
-            71,
-            FONT_HELP,
-            false,
-        ));
-        els.push(Element::text(
-            self.resources.langbase.lstr(291),
-            150,
-            106,
-            FONT_HELP,
-            false,
-        ));
-        els.push(Element::text(
-            self.resources.langbase.lstr(292),
-            150,
-            126,
-            FONT_HELP,
-            false,
-        ));
-        els.push(Element::text(
-            self.resources.langbase.lstr(294),
-            150,
-            146,
-            FONT_HELP,
-            false,
-        ));
-        els.push(Element::fillbox(163, 78, 95, 21, 248));
-        els.push(Element::fillbox(164, 79, 93, 19, 243));
-        els.push(Element::text(&entry.filename, 170, 85, FONT_GOLD, false));
-
-        if let Some(trace) = &entry.trace {
-            let hill = self.resources.hills.hill(trace.meta.hill_idx).map_or_else(
-                || "?".to_string(),
-                |hill| format!("{} K{}", hill.name, hill.kr),
-            );
-            els.push(Element::text(
-                &trace.meta.author,
-                170,
-                115,
-                FONT_DEFAULT,
-                false,
-            ));
-            els.push(Element::text(
-                &trace.meta.name,
-                170,
-                135,
-                FONT_DEFAULT,
-                false,
-            ));
-            els.push(Element::text(hill, 170, 155, FONT_DEFAULT, false));
-            els.push(Element::text(
-                &trace.meta.saved_at,
-                170,
-                163,
-                FONT_HELP,
-                false,
-            ));
-        } else if let Some(error) = &entry.error {
-            els.push(Element::text("Unknown", 170, 115, FONT_HELP, false));
-            els.push(Element::text(
-                "Not a valid replay.",
-                170,
-                135,
-                FONT_HELP,
-                false,
-            ));
-            els.push(Element::text(error, 170, 155, FONT_HELP, false));
-        }
         els
     }
 
@@ -215,6 +111,85 @@ impl View<RouteTarget> for ReplayBrowserView {
             Event::Keyboard(_) => None,
         }
     }
+}
+
+fn replay_panel_elements(
+    resources: &crate::store::Resources,
+    entries: &[ReplayEntry],
+    selected: usize,
+) -> Vec<Element> {
+    let langbase = &resources.langbase;
+
+    let mut els = Vec::new();
+
+    // Pascal clearscreen: right panel background with dither + labels
+    els.push(Element::fillbox(145, 50, 174, 149, 243));
+    els.push(Element::fillbox(128, 70, 17, 129, 243));
+    els.push(Element::fill_area(64));
+    els.push(Element::text(
+        format!("{}:", langbase.lstr(25)),
+        170,
+        51,
+        FONT_HELP,
+        false,
+    ));
+    els.push(Element::text(
+        langbase.lstr(146),
+        150,
+        185,
+        FONT_HELP,
+        false,
+    ));
+
+    if entries.is_empty() {
+        els.push(Element::text(
+            langbase.lstr(290),
+            170,
+            80,
+            FONT_GOLD,
+            false,
+        ));
+        return els;
+    }
+
+    let entry = &entries[selected];
+    els.push(Element::text(
+        format!("{}/{}", selected + 1, entries.len()),
+        272,
+        85,
+        FONT_HELP,
+        false,
+    ));
+    els.push(Element::text(langbase.lstr(293), 150, 71, FONT_HELP, false));
+    els.push(Element::text(langbase.lstr(291), 150, 106, FONT_HELP, false));
+    els.push(Element::text(langbase.lstr(292), 150, 126, FONT_HELP, false));
+    els.push(Element::text(langbase.lstr(294), 150, 146, FONT_HELP, false));
+    els.push(Element::fillbox(163, 78, 95, 21, 248));
+    els.push(Element::fillbox(164, 79, 93, 19, 243));
+    els.push(Element::text(&entry.filename, 170, 85, FONT_GOLD, false));
+
+    if let Some(trace) = &entry.trace {
+        let hill = resources
+            .hills
+            .hill(trace.meta.hill_idx)
+            .map_or_else(|| "?".to_string(), |hill| format!("{} K{}", hill.name, hill.kr));
+        els.push(Element::text(&trace.meta.author, 170, 115, FONT_DEFAULT, false));
+        els.push(Element::text(&trace.meta.name, 170, 135, FONT_DEFAULT, false));
+        els.push(Element::text(hill, 170, 155, FONT_DEFAULT, false));
+        els.push(Element::text(&trace.meta.saved_at, 170, 163, FONT_HELP, false));
+    } else if let Some(error) = &entry.error {
+        els.push(Element::text("Unknown", 170, 115, FONT_HELP, false));
+        els.push(Element::text(
+            "Not a valid replay.",
+            170,
+            135,
+            FONT_HELP,
+            false,
+        ));
+        els.push(Element::text(error, 170, 155, FONT_HELP, false));
+    }
+
+    els
 }
 
 fn load_replays(files: &crate::save::files::FileStore) -> Vec<ReplayEntry> {

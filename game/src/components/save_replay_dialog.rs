@@ -159,127 +159,136 @@ impl SaveReplayDialog {
     }
 }
 
+impl SaveReplayDialog {
+    fn is_form_active(&self) -> bool {
+        matches!(
+            self.state,
+            SaveDialogState::Browse { .. } | SaveDialogState::EditField { .. }
+        )
+    }
+
+    fn render_form(&self, els: &mut Vec<Element>) {
+        let selected_idx = match self.state {
+            SaveDialogState::Browse { selected } => selected,
+            SaveDialogState::EditField { ref field, .. } => field.idx(),
+            _ => 0,
+        };
+        let editing = matches!(self.state, SaveDialogState::EditField { .. });
+        let editing_field = match self.state {
+            SaveDialogState::EditField { ref field, .. } => Some(field.idx()),
+            _ => None,
+        };
+
+        els.push(Element::text(
+            format!(
+                "{}: {}µ at {}",
+                self.resources.langbase.lstr(25),
+                self.distance,
+                self.hill_name
+            ),
+            30,
+            6,
+            FONT_DEFAULT,
+            false,
+        ));
+
+        for i in 0..5 {
+            let yy = (i * 16 + 42) as i32;
+            let final_yy = if i == 4 { yy + 16 } else { yy };
+            let label_color = if i < 4 { FONT_DEFAULT } else { FONT_GOLD };
+            let label = match i {
+                0..=2 => format!("{}. {}", i + 1, self.resources.langbase.lstr(291 + i)),
+                3 => format!("4. {}", self.resources.langbase.lstr(295)),
+                4 => format!("5. {}", self.resources.langbase.lstr(296)),
+                _ => String::new(),
+            };
+            els.push(Element::text(&label, 18, final_yy, label_color, false));
+
+            if i < 3 {
+                let is_editing = editing && editing_field == Some(i);
+                let value = if is_editing {
+                    if let SaveDialogState::EditField { ref editor, .. } = self.state {
+                        editor.buffer().to_string()
+                    } else {
+                        String::new()
+                    }
+                } else {
+                    match i {
+                        0 => self.author.clone(),
+                        1 => self.name.clone(),
+                        2 => self.filename.clone(),
+                        _ => String::new(),
+                    }
+                };
+
+                if is_editing {
+                    let (fw, fh) = match editing_field {
+                        Some(2) => (60, 11),
+                        _ => (134, 10),
+                    };
+                    els.push(Element::fillbox(146, final_yy - 2, fw, fh, 242));
+                }
+                els.push(Element::text(&value, 148, final_yy, FONT_GOLD, false));
+
+                if is_editing {
+                    if let SaveDialogState::EditField { ref editor, .. } = self.state {
+                        let cx = 148
+                            + self
+                                .resources
+                                .font
+                                .string_width(&editor.buffer()[..editor.cursor_byte()])
+                                as i32;
+                        if self.cursor_blink.visible(11, 10) {
+                            els.push(Element::fillbox(cx, final_yy + 6, 5, 1, FONT_DEFAULT));
+                        }
+                    }
+                }
+            }
+        }
+
+        let box_y = if selected_idx < 4 {
+            36 + selected_idx * 16
+        } else {
+            36 + 5 * 16
+        };
+        els.push(Element::box_(9, box_y as i32, 135, 17, FONT_DEFAULT));
+    }
+
+    fn render_overwrite(&self, els: &mut Vec<Element>, filename: &str) {
+        els.extend(screen::modal_background(59, 79, 203, 53));
+
+        els.push(Element::text(
+            format!("{}.SJR {}", filename, self.resources.langbase.lstr(345)),
+            80,
+            90,
+            FONT_GOLD,
+            false,
+        ));
+        els.push(Element::text(
+            format!("{} (Y/N):", self.resources.langbase.lstr(346)),
+            80,
+            110,
+            FONT_GOLD,
+            false,
+        ));
+        els.push(Element::fillbox(188, 108, 9, 11, 243));
+        if self.cursor_blink.visible(11, 10) {
+            els.push(Element::fillbox(190, 116, 5, 1, FONT_DEFAULT));
+        }
+    }
+}
+
 impl Component for SaveReplayDialog {
     type Action = SaveAction;
 
     fn elements(&self) -> Vec<Element> {
         let mut els = screen::new_screen(1);
 
-        let overlay = matches!(self.state, SaveDialogState::ConfirmOverwrite { .. });
-        if overlay
-            || matches!(self.state, SaveDialogState::Browse { .. })
-            || matches!(self.state, SaveDialogState::EditField { .. })
-        {
-            let selected_idx = match self.state {
-                SaveDialogState::Browse { selected } => selected,
-                SaveDialogState::EditField { ref field, .. } => field.idx(),
-                SaveDialogState::ConfirmOverwrite { .. } => 4,
-                _ => 0,
-            };
-            let editing = matches!(self.state, SaveDialogState::EditField { .. });
-            let editing_field = match self.state {
-                SaveDialogState::EditField { ref field, .. } => Some(field.idx()),
-                _ => None,
-            };
-
-            els.push(Element::text(
-                format!(
-                    "{}: {}µ at {}",
-                    self.resources.langbase.lstr(25),
-                    self.distance,
-                    self.hill_name
-                ),
-                30,
-                6,
-                FONT_DEFAULT,
-                false,
-            ));
-
-            for i in 0..5 {
-                let yy = (i * 16 + 42) as i32;
-                let final_yy = if i == 4 { yy + 16 } else { yy };
-                let label_color = if i < 4 { FONT_DEFAULT } else { FONT_GOLD };
-                let label = match i {
-                    0..=2 => format!("{}. {}", i + 1, self.resources.langbase.lstr(291 + i)),
-                    3 => format!("4. {}", self.resources.langbase.lstr(295)),
-                    4 => format!("5. {}", self.resources.langbase.lstr(296)),
-                    _ => String::new(),
-                };
-                els.push(Element::text(&label, 18, final_yy, label_color, false));
-
-                if i < 3 {
-                    let is_editing = editing && editing_field == Some(i);
-                    let value = if is_editing {
-                        if let SaveDialogState::EditField { ref editor, .. } = self.state {
-                            editor.buffer().to_string()
-                        } else {
-                            String::new()
-                        }
-                    } else {
-                        match i {
-                            0 => self.author.clone(),
-                            1 => self.name.clone(),
-                            2 => self.filename.clone(),
-                            _ => String::new(),
-                        }
-                    };
-
-                    if is_editing {
-                        let (fw, fh) = match editing_field {
-                            Some(2) => (60, 11),
-                            _ => (134, 10),
-                        };
-                        els.push(Element::fillbox(146, final_yy - 2, fw, fh, 242));
-                    }
-                    els.push(Element::text(&value, 148, final_yy, FONT_GOLD, false));
-
-                    if is_editing {
-                        if let SaveDialogState::EditField { ref editor, .. } = self.state {
-                            let cx = 148
-                                + self
-                                    .resources
-                                    .font
-                                    .string_width(&editor.buffer()[..editor.cursor_byte()])
-                                    as i32;
-                            if self.cursor_blink.visible(11, 10) {
-                                els.push(Element::fillbox(cx, final_yy + 6, 5, 1, FONT_DEFAULT));
-                            }
-                        }
-                    }
-                }
-            }
-
-            if !overlay {
-                let box_y = if selected_idx < 4 {
-                    36 + selected_idx * 16
-                } else {
-                    36 + 5 * 16
-                };
-                els.push(Element::box_(9, box_y as i32, 135, 17, FONT_DEFAULT));
-            }
+        if self.is_form_active() {
+            self.render_form(&mut els);
         }
-
         if let SaveDialogState::ConfirmOverwrite { ref filename } = self.state {
-            els.extend(screen::modal_background(59, 79, 203, 53));
-
-            els.push(Element::text(
-                format!("{}.SJR {}", filename, self.resources.langbase.lstr(345)),
-                80,
-                90,
-                FONT_GOLD,
-                false,
-            ));
-            els.push(Element::text(
-                format!("{} (Y/N):", self.resources.langbase.lstr(346)),
-                80,
-                110,
-                FONT_GOLD,
-                false,
-            ));
-            els.push(Element::fillbox(188, 108, 9, 11, 243));
-            if self.cursor_blink.visible(11, 10) {
-                els.push(Element::fillbox(190, 116, 5, 1, FONT_DEFAULT));
-            }
+            self.render_overwrite(&mut els, filename);
         }
 
         els
