@@ -167,7 +167,7 @@ impl SaveReplayDialog {
         )
     }
 
-    fn render_form(&self, els: &mut Vec<Element>) {
+    fn render_form(&self, els: &mut Vec<Element>, show_box: bool) {
         let selected_idx = match self.state {
             SaveDialogState::Browse { selected } => selected,
             SaveDialogState::EditField { ref field, .. } => field.idx(),
@@ -246,12 +246,14 @@ impl SaveReplayDialog {
             }
         }
 
-        let box_y = if selected_idx < 4 {
-            36 + selected_idx * 16
-        } else {
-            36 + 5 * 16
-        };
-        els.push(Element::box_(9, box_y as i32, 135, 17, FONT_DEFAULT));
+        if show_box {
+            let box_y = if selected_idx < 4 {
+                36 + selected_idx * 16
+            } else {
+                36 + 5 * 16
+            };
+            els.push(Element::box_(9, box_y as i32, 135, 17, FONT_DEFAULT));
+        }
     }
 
     fn render_overwrite(&self, els: &mut Vec<Element>, filename: &str) {
@@ -284,8 +286,11 @@ impl Component for SaveReplayDialog {
     fn elements(&self) -> Vec<Element> {
         let mut els = screen::new_screen(1);
 
-        if self.is_form_active() {
-            self.render_form(&mut els);
+        // Form (header + fields) renders for Browse, EditField, and ConfirmOverwrite
+        // (modal overlays on top). Selection box only when not in overlay.
+        let is_overlay = matches!(self.state, SaveDialogState::ConfirmOverwrite { .. });
+        if is_overlay || self.is_form_active() {
+            self.render_form(&mut els, !is_overlay);
         }
         if let SaveDialogState::ConfirmOverwrite { ref filename } = self.state {
             self.render_overwrite(&mut els, filename);
