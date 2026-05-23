@@ -74,7 +74,7 @@ impl Game {
         renderer.set_palette(base_palette.clone());
 
         let save_manager: SaveRef = Rc::new(SaveManager::new(
-            files,
+            Rc::clone(&files),
             Rc::clone(&langbase),
         ));
 
@@ -93,6 +93,8 @@ impl Game {
             player_names,
             hills,
             assets,
+            Rc::clone(&files),
+            save_manager.clone(),
         ));
 
         let profiles = save_manager.load_players();

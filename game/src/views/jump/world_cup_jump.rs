@@ -22,6 +22,7 @@ pub struct WorldCupJumpView {
     ui_state: CompetitionUiState,
     overlay: CompetitionOverlay,
     blinker: Blinker,
+    profiles_saved: Cell<bool>,
 }
 
 impl WorldCupJumpView {
@@ -46,6 +47,7 @@ impl WorldCupJumpView {
                 StoreRef::clone(&store),
             ),
             blinker: Blinker::new(),
+            profiles_saved: Cell::new(false),
         }
     }
 
@@ -168,8 +170,47 @@ impl WorldCupJumpView {
                 }
             }
             WorldCupCommand::Done => {
+                self.save_profiles_from_competition();
                 self.ui_state.enter_done();
             }
+        }
+    }
+
+    fn save_profiles_from_competition(&self) {
+        if self.profiles_saved.replace(true) {
+            return;
+        }
+        self.store.competition.try_with(|c| {
+            let style = c.style();
+            let overall = c.overall_standings();
+            let mut profiles = self.store.profiles.borrow_mut();
+
+            for p in &overall {
+                let Some(pidx) = p.profile_idx else {
+                    continue;
+                };
+                let Some(profile) = profiles.profiles.get_mut(pidx) else {
+                    continue;
+                };
+
+                profile.total_jumps += 1;
+                profile.world_cups += 1;
+
+                if p.wc_points > profile.bestpoints as i32 {
+                    profile.bestpoints = p.wc_points as usize;
+                    profile.best_result = format!("{} ({})", p.wc_points, profile.world_cups);
+                }
+
+                if style == CupStyle::FourHills && p.four_hills_points > profile.best4points as i32 {
+                    profile.best4points = p.four_hills_points as usize;
+                    profile.best_4h_result =
+                        format!("{} ({})", p.four_hills_points, profile.world_cups);
+                }
+            }
+        });
+        self.resources.save_manager.save_players(&self.store.profiles.borrow());
+        if let Ok(records) = self.store.records.try_borrow() {
+            self.resources.save_manager.save_records(&records);
         }
     }
 

@@ -3,7 +3,6 @@ use crate::gfx::palette::{FONT_DEFAULT, FONT_GOLD};
 use crate::jump::replay::ReplayTrace;
 use crate::store::ResourcesRef;
 use engine::ui::{Blinker, Component, Element, Event, Key, TextEditState};
-use std::path::Path;
 
 #[derive(Debug, Clone)]
 enum SaveField {
@@ -114,10 +113,10 @@ impl SaveReplayDialog {
                 self.state = SaveDialogState::Inactive;
                 SaveAction::Consumed
             }
-            4 => {
+             4 => {
                 self.cursor_blink.reset();
                 let filename = self.filename.clone();
-                if Path::new(&format!("{filename}.SJR")).exists() {
+                if self.resources.files.exists_save(&format!("{filename}.SJR")) {
                     self.state = SaveDialogState::ConfirmOverwrite { filename };
                 } else {
                     return SaveAction::SaveReplay;
@@ -154,7 +153,7 @@ impl SaveReplayDialog {
             })
             .collect();
         let filename = format!("{}.SJR", safe_name);
-        if let Err(e) = std::fs::write(&filename, trace.to_sjr_bytes()) {
+        if let Err(e) = self.resources.files.write(&filename, &trace.to_sjr_bytes()) {
             eprintln!("Warning: failed to save replay {filename}: {e}");
         }
         self.state = SaveDialogState::Inactive;

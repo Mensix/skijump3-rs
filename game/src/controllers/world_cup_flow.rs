@@ -109,6 +109,7 @@ mod tests {
         Participant {
             id,
             ai_id: 0,
+            profile_idx: None,
             name: format!("Human {id}"),
             real_name: String::new(),
             suit_color: 0,

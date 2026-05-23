@@ -8,6 +8,8 @@ use crate::jump::wind::Wind;
 use crate::loaders::assets::AssetStore;
 use crate::parsers::langbase::LangBase;
 use crate::rng::Random;
+use crate::save::files::FileStore;
+use crate::save::SaveRef;
 use engine::ui::Font;
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
@@ -21,6 +23,8 @@ pub struct Resources {
     pub hills: HillCatalog,
     pub(crate) assets: AssetStore,
     pub(crate) terrain_cache: RefCell<HashMap<usize, Rc<HillTerrain>>>,
+    pub files: Rc<FileStore>,
+    pub save_manager: SaveRef,
 }
 
 impl Resources {
@@ -31,6 +35,8 @@ impl Resources {
         player_names: Vec<String>,
         hills: HillCatalog,
         assets: AssetStore,
+        files: Rc<FileStore>,
+        save_manager: SaveRef,
     ) -> Self {
         Self {
             font,
@@ -39,6 +45,8 @@ impl Resources {
             hills,
             assets,
             terrain_cache: RefCell::new(HashMap::new()),
+            files,
+            save_manager,
         }
     }
 

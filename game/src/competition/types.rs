@@ -106,6 +106,8 @@ pub struct Participant {
     pub team: Option<usize>,
     pub is_computer: bool,
     pub skip_quali: bool,
+    /// Index into ProfileStore.profiles for human participants, None for computers.
+    pub profile_idx: Option<usize>,
 
     // Season-wide state
     pub wc_points: i32,
@@ -127,7 +129,7 @@ pub struct Participant {
 
 impl Participant {
     #[must_use]
-    pub const fn computer(id: usize, ai_id: usize, name: String) -> Self {
+    pub fn computer(id: usize, ai_id: usize, name: String) -> Self {
         Self {
             id,
             ai_id,
@@ -138,6 +140,7 @@ impl Participant {
             team: None,
             is_computer: true,
             skip_quali: false,
+            profile_idx: None,
             wc_points: 0,
             four_hills_points: 0,
             injury: 0,

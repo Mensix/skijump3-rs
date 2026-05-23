@@ -27,6 +27,7 @@ pub fn write_lines(out: &mut Vec<u8>, lines: &[impl AsRef<str>]) {
 
 pub type SaveRef = Rc<SaveManager>;
 
+#[derive(Debug)]
 pub struct SaveManager {
     pub config: RefCell<Config>,
     langbase: Rc<LangBase>,

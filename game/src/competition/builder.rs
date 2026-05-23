@@ -43,11 +43,11 @@ fn build_hill_order(style: CupStyle, hill_count: usize) -> Vec<usize> {
 
 fn build_participants(profiles: &ProfileStore, computer_names: &[String]) -> Vec<Participant> {
     let mut participants = Vec::with_capacity(TOTAL_SLOTS);
-    let active_profiles: Vec<_> = profiles
+    let active_profiles: Vec<(usize, &crate::data::profile::Profile)> = profiles
         .active_order
         .iter()
         .copied()
-        .filter_map(|idx| profiles.profiles.get(idx))
+        .filter_map(|idx| Some((idx, profiles.profiles.get(idx)?)))
         .collect();
     let profile_count = active_profiles.len().min(TOTAL_SLOTS);
     let first_profile_slot = TOTAL_SLOTS - profile_count;
@@ -55,11 +55,12 @@ fn build_participants(profiles: &ProfileStore, computer_names: &[String]) -> Vec
 
     for i in 0..TOTAL_SLOTS {
         if i >= first_profile_slot {
-            let profile_idx = TOTAL_SLOTS - 1 - i;
-            let p = active_profiles[profile_idx];
+            let list_idx = TOTAL_SLOTS - 1 - i;
+            let (profile_idx, p) = &active_profiles[list_idx];
             participants.push(Participant {
                 id: i,
                 ai_id: 0,
+                profile_idx: Some(*profile_idx),
                 name: p.name.clone(),
                 real_name: p.real_name.clone(),
                 suit_color: p.suit_color as u8,
@@ -93,7 +94,7 @@ fn build_participants(profiles: &ProfileStore, computer_names: &[String]) -> Vec
 
 fn computer_names_without_replacements(
     computer_names: &[String],
-    active_profiles: &[&crate::data::profile::Profile],
+    active_profiles: &[(usize, &crate::data::profile::Profile)],
 ) -> Vec<String> {
     computer_names
         .iter()
@@ -102,7 +103,7 @@ fn computer_names_without_replacements(
             let replace = idx + 1;
             !active_profiles
                 .iter()
-                .any(|profile| profile.replace == replace)
+                .any(|(_, profile)| profile.replace == replace)
         })
         .map(|(_, name)| name.clone())
         .collect()

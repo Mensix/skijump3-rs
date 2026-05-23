@@ -9,3 +9,6 @@ workspace = true
 [dependencies]
 engine = { path = "../engine" }
 sdl2 = { workspace = true }
+
+[dev-dependencies]
+tempfile = "3"

@@ -75,3 +75,74 @@ impl FileStore {
         &self.save_dir
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+
+    fn setup() -> (FileStore, tempfile::TempDir, tempfile::TempDir) {
+        let save = tempfile::tempdir().unwrap();
+        let asset = tempfile::tempdir().unwrap();
+        let store = FileStore::new(asset.path().to_path_buf(), save.path().to_path_buf());
+        (store, save, asset)
+    }
+
+    #[test]
+    fn write_and_read_save() {
+        let (store, _save, _asset) = setup();
+        store.write("test.txt", b"hello world").unwrap();
+        let data = store.read_save("test.txt").unwrap();
+        assert_eq!(data, b"hello world");
+    }
+
+    #[test]
+    fn read_fallback_from_asset() {
+        let (store, _save, asset) = setup();
+        fs::write(asset.path().join("fallback.txt"), b"asset data").unwrap();
+        let data = store.read("fallback.txt").unwrap();
+        assert_eq!(data, b"asset data");
+    }
+
+    #[test]
+    fn save_overrides_asset() {
+        let (store, save, asset) = setup();
+        fs::write(asset.path().join("override.txt"), b"asset data").unwrap();
+        fs::write(save.path().join("override.txt"), b"save data").unwrap();
+        let data = store.read("override.txt").unwrap();
+        assert_eq!(data, b"save data");
+    }
+
+    #[test]
+    fn atomic_write_replaces_content() {
+        let (store, _save, _asset) = setup();
+        store.write("atomic.txt", b"first").unwrap();
+        store.write("atomic.txt", b"second").unwrap();
+        let data = store.read_save("atomic.txt").unwrap();
+        assert_eq!(data, b"second");
+    }
+
+    #[test]
+    fn atomic_write_no_tmp_left_behind() {
+        let (store, save, _asset) = setup();
+        store.write("clean.txt", b"data").unwrap();
+        // No .clean.txt.tmp should remain
+        let entries: Vec<_> = fs::read_dir(save.path())
+            .unwrap()
+            .filter_map(|e| e.ok())
+            .map(|e| e.file_name().to_string_lossy().to_string())
+            .collect();
+        assert!(!entries.iter().any(|n| n.starts_with('.')));
+    }
+
+    #[test]
+    fn list_by_ext_filters_by_extension() {
+        let (store, save, _asset) = setup();
+        fs::write(save.path().join("a.SJR"), b"").unwrap();
+        fs::write(save.path().join("b.SJR"), b"").unwrap();
+        fs::write(save.path().join("c.txt"), b"").unwrap();
+        let mut names = store.list_by_ext("SJR").unwrap();
+        names.sort();
+        assert_eq!(names, vec!["a.SJR", "b.SJR"]);
+    }
+}

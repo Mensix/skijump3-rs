@@ -5,7 +5,6 @@ use crate::jump::replay::ReplayTrace;
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use engine::ui::{Component, Element, Event, Key, View};
-use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone)]
 struct ReplayEntry {
@@ -25,7 +24,7 @@ pub struct ReplayBrowserView {
 
 impl ReplayBrowserView {
     pub fn new(resources: ResourcesRef, store: StoreRef, layout: MainLayout) -> Self {
-        let entries = load_replays();
+        let entries = load_replays(&resources.files);
         let items = vec![
             MenuItem {
                 num: 1,
@@ -253,54 +252,36 @@ impl View<RouteTarget> for ReplayBrowserView {
     }
 }
 
-fn load_replays() -> Vec<ReplayEntry> {
-    let mut paths = replay_paths();
-    paths.sort();
-    paths.dedup();
-    paths
+fn load_replays(files: &crate::save::files::FileStore) -> Vec<ReplayEntry> {
+    let names = match files.list_by_ext("SJR") {
+        Ok(n) => n,
+        Err(_) => return Vec::new(),
+    };
+    names
         .into_iter()
-        .map(|path| {
-            let filename = path
-                .file_stem()
-                .and_then(|name| name.to_str())
-                .unwrap_or("?")
+        .map(|filename| {
+            let stem = filename
+                .strip_suffix(".SJR")
+                .unwrap_or(&filename)
                 .to_string();
-            let intro = filename.eq_ignore_ascii_case("INTRO");
-            match std::fs::read(&path)
+            let intro = stem.eq_ignore_ascii_case("INTRO");
+            match files
+                .read(&filename)
                 .map_err(|err| err.to_string())
                 .and_then(|bytes| {
                     ReplayTrace::from_sjr_bytes(&bytes, intro).map_err(|err| format!("{err:?}"))
                 }) {
                 Ok(trace) => ReplayEntry {
-                    filename,
+                    filename: stem,
                     trace: Some(trace),
                     error: None,
                 },
                 Err(error) => ReplayEntry {
-                    filename,
+                    filename: stem,
                     trace: None,
                     error: Some(error),
                 },
             }
         })
         .collect()
-}
-
-fn replay_paths() -> Vec<PathBuf> {
-    let mut paths = Vec::new();
-    for dir in [Path::new("."), Path::new("game/assets"), Path::new("..")] {
-        if let Ok(entries) = std::fs::read_dir(dir) {
-            for entry in entries.flatten() {
-                let path = entry.path();
-                if path
-                    .extension()
-                    .and_then(|ext| ext.to_str())
-                    .is_some_and(|ext| ext.eq_ignore_ascii_case("SJR"))
-                {
-                    paths.push(path);
-                }
-            }
-        }
-    }
-    paths
 }
