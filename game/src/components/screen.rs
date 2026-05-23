@@ -23,7 +23,7 @@ pub fn new_screen(style: u8) -> Vec<Element> {
         _ => {}
     }
 
-    els.push(Element::FillArea { thing: 63 });
+    els.push(Element::fill_area(63));
 
     match style {
         1 => els.push(Element::sprite(sprites::Sprite::Logo as u16, 5, 2)),
@@ -41,9 +41,9 @@ pub fn new_screen(style: u8) -> Vec<Element> {
 pub fn page_hints(page: usize, pages: usize, prev: &str, next: &str, end: &str) -> Vec<Element> {
     let mut els = Vec::with_capacity(2);
     if page > 0 {
-        els.push(Element::text(format!("(-{prev}"), 319, 5, FONT_HELP, true));
+        els.push(Element::right_text(format!("(-{prev}"), 319, 5, FONT_HELP));
     }
     let text = if page + 1 == pages { end } else { next };
-    els.push(Element::text(format!("{text}-)"), 319, 13, FONT_HELP, true));
+    els.push(Element::right_text(format!("{text}-)"), 319, 13, FONT_HELP));
     els
 }

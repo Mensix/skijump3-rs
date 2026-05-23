@@ -120,7 +120,7 @@ impl View<RouteTarget> for ReplayBrowserView {
         // Pascal clearscreen: right panel background with dither + labels
         els.push(Element::fillbox(145, 50, 174, 149, 243));
         els.push(Element::fillbox(128, 70, 17, 129, 243));
-        els.push(Element::FillArea { thing: 64 });
+        els.push(Element::fill_area(64));
         els.push(Element::text(
             format!("{}:", self.resources.langbase.lstr(25)),
             170,

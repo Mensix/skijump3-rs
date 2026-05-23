@@ -382,7 +382,7 @@ fn render_results_entry(
     } else {
         entry.points.to_string()
     };
-    els.push(Element::text(points, points_x, y, col_text, true));
+    els.push(Element::right_text(points, points_x, y, col_text));
 
     if show_extra && entry.distance > 0 {
         els.push(Element::text(
@@ -760,8 +760,8 @@ pub fn render_stats_page(
         FONT_GREET,
         true,
     ));
-    els.push(Element::text("R 1", 170, 23, FONT_GREET, true));
-    els.push(Element::text("R 2", 268, 23, FONT_GREET, true));
+    els.push(Element::right_text("R 1", 170, 23, FONT_GREET));
+    els.push(Element::right_text("R 2", 268, 23, FONT_GREET));
 
     let y = 37;
     let hill_name = resources

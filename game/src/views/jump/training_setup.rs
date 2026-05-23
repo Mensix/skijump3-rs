@@ -121,7 +121,7 @@ impl View<RouteTarget> for TrainingSetupView {
             Element::fillbox(0, 0, 11, 200, 245),
             Element::fillbox(12, 0, 296, 200, 243),
             Element::fillbox(309, 0, 11, 200, 245),
-            Element::FillArea { thing: 63 },
+            Element::fill_area(63),
             Element::sprite(sprites::Sprite::Logo as u16, 30, 8),
             Element::text(
                 self.resources.langbase.lstr(151),
@@ -150,12 +150,11 @@ impl View<RouteTarget> for TrainingSetupView {
         for i in 0..page_n {
             let idx = self.start + i;
             let y = self.item_row(i) as i32 * 8 + 10;
-            els.push(Element::text(
+            els.push(Element::right_text(
                 format!("{}.", i + 1),
                 130,
                 y,
                 FONT_GOLD,
-                true,
             ));
             if let Some(hill) = self.resources.hills.hill(idx) {
                 els.push(Element::text(&hill.name, 140, y, FONT_DEFAULT, false));
@@ -182,7 +181,7 @@ impl View<RouteTarget> for TrainingSetupView {
         }
 
         let y = (self.exit_row() - 1) as i32 * 8 + 10;
-        els.push(Element::text("0.", 130, y, FONT_DEFAULT, true));
+        els.push(Element::right_text("0.", 130, y, FONT_DEFAULT));
         els.push(Element::text(
             self.resources.langbase.lstr(154),
             140,

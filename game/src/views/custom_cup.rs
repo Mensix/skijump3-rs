@@ -41,7 +41,7 @@ impl CustomCupSetupView {
                 els.push(Element::text(&kr_str, x + 18 + name_w, y, FONT_HELP, false));
             } else {
                 let num_str = format!("{}.", slot + 1);
-                els.push(Element::text(&num_str, x + 14, y, FONT_HEADER, true));
+                els.push(Element::right_text(&num_str, x + 14, y, FONT_HEADER));
                 els.push(Element::text(&h.name, x + 15, y, FONT_DEFAULT, false));
                 let name_w = self.resources.font.string_width(&h.name) as i32;
                 let kr_str = format!("K{}", h.kr);
@@ -66,7 +66,7 @@ impl View<RouteTarget> for CustomCupSetupView {
             Element::fillbox(0, 0, 11, 200, 245),
             Element::fillbox(12, 0, 296, 200, BG_LEFT),
             Element::fillbox(309, 0, 11, 200, 245),
-            Element::FillArea { thing: 63 },
+            Element::fill_area(63),
             Element::Sprite(61, 30, 8),
             Element::text(lang.lstr(118).to_string(), 68, 8, FONT_DEFAULT, false),
             Element::text(lang.lstr(119).to_string(), 78, 16, FONT_HELP, false),

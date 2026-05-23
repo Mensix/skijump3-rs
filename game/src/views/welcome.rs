@@ -50,26 +50,19 @@ impl View<RouteTarget> for WelcomeScreenView {
             Element::fillbox(0, 0, 51, 200, 245),
             Element::fillbox(52, 0, 216, 200, 243),
             Element::fillbox(269, 0, 51, 200, 245),
-            Element::FillArea { thing: 63 },
+            Element::fill_area(63),
             Element::sprite(sprites::Sprite::Logo as u16, 80, 6),
-            Element::text("WELCOME!", 240, 6, FONT_DEFAULT, true),
-            Element::text("TERVETULOA!", 240, 16, FONT_GOLD, true),
-            Element::text("WILLKOMMEN!", 240, 26, FONT_GREET, true),
-            Element::text("VALKOMMEN!", 240, 36, FONT_DEFAULT, true),
+            Element::right_text("WELCOME!", 240, 6, FONT_DEFAULT),
+            Element::right_text("TERVETULOA!", 240, 16, FONT_GOLD),
+            Element::right_text("WILLKOMMEN!", 240, 26, FONT_GREET),
+            Element::right_text("VALKOMMEN!", 240, 36, FONT_DEFAULT),
             Element::text("PLEASE CHOOSE A LANGUAGE:", 100, 50, FONT_DEFAULT, false),
         ];
 
         // language names centred at x=155, y=temp*8+55
         for (i, name) in self.languages.iter().enumerate() {
             let iy = ((i + 1) * 8 + 55) as i32;
-            els.push(Element::Text {
-                text: name.clone(),
-                x: 155,
-                y: iy,
-                color: FONT_GOLD,
-                right: false,
-                center: true,
-            });
+            els.push(Element::center_text(name.clone(), 155, iy, FONT_GOLD));
         }
 
         // highlight box from Menu component (labels disabled)

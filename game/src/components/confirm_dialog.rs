@@ -39,7 +39,7 @@ impl Component for ConfirmDialog {
         let mut els = vec![
             Element::fillbox(59, 79, 203, 53, 242),
             Element::fillbox(60, 80, 201, 51, 244),
-            Element::FillArea { thing: 63 },
+            Element::fill_area(63),
             Element::text(&self.message, 70, 90, 246, false),
             Element::text(str2, 70, 110, 246, false),
             Element::text("(Y/N)", hint_x, 110, 241, false),

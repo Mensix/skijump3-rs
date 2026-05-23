@@ -159,6 +159,28 @@ impl Element {
         }
     }
 
+    pub fn right_text(text: impl Into<String>, x: i32, y: i32, color: u8) -> Self {
+        Self::Text {
+            text: text.into(),
+            x,
+            y,
+            color,
+            right: true,
+            center: false,
+        }
+    }
+
+    pub fn center_text(text: impl Into<String>, x: i32, y: i32, color: u8) -> Self {
+        Self::Text {
+            text: text.into(),
+            x,
+            y,
+            color,
+            right: false,
+            center: true,
+        }
+    }
+
     pub fn sprite(idx: u16, x: i32, y: i32) -> Self {
         Self::Sprite(idx, x, y)
     }
@@ -177,6 +199,10 @@ impl Element {
 
     pub fn box_(x: i32, y: i32, w: i32, h: i32, color: u8) -> Self {
         Self::Box { x, y, w, h, color }
+    }
+
+    pub fn fill_area(thing: u8) -> Self {
+        Self::FillArea { thing }
     }
 
     pub fn container(children: Vec<Element>) -> Self {

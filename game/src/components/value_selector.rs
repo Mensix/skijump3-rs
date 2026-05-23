@@ -217,7 +217,7 @@ impl ValueSelector {
             Element::text(text, self.x, self.y, self.fg, false),
         ];
         if let Some(rt) = &self.right_text {
-            els.push(Element::text(rt, 316, self.y, self.fg, true));
+            els.push(Element::right_text(rt, 316, self.y, self.fg));
         }
         els
     }

@@ -157,7 +157,7 @@ fn info_elements(
 ) {
     els.push(Element::sprite(sprites::Sprite::InfoPanel as u16, 227, 2));
     if !ctx.hide_info_panel_text {
-        els.push(Element::text(ctx.hill_name_k, 308, 9, FONT_GOLD, true));
+        els.push(Element::right_text(ctx.hill_name_k, 308, 9, FONT_GOLD));
         els.push(Element::text(
             ctx.langbase.lstr(65),
             308,
@@ -167,7 +167,7 @@ fn info_elements(
         ));
         if let Some(record) = ctx.hill_record {
             if record.len > 0 {
-                els.push(Element::text(&record.name, 308, 29, FONT_GOLD, true));
+                els.push(Element::right_text(&record.name, 308, 29, FONT_GOLD));
                 els.push(Element::text(
                     format!("{:.1}m", record.len as f64 / 10.0),
                     308,
@@ -184,16 +184,15 @@ fn info_elements(
 
 fn panel_header(els: &mut Vec<Element>, name: &str, color: u8) {
     els.push(Element::sprite(sprites::Sprite::InfoPanel as u16, 227, 2));
-    els.push(Element::text(name, 308, 9, color, true));
+    els.push(Element::right_text(name, 308, 9, color));
 }
 
 fn panel_distance(els: &mut Vec<Element>, distance: i32) {
-    els.push(Element::text(
+    els.push(Element::right_text(
         format!("{:.1}m", f64::from(distance) / 10.0),
         308,
         33,
         FONT_GREET,
-        true,
     ));
 }
 

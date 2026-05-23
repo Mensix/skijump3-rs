@@ -59,12 +59,11 @@ impl MainLayout {
             }
             let profile = &pb.profiles[profile_idx];
             let y = (i as i32) * 9 + 64;
-            els.push(Element::text(
+            els.push(Element::right_text(
                 format!("{}.", i + 1),
                 162,
                 y,
                 FONT_HELP,
-                true,
             ));
             els.push(Element::text(&profile.name, 170, y, FONT_HELP, false));
         }
@@ -96,8 +95,8 @@ impl MainLayout {
     #[must_use]
     pub fn footer(&self) -> Vec<Element> {
         vec![
-            Element::text("SKI JUMP", 308, 6, FONT_DEFAULT, true),
-            Element::text("INTERNATIONAL", 308, 18, FONT_DEFAULT, true),
+            Element::right_text("SKI JUMP", 308, 6, FONT_DEFAULT),
+            Element::right_text("INTERNATIONAL", 308, 18, FONT_DEFAULT),
             Element::text(format!("v{}", self.version), 245, 30, FONT_DEFAULT, false),
         ]
     }

@@ -182,25 +182,23 @@ impl CompetitionOverlay {
     /// Pascal drawkeymap: key binding hints shown when jumper is on bar.
     fn drawkeymap_elements(&self, els: &mut Vec<Element>) {
         els.push(Element::sprite(sprites::Sprite::InfoPanel as u16, 227, 2));
-        els.push(Element::text(
+        els.push(Element::right_text(
             self.resources.langbase.lstr(330),
             308,
             9,
             FONT_GOLD,
-            true,
         ));
         for i in 1..=5 {
-            els.push(Element::text(
-                format!(
-                    "{}: {}",
-                    self.resources.langbase.lstr(330 + i),
-                    KEY_NAMES[i - 1]
-                ),
-                308,
-                i as i32 * 10 + 9,
-                FONT_GOLD,
-                true,
-            ));
+                els.push(Element::right_text(
+                    format!(
+                        "{}: {}",
+                        self.resources.langbase.lstr(330 + i),
+                        KEY_NAMES[i - 1]
+                    ),
+                    308,
+                    i as i32 * 10 + 9,
+                    FONT_GOLD,
+                ));
         }
     }
 

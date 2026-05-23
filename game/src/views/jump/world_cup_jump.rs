@@ -245,7 +245,7 @@ impl WorldCupJumpView {
                 .filter(|p| p.id != own_id && p.points.is_some_and(|pts| pts > own_total))
                 .count()
                 + 1;
-            Element::text(format!("(${}.)", rank), 255, 45, FONT_GREET, true)
+            Element::right_text(format!("(${}.)", rank), 255, 45, FONT_GREET)
         })
     }
 

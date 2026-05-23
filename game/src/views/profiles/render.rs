@@ -12,7 +12,7 @@ pub(super) fn draw_screen_base(view: &ProfilesView, els: &mut Vec<Element>) {
     els.push(Element::fillbox(0, 0, 320, 200, 0));
     els.push(Element::fillbox(0, 0, 159, 200, BG_LEFT));
     els.push(Element::fillbox(160, 0, 160, 200, BG_RIGHT));
-    els.push(Element::FillArea { thing: 63 });
+    els.push(Element::fill_area(63));
     els.push(Element::text(
         lstr(&view.resources.langbase, 34, "Jumpers:"),
         40,
@@ -78,7 +78,7 @@ pub(super) fn draw_help(view: &ProfilesView, els: &mut Vec<Element>, profile: Op
     }
 
     els.push(Element::fillbox(1, 175, 158, 25, BG_LEFT));
-    els.push(Element::FillArea { thing: 63 });
+    els.push(Element::fill_area(63));
 
     if let Some(profile) = profile {
         let in_order = store.order_pos(profile).is_some();
@@ -125,7 +125,7 @@ pub(super) fn draw_help(view: &ProfilesView, els: &mut Vec<Element>, profile: Op
 
 pub(super) fn draw_empty_edit(els: &mut Vec<Element>) {
     els.push(Element::fillbox(166, 4, 154, 195, BG_RIGHT));
-    els.push(Element::FillArea { thing: 63 });
+    els.push(Element::fill_area(63));
 }
 
 pub(super) fn draw_suit_ski(view: &ProfilesView, els: &mut Vec<Element>) {

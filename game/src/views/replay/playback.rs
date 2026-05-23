@@ -218,7 +218,7 @@ impl View<RouteTarget> for ReplayView {
                     || "?".to_string(),
                     |hill| format!("{} K{}", hill.name, hill.kr),
                 );
-            els.push(Element::text(hill_text, 308, 9, FONT_DEFAULT, true));
+            els.push(Element::right_text(hill_text, 308, 9, FONT_DEFAULT));
             els.push(Element::text(
                 &session.trace().meta.author,
                 308,
@@ -278,7 +278,7 @@ impl View<RouteTarget> for ReplayView {
                 &self.resources.langbase,
                 session.trace().meta.start_gate_or_competition,
             ) {
-                els.push(Element::text(gate_text, 309, 59, FONT_GREET, true));
+                els.push(Element::right_text(gate_text, 309, 59, FONT_GREET));
             }
         }
         presentation::wind_elements(&mut els, wind_pos, i32::from(replay_frame.wind));
