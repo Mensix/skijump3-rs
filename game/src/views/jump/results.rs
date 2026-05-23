@@ -3,6 +3,7 @@ use crate::competition::types::{CompetitionPhase, CupStyle, Participant, Qualifi
 use crate::components::screen::{new_screen, page_hints};
 use crate::gfx::palette::{FONT_DEFAULT, FONT_GREET, FONT_HEADER};
 use crate::store::ResourcesRef;
+use crate::text::format::format_tenths;
 use engine::ui::Element;
 
 pub const QUALIFICATION_ITEMS_PER_PAGE: usize = 25;
@@ -846,16 +847,6 @@ fn truncate_name(name: &str) -> String {
     }
 
     name.chars().take(MAX_CHARS).collect()
-}
-
-pub fn format_tenths(value: i32) -> String {
-    if value == 0 {
-        return "0.0".to_string();
-    }
-
-    let sign = if value < 0 { "-" } else { "" };
-    let abs = value.abs();
-    format!("{}{}.{}", sign, abs / 10, abs % 10)
 }
 
 fn format_distance(value: i32, value2: i32) -> String {

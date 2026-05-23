@@ -1,4 +1,5 @@
-use crate::competition::scoring::WC_POINTS;
+use crate::competition::machine::Competition;
+use crate::competition::scoring::wc_points_for_rank;
 use crate::competition::types::{CompetitionPhase, CupStyle};
 use crate::controllers::competition_ui::{CompetitionUiState, RenderMode, ResultScreen};
 use crate::controllers::jump_input::{JumpInputAction, JumpInputController};
@@ -9,6 +10,7 @@ use crate::jump::types::{FallType, JumpPhase};
 use crate::jump::JumpParticipant;
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
+use crate::text::format::format_tenths;
 use crate::views::jump::competition_overlay::CompetitionOverlay;
 use crate::views::jump::results as competition_results;
 use engine::palette::Palette;
@@ -198,30 +200,18 @@ impl WorldCupJumpView {
                     CupStyle::WorldCup => {
                         profile.world_cups += 1;
                         let my_points = p.points.unwrap_or(0);
-                        let event_rank = 1 + c
-                            .event_standings()
-                            .iter()
-                            .filter(|ep| ep.points.unwrap_or(i32::MIN) > my_points)
-                            .count();
-                        let pts = if event_rank <= 30 {
-                            WC_POINTS[event_rank - 1]
-                        } else {
-                            0
-                        };
+                        let event_rank = event_rank_by_points(c, my_points);
+                        let pts = wc_points_for_rank(event_rank);
                         if pts >= profile.bestpoints as i32 {
                             profile.bestpoints = pts as usize;
-                            profile.best_result =
-                                format!("{} ({}.)", pts, event_rank);
+                            profile.best_result = format_wc_best_result(pts, event_rank);
                         }
                     }
                     CupStyle::FourHills => {
                         if p.four_hills_points >= profile.best4points as i32 {
                             profile.best4points = p.four_hills_points as usize;
-                            profile.best_4h_result = format!(
-                                "{} ({}.)",
-                                competition_results::format_tenths(p.four_hills_points),
-                                p.rank,
-                            );
+                            profile.best_4h_result =
+                                format_four_hills_best_result(p.four_hills_points, p.rank);
                         }
                     }
                     CupStyle::CustomCup | CupStyle::TeamCup => {}
@@ -494,4 +484,23 @@ impl WorldCupJumpView {
             _ => None,
         }
     }
+}
+
+/// Pascal: `txt(mcpisteet[who])+' ('+str1+')'` where str1 is `sija[who]+'.'`
+/// for the final event. Same applies to best4 result with `txtp` for tenths.
+fn format_wc_best_result(points: i32, rank: usize) -> String {
+    format!("{} ({}.)", points, rank)
+}
+
+fn format_four_hills_best_result(points_tenths: i32, rank: usize) -> String {
+    format!("{} ({}.)", format_tenths(points_tenths), rank)
+}
+
+/// Tie-aware event rank: 1 + count of participants with strictly higher points.
+fn event_rank_by_points(competition: &Competition, points: i32) -> usize {
+    1 + competition
+        .event_standings()
+        .iter()
+        .filter(|p| p.points.unwrap_or(i32::MIN) > points)
+        .count()
 }

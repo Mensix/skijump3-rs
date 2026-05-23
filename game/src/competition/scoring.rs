@@ -6,6 +6,17 @@ pub const WC_POINTS: [i32; 30] = [
     6, 5, 4, 3, 2, 1,
 ];
 
+/// Look up WC points awarded for a given rank (1-indexed).
+/// Rank 1 → 100, rank 30 → 1, out-of-range → 0.
+#[must_use]
+pub fn wc_points_for_rank(rank: usize) -> i32 {
+    if (1..=WC_POINTS.len()).contains(&rank) {
+        WC_POINTS[rank - 1]
+    } else {
+        0
+    }
+}
+
 /// Add World Cup points to each participant based on their rank in the current event.
 ///
 /// Only ranks 1..=30 receive points. Rank 1 gets 100, rank 2 gets 80, ..., rank 30 gets 1.
@@ -13,9 +24,8 @@ pub const WC_POINTS: [i32; 30] = [
 pub fn award_wc_points(field: &mut CompetitionField) {
     for idx in 0..field.len() {
         let rank = field.get(idx).rank;
-        if (1..=30).contains(&rank) {
-            field.get_mut(idx).wc_points += WC_POINTS[rank - 1];
-        }
+        let pts = wc_points_for_rank(rank);
+        field.get_mut(idx).wc_points += pts;
     }
 }
 
@@ -76,5 +86,19 @@ mod tests {
         assert_eq!(WC_POINTS.len(), 30);
         assert_eq!(WC_POINTS[0], 100);
         assert_eq!(WC_POINTS[29], 1);
+    }
+
+    #[test]
+    fn wc_points_for_rank_returns_correct_values() {
+        assert_eq!(wc_points_for_rank(1), 100);
+        assert_eq!(wc_points_for_rank(2), 80);
+        assert_eq!(wc_points_for_rank(30), 1);
+    }
+
+    #[test]
+    fn wc_points_for_rank_out_of_range_returns_zero() {
+        assert_eq!(wc_points_for_rank(0), 0);
+        assert_eq!(wc_points_for_rank(31), 0);
+        assert_eq!(wc_points_for_rank(99), 0);
     }
 }

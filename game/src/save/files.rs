@@ -1,3 +1,4 @@
+use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
 /// Centralized file IO with save-dir override over asset-dir fallback.
@@ -58,18 +59,16 @@ impl FileStore {
         self.list_by_ext_in(&self.save_dir, ext)
     }
 
-    /// List filenames from both save dir and asset dir, deduplicated.
+    /// List filenames from both save dir and asset dir, deduplicated and sorted.
     pub fn list_by_ext_all(&self, ext: &str) -> Result<Vec<String>, std::io::Error> {
-        let mut names = self.list_by_ext(ext).unwrap_or_default();
-        if let Ok(asset_names) = self.list_by_ext_in(&self.asset_dir, ext) {
-            for n in asset_names {
-                if !names.contains(&n) {
-                    names.push(n);
-                }
-            }
+        let mut names = BTreeSet::new();
+        if let Ok(save_names) = self.list_by_ext(ext) {
+            names.extend(save_names);
         }
-        names.sort();
-        Ok(names)
+        if let Ok(asset_names) = self.list_by_ext_in(&self.asset_dir, ext) {
+            names.extend(asset_names);
+        }
+        Ok(names.into_iter().collect())
     }
 
     fn list_by_ext_in(&self, dir: &Path, ext: &str) -> Result<Vec<String>, std::io::Error> {

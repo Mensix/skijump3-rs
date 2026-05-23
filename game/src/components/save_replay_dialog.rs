@@ -4,11 +4,28 @@ use crate::jump::replay::ReplayTrace;
 use crate::store::ResourcesRef;
 use engine::ui::{Blinker, Component, Element, Event, Key, TextEditState};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 enum SaveField {
     Author,
     Name,
     Filename,
+}
+
+impl SaveField {
+    const fn idx(self) -> usize {
+        match self {
+            Self::Author => 0,
+            Self::Name => 1,
+            Self::Filename => 2,
+        }
+    }
+
+    const fn max_len(self) -> usize {
+        match self {
+            Self::Author | Self::Name => 130,
+            Self::Filename => 8,
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -40,14 +57,6 @@ pub struct SaveReplayDialog {
     distance: String,
     hill_name: String,
     cursor_blink: Blinker,
-}
-
-const fn field_idx(field: &SaveField) -> usize {
-    match field {
-        SaveField::Author => 0,
-        SaveField::Name => 1,
-        SaveField::Filename => 2,
-    }
 }
 
 fn sanitize_filename(name: &str) -> String {
@@ -95,32 +104,20 @@ impl SaveReplayDialog {
         self.state = SaveDialogState::Browse { selected: 0 };
     }
 
+    fn edit_field(&mut self, field: SaveField, value: String) -> SaveAction {
+        self.cursor_blink.reset();
+        self.state = SaveDialogState::EditField {
+            field,
+            editor: TextEditState::new(value, field.max_len()),
+        };
+        SaveAction::Consumed
+    }
+
     fn activate_item(&mut self, selected: usize) -> SaveAction {
         match selected {
-            0 => {
-                self.cursor_blink.reset();
-                self.state = SaveDialogState::EditField {
-                    field: SaveField::Author,
-                    editor: TextEditState::new(self.author.clone(), 130),
-                };
-                SaveAction::Consumed
-            }
-            1 => {
-                self.cursor_blink.reset();
-                self.state = SaveDialogState::EditField {
-                    field: SaveField::Name,
-                    editor: TextEditState::new(self.name.clone(), 130),
-                };
-                SaveAction::Consumed
-            }
-            2 => {
-                self.cursor_blink.reset();
-                self.state = SaveDialogState::EditField {
-                    field: SaveField::Filename,
-                    editor: TextEditState::new(self.filename.clone(), 8),
-                };
-                SaveAction::Consumed
-            }
+            0 => self.edit_field(SaveField::Author, self.author.clone()),
+            1 => self.edit_field(SaveField::Name, self.name.clone()),
+            2 => self.edit_field(SaveField::Filename, self.filename.clone()),
             3 => {
                 self.state = SaveDialogState::Inactive;
                 SaveAction::Consumed
@@ -175,13 +172,13 @@ impl Component for SaveReplayDialog {
         {
             let selected_idx = match self.state {
                 SaveDialogState::Browse { selected } => selected,
-                SaveDialogState::EditField { ref field, .. } => field_idx(field),
+                SaveDialogState::EditField { ref field, .. } => field.idx(),
                 SaveDialogState::ConfirmOverwrite { .. } => 4,
                 _ => 0,
             };
             let editing = matches!(self.state, SaveDialogState::EditField { .. });
             let editing_field = match self.state {
-                SaveDialogState::EditField { ref field, .. } => Some(field_idx(field)),
+                SaveDialogState::EditField { ref field, .. } => Some(field.idx()),
                 _ => None,
             };
 
@@ -324,7 +321,7 @@ impl Component for SaveReplayDialog {
                 Event::Keyboard(Key::Escape) => {
                     self.cursor_blink.reset();
                     self.state = SaveDialogState::Browse {
-                        selected: field_idx(&field),
+                        selected: field.idx(),
                     };
                     Some(SaveAction::Consumed)
                 }
@@ -337,7 +334,7 @@ impl Component for SaveReplayDialog {
                         SaveField::Filename => self.filename = buf,
                     }
                     self.state = SaveDialogState::Browse {
-                        selected: field_idx(&field),
+                        selected: field.idx(),
                     };
                     Some(SaveAction::Consumed)
                 }
