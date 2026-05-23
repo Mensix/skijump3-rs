@@ -28,41 +28,13 @@ impl JumpMenuView {
     #[must_use]
     pub fn new(layout: MainLayout, store: StoreRef, resources: ResourcesRef) -> Self {
         let items = vec![
-            MenuItem {
-                num: 1,
-                label: 27,
-                y_off: 0,
-            },
-            MenuItem {
-                num: 2,
-                label: 28,
-                y_off: 0,
-            },
-            MenuItem {
-                num: 3,
-                label: 29,
-                y_off: 0,
-            },
-            MenuItem {
-                num: 4,
-                label: 30,
-                y_off: 0,
-            },
-            MenuItem {
-                num: 5,
-                label: 31,
-                y_off: 0,
-            },
-            MenuItem {
-                num: 6,
-                label: 32,
-                y_off: 0,
-            },
-            MenuItem {
-                num: 0,
-                label: 33,
-                y_off: 12,
-            },
+            MenuItem::new(1, 27),
+            MenuItem::new(2, 28),
+            MenuItem::new(3, 29),
+            MenuItem::new(4, 30),
+            MenuItem::new(5, 31),
+            MenuItem::new(6, 32),
+            MenuItem::with_y(0, 33, 12),
         ];
         Self {
             menu: Menu::new(

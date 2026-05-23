@@ -19,11 +19,7 @@ impl WelcomeScreenView {
         let count = languages.len();
         let mut items = Vec::with_capacity(count);
         for (i, _) in languages.iter().enumerate() {
-            items.push(MenuItem {
-                num: (i + 1) as u8,
-                label: 0,
-                y_off: 0,
-            });
+            items.push(MenuItem::new((i + 1) as u8, 0));
         }
         Self {
             menu: Menu::new(

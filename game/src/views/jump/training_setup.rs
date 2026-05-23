@@ -39,13 +39,7 @@ impl TrainingSetupView {
         let start = if total > 20 { selected / 20 * 20 } else { 0 };
         let page_n = (total.saturating_sub(start)).min(20);
         let n = page_n + usize::from(total > 20);
-        let items = (0..n)
-            .map(|_| MenuItem {
-                num: 0,
-                label: 0,
-                y_off: 0,
-            })
-            .collect();
+        let items = (0..n).map(|_| MenuItem::new(0, 0)).collect();
         let mut menu = Menu::new(
             110,
             11,
@@ -73,13 +67,7 @@ impl TrainingSetupView {
     fn rebuild_menu(&self) -> Menu {
         let page_n = self.page_items();
         let n = page_n + usize::from(self.has_more());
-        let items = (0..n)
-            .map(|_| MenuItem {
-                num: 0,
-                label: 0,
-                y_off: 0,
-            })
-            .collect();
+        let items = (0..n).map(|_| MenuItem::new(0, 0)).collect();
         Menu::new(
             110,
             11,

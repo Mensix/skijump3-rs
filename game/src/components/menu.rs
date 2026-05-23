@@ -8,6 +8,16 @@ pub struct MenuItem {
     pub y_off: i32,
 }
 
+impl MenuItem {
+    pub const fn new(num: u8, label: usize) -> Self {
+        Self { num, label, y_off: 0 }
+    }
+
+    pub const fn with_y(num: u8, label: usize, y_off: i32) -> Self {
+        Self { num, label, y_off }
+    }
+}
+
 pub struct Menu {
     selection: SelectionState,
     x: i32,

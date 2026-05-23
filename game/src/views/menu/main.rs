@@ -24,41 +24,13 @@ impl MainMenuView {
     #[allow(clippy::needless_pass_by_value)]
     pub fn new(layout: MainLayout, store: StoreRef) -> Self {
         let items = vec![
-            MenuItem {
-                num: 1,
-                label: 20,
-                y_off: 0,
-            },
-            MenuItem {
-                num: 2,
-                label: 21,
-                y_off: 0,
-            },
-            MenuItem {
-                num: 3,
-                label: 22,
-                y_off: 0,
-            },
-            MenuItem {
-                num: 4,
-                label: 23,
-                y_off: 0,
-            },
-            MenuItem {
-                num: 5,
-                label: 24,
-                y_off: 0,
-            },
-            MenuItem {
-                num: 6,
-                label: 25,
-                y_off: 0,
-            },
-            MenuItem {
-                num: 0,
-                label: 26,
-                y_off: 12,
-            },
+            MenuItem::new(1, 20),
+            MenuItem::new(2, 21),
+            MenuItem::new(3, 22),
+            MenuItem::new(4, 23),
+            MenuItem::new(5, 24),
+            MenuItem::new(6, 25),
+            MenuItem::with_y(0, 26, 12),
         ];
         let selection = store
             .selected_main_menu
