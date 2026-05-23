@@ -15,6 +15,7 @@ use engine::ui::{Component, Element, Event, Key, View};
 
 use super::actions::{
     apply_question, commit_text_input, handle_edit_enter, handle_list_delete, handle_list_enter,
+    save_players,
 };
 use super::render::{draw_empty_edit, draw_help, draw_list, draw_profile, draw_screen_base};
 
@@ -328,6 +329,7 @@ impl View<RouteTarget> for ProfilesView {
             }
             Some(Pending::TextCommit(profile, field, value)) => {
                 commit_text_input(self, profile, field, &value);
+                save_players(self);
             }
             Some(Pending::TextCancel(profile, field)) => {
                 self.mode = Mode::Edit {
@@ -338,7 +340,17 @@ impl View<RouteTarget> for ProfilesView {
                     },
                 };
             }
-            Some(Pending::ColorCommit(profile, field) | Pending::ColorCancel(profile, field)) => {
+            Some(Pending::ColorCommit(profile, field)) => {
+                save_players(self);
+                self.mode = Mode::Edit {
+                    profile,
+                    selected: match field {
+                        ColorField::Suit => 2,
+                        ColorField::Ski => 3,
+                    },
+                };
+            }
+            Some(Pending::ColorCancel(profile, field)) => {
                 self.mode = Mode::Edit {
                     profile,
                     selected: match field {
@@ -348,6 +360,7 @@ impl View<RouteTarget> for ProfilesView {
                 };
             }
             Some(Pending::ReplaceCommit(profile)) => {
+                save_players(self);
                 self.mode = Mode::Edit {
                     profile,
                     selected: 4,
@@ -359,7 +372,10 @@ impl View<RouteTarget> for ProfilesView {
                     selected: 4,
                 }
             }
-            Some(Pending::QuestionYes(action)) => apply_question(self, action),
+            Some(Pending::QuestionYes(action)) => {
+                apply_question(self, action);
+                save_players(self);
+            }
             Some(Pending::QuestionNo(action)) => {
                 self.mode = match action {
                     QuestionAction::DeleteProfile(_) => Mode::List,

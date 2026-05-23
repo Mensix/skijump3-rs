@@ -73,6 +73,7 @@ pub(super) fn handle_list_delete(view: &mut ProfilesView) {
             .profiles
             .borrow_mut()
             .remove_from_order(view.selected);
+        save_players(view);
     } else {
         let name = view.store.profiles.borrow().profiles[view.selected]
             .name
@@ -182,11 +183,14 @@ pub(super) fn handle_edit_enter(view: &mut ProfilesView, profile: usize, selecte
                 let mut store = view.store.profiles.borrow_mut();
                 store.profiles[profile].coach_style = 0;
             }
+            save_players(view);
         }
         6 => {
             let mut store = view.store.profiles.borrow_mut();
             let profile_ref = &mut store.profiles[profile];
             profile_ref.skip_quali = (profile_ref.skip_quali + 1) % 3;
+            drop(store);
+            save_players(view);
         }
         7 => {
             view.mode = Mode::Question {

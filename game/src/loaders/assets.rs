@@ -1,22 +1,24 @@
+use std::rc::Rc;
+
 use crate::data::records::{HillCatalog, RecordStore};
 use crate::parsers::hills::HillBaseParser;
 use crate::parsers::names::NamesParser;
 use crate::parsers::records::RecordsParser;
 use crate::parsers::AssetParser;
+use crate::save::files::FileStore;
 
 #[derive(Debug, Clone)]
 pub struct AssetStore {
-    base: std::path::PathBuf,
+    files: Rc<FileStore>,
 }
 
 impl AssetStore {
-    pub fn new(base: impl Into<std::path::PathBuf>) -> Self {
-        Self { base: base.into() }
+    pub fn new(files: Rc<FileStore>) -> Self {
+        Self { files }
     }
 
     pub fn read(&self, name: &str) -> Result<Vec<u8>, std::io::Error> {
-        let path = self.base.join(name);
-        std::fs::read(path)
+        self.files.read(name)
     }
 
     pub fn load_hills(&self, name: &str) -> Result<HillCatalog, String> {

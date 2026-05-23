@@ -15,6 +15,7 @@ pub mod views;
 
 use crate::components::layout::MainLayout;
 use crate::gfx::palette::apply_standard_ui_palette;
+use crate::save::files::FileStore;
 use crate::save::{SaveManager, SaveRef};
 use crate::store::{Resources, ResourcesRef, Store, StoreRef};
 use engine::consts::{HEIGHT, WIDTH};
@@ -57,7 +58,12 @@ pub struct Game {
 impl Game {
     pub fn new() -> Result<Self, String> {
         let (sdl, mut renderer, input) = Self::init_sdl()?;
-        let assets = AssetStore::new("game/assets");
+
+        let save_dir = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
+        let asset_dir = std::path::PathBuf::from("game/assets");
+        let files = Rc::new(FileStore::new(asset_dir, save_dir));
+        let assets = AssetStore::new(Rc::clone(&files));
+
         let (pixels, pcx_palette, sprites, langbase) = Self::load_assets(&assets)?;
 
         let font = Font::from_sprites(&sprites);
@@ -68,7 +74,7 @@ impl Game {
         renderer.set_palette(base_palette.clone());
 
         let save_manager: SaveRef = Rc::new(SaveManager::new(
-            std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from(".")),
+            files,
             Rc::clone(&langbase),
         ));
 
@@ -88,7 +94,9 @@ impl Game {
             hills,
             assets,
         ));
-        let store: StoreRef = Rc::new(Store::new(records));
+
+        let profiles = save_manager.load_players();
+        let store: StoreRef = Rc::new(Store::with_profiles(records, profiles));
         let router = Self::create_router(resources, pixels, store, start_route, save_manager);
 
         Ok(Self {

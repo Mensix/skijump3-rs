@@ -5,6 +5,7 @@ pub mod hills;
 pub mod langbase;
 pub mod names;
 pub mod pcx;
+pub mod players;
 pub mod records;
 
 #[derive(Debug, Clone, PartialEq, Eq)]

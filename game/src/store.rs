@@ -259,6 +259,21 @@ impl Store {
             selected_main_menu: Cell::new(0),
         }
     }
+
+    #[must_use]
+    pub fn with_profiles(records: RecordStore, profiles: ProfileStore) -> Self {
+        Self {
+            jump_runtime: JumpRuntime::new(),
+            practice: PracticeSettings::new(),
+            replay_selection: ReplaySelection::new(),
+            competition: CompetitionSlot::new(),
+            profiles: RefCell::new(profiles),
+            records: RefCell::new(records),
+            selected_hill: Cell::new(0),
+            start_gate: Cell::new(DEFAULT_START_GATE),
+            selected_main_menu: Cell::new(0),
+        }
+    }
 }
 
 pub type StoreRef = Rc<Store>;
