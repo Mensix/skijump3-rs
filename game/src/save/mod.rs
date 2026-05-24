@@ -48,9 +48,9 @@ impl SaveManager {
 
     fn load_initial_config(files: &FileStore, langbase: &Rc<LangBase>) -> Config {
         let config = files
-            .read("CONFIG.SKI")
+            .read("config.toml")
             .ok()
-            .and_then(|bytes| Config::parse(&bytes).ok())
+            .and_then(|bytes| Config::from_toml_bytes(&bytes).ok())
             .unwrap_or_default();
 
         if config.languagenumber >= 0 && (config.languagenumber as usize) < langbase.languages.len()
@@ -84,7 +84,11 @@ impl SaveManager {
 
     fn save_config(&self) {
         let config = self.config.borrow();
-        self.save_bytes("CONFIG.SKI", &config.to_bytes());
+        if let Ok(data) = config.to_toml_bytes() {
+            self.save_bytes("config.toml", &data);
+        } else {
+            eprintln!("Warning: failed to serialize config");
+        }
     }
 
     fn write_to_disk<T: SaveFormat>(&self, filename: &str, data: &T) {

@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
 /// Centralized file IO with save-dir override over asset-dir fallback.
-/// All file paths are relative to roots; callers use filenames like "CONFIG.SKI".
+/// All file paths are relative to roots; callers use filenames like "config.toml".
 #[derive(Debug, Clone)]
 pub struct FileStore {
     asset_dir: PathBuf,
