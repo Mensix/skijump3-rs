@@ -1,7 +1,9 @@
 use crate::components::replay_playback::{PlaybackMode, PlaybackSpeed, ReplayPlayback};
 use crate::data::hill::HillInfo;
 use crate::data::hill_profile::HillTerrain;
-use crate::gfx::palette::{FONT_DEFAULT, FONT_GOLD, FONT_GREET, FONT_HELP};
+use crate::gfx::palette::{
+    apply_ski_palette, apply_suit_palette, FONT_DEFAULT, FONT_GOLD, FONT_GREET, FONT_HELP,
+};
 use crate::gfx::sprites;
 use crate::jump::math;
 use crate::jump::presentation::{self, WindPosition};
@@ -354,6 +356,10 @@ impl View<RouteTarget> for ReplayView {
     fn apply_palette(&self, palette: &mut Palette) {
         if let Ok(terrain) = &self.terrain {
             terrain.apply_hill_palette(palette);
+        }
+        if let Some(session) = self.session.borrow().as_ref() {
+            apply_suit_palette(palette, session.trace().meta.suit_color as usize);
+            apply_ski_palette(palette, session.trace().meta.ski_color as usize);
         }
         highlight_active_speed(palette, self.playback.mode());
     }

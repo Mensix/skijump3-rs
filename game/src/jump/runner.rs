@@ -1,6 +1,6 @@
 use crate::data::hill::HillCatalog;
 use crate::data::records::RecordStore;
-use crate::gfx::palette::FONT_DEFAULT;
+use crate::gfx::palette::{apply_ski_palette, apply_suit_palette, FONT_DEFAULT};
 use crate::jump::config::JumpConfig;
 use crate::jump::presentation;
 use crate::jump::replay::ReplayTrace;
@@ -170,6 +170,8 @@ impl JumpRunner {
         if let Ok(terrain) = self.session.terrain() {
             terrain.apply_hill_palette(palette);
         }
+        apply_suit_palette(palette, self.config.participant.suit_color as usize);
+        apply_ski_palette(palette, self.config.participant.ski_color as usize);
         let is_dq = self.session.phase() == Some(JumpPhase::Disqualified);
         if is_dq {
             // Pascal MuutaLogo(4) — red start light
