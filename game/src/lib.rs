@@ -32,8 +32,8 @@ use route::RouteTarget;
 use std::rc::Rc;
 use views::{
     CustomCupSetupView, HallOfFameView, HillRecordsView, JumpMenuView, MainMenuView, ProfilesView,
-    ReplayBrowserView, ReplayView, TrainingJumpView, TrainingSetupView, WelcomeScreenView,
-    WorldCupJumpView,
+    ReplayBrowserView, ReplayView, SetupView, TrainingJumpView, TrainingSetupView,
+    WelcomeScreenView, WorldCupJumpView,
 };
 
 const MAIN_PCX: &str = "MAIN.PCX";
@@ -99,6 +99,7 @@ impl Game {
 
         let profiles = save_manager.load_players();
         let store: StoreRef = Rc::new(Store::with_profiles(records, profiles));
+        store.jump_runtime.set_wind_place(save_manager.config.borrow().windplace as u8);
         let router = Self::create_router(resources, pixels, store, start_route, save_manager);
 
         Ok(Self {
@@ -250,7 +251,7 @@ impl Game {
                 ),
                 (
                     RouteTarget::OptionsMenu,
-                    ls(&layout, &store, |l, s| Box::new(MainMenuView::new(l, s))),
+                    rs(&resources, &store, |r, s| Box::new(SetupView::new(r, s))),
                 ),
                 (
                     RouteTarget::Quit,

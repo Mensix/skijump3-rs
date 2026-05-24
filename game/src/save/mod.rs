@@ -61,6 +61,16 @@ impl SaveManager {
         config
     }
 
+    /// Apply a mutation to the config and persist immediately.
+    /// Pascal: modifies globals then calls WriteConfig at end of setupmenu.
+    pub fn update_config(&self, f: impl FnOnce(&mut Config)) {
+        {
+            let mut config = self.config.borrow_mut();
+            f(&mut config);
+        }
+        self.save_config();
+    }
+
     pub fn set_language(&self, idx: usize) {
         self.langbase.selected.set(idx);
         self.config.borrow_mut().languagenumber = idx as i32;

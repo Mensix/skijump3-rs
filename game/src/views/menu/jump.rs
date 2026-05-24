@@ -87,12 +87,13 @@ impl View<RouteTarget> for JumpMenuView {
 impl JumpMenuView {
     fn start_competition(&self, style: CupStyle) -> Option<RouteTarget> {
         let profiles = self.store.profiles.borrow();
+        let trainrounds = self.resources.save_manager.config.borrow().trainrounds;
         let comp = build_competition(
             style,
             &profiles,
             &self.resources.player_names,
             self.resources.hills.len(),
-            2,
+            trainrounds as usize,
         );
         drop(profiles);
         self.store.competition.start(comp);
