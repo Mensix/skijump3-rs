@@ -5,6 +5,7 @@ pub(crate) struct ContentManifest {
     pub(crate) format_version: u32,
     pub(crate) languages: Option<ContentSection>,
     pub(crate) namesets: Option<ContentSection>,
+    pub(crate) hills: Option<ContentSection>,
 }
 
 #[derive(Debug, Deserialize)]

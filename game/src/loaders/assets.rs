@@ -1,8 +1,7 @@
 use std::rc::Rc;
 
 use crate::content::ContentStore;
-use crate::data::records::{HillCatalog, RecordStore};
-use crate::parsers::hills::HillBaseParser;
+use crate::data::records::RecordStore;
 use crate::parsers::records::RecordsParser;
 use crate::parsers::AssetParser;
 use crate::save::files::FileStore;
@@ -19,11 +18,6 @@ impl AssetStore {
 
     pub fn read(&self, name: &str) -> Result<Vec<u8>, std::io::Error> {
         self.files.read(name)
-    }
-
-    pub fn load_hills(&self, name: &str) -> Result<HillCatalog, String> {
-        let data = self.read(name).map_err(|e| e.to_string())?;
-        HillBaseParser::parse(&data).map_err(|e| e.to_string())
     }
 
     pub fn load_records(&self, name: &str) -> Result<RecordStore, String> {

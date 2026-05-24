@@ -39,7 +39,6 @@ use views::{
 const MAIN_PCX: &str = "MAIN.PCX";
 const ANIM_SKI: &str = "ANIM.SKI";
 const CONTENT_MANIFEST: &str = "content.toml";
-const HILLBASE_SKI: &str = "HILLBASE.SKI";
 const HISCORE_SKI: &str = "HISCORE.SKI";
 const VERSION: &str = "3.12";
 
@@ -83,13 +82,12 @@ impl Game {
             RouteTarget::MainMenu
         };
 
-        let hills = assets.load_hills(HILLBASE_SKI)?;
         let records = assets.load_records(HISCORE_SKI)?;
         let resources: ResourcesRef = Rc::new(Resources::new(
             font.clone(),
             Rc::clone(&langbase),
             content_store.namesets,
-            hills,
+            content_store.hills,
             assets,
             Rc::clone(&files),
             save_manager.clone(),
