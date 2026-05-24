@@ -49,7 +49,7 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
-            reg: 1,
+            reg: 0,
             comphrs: 1,
             lct: 0,
             diff: 0,
@@ -110,5 +110,71 @@ impl Config {
         toml::to_string(&file)
             .map(|s| s.into_bytes())
             .map_err(|e| format!("Failed to serialize config: {e}"))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn roundtrip_preserves_all_fields() {
+        let cfg = Config::default();
+        let bytes = cfg.to_toml_bytes().unwrap();
+        let parsed = Config::from_toml_bytes(&bytes).unwrap();
+        assert_eq!(parsed.reg, cfg.reg);
+        assert_eq!(parsed.comphrs, cfg.comphrs);
+        assert_eq!(parsed.lct, cfg.lct);
+        assert_eq!(parsed.diff, cfg.diff);
+        assert_eq!(parsed.compactlist, cfg.compactlist);
+        assert_eq!(parsed.invback, cfg.invback);
+        assert_eq!(parsed.automatichrr, cfg.automatichrr);
+        assert_eq!(parsed.beeppi, cfg.beeppi);
+        assert_eq!(parsed.nosamename, cfg.nosamename);
+        assert_eq!(parsed.goals, cfg.goals);
+        assert_eq!(parsed.diffwc, cfg.diffwc);
+        assert_eq!(parsed.kosystem, cfg.kosystem);
+        assert_eq!(parsed.languagenumber, cfg.languagenumber);
+        assert_eq!(parsed.trainrounds, cfg.trainrounds);
+        assert_eq!(parsed.namenumber, cfg.namenumber);
+        assert_eq!(parsed.setfile, cfg.setfile);
+        assert_eq!(parsed.gdetail, cfg.gdetail);
+        assert_eq!(parsed.seecomps, cfg.seecomps);
+        assert_eq!(parsed.jumper_count, cfg.jumper_count);
+        assert_eq!(parsed.jnimet, cfg.jnimet);
+        assert_eq!(parsed.player_count, cfg.player_count);
+        assert_eq!(parsed.profileorder, cfg.profileorder);
+        assert_eq!(parsed.kothwind, cfg.kothwind);
+        assert_eq!(parsed.kothrounds, cfg.kothrounds);
+        assert_eq!(parsed.kothpack, cfg.kothpack);
+        assert_eq!(parsed.kothmaki, cfg.kothmaki);
+        assert_eq!(parsed.koth_count, cfg.koth_count);
+        assert_eq!(parsed.kothpel, cfg.kothpel);
+        assert_eq!(parsed.key_up, cfg.key_up);
+        assert_eq!(parsed.key_right, cfg.key_right);
+        assert_eq!(parsed.key_left, cfg.key_left);
+        assert_eq!(parsed.key_telemark, cfg.key_telemark);
+        assert_eq!(parsed.key_replay, cfg.key_replay);
+        assert_eq!(parsed.windplace, cfg.windplace);
+    }
+
+    #[test]
+    fn rejects_bad_format_version() {
+        let bytes = b"format_version = 99\nreg = 0\n";
+        let result = Config::from_toml_bytes(bytes);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("format_version"));
+    }
+
+    #[test]
+    fn rejects_invalid_toml() {
+        let bytes = b"garbage [[[toml]]]\n";
+        let result = Config::from_toml_bytes(bytes);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn default_has_reg_zero() {
+        assert_eq!(Config::default().reg, 0);
     }
 }

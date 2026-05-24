@@ -47,11 +47,16 @@ impl SaveManager {
     }
 
     fn load_initial_config(files: &FileStore, langbase: &Rc<LangBase>) -> Config {
-        let config = files
-            .read("config.toml")
-            .ok()
-            .and_then(|bytes| Config::from_toml_bytes(&bytes).ok())
-            .unwrap_or_default();
+        let config = match files.read("config.toml") {
+            Ok(bytes) => match Config::from_toml_bytes(&bytes) {
+                Ok(cfg) => cfg,
+                Err(e) => {
+                    eprintln!("Warning: failed to parse config.toml: {e}");
+                    Config::default()
+                }
+            },
+            Err(_) => Config::default(),
+        };
 
         if config.languagenumber >= 0 && (config.languagenumber as usize) < langbase.languages.len()
         {
