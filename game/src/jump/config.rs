@@ -1,5 +1,5 @@
+use crate::data::hill::HillInfo;
 use crate::data::hill_profile::HillTerrain;
-use crate::data::records::HillInfo;
 use crate::jump::policy::{JumpPolicy, JumperControl};
 
 #[derive(Debug, Clone, PartialEq, Eq)]

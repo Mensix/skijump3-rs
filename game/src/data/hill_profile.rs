@@ -1,4 +1,4 @@
-use crate::data::records::HillInfo;
+use crate::data::hill::HillInfo;
 use crate::loaders::assets::AssetStore;
 use crate::parsers::pcx::{DecodedPcx, PcxParser};
 use engine::palette::Palette;

@@ -1,8 +1,9 @@
 use crate::competition::machine::Competition;
 use crate::content::names::NameCatalog;
+use crate::data::hill::HillCatalog;
 use crate::data::hill_profile::HillTerrain;
 use crate::data::profile::ProfileStore;
-use crate::data::records::{HillCatalog, RecordStore};
+use crate::data::records::RecordStore;
 use crate::jump::replay::ReplayTrace;
 use crate::jump::types::DEFAULT_START_GATE;
 use crate::jump::wind::Wind;

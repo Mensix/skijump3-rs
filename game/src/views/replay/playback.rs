@@ -1,6 +1,6 @@
 use crate::components::replay_playback::{PlaybackMode, PlaybackSpeed, ReplayPlayback};
+use crate::data::hill::HillInfo;
 use crate::data::hill_profile::HillTerrain;
-use crate::data::records::HillInfo;
 use crate::gfx::palette::{FONT_DEFAULT, FONT_GOLD, FONT_GREET, FONT_HELP};
 use crate::gfx::sprites;
 use crate::jump::math;

@@ -1,4 +1,5 @@
-use crate::data::records::{HillCatalog, RecordStore};
+use crate::data::hill::HillCatalog;
+use crate::data::records::RecordStore;
 use crate::gfx::palette::FONT_DEFAULT;
 use crate::jump::config::JumpConfig;
 use crate::jump::presentation;

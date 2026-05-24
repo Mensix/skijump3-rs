@@ -3,7 +3,7 @@ pub(crate) mod languages;
 mod manifest;
 pub(crate) mod names;
 
-use crate::data::records::HillCatalog;
+use crate::data::hill::HillCatalog;
 use crate::parsers::langbase::LangBase;
 use crate::save::files::FileStore;
 

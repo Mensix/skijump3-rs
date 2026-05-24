@@ -1,5 +1,5 @@
+use crate::data::hill::HillInfo;
 use crate::data::hill_profile::HillTerrain;
-use crate::data::records::HillInfo;
 use crate::jump::ai::ComputerInputProvider;
 use crate::jump::config::JumpParticipant;
 use crate::jump::state::JumpState;

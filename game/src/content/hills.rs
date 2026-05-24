@@ -1,4 +1,4 @@
-use crate::data::records::{HillCatalog, HillInfo};
+use crate::data::hill::{HillCatalog, HillInfo};
 use crate::save::files::FileStore;
 use serde::Deserialize;
 use std::collections::HashSet;
