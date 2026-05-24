@@ -1,6 +1,5 @@
 id = "original"
 name = "Original hills"
-source = "HILLBASE.SKI"
 
 [[hills]]
 id = "A"
