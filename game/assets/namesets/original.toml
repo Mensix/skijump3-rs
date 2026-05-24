@@ -1,0 +1,126 @@
+id = "original"
+name = "Original names"
+source = "NAMES0.SKI"
+title = "Original names v3.11 - DO NOT EDIT"
+
+names = [
+  "Roar Ljøkelsøy",
+  "Sigurd Pettersen",
+  "Janne Ahonen",
+  "Adam Malysz",
+  "Tami Kiuru",
+  "Martin Höllwarth",
+  "Sven Hannawald",
+  "Veli-Matti Lindström",
+  "Bjørn Einar Romøren",
+  "Matti Hautamäki",
+  "Noriaki Kasai",
+  "Michael Uhrmann",
+  "Andreas Widhölzl",
+  "Thomas Morgenstern",
+  "Tommy Ingebrigtsen",
+  "Peter Zonta",
+  "Akseli Kokkonen",
+  "Maximilian Mechler",
+  "Andreas Kofler",
+  "Andreas Goldberger",
+  "Georg Späth",
+  "Rok Benkovic",
+  "Hiroki Yamada",
+  "Anders Bardal",
+  "Martin Schmitt",
+  "Stephan Hocke",
+  "Jussi Hautamäki",
+  "Hideharu Miyahira",
+  "Henning Stensrud",
+  "Andreas Küttel",
+  "Kazuyoshi Funaki",
+  "Simon Ammann",
+  "Florian Liegl",
+  "Emmanuel Chedal",
+  "Reinhard Schwarzenberger",
+  "Alexander Herr",
+  "Alexei Silaev",
+  "Clint Jones",
+  "Balthasar Schneider",
+  "Marcin Bachleda",
+  "Morten Solem",
+  "Jakub Janda",
+  "Robert Kranjec",
+  "Denis Kornilov",
+  "Jens Salumä",
+  "Lars Bystøl",
+  "Dimitri Vassilev",
+  "Damjan Fras",
+  "Jan Matura",
+  "Primoz Peterka",
+  "Christian Nagiller",
+  "Harri Olli",
+  "Jörg Ritzerfeld",
+  "Olav Magne Dønnem",
+  "Martin Mesik",
+  "Stefan Pieper",
+  "Jan Mazoch",
+  "Chil Gu Kang",
+  "Dimitri Ipatov",
+  "Wojciech Tajner",
+  "Kim-Roar Hansen",
+  "Arttu Lappi",
+  "Tomislaw Tajner",
+  "Yong Jik Choi",
+  "Primoz Pikl",
+  "Radik Zhaparov",
+  "Martin Koch",
+  "Nicolas Dessum",
+  "Jaan Juris",
+  "Johan Eriksson",
+  "Wolfgang Loitzl",
+  "Bine Norcic",
+  "Michael Neumayer",
+  "Chrostoph Kreuzer",
+  "Robert Mateja",
+  "Trainee",
+]
+
+[[teams]]
+  name = "Germany"
+  members = [21, 18, 12, 7]
+[[teams]]
+  name = "Austria"
+  members = [19, 14, 13, 6]
+[[teams]]
+  name = "Finland"
+  members = [10, 8, 5, 3]
+[[teams]]
+  name = "Japan"
+  members = [31, 28, 23, 11]
+[[teams]]
+  name = "Norway"
+  members = [15, 9, 2, 1]
+[[teams]]
+  name = "Poland"
+  members = [63, 60, 40, 4]
+[[teams]]
+  name = "Slovenia"
+  members = [48, 43, 22, 16]
+[[teams]]
+  name = "Switzerland/Czech Rep."
+  members = [57, 49, 32, 30]
+[[teams]]
+  name = "Russia"
+  members = [59, 47, 44, 37]
+[[teams]]
+  name = "Finland II"
+  members = [62, 52, 27, 17]
+[[teams]]
+  name = "Austria II"
+  members = [39, 35, 33, 20]
+[[teams]]
+  name = "Germany II"
+  members = [53, 36, 26, 25]
+[[teams]]
+  name = "Norway II"
+  members = [46, 41, 29, 24]
+[[teams]]
+  name = "Rest of the world"
+  members = [58, 55, 38, 34]

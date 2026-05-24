@@ -3,7 +3,6 @@ use std::rc::Rc;
 use crate::content::ContentStore;
 use crate::data::records::{HillCatalog, RecordStore};
 use crate::parsers::hills::HillBaseParser;
-use crate::parsers::names::NamesParser;
 use crate::parsers::records::RecordsParser;
 use crate::parsers::AssetParser;
 use crate::save::files::FileStore;
@@ -40,18 +39,5 @@ impl AssetStore {
     /// Load all content from the TOML content manifest.
     pub fn load_content(&self, manifest_path: &str) -> Result<ContentStore, String> {
         ContentStore::load(&self.files, manifest_path)
-    }
-
-    pub fn load_all_names(&self) -> Vec<String> {
-        let files = &["NAMES0.SKI", "NAMES1.SKI", "NAMES2.SKI"];
-        let mut all_names = Vec::new();
-        for &filename in files {
-            if let Ok(data) = self.read(filename) {
-                if let Ok(names) = NamesParser::parse(&data) {
-                    all_names.extend(names);
-                }
-            }
-        }
-        all_names
     }
 }

@@ -1,4 +1,5 @@
 use crate::competition::machine::Competition;
+use crate::content::names::NameCatalog;
 use crate::data::hill_profile::HillTerrain;
 use crate::data::profile::ProfileStore;
 use crate::data::records::{HillCatalog, RecordStore};
@@ -19,7 +20,7 @@ use std::rc::Rc;
 pub struct Resources {
     pub font: Font,
     pub langbase: Rc<LangBase>,
-    pub player_names: Vec<String>,
+    pub namesets: NameCatalog,
     pub hills: HillCatalog,
     pub(crate) assets: AssetStore,
     pub(crate) terrain_cache: RefCell<HashMap<usize, Rc<HillTerrain>>>,
@@ -29,10 +30,16 @@ pub struct Resources {
 
 impl Resources {
     #[must_use]
+    pub fn player_names(&self) -> &[String] {
+        self.namesets
+            .names_for_config(self.save_manager.config.borrow().namenumber)
+    }
+
+    #[must_use]
     pub fn new(
         font: Font,
         langbase: Rc<LangBase>,
-        player_names: Vec<String>,
+        namesets: NameCatalog,
         hills: HillCatalog,
         assets: AssetStore,
         files: Rc<FileStore>,
@@ -41,7 +48,7 @@ impl Resources {
         Self {
             font,
             langbase,
-            player_names,
+            namesets,
             hills,
             assets,
             terrain_cache: RefCell::new(HashMap::new()),

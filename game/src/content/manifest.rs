@@ -3,11 +3,12 @@ use serde::Deserialize;
 #[derive(Debug, Deserialize)]
 pub(crate) struct ContentManifest {
     pub(crate) format_version: u32,
-    pub(crate) languages: Option<LanguageManifestRef>,
+    pub(crate) languages: Option<ContentSection>,
+    pub(crate) namesets: Option<ContentSection>,
 }
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct LanguageManifestRef {
+pub(crate) struct ContentSection {
     pub(crate) manifest: String,
 }
 

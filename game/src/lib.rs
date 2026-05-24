@@ -83,13 +83,12 @@ impl Game {
             RouteTarget::MainMenu
         };
 
-        let player_names = assets.load_all_names();
         let hills = assets.load_hills(HILLBASE_SKI)?;
         let records = assets.load_records(HISCORE_SKI)?;
         let resources: ResourcesRef = Rc::new(Resources::new(
             font.clone(),
             Rc::clone(&langbase),
-            player_names,
+            content_store.namesets,
             hills,
             assets,
             Rc::clone(&files),

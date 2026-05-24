@@ -151,7 +151,12 @@ pub(super) fn handle_edit_enter(view: &mut ProfilesView, profile: usize, selecte
                 .min(REPLACE_MAX);
             let x = view.resources.font.string_width("Replace:") as i32 + 170;
             let display = if value > 0 {
-                replace_display_name(value, &view.resources.player_names, &view.resources.font, x)
+                replace_display_name(
+                    value,
+                    view.resources.player_names(),
+                    &view.resources.font,
+                    x,
+                )
             } else {
                 String::new()
             };

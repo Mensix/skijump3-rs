@@ -113,7 +113,7 @@ impl View<RouteTarget> for CustomCupSetupView {
                 let profiles = self.store.profiles.borrow();
                 let comp = build_custom_competition(
                     &profiles,
-                    &self.resources.player_names,
+                    self.resources.player_names(),
                     self.selected.clone(),
                     0,
                 );

@@ -248,15 +248,8 @@ impl SetupView {
                     }
                     (1, 3) => {
                         let n = cfg.namenumber;
-                        let fname = format!("NAMES{}.SKI", n);
-                        let hint = self.resources.files.read(&fname).ok().and_then(|d| {
-                            String::from_utf8(d)
-                                .ok()
-                                .and_then(|s| s.lines().next().map(|l| l.to_string()))
-                        });
-                        if let Some(ref hint) = hint {
-                            els.push(Element::text(hint, 40, 78, FONT_HELP, false));
-                        }
+                        let hint = self.resources.namesets.title_for_config(n);
+                        els.push(Element::text(hint.to_string(), 40, 78, FONT_HELP, false));
                         format!("{}", n)
                     }
                     (2, 0) => {
@@ -432,7 +425,11 @@ impl SetupView {
             (1, 2) => self
                 .save_manager()
                 .update_config(|cfg| cfg.gdetail = if cfg.gdetail == 0 { 1 } else { 0 }),
-            (1, 3) => {} // nameset — skip
+            (1, 3) => {
+                let ns_len = self.resources.namesets.len();
+                self.save_manager()
+                    .update_config(|cfg| cfg.namenumber = (cfg.namenumber + 1) % ns_len as i32);
+            }
             (2, 0) => self
                 .save_manager()
                 .update_config(|cfg| cfg.trainrounds = (cfg.trainrounds + 1) % 4),

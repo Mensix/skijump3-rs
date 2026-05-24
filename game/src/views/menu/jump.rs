@@ -91,7 +91,7 @@ impl JumpMenuView {
         let comp = build_competition(
             style,
             &profiles,
-            &self.resources.player_names,
+            self.resources.player_names(),
             self.resources.hills.len(),
             trainrounds as usize,
         );

@@ -176,10 +176,10 @@ impl View<RouteTarget> for ProfilesView {
                 let x = self.resources.font.string_width("Replace:") as i32 + 170;
                 els.push(Element::fillbox(x - 2, 43, 320 - x, 8, 245));
                 if value > 0 {
-                    if value <= self.resources.player_names.len() {
+                    if value <= self.resources.player_names().len() {
                         let n = replace_display_name(
                             value,
-                            &self.resources.player_names,
+                            self.resources.player_names(),
                             &self.resources.font,
                             x,
                         );

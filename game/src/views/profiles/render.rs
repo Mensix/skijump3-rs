@@ -226,7 +226,7 @@ pub(super) fn draw_profile(
             profile,
             field,
             &view.resources.font,
-            &view.resources.player_names,
+            view.resources.player_names(),
             &view.resources.langbase,
         );
         if !value.is_empty() {

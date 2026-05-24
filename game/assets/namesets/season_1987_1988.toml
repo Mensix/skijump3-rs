@@ -1,0 +1,126 @@
+id = "season_1987_1988"
+name = "1987/1988 season"
+source = "NAMES2.SKI"
+title = "Ski Jumping Season 1987-1988"
+
+names = [
+  "Matti Nykänen",
+  "Pavel Ploc",
+  "Primoz Ulaga",
+  "Jiri Parma",
+  "Ernst Vettori",
+  "Jens Weissflog",
+  "Erik Johnsen",
+  "Miran Tepes",
+  "Ole-Gunnar Fidjestöl",
+  "Jan Boklöv",
+  "Andreas Bauer",
+  "Vegard Opaas",
+  "Staffan Tällberg",
+  "Ole-Christian Eidhammer",
+  "Dieter Thoma",
+  "Jon-Inge Kjörum",
+  "Josef Heumann",
+  "Franz Wiegele",
+  "Ari-Pekka Nikkola",
+  "Rajko Lotric",
+  "Jari Puikkonen",
+  "Christian Hauswirth",
+  "Andi Felder",
+  "Ladislav Dluhos",
+  "Heinz Kuttin",
+  "Werner Schuster",
+  "Hroar Stjernen",
+  "Tuomo Ylipulli",
+  "Mike Holland",
+  "Horst Bulau",
+  "Martin Svagerko",
+  "Remo Lederer",
+  "Heikki Ylipulli",
+  "Günther Stranner",
+  "Oliver Strohmaier",
+  "Pekka Suorsa",
+  "Jiri Malec",
+  "Kai Nokelainen",
+  "Matjaz Debelak",
+  "Didier Mollard",
+  "Fabrice Piazzini",
+  "Steve Collins",
+  "Jouni Johansen",
+  "Todd Gillmann",
+  "Magnus Aaström",
+  "Thomas Klauser",
+  "Risto Laakkonen",
+  "Christoph Lehmann",
+  "Per-Inge Tällberg",
+  "Virginio Lunardi",
+  "Werner Haim",
+  "Roberto Cecon",
+  "Robert Kopac",
+  "Mikael Martinsson",
+  "Jan-Henrik Troen",
+  "Anssi Nieminen",
+  "Heiko Hunger",
+  "Pjotr Fijas",
+  "Ron Richards",
+  "Ulf Findeisen",
+  "Sandro Sambugaro",
+  "Gerard Balanche",
+  "Peter Rohwein",
+  "Anders Daun",
+  "Vesa Hakala",
+  "Steinar Braaten",
+  "Andzey Verveikin",
+  "Takeshi Katshushi",
+  "Thomas Dolar",
+  "Mark Konopacke",
+  "Vladimir Breitschev",
+  "Halvor Persson",
+  "Zbigniew Klimowski",
+  "Udo Okraffka",
+  "Kimmo Kylmäaho",
+  "Trainee",
+]
+
+[[teams]]
+  name = "West Germany"
+  members = [46, 17, 15, 11]
+[[teams]]
+  name = "Finland"
+  members = [28, 21, 19, 1]
+[[teams]]
+  name = "Austria"
+  members = [25, 23, 18, 5]
+[[teams]]
+  name = "Czechoslovakia"
+  members = [31, 24, 4, 2]
+[[teams]]
+  name = "Norway"
+  members = [14, 12, 9, 7]
+[[teams]]
+  name = "Yugoslavia"
+  members = [39, 20, 8, 3]
+[[teams]]
+  name = "Sweden"
+  members = [49, 45, 13, 10]
+[[teams]]
+  name = "Canada"
+  members = [59, 44, 42, 30]
+[[teams]]
+  name = "East Germany"
+  members = [60, 57, 32, 6]
+[[teams]]
+  name = "Italy/France"
+  members = [61, 52, 50, 40]
+[[teams]]
+  name = "Switzerland"
+  members = [62, 48, 41, 22]
+[[teams]]
+  name = "Finland II"
+  members = [43, 38, 36, 33]
+[[teams]]
+  name = "Austria II"
+  members = [51, 35, 34, 26]
+[[teams]]
+  name = "Norway II"
+  members = [66, 55, 27, 16]
