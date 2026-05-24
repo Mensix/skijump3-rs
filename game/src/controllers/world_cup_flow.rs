@@ -116,7 +116,7 @@ mod tests {
             ski_color: 0,
             team: None,
             is_computer: false,
-            skip_quali: false,
+            skip_quali: 0,
             wc_points: 0,
             four_hills_points: 0,
             injury: 0,

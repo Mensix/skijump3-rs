@@ -67,7 +67,7 @@ fn build_participants(profiles: &ProfileStore, computer_names: &[String]) -> Vec
                 ski_color: p.ski_color as u8,
                 team: None,
                 is_computer: false,
-                skip_quali: p.skip_quali > 0,
+                skip_quali: p.skip_quali as u8,
                 wc_points: 0,
                 four_hills_points: 0,
                 injury: 0,

@@ -110,10 +110,12 @@ impl Competition {
         let hill_idx = self.current_hill();
         let is_human = !self.participant(idx).is_computer;
 
-        // Pascal: pre-qualified human with skipquali skips the quali jump entirely
+        // Pascal SJ3.PAS:5367: skip if (skipquali=2) or ((not fourhills) and (skipquali=1))
         if is_human && self.phase == CompetitionPhase::Qualification {
             let p = self.participant(idx);
-            if p.qual == QualificationStatus::PreQualified && p.skip_quali {
+            if p.qual == QualificationStatus::PreQualified
+                && (p.skip_quali == 2 || (p.skip_quali == 1 && !self.is_four_hills_event()))
+            {
                 return StepDecision::Skip;
             }
         }
@@ -764,7 +766,7 @@ mod tests {
         // Turn the last participant (lowest WC rank) into a human with skipquali
         let human_idx = 49;
         participants[human_idx].is_computer = false;
-        participants[human_idx].skip_quali = true;
+        participants[human_idx].skip_quali = 1;
 
         let mut c = Competition::new(CupStyle::WorldCup, participants, vec![0, 1]);
         c.trainrounds = 0;
@@ -808,7 +810,7 @@ mod tests {
         let mut participants = make_50_participants();
         let human_idx = 49;
         participants[human_idx].is_computer = false;
-        participants[human_idx].skip_quali = true;
+        participants[human_idx].skip_quali = 1;
 
         let mut c = Competition::new(CupStyle::WorldCup, participants, vec![0, 1]);
         c.trainrounds = 0;
@@ -868,7 +870,7 @@ mod tests {
         let mut participants = make_50_participants();
         let human_idx = 5;
         participants[human_idx].is_computer = false;
-        participants[human_idx].skip_quali = true;
+        participants[human_idx].skip_quali = 1;
         participants[human_idx].qual = QualificationStatus::PreQualified;
 
         let mut c = Competition::new(CupStyle::WorldCup, participants, vec![0]);
@@ -900,7 +902,7 @@ mod tests {
         let mut participants = make_50_participants();
         let human_idx = 5;
         participants[human_idx].is_computer = false;
-        participants[human_idx].skip_quali = true;
+        participants[human_idx].skip_quali = 1;
         // NOT prequalified — should get Jump, not Skip
         participants[human_idx].qual = QualificationStatus::NotQualified;
 
@@ -918,7 +920,7 @@ mod tests {
         let mut participants = make_50_participants();
         let human_idx = 5;
         participants[human_idx].is_computer = false;
-        participants[human_idx].skip_quali = false; // no skip
+        participants[human_idx].skip_quali = 0; // no skip
         participants[human_idx].qual = QualificationStatus::PreQualified;
 
         let mut c = Competition::new(CupStyle::WorldCup, participants, vec![0]);
