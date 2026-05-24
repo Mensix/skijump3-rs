@@ -1,6 +1,5 @@
 id = "original"
 name = "Original sprites"
-source = "ANIM.SKI"
 
 [[sprites]]
 index = 0
