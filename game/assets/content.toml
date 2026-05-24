@@ -8,3 +8,6 @@ manifest = "namesets/manifest.toml"
 
 [hills]
 manifest = "hills/manifest.toml"
+
+[sprites]
+manifest = "sprites/manifest.toml"

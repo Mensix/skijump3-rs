@@ -26,7 +26,6 @@ use engine::sprite::SpriteData;
 use engine::ui::{Font, PaintCtx, Router, View};
 use engine::video::Renderer;
 use loaders::assets::AssetStore;
-use parsers::anim::AnimParser;
 use parsers::pcx::PcxParser;
 use route::RouteTarget;
 use std::rc::Rc;
@@ -37,7 +36,6 @@ use views::{
 };
 
 const MAIN_PCX: &str = "MAIN.PCX";
-const ANIM_SKI: &str = "ANIM.SKI";
 const CONTENT_MANIFEST: &str = "content.toml";
 const HISCORE_SKI: &str = "HISCORE.SKI";
 const VERSION: &str = "3.12";
@@ -132,8 +130,8 @@ impl Game {
         String,
     > {
         let decoded = assets.parse::<PcxParser>(MAIN_PCX)?;
-        let sprites = assets.parse::<AnimParser>(ANIM_SKI)?;
         let content = assets.load_content(CONTENT_MANIFEST)?;
+        let sprites = content.sprites.clone();
 
         Ok((decoded.pixels, decoded.palette, sprites, content))
     }

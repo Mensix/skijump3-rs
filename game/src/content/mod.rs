@@ -2,16 +2,19 @@ pub(crate) mod hills;
 pub(crate) mod languages;
 mod manifest;
 pub(crate) mod names;
+pub(crate) mod sprites;
 
 use crate::data::hill::HillCatalog;
 use crate::parsers::langbase::LangBase;
 use crate::save::files::FileStore;
+use engine::sprite::SpriteData;
 
 #[derive(Debug)]
 pub struct ContentStore {
     pub langbase: LangBase,
     pub namesets: names::NameCatalog,
     pub hills: HillCatalog,
+    pub sprites: Vec<SpriteData>,
 }
 
 impl ContentStore {
@@ -36,10 +39,17 @@ impl ContentStore {
         };
         let hills = hills::load_hills(files, hills_manifest)?;
 
+        let sprites_manifest = match cm.sprites {
+            Some(ref s) => &s.manifest,
+            None => return Err("content.toml missing [sprites] section".to_string()),
+        };
+        let sprites = sprites::load_sprites(files, sprites_manifest)?;
+
         Ok(Self {
             langbase,
             namesets,
             hills,
+            sprites,
         })
     }
 }
@@ -65,6 +75,36 @@ mod tests {
         fs::write(full, content).unwrap();
     }
 
+    fn write_sprites(dir: &tempfile::TempDir) {
+        write(
+            dir,
+            "sprites/manifest.toml",
+            r#"
+format_version = 1
+default = "default"
+
+[[sets]]
+id = "default"
+file = "default.toml"
+"#,
+        );
+        write(
+            dir,
+            "sprites/default.toml",
+            r#"
+id = "default"
+name = "Default"
+[[sprites]]
+index = 0
+width = 1
+height = 1
+center_x = 0
+center_y = 0
+pixels = "00"
+"#,
+        );
+    }
+
     #[test]
     fn loads_content_through_content_toml() {
         let (store, dir) = make_files();
@@ -81,8 +121,12 @@ manifest = "namesets/manifest.toml"
 
 [hills]
 manifest = "hills/manifest.toml"
+
+[sprites]
+manifest = "sprites/manifest.toml"
 "#,
         );
+        write_sprites(&dir);
         write(
             &dir,
             "languages/manifest.toml",
@@ -171,6 +215,7 @@ profile_checksum = 0
         assert_eq!(store.namesets.names_for_config(0), &["Alice", "Bob"]);
         assert_eq!(store.hills.len(), 1);
         assert_eq!(store.hills.hill(0).unwrap().name, "testhill");
+        assert_eq!(store.sprites.len(), 1);
     }
 
     #[test]
@@ -186,8 +231,12 @@ manifest = "languages/manifest.toml"
 
 [hills]
 manifest = "hills/manifest.toml"
+
+[sprites]
+manifest = "sprites/manifest.toml"
 "#,
         );
+        write_sprites(&dir);
         write(
             &dir,
             "languages/manifest.toml",
@@ -268,8 +317,12 @@ manifest = "languages/manifest.toml"
 
 [namesets]
 manifest = "namesets/manifest.toml"
+
+[sprites]
+manifest = "sprites/manifest.toml"
 "#,
         );
+        write_sprites(&dir);
         write(
             &dir,
             "languages/manifest.toml",
@@ -320,5 +373,109 @@ names = ["A"]
         assert!(result.is_err(), "expected error for missing [hills]");
         let err = result.unwrap_err();
         assert!(err.contains("missing [hills]"), "unexpected error: {err}");
+    }
+
+    #[test]
+    fn content_toml_rejects_missing_sprites() {
+        let (store, dir) = make_files();
+        write(
+            &dir,
+            "content.toml",
+            r#"format_version = 1
+
+[languages]
+manifest = "languages/manifest.toml"
+
+[namesets]
+manifest = "namesets/manifest.toml"
+
+[hills]
+manifest = "hills/manifest.toml"
+"#,
+        );
+        write(
+            &dir,
+            "languages/manifest.toml",
+            r#"
+format_version = 1
+default = "english"
+
+[[languages]]
+id = "english"
+file = "english.toml"
+"#,
+        );
+        write(
+            &dir,
+            "languages/english.toml",
+            r#"
+id = "english"
+name = "English"
+
+[strings]
+6 = "Yes"
+"#,
+        );
+        write(
+            &dir,
+            "namesets/manifest.toml",
+            r#"
+format_version = 1
+default = "default"
+
+[[namesets]]
+id = "default"
+file = "default.toml"
+"#,
+        );
+        write(
+            &dir,
+            "namesets/default.toml",
+            r#"
+id = "default"
+name = "Default"
+title = "Default"
+names = ["A"]
+"#,
+        );
+        write(
+            &dir,
+            "hills/manifest.toml",
+            r#"
+format_version = 1
+default = "default"
+
+[[catalogs]]
+id = "default"
+file = "default.toml"
+"#,
+        );
+        write(
+            &dir,
+            "hills/default.toml",
+            r#"
+id = "default"
+name = "Default"
+[[hills]]
+id = "H"
+name = "t"
+kr = 90
+front_index = "1"
+back_index = "0"
+back_brightness = 90
+back_mirror = false
+vx_final = 130
+pk_hundred = 85
+pl_save_ten_thousand = 3200
+author = "t"
+checksum = 0
+profile_checksum = 0
+"#,
+        );
+
+        let result = ContentStore::load(&store, "content.toml");
+        assert!(result.is_err(), "expected error for missing [sprites]");
+        let err = result.unwrap_err();
+        assert!(err.contains("missing [sprites]"), "unexpected error: {err}");
     }
 }

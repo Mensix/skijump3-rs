@@ -1,6 +1,5 @@
 use std::fmt;
 
-pub mod anim;
 pub mod langbase;
 pub mod pcx;
 pub mod players;

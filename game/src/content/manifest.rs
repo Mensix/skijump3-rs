@@ -6,6 +6,7 @@ pub(crate) struct ContentManifest {
     pub(crate) languages: Option<ContentSection>,
     pub(crate) namesets: Option<ContentSection>,
     pub(crate) hills: Option<ContentSection>,
+    pub(crate) sprites: Option<ContentSection>,
 }
 
 #[derive(Debug, Deserialize)]
