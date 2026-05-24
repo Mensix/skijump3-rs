@@ -239,9 +239,13 @@ impl Competition {
             }
             CompetitionPhase::Round2Results => {
                 self.award_points();
-                if matches!(self.style, CupStyle::FourHills | CupStyle::CustomCup) {
+                if self.is_four_hills_event() || self.style == CupStyle::CustomCup {
                     self.field.sort_field(SortBy::FourHillsPoints);
                     if self.current_event + 1 >= self.hill_order.len() {
+                        // Last event: sort back to primary standings for final display
+                        if self.style == CupStyle::WorldCup {
+                            self.field.sort_field(SortBy::WcPoints);
+                        }
                         self.phase = CompetitionPhase::SeasonComplete;
                     } else {
                         self.enter_phase(CompetitionPhase::FourHillsStandings);
@@ -355,8 +359,13 @@ impl Competition {
         }
     }
 
-    fn is_ko_event(&self) -> bool {
+    fn is_four_hills_event(&self) -> bool {
         self.style == CupStyle::FourHills
+            || (self.style == CupStyle::WorldCup && (8..=11).contains(&self.current_hill()))
+    }
+
+    fn is_ko_event(&self) -> bool {
+        self.is_four_hills_event()
     }
 
     fn sort_overall_field(&mut self) {
@@ -500,6 +509,13 @@ impl Competition {
         match self.style {
             CupStyle::WorldCup => {
                 scoring::award_wc_points(&mut self.field);
+                if self.is_four_hills_event() {
+                    for idx in 0..self.field.len() {
+                        if let Some(pts) = self.field.get(idx).points {
+                            self.field.get_mut(idx).four_hills_points += pts;
+                        }
+                    }
+                }
             }
             CupStyle::FourHills => {
                 for idx in 0..self.field.len() {

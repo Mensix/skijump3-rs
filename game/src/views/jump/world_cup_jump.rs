@@ -206,6 +206,13 @@ impl WorldCupJumpView {
                             profile.bestpoints = pts as usize;
                             profile.best_result = format_wc_best_result(pts, event_rank);
                         }
+                        if p.four_hills_points > 0
+                            && p.four_hills_points >= profile.best4points as i32
+                        {
+                            profile.best4points = p.four_hills_points as usize;
+                            profile.best_4h_result =
+                                format_four_hills_best_result(p.four_hills_points, p.rank);
+                        }
                     }
                     CupStyle::FourHills => {
                         if p.four_hills_points >= profile.best4points as i32 {
