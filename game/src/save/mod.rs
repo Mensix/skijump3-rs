@@ -53,8 +53,7 @@ impl SaveManager {
             .and_then(|bytes| Config::parse(&bytes).ok())
             .unwrap_or_default();
 
-        if config.languagenumber >= 0
-            && (config.languagenumber as usize) < langbase.languages.len()
+        if config.languagenumber >= 0 && (config.languagenumber as usize) < langbase.languages.len()
         {
             langbase.selected.set(config.languagenumber as usize);
         }

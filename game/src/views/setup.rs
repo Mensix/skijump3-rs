@@ -87,7 +87,13 @@ impl SetupView {
     }
 
     fn make_menu(screen: usize, langbase: &Rc<LangBase>, selected: usize) -> Menu {
-        let entries = match screen { 0 => 6, 1 => 4, 2 => 11, 3 => 5, _ => 0 };
+        let entries = match screen {
+            0 => 6,
+            1 => 4,
+            2 => 11,
+            3 => 5,
+            _ => 0,
+        };
         let items = (0..entries).map(|_| MenuItem::new(0, 0)).collect();
         let mut m = Menu::new(35, 40, 221, 10, items, langbase, FONT_DEFAULT, FONT_DEFAULT)
             .with_labels(false)
@@ -415,11 +421,7 @@ impl SetupView {
             (0, 5) => {} // hillmaker — skip
             (1, 0) => {
                 let current = self.config().languagenumber;
-                let idx = if current >= 0 {
-                    current as usize
-                } else {
-                    0
-                };
+                let idx = if current >= 0 { current as usize } else { 0 };
                 let langs = &self.langbase().languages;
                 let idx = idx.min(langs.len().saturating_sub(1));
                 self.modal.set(Some(SetupModal::LanguagePicker(idx)));
@@ -463,8 +465,7 @@ impl SetupView {
             (2, 9) => {
                 let place = self.config().windplace;
                 let pos = if place <= 8 { place - 1 } else { place - 3 };
-                self.modal
-                    .set(Some(SetupModal::WindPlace(pos as usize)));
+                self.modal.set(Some(SetupModal::WindPlace(pos as usize)));
             }
             (2, 10) => self
                 .save_manager()
@@ -710,13 +711,11 @@ impl View<RouteTarget> for SetupView {
                 match event {
                     Event::Keyboard(Key::Up) => {
                         let new_sel = if sel == 0 { langs.len() - 1 } else { sel - 1 };
-                        self.modal
-                            .set(Some(SetupModal::LanguagePicker(new_sel)));
+                        self.modal.set(Some(SetupModal::LanguagePicker(new_sel)));
                     }
                     Event::Keyboard(Key::Down) => {
                         let new_sel = if sel >= langs.len() - 1 { 0 } else { sel + 1 };
-                        self.modal
-                            .set(Some(SetupModal::LanguagePicker(new_sel)));
+                        self.modal.set(Some(SetupModal::LanguagePicker(new_sel)));
                     }
                     Event::Keyboard(Key::Enter) | Event::Keyboard(Key::Char(' ')) => {
                         self.save_manager().set_language(sel);

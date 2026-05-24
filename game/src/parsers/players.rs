@@ -25,10 +25,7 @@ fn parse_usize(s: &str) -> usize {
 
 impl PlayersParser {
     pub fn parse(data: &[u8]) -> Result<ProfileStore, ParseError> {
-        let mut lines: Vec<String> = data
-            .split(|&b| b == b'\n')
-            .map(decode_line)
-            .collect();
+        let mut lines: Vec<String> = data.split(|&b| b == b'\n').map(decode_line).collect();
 
         // Remove trailing empty lines
         while let Some(last) = lines.last() {
@@ -187,8 +184,7 @@ mod tests {
 
         // Roundtrip through profiles_to_bytes and re-parse
         let rewritten = profiles_to_bytes(&store);
-        let reparsed =
-            PlayersParser::parse(&rewritten).expect("re-parse rewritten PLAYERS.SKI");
+        let reparsed = PlayersParser::parse(&rewritten).expect("re-parse rewritten PLAYERS.SKI");
 
         assert_eq!(
             store.profiles.len(),
@@ -208,10 +204,7 @@ mod tests {
                 a.suit_color, b.suit_color,
                 "profile {i}: suit_color mismatch"
             );
-            assert_eq!(
-                a.ski_color, b.ski_color,
-                "profile {i}: ski_color mismatch"
-            );
+            assert_eq!(a.ski_color, b.ski_color, "profile {i}: ski_color mismatch");
             assert_eq!(
                 a.coach_style, b.coach_style,
                 "profile {i}: coach_style mismatch"
@@ -225,10 +218,7 @@ mod tests {
                 a.world_cups, b.world_cups,
                 "profile {i}: world_cups mismatch"
             );
-            assert_eq!(
-                a.legs_won, b.legs_won,
-                "profile {i}: legs_won mismatch"
-            );
+            assert_eq!(a.legs_won, b.legs_won, "profile {i}: legs_won mismatch");
             assert_eq!(
                 a.world_cups_won, b.world_cups_won,
                 "profile {i}: world_cups_won mismatch"
@@ -241,10 +231,7 @@ mod tests {
                 a.bestwchill, b.bestwchill,
                 "profile {i}: bestwchill mismatch"
             );
-            assert_eq!(
-                a.best_jump, b.best_jump,
-                "profile {i}: best_jump mismatch"
-            );
+            assert_eq!(a.best_jump, b.best_jump, "profile {i}: best_jump mismatch");
             assert_eq!(
                 a.besthill_idx, b.besthill_idx,
                 "profile {i}: besthill_idx mismatch"
@@ -279,6 +266,4 @@ mod tests {
             );
         }
     }
-
-
 }

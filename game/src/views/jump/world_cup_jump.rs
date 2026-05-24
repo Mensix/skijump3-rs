@@ -218,7 +218,9 @@ impl WorldCupJumpView {
                 }
             }
         });
-        self.resources.save_manager.save_players(&self.store.profiles.borrow());
+        self.resources
+            .save_manager
+            .save_players(&self.store.profiles.borrow());
         if let Ok(records) = self.store.records.try_borrow() {
             self.resources.save_manager.save_records(&records);
         }

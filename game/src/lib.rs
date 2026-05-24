@@ -1,5 +1,6 @@
 pub mod competition;
 pub mod components;
+pub mod content;
 pub mod controllers;
 pub mod data;
 pub mod gfx;
@@ -26,7 +27,6 @@ use engine::ui::{Font, PaintCtx, Router, View};
 use engine::video::Renderer;
 use loaders::assets::AssetStore;
 use parsers::anim::AnimParser;
-use parsers::langbase::LangBase;
 use parsers::pcx::PcxParser;
 use route::RouteTarget;
 use std::rc::Rc;
@@ -38,7 +38,7 @@ use views::{
 
 const MAIN_PCX: &str = "MAIN.PCX";
 const ANIM_SKI: &str = "ANIM.SKI";
-const LANGBASE_MANIFEST: &str = "languages/manifest.toml";
+const CONTENT_MANIFEST: &str = "content.toml";
 const HILLBASE_SKI: &str = "HILLBASE.SKI";
 const HISCORE_SKI: &str = "HISCORE.SKI";
 const VERSION: &str = "3.12";
@@ -64,7 +64,8 @@ impl Game {
         let files = Rc::new(FileStore::new(asset_dir, save_dir));
         let assets = AssetStore::new(Rc::clone(&files));
 
-        let (pixels, pcx_palette, sprites, langbase) = Self::load_assets(&assets)?;
+        let (pixels, pcx_palette, sprites, content_store) = Self::load_assets(&assets)?;
+        let langbase = Rc::new(content_store.langbase);
 
         let font = Font::from_sprites(&sprites);
         let framebuffer = vec![0u8; (WIDTH * HEIGHT) as usize];
@@ -124,12 +125,20 @@ impl Game {
     #[allow(clippy::type_complexity)]
     fn load_assets(
         assets: &AssetStore,
-    ) -> Result<(Vec<u8>, Palette, Vec<SpriteData>, Rc<LangBase>), String> {
+    ) -> Result<
+        (
+            Vec<u8>,
+            Palette,
+            Vec<SpriteData>,
+            crate::content::ContentStore,
+        ),
+        String,
+    > {
         let decoded = assets.parse::<PcxParser>(MAIN_PCX)?;
         let sprites = assets.parse::<AnimParser>(ANIM_SKI)?;
-        let langbase = Rc::new(assets.load_langbase(LANGBASE_MANIFEST)?);
+        let content = assets.load_content(CONTENT_MANIFEST)?;
 
-        Ok((decoded.pixels, decoded.palette, sprites, langbase))
+        Ok((decoded.pixels, decoded.palette, sprites, content))
     }
 
     fn create_router(

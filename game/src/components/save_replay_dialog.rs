@@ -122,7 +122,7 @@ impl SaveReplayDialog {
                 self.state = SaveDialogState::Inactive;
                 SaveAction::Consumed
             }
-             4 => {
+            4 => {
                 self.cursor_blink.reset();
                 let safe = sanitize_filename(&self.filename);
                 if self.resources.files.exists_save(&format!("{safe}.SJR")) {

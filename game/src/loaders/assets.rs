@@ -1,8 +1,8 @@
 use std::rc::Rc;
 
+use crate::content::ContentStore;
 use crate::data::records::{HillCatalog, RecordStore};
 use crate::parsers::hills::HillBaseParser;
-use crate::parsers::langbase::LangBase;
 use crate::parsers::names::NamesParser;
 use crate::parsers::records::RecordsParser;
 use crate::parsers::AssetParser;
@@ -37,9 +37,9 @@ impl AssetStore {
         P::parse(&data).map_err(|e| e.to_string())
     }
 
-    /// Load LangBase from TOML manifest + language files.
-    pub fn load_langbase(&self, manifest_path: &str) -> Result<LangBase, String> {
-        LangBase::load_from_files(&self.files, manifest_path)
+    /// Load all content from the TOML content manifest.
+    pub fn load_content(&self, manifest_path: &str) -> Result<ContentStore, String> {
+        ContentStore::load(&self.files, manifest_path)
     }
 
     pub fn load_all_names(&self) -> Vec<String> {

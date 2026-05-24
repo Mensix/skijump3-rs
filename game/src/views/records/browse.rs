@@ -167,12 +167,7 @@ impl HallOfFameView {
             y,
             name_color,
         ));
-        table.push(Cell::right(
-            ordinal_dot(hi.pos),
-            col[1] + 14,
-            y,
-            name_color,
-        ));
+        table.push(Cell::right(ordinal_dot(hi.pos), col[1] + 14, y, name_color));
         let score = if sortby_points {
             format_tenths_i64(hi.score)
         } else {
@@ -364,7 +359,12 @@ impl HillRecordsView {
             } else {
                 FONT_NEW
             };
-            table.push(Cell::right(format_tenths_i64(record.len), col[2], y, length_color));
+            table.push(Cell::right(
+                format_tenths_i64(record.len),
+                col[2],
+                y,
+                length_color,
+            ));
             table.push(Cell::right(
                 format!("({})", hill.kr),
                 col[3] + 11,

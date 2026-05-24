@@ -189,16 +189,16 @@ impl CompetitionOverlay {
             FONT_GOLD,
         ));
         for i in 1..=5 {
-                els.push(Element::right_text(
-                    format!(
-                        "{}: {}",
-                        self.resources.langbase.lstr(330 + i),
-                        KEY_NAMES[i - 1]
-                    ),
-                    308,
-                    i as i32 * 10 + 9,
-                    FONT_GOLD,
-                ));
+            els.push(Element::right_text(
+                format!(
+                    "{}: {}",
+                    self.resources.langbase.lstr(330 + i),
+                    KEY_NAMES[i - 1]
+                ),
+                308,
+                i as i32 * 10 + 9,
+                FONT_GOLD,
+            ));
         }
     }
 

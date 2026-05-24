@@ -1,5 +1,5 @@
-use crate::components::screen::new_screen;
 use crate::competition::builder::build_custom_competition;
+use crate::components::screen::new_screen;
 use crate::gfx::palette::{apply_menu_tint, FONT_DEFAULT, FONT_GREET, FONT_HEADER, FONT_HELP};
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
@@ -46,7 +46,13 @@ impl CustomCupSetupView {
                 els.push(Element::text(&h.name, x + 15, y, FONT_DEFAULT, false));
                 let name_w = self.resources.font.string_width(&h.name) as i32;
                 let kr_str = format!("K{}", h.kr);
-                els.push(Element::text(&kr_str, x + 18 + name_w, y, FONT_GREET, false));
+                els.push(Element::text(
+                    &kr_str,
+                    x + 18 + name_w,
+                    y,
+                    FONT_GREET,
+                    false,
+                ));
             }
         }
         els
@@ -56,17 +62,30 @@ impl CustomCupSetupView {
 impl View<RouteTarget> for CustomCupSetupView {
     fn elements(&self) -> Vec<Element> {
         let lang = &self.resources.langbase;
-        let help_line = format!(
-            "{}, {}, {}",
-            lang.lstr(285),
-            lang.lstr(286),
-            lang.lstr(287)
-        );
+        let help_line = format!("{}, {}, {}", lang.lstr(285), lang.lstr(286), lang.lstr(287));
         let mut els = new_screen(2);
-        els.push(Element::text(lang.lstr(118).to_string(), 68, 8, FONT_DEFAULT, false));
-        els.push(Element::text(lang.lstr(119).to_string(), 78, 16, FONT_HELP, false));
+        els.push(Element::text(
+            lang.lstr(118).to_string(),
+            68,
+            8,
+            FONT_DEFAULT,
+            false,
+        ));
+        els.push(Element::text(
+            lang.lstr(119).to_string(),
+            78,
+            16,
+            FONT_HELP,
+            false,
+        ));
         els.push(Element::text(help_line, 78, 23, FONT_HELP, false));
-        els.push(Element::text(lang.lstr(288).to_string(), 78, 30, FONT_HELP, false));
+        els.push(Element::text(
+            lang.lstr(288).to_string(),
+            78,
+            30,
+            FONT_HELP,
+            false,
+        ));
 
         for (i, &hill_idx) in self.selected.iter().enumerate() {
             els.extend(self.hill_elements(i, hill_idx, false));

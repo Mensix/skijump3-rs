@@ -142,13 +142,7 @@ fn replay_panel_elements(
     ));
 
     if entries.is_empty() {
-        els.push(Element::text(
-            langbase.lstr(290),
-            170,
-            80,
-            FONT_GOLD,
-            false,
-        ));
+        els.push(Element::text(langbase.lstr(290), 170, 80, FONT_GOLD, false));
         return els;
     }
 
@@ -161,22 +155,58 @@ fn replay_panel_elements(
         false,
     ));
     els.push(Element::text(langbase.lstr(293), 150, 71, FONT_HELP, false));
-    els.push(Element::text(langbase.lstr(291), 150, 106, FONT_HELP, false));
-    els.push(Element::text(langbase.lstr(292), 150, 126, FONT_HELP, false));
-    els.push(Element::text(langbase.lstr(294), 150, 146, FONT_HELP, false));
+    els.push(Element::text(
+        langbase.lstr(291),
+        150,
+        106,
+        FONT_HELP,
+        false,
+    ));
+    els.push(Element::text(
+        langbase.lstr(292),
+        150,
+        126,
+        FONT_HELP,
+        false,
+    ));
+    els.push(Element::text(
+        langbase.lstr(294),
+        150,
+        146,
+        FONT_HELP,
+        false,
+    ));
     els.push(Element::fillbox(163, 78, 95, 21, 248));
     els.push(Element::fillbox(164, 79, 93, 19, 243));
     els.push(Element::text(&entry.filename, 170, 85, FONT_GOLD, false));
 
     if let Some(trace) = &entry.trace {
-        let hill = resources
-            .hills
-            .hill(trace.meta.hill_idx)
-            .map_or_else(|| "?".to_string(), |hill| format!("{} K{}", hill.name, hill.kr));
-        els.push(Element::text(&trace.meta.author, 170, 115, FONT_DEFAULT, false));
-        els.push(Element::text(&trace.meta.name, 170, 135, FONT_DEFAULT, false));
+        let hill = resources.hills.hill(trace.meta.hill_idx).map_or_else(
+            || "?".to_string(),
+            |hill| format!("{} K{}", hill.name, hill.kr),
+        );
+        els.push(Element::text(
+            &trace.meta.author,
+            170,
+            115,
+            FONT_DEFAULT,
+            false,
+        ));
+        els.push(Element::text(
+            &trace.meta.name,
+            170,
+            135,
+            FONT_DEFAULT,
+            false,
+        ));
         els.push(Element::text(hill, 170, 155, FONT_DEFAULT, false));
-        els.push(Element::text(&trace.meta.saved_at, 170, 163, FONT_HELP, false));
+        els.push(Element::text(
+            &trace.meta.saved_at,
+            170,
+            163,
+            FONT_HELP,
+            false,
+        ));
     } else if let Some(error) = &entry.error {
         els.push(Element::text("Unknown", 170, 115, FONT_HELP, false));
         els.push(Element::text(
@@ -201,8 +231,7 @@ fn load_replays(files: &crate::save::files::FileStore) -> Vec<ReplayEntry> {
         .into_iter()
         .map(|filename| {
             let stem = if filename.len() > 4
-                && filename.as_bytes()[filename.len() - 4..]
-                    .eq_ignore_ascii_case(b".SJR")
+                && filename.as_bytes()[filename.len() - 4..].eq_ignore_ascii_case(b".SJR")
             {
                 filename[..filename.len() - 4].to_string()
             } else {
