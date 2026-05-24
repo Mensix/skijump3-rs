@@ -1,0 +1,62 @@
+format_version = 1
+default = "english"
+
+[[languages]]
+id = "english"
+file = "english.toml"
+
+[[languages]]
+id = "suomi"
+file = "suomi.toml"
+
+[[languages]]
+id = "svenska"
+file = "svenska.toml"
+
+[[languages]]
+id = "deutsch"
+file = "deutsch.toml"
+
+[[languages]]
+id = "polski"
+file = "polski.toml"
+
+[[languages]]
+id = "norsk"
+file = "norsk.toml"
+
+[[languages]]
+id = "slovenski"
+file = "slovenski.toml"
+
+[[languages]]
+id = "estonian"
+file = "estonian.toml"
+
+[[languages]]
+id = "cesky"
+file = "cesky.toml"
+
+[[languages]]
+id = "francais"
+file = "francais.toml"
+
+[[languages]]
+id = "savo"
+file = "savo.toml"
+
+[[languages]]
+id = "italian"
+file = "italian.toml"
+
+[[languages]]
+id = "srpski"
+file = "srpski.toml"
+
+[[languages]]
+id = "hrvatski"
+file = "hrvatski.toml"
+
+[[languages]]
+id = "slovensky"
+file = "slovensky.toml"

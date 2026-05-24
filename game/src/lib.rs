@@ -26,7 +26,7 @@ use engine::ui::{Font, PaintCtx, Router, View};
 use engine::video::Renderer;
 use loaders::assets::AssetStore;
 use parsers::anim::AnimParser;
-use parsers::langbase::{LangBase, LangBaseParser};
+use parsers::langbase::LangBase;
 use parsers::pcx::PcxParser;
 use route::RouteTarget;
 use std::rc::Rc;
@@ -38,7 +38,7 @@ use views::{
 
 const MAIN_PCX: &str = "MAIN.PCX";
 const ANIM_SKI: &str = "ANIM.SKI";
-const LANGBASE_SKI: &str = "LANGBASE.SKI";
+const LANGBASE_MANIFEST: &str = "languages/manifest.toml";
 const HILLBASE_SKI: &str = "HILLBASE.SKI";
 const HISCORE_SKI: &str = "HISCORE.SKI";
 const VERSION: &str = "3.12";
@@ -73,10 +73,8 @@ impl Game {
         apply_standard_ui_palette(&mut base_palette);
         renderer.set_palette(base_palette.clone());
 
-        let save_manager: SaveRef = Rc::new(SaveManager::new(
-            Rc::clone(&files),
-            Rc::clone(&langbase),
-        ));
+        let save_manager: SaveRef =
+            Rc::new(SaveManager::new(Rc::clone(&files), Rc::clone(&langbase)));
 
         let start_route = if save_manager.config.borrow().languagenumber == 255 {
             RouteTarget::Welcome
@@ -99,7 +97,9 @@ impl Game {
 
         let profiles = save_manager.load_players();
         let store: StoreRef = Rc::new(Store::with_profiles(records, profiles));
-        store.jump_runtime.set_wind_place(save_manager.config.borrow().windplace as u8);
+        store
+            .jump_runtime
+            .set_wind_place(save_manager.config.borrow().windplace as u8);
         let router = Self::create_router(resources, pixels, store, start_route, save_manager);
 
         Ok(Self {
@@ -127,7 +127,7 @@ impl Game {
     ) -> Result<(Vec<u8>, Palette, Vec<SpriteData>, Rc<LangBase>), String> {
         let decoded = assets.parse::<PcxParser>(MAIN_PCX)?;
         let sprites = assets.parse::<AnimParser>(ANIM_SKI)?;
-        let langbase = Rc::new(assets.parse::<LangBaseParser>(LANGBASE_SKI)?);
+        let langbase = Rc::new(assets.load_langbase(LANGBASE_MANIFEST)?);
 
         Ok((decoded.pixels, decoded.palette, sprites, langbase))
     }
