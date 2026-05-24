@@ -361,7 +361,7 @@ impl Competition {
         }
     }
 
-    fn is_four_hills_event(&self) -> bool {
+    pub fn is_four_hills_event(&self) -> bool {
         self.style == CupStyle::FourHills
             || (self.style == CupStyle::WorldCup && (8..=11).contains(&self.current_hill()))
     }

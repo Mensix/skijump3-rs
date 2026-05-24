@@ -259,9 +259,13 @@ impl WorldCupJumpView {
     }
 
     fn select_default_result_screen(&self) {
-        if let Some((style, phase)) = self.store.competition.try_with(|c| (c.style(), c.phase())) {
-            self.ui_state
-                .select_default_screen(style == CupStyle::FourHills, phase);
+        if let Some(phase) = self.store.competition.try_with(|c| c.phase()) {
+            let is_4h = self
+                .store
+                .competition
+                .try_with(|c| c.is_four_hills_event())
+                .unwrap_or(false);
+            self.ui_state.select_default_screen(is_4h, phase);
         }
     }
 
@@ -371,7 +375,7 @@ impl View<RouteTarget> for WorldCupJumpView {
                     if c.phase() == CompetitionPhase::WorldCupStandings
                         || c.phase() == CompetitionPhase::SeasonComplete
                     {
-                        if c.style() == CupStyle::FourHills {
+                        if c.is_four_hills_event() {
                             1
                         } else {
                             5
@@ -452,7 +456,7 @@ impl WorldCupJumpView {
                     .store
                     .competition
                     .try_with(|c| {
-                        c.style() == CupStyle::FourHills
+                        c.is_four_hills_event()
                             && matches!(
                                 c.phase(),
                                 CompetitionPhase::QualificationResults
