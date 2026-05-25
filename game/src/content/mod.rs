@@ -5,8 +5,8 @@ pub(crate) mod names;
 pub(crate) mod sprites;
 
 use crate::data::hill::HillCatalog;
-use crate::text::lang::LangBase;
 use crate::files::FileStore;
+use crate::text::lang::LangBase;
 use engine::sprite::SpriteData;
 
 #[derive(Debug)]
@@ -57,7 +57,7 @@ impl ContentStore {
 #[cfg(test)]
 mod tests {
     use super::*;
-use crate::files::FileStore;
+    use crate::files::FileStore;
     use std::fs;
     use tempfile::tempdir;
 

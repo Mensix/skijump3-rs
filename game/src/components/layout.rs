@@ -1,6 +1,6 @@
 use crate::gfx::palette::{FONT_DEFAULT, FONT_HELP, FONT_NEW};
-use crate::text::lang::LangBase;
 use crate::store::StoreRef;
+use crate::text::lang::LangBase;
 use engine::consts::{HEIGHT, WIDTH};
 use engine::ui::Element;
 use std::rc::Rc;

@@ -177,7 +177,8 @@ mod tests {
         let original = include_bytes!("../../assets/HISCORE.SKI");
         let store = RecordStore::from_hiscore_bytes(original).expect("parse HISCORE.SKI");
         let rewritten = records_to_bytes(&store);
-        let reparsed = RecordStore::from_hiscore_bytes(&rewritten).expect("re-parse rewritten HISCORE.SKI");
+        let reparsed =
+            RecordStore::from_hiscore_bytes(&rewritten).expect("re-parse rewritten HISCORE.SKI");
 
         assert_eq!(
             store.top(0).map(|t| t.name.as_str()),

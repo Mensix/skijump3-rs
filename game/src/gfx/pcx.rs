@@ -66,7 +66,8 @@ impl PcxParser {
         }
 
         let palette_data = &data[data.len() - 768..];
-        let palette = Palette::from_pcx_bytes(palette_data).map_err(|e| format!("PCX palette: {e:?}"))?;
+        let palette =
+            Palette::from_pcx_bytes(palette_data).map_err(|e| format!("PCX palette: {e:?}"))?;
 
         Ok(DecodedPcx {
             pixels,

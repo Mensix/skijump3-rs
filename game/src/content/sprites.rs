@@ -168,7 +168,7 @@ pub(crate) fn load_sprites(
 #[cfg(test)]
 mod tests {
     use super::*;
-use crate::files::FileStore;
+    use crate::files::FileStore;
     use std::fs;
     use tempfile::tempdir;
 

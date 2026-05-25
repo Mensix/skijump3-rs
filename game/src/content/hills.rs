@@ -176,7 +176,7 @@ pub(crate) fn load_hills(files: &FileStore, manifest_path: &str) -> Result<HillC
 #[cfg(test)]
 mod tests {
     use super::*;
-use crate::files::FileStore;
+    use crate::files::FileStore;
     use std::fs;
     use tempfile::tempdir;
 

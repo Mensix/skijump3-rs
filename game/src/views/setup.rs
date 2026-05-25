@@ -1,9 +1,9 @@
 use crate::components::menu::{Menu, MenuItem};
 use crate::components::screen;
 use crate::gfx::palette::{FONT_DEFAULT, FONT_HEADER, FONT_HELP};
-use crate::text::lang::LangBase;
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
+use crate::text::lang::LangBase;
 use engine::ui::{Element, Event, Key, View};
 use std::cell::Cell;
 use std::rc::Rc;

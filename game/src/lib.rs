@@ -18,6 +18,7 @@ use crate::content::ContentStore;
 use crate::data::records::RecordStore;
 use crate::files::FileStore;
 use crate::gfx::palette::apply_standard_ui_palette;
+use crate::gfx::pcx::PcxParser;
 use crate::save::{SaveManager, SaveRef};
 use crate::store::{Resources, ResourcesRef, Store, StoreRef};
 use engine::consts::{HEIGHT, WIDTH};
@@ -26,7 +27,6 @@ use engine::palette::Palette;
 use engine::sprite::SpriteData;
 use engine::ui::{Font, PaintCtx, Router, View};
 use engine::video::Renderer;
-use crate::gfx::pcx::PcxParser;
 use route::RouteTarget;
 use std::rc::Rc;
 use views::{

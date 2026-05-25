@@ -117,9 +117,9 @@ impl ComputerInputProvider {
 mod tests {
     use super::*;
     use crate::data::hill_profile::HillTerrain;
+    use crate::gfx::pcx::PcxParser;
     use crate::jump::types::FlightWind;
     use crate::jump::JumpState;
-    use crate::gfx::pcx::PcxParser;
 
     fn snapshot(phase: JumpPhase) -> JumpSnapshot {
         JumpSnapshot {
