@@ -68,6 +68,20 @@ pub const BG_ORDER: u8 = 243;
 pub const SUIT_PALETTE_BASE: usize = 215;
 pub const SKI_PALETTE_INDEX: usize = 231;
 
+// Jumper sprite source indices (what body/ski sprites natively contain)
+pub const JUMPER_SUIT_SOURCE_SHADE_1: u8 = 216;
+pub const JUMPER_SUIT_SOURCE_SHADE_3: u8 = 218;
+pub const JUMPER_SKI_SOURCE: u8 = 231;
+
+// Jumper private render slots (isolated from sprite/terrain/UI indices).
+// These are within the standard UI palette range but no jump/replay view
+// element uses them as color indices; terrain uses 0..=215; snow uses 232..=235.
+// They are reserved — do not add non-jumper fillbox/text colors in this range
+// to jump or replay views.
+pub const JUMPER_SUIT_RENDER_SHADE_1: u8 = 219;
+pub const JUMPER_SUIT_RENDER_SHADE_3: u8 = 222;
+pub const JUMPER_SKI_RENDER: u8 = 230;
+
 const SUIT_COLORS: [[u8; 4]; 8] = [
     [0, 53, 17, 53],
     [0, 55, 33, 11],
@@ -84,7 +98,7 @@ const SKI_COLORS: [[u8; 3]; 4] = [[63, 63, 32], [60, 60, 60], [33, 60, 33], [63,
 const SUIT_FADE_DOWN: [f32; 4] = [1.0, 0.87, 0.75, 0.63];
 const SUIT_FADE_UP: [f32; 4] = [1.0, 1.50, 2.00, 2.50];
 
-pub fn apply_suit_palette_at(palette: &mut Palette, col: usize, target_base: usize) {
+fn suit_shade_rgba(col: usize) -> [[u8; 3]; 4] {
     let col = col.min(SUIT_COLORS.len() - 1);
     let suit = SUIT_COLORS[col];
     let fade = if suit[0] == 0 {
@@ -92,16 +106,26 @@ pub fn apply_suit_palette_at(palette: &mut Palette, col: usize, target_base: usi
     } else {
         SUIT_FADE_UP
     };
+    let mut colors = [[0u8; 3]; 4];
     for (i, &fd) in fade.iter().enumerate() {
-        let idx = target_base + i;
-        palette.set(
-            idx,
-            [
-                (fd * f32::from(suit[1])).round().min(63.0) as u8,
-                (fd * f32::from(suit[2])).round().min(63.0) as u8,
-                (fd * f32::from(suit[3])).round().min(63.0) as u8,
-            ],
-        );
+        colors[i] = [
+            (fd * f32::from(suit[1])).round().min(63.0) as u8,
+            (fd * f32::from(suit[2])).round().min(63.0) as u8,
+            (fd * f32::from(suit[3])).round().min(63.0) as u8,
+        ];
+    }
+    colors
+}
+
+fn ski_rgb(col: usize) -> [u8; 3] {
+    let col = col.min(SKI_COLORS.len() - 1);
+    SKI_COLORS[col]
+}
+
+pub fn apply_suit_palette_at(palette: &mut Palette, col: usize, target_base: usize) {
+    let colors = suit_shade_rgba(col);
+    for (i, rgb) in colors.iter().enumerate() {
+        palette.set(target_base + i, *rgb);
     }
 }
 
@@ -110,12 +134,18 @@ pub fn apply_suit_palette(palette: &mut Palette, col: usize) {
 }
 
 pub fn apply_ski_palette_at(palette: &mut Palette, col: usize, target: usize) {
-    let col = col.min(SKI_COLORS.len() - 1);
-    palette.set(target, SKI_COLORS[col]);
+    palette.set(target, ski_rgb(col));
 }
 
 pub fn apply_ski_palette(palette: &mut Palette, col: usize) {
     apply_ski_palette_at(palette, col, SKI_PALETTE_INDEX);
+}
+
+pub fn apply_jumper_palette(palette: &mut Palette, suit_color: usize, ski_color: usize) {
+    let suit = suit_shade_rgba(suit_color);
+    palette.set(JUMPER_SUIT_RENDER_SHADE_1 as usize, suit[1]);
+    palette.set(JUMPER_SUIT_RENDER_SHADE_3 as usize, suit[3]);
+    palette.set(JUMPER_SKI_RENDER as usize, ski_rgb(ski_color));
 }
 
 const REPLACE_MENU: [[u8; 3]; 12] = [
@@ -146,4 +176,69 @@ pub fn apply_logo_tint(palette: &mut Palette, col: usize) {
     let col = col.min(3);
     palette.set(253, REPLACE_LOGO[col * 2]);
     palette.set(254, REPLACE_LOGO[col * 2 + 1]);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn jumper_palette_sets_private_render_slots() {
+        let mut pal = Palette::new();
+        // Pre-set source slots to known values so we can detect tampering
+        for i in 0..=255 {
+            pal.set(i, [99, 99, 99]);
+        }
+
+        apply_jumper_palette(&mut pal, 1, 2);
+
+        // Should use private slots 219, 222, 230
+        assert_ne!(
+            pal.color(JUMPER_SUIT_RENDER_SHADE_1 as usize),
+            [99, 99, 99],
+            "render shade 1 should be set"
+        );
+        assert_ne!(
+            pal.color(JUMPER_SUIT_RENDER_SHADE_3 as usize),
+            [99, 99, 99],
+            "render shade 3 should be set"
+        );
+        assert_ne!(
+            pal.color(JUMPER_SKI_RENDER as usize),
+            [99, 99, 99],
+            "ski render should be set"
+        );
+    }
+
+    #[test]
+    fn jumper_palette_does_not_touch_source_slots() {
+        let mut pal = Palette::new();
+        // Set source slots to a sentinel value
+        for s in [
+            JUMPER_SUIT_SOURCE_SHADE_1,
+            JUMPER_SUIT_SOURCE_SHADE_3,
+            JUMPER_SKI_SOURCE,
+        ] {
+            pal.set(s as usize, [42, 42, 42]);
+        }
+
+        apply_jumper_palette(&mut pal, 1, 2);
+
+        // Source slots should remain unchanged
+        assert_eq!(
+            pal.color(JUMPER_SUIT_SOURCE_SHADE_1 as usize),
+            [42, 42, 42],
+            "source shade 1 unchanged"
+        );
+        assert_eq!(
+            pal.color(JUMPER_SUIT_SOURCE_SHADE_3 as usize),
+            [42, 42, 42],
+            "source shade 3 unchanged"
+        );
+        assert_eq!(
+            pal.color(JUMPER_SKI_SOURCE as usize),
+            [42, 42, 42],
+            "source ski unchanged"
+        );
+    }
 }

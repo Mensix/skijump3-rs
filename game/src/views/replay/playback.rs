@@ -2,7 +2,9 @@ use crate::components::replay_playback::{PlaybackMode, PlaybackSpeed, ReplayPlay
 use crate::data::hill::HillInfo;
 use crate::data::hill_profile::HillTerrain;
 use crate::gfx::palette::{
-    apply_ski_palette, apply_suit_palette, FONT_DEFAULT, FONT_GOLD, FONT_GREET, FONT_HELP,
+    apply_jumper_palette, FONT_DEFAULT, FONT_GOLD, FONT_GREET, FONT_HELP, JUMPER_SKI_RENDER,
+    JUMPER_SKI_SOURCE, JUMPER_SUIT_RENDER_SHADE_1, JUMPER_SUIT_RENDER_SHADE_3,
+    JUMPER_SUIT_SOURCE_SHADE_1, JUMPER_SUIT_SOURCE_SHADE_3,
 };
 use crate::gfx::sprites;
 use crate::jump::math;
@@ -14,6 +16,7 @@ use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use engine::consts::{HEIGHT, WIDTH};
 use engine::palette::Palette;
+use engine::sprite::SpriteColorRemap;
 use engine::ui::{Blinker, Element, Event, ImageRegion, Key, View};
 use std::cell::{Cell, RefCell};
 use std::collections::VecDeque;
@@ -194,15 +197,22 @@ impl View<RouteTarget> for ReplayView {
                 hr_y - sy,
             ));
         }
-        els.push(Element::sprite(
+        let body_remap = SpriteColorRemap::new(vec![
+            (JUMPER_SUIT_SOURCE_SHADE_1, JUMPER_SUIT_RENDER_SHADE_1),
+            (JUMPER_SUIT_SOURCE_SHADE_3, JUMPER_SUIT_RENDER_SHADE_3),
+        ]);
+        let ski_remap = SpriteColorRemap::new(vec![(JUMPER_SKI_SOURCE, JUMPER_SKI_RENDER)]);
+        els.push(Element::sprite_remapped(
             u16::from(replay_frame.body_anim),
             x - sx,
             y - sy - 2,
+            body_remap,
         ));
-        els.push(Element::sprite(
+        els.push(Element::sprite_remapped(
             u16::from(replay_frame.ski_anim),
             x - sx,
             y - sy - 1,
+            ski_remap,
         ));
 
         let wind_pos = WindPosition { x: 10, y: 180 };
@@ -358,8 +368,11 @@ impl View<RouteTarget> for ReplayView {
             terrain.apply_hill_palette(palette);
         }
         if let Some(session) = self.session.borrow().as_ref() {
-            apply_suit_palette(palette, session.trace().meta.suit_color as usize);
-            apply_ski_palette(palette, session.trace().meta.ski_color as usize);
+            apply_jumper_palette(
+                palette,
+                session.trace().meta.suit_color as usize,
+                session.trace().meta.ski_color as usize,
+            );
         }
         highlight_active_speed(palette, self.playback.mode());
     }

@@ -1,4 +1,4 @@
-use crate::sprite::SpriteData;
+use crate::sprite::{SpriteColorRemap, SpriteData};
 use crate::ui::paint::PaintCtx;
 use crate::ui::Font;
 use std::rc::Rc;
@@ -48,6 +48,7 @@ pub enum Element {
         h: i32,
         color: u8,
     },
+    SpriteRemapped(u16, i32, i32, SpriteColorRemap),
     Container(Vec<Element>),
 }
 
@@ -145,6 +146,11 @@ impl Element {
                     s.blit_to(ctx.pixels, ctx.width, *x, *y);
                 }
             }
+            Element::SpriteRemapped(idx, x, y, remap) => {
+                if let Some(s) = sprites.get(*idx as usize) {
+                    s.blit_to_with_remap(ctx.pixels, ctx.width, *x, *y, remap);
+                }
+            }
         }
     }
 
@@ -183,6 +189,10 @@ impl Element {
 
     pub fn sprite(idx: u16, x: i32, y: i32) -> Self {
         Self::Sprite(idx, x, y)
+    }
+
+    pub fn sprite_remapped(idx: u16, x: i32, y: i32, remap: SpriteColorRemap) -> Self {
+        Self::SpriteRemapped(idx, x, y, remap)
     }
 
     pub fn image(pixels: impl Into<Rc<[u8]>>, w: u32, h: u32) -> Self {

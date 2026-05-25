@@ -1,10 +1,15 @@
 use crate::data::records::HillRecord;
-use crate::gfx::palette::{FONT_DEFAULT, FONT_GOLD, FONT_GREET, FONT_HELP};
+use crate::gfx::palette::{
+    FONT_DEFAULT, FONT_GOLD, FONT_GREET, FONT_HELP, JUMPER_SKI_RENDER, JUMPER_SKI_SOURCE,
+    JUMPER_SUIT_RENDER_SHADE_1, JUMPER_SUIT_RENDER_SHADE_3, JUMPER_SUIT_SOURCE_SHADE_1,
+    JUMPER_SUIT_SOURCE_SHADE_3,
+};
 use crate::gfx::sprites;
 use crate::jump::frame::JumpRenderFrame;
 use crate::jump::types::JumpPhase;
 use crate::parsers::langbase::LangBase;
 use engine::consts::{HEIGHT, WIDTH};
+use engine::sprite::SpriteColorRemap;
 use engine::ui::{Element, Font, ImageRegion};
 use std::rc::Rc;
 
@@ -79,12 +84,25 @@ pub fn elements(frame: &JumpRenderFrame, ctx: &JumpPresentationContext<'_>) -> V
 
     // Pascal: jumper not drawn during Info phase (only hill + info panel)
     if frame.phase != JumpPhase::Info {
-        els.push(Element::sprite(
+        // Sprite pixels use original Pascal source indices; remap sends
+        // jumper-color pixels to private render slots for palette isolation.
+        let body_remap = SpriteColorRemap::new(vec![
+            (JUMPER_SUIT_SOURCE_SHADE_1, JUMPER_SUIT_RENDER_SHADE_1),
+            (JUMPER_SUIT_SOURCE_SHADE_3, JUMPER_SUIT_RENDER_SHADE_3),
+        ]);
+        let ski_remap = SpriteColorRemap::new(vec![(JUMPER_SKI_SOURCE, JUMPER_SKI_RENDER)]);
+        els.push(Element::sprite_remapped(
             frame.body_anim,
             frame.body_x - frame.sx,
             frame.body_y - frame.sy - 2,
+            body_remap,
         ));
-        els.push(Element::sprite(frame.ski_anim, jumper_x, jumper_y - 1));
+        els.push(Element::sprite_remapped(
+            frame.ski_anim,
+            jumper_x,
+            jumper_y - 1,
+            ski_remap,
+        ));
     }
     els
 }
@@ -277,6 +295,50 @@ fn dq_elements(els: &mut Vec<Element>, frame: &JumpRenderFrame, ctx: &JumpPresen
         FONT_DEFAULT,
         false,
     ));
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::gfx::palette::{
+        JUMPER_SKI_RENDER, JUMPER_SKI_SOURCE, JUMPER_SUIT_RENDER_SHADE_1,
+        JUMPER_SUIT_RENDER_SHADE_3, JUMPER_SUIT_SOURCE_SHADE_1, JUMPER_SUIT_SOURCE_SHADE_3,
+    };
+
+    #[test]
+    fn standard_jumper_remap_pairs() {
+        // Construct the actual remap objects used in production
+        // and confirm the mapping is correct.
+        let body_remap = SpriteColorRemap::new(vec![
+            (JUMPER_SUIT_SOURCE_SHADE_1, JUMPER_SUIT_RENDER_SHADE_1),
+            (JUMPER_SUIT_SOURCE_SHADE_3, JUMPER_SUIT_RENDER_SHADE_3),
+        ]);
+        let ski_remap = SpriteColorRemap::new(vec![(JUMPER_SKI_SOURCE, JUMPER_SKI_RENDER)]);
+
+        assert_eq!(
+            body_remap.map(JUMPER_SUIT_SOURCE_SHADE_1),
+            JUMPER_SUIT_RENDER_SHADE_1
+        );
+        assert_eq!(
+            body_remap.map(JUMPER_SUIT_SOURCE_SHADE_3),
+            JUMPER_SUIT_RENDER_SHADE_3
+        );
+        assert_eq!(body_remap.map(0), 0, "transparent passes through");
+        assert_eq!(body_remap.map(220), 220, "other indices pass through");
+        assert_eq!(
+            body_remap.map(231),
+            231,
+            "ski index passes through body remap"
+        );
+
+        assert_eq!(ski_remap.map(JUMPER_SKI_SOURCE), JUMPER_SKI_RENDER);
+        assert_eq!(
+            ski_remap.map(216),
+            216,
+            "suit indices pass through ski remap"
+        );
+        assert_eq!(ski_remap.map(0), 0, "transparent passes through");
+    }
 }
 
 pub fn wind_elements(els: &mut Vec<Element>, position: WindPosition, value: i32) {

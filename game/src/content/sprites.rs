@@ -479,4 +479,73 @@ pixels = "0000"
         assert_eq!(last.center_x, 1);
         assert_eq!(last.center_y, 10);
     }
+
+    #[test]
+    fn jumper_sprite_indices_match_remap_sources() {
+        use crate::gfx::palette::{
+            JUMPER_SKI_RENDER, JUMPER_SKI_SOURCE, JUMPER_SUIT_RENDER_SHADE_1,
+            JUMPER_SUIT_RENDER_SHADE_3, JUMPER_SUIT_SOURCE_SHADE_1, JUMPER_SUIT_SOURCE_SHADE_3,
+        };
+        let store = FileStore::new(
+            std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets"),
+            std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets"),
+        );
+        let sprites = load_sprites(&store, "sprites/manifest.toml").unwrap();
+
+        let mut body_indices = HashSet::new();
+        let mut ski_indices = HashSet::new();
+        let mut all_indices: HashSet<u8> = HashSet::new();
+
+        for (i, s) in sprites.iter().enumerate() {
+            let non_zero: HashSet<_> = s.data.iter().copied().filter(|&p| p != 0).collect();
+            all_indices.extend(&non_zero);
+            match i {
+                70..=89 => ski_indices.extend(non_zero),
+                100..=164 => body_indices.extend(non_zero),
+                _ => {}
+            }
+        }
+
+        // Body sprites must use at least the expected suit source slots
+        assert!(
+            body_indices.contains(&JUMPER_SUIT_SOURCE_SHADE_1),
+            "body sprites must use source shade 1 ({})",
+            JUMPER_SUIT_SOURCE_SHADE_1
+        );
+        assert!(
+            body_indices.contains(&JUMPER_SUIT_SOURCE_SHADE_3),
+            "body sprites must use source shade 3 ({})",
+            JUMPER_SUIT_SOURCE_SHADE_3
+        );
+
+        // Ski sprites must use the expected ski source slot
+        assert!(
+            ski_indices.contains(&JUMPER_SKI_SOURCE),
+            "ski sprites must use source ski index ({})",
+            JUMPER_SKI_SOURCE
+        );
+
+        // Private render slots must NOT appear in any sprite pixel data
+        for &slot in &[
+            JUMPER_SUIT_RENDER_SHADE_1,
+            JUMPER_SUIT_RENDER_SHADE_3,
+            JUMPER_SKI_RENDER,
+        ] {
+            assert!(
+                !all_indices.contains(&slot),
+                "private render slot {slot} must not appear in any sprite"
+            );
+        }
+
+        // Body sprites should NOT use source slots 215 or 217
+        // (those exist in the SUIT_PALETTE_BASE range but no body sprite uses them)
+        assert!(
+            !body_indices.contains(&215u8),
+            "body sprites should not use index 215"
+        );
+        assert!(
+            !body_indices.contains(&217u8),
+            "body sprites should not use index 217"
+        );
+    }
 }
