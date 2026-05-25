@@ -71,7 +71,7 @@ impl ReplayBrowserView {
 
 impl View<RouteTarget> for ReplayBrowserView {
     fn elements(&self) -> Vec<Element> {
-        let mut els = vec![self.layout.background_element()];
+        let mut els = vec![];
         els.extend(layout::header_elements(
             self.layout.langbase.lstr(17),
             11,

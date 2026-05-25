@@ -19,6 +19,7 @@ use crate::data::records::RecordStore;
 use crate::files::FileStore;
 use crate::gfx::palette::apply_standard_ui_palette;
 use crate::gfx::pcx::PcxParser;
+use crate::gfx::png::load_png;
 use crate::save::{SaveManager, SaveRef};
 use crate::store::{Resources, ResourcesRef, Store, StoreRef};
 use engine::consts::{HEIGHT, WIDTH};
@@ -26,7 +27,7 @@ use engine::input::Input;
 use engine::palette::Palette;
 use engine::sprite::SpriteData;
 use engine::ui::{Font, PaintCtx, Router, View};
-use engine::video::Renderer;
+use engine::video::{Renderer, TextureId};
 use route::RouteTarget;
 use std::rc::Rc;
 use views::{
@@ -35,6 +36,7 @@ use views::{
     WelcomeScreenView, WorldCupJumpView,
 };
 
+const MAIN_PNG: &str = "MAIN.png";
 const MAIN_PCX: &str = "MAIN.PCX";
 const CONTENT_MANIFEST: &str = "content.toml";
 const HISCORES_TOML: &str = "hiscores.toml";
@@ -50,6 +52,7 @@ pub struct Game {
     sprites: Vec<SpriteData>,
     framebuffer: Vec<u8>,
     base_palette: Palette,
+    main_background: TextureId,
 }
 
 impl Game {
@@ -60,7 +63,8 @@ impl Game {
         let asset_dir = std::path::PathBuf::from("game/assets");
         let files = Rc::new(FileStore::new(asset_dir, save_dir));
 
-        let (pixels, pcx_palette, sprites, content_store) = Self::load_assets(&files)?;
+        let (pcx_palette, sprites, content_store) = Self::load_assets(&files)?;
+        let main_background = Self::load_background_texture(&files, &mut renderer)?;
         let langbase = Rc::new(content_store.langbase);
 
         let font = Font::from_sprites(&sprites);
@@ -95,7 +99,7 @@ impl Game {
         store
             .jump_runtime
             .set_wind_place(save_manager.config.borrow().windplace as u8);
-        let router = Self::create_router(resources, pixels, store, start_route, save_manager);
+        let router = Self::create_router(resources, store, start_route, save_manager);
 
         Ok(Self {
             sdl,
@@ -106,6 +110,7 @@ impl Game {
             sprites,
             framebuffer,
             base_palette,
+            main_background,
         })
     }
 
@@ -116,12 +121,17 @@ impl Game {
         Ok((sdl, renderer, input))
     }
 
+    fn load_background_texture(files: &FileStore, renderer: &mut Renderer) -> Result<TextureId, String> {
+        let png_data = files.read(MAIN_PNG).map_err(|e| e.to_string())?;
+        let img = load_png(&png_data)?;
+        renderer.create_rgba_texture(&img.pixels, img.width, img.height)
+    }
+
     #[allow(clippy::type_complexity)]
     fn load_assets(
         files: &FileStore,
     ) -> Result<
         (
-            Vec<u8>,
             Palette,
             Vec<SpriteData>,
             crate::content::ContentStore,
@@ -133,12 +143,11 @@ impl Game {
         let content = ContentStore::load(files, CONTENT_MANIFEST)?;
         let sprites = content.sprites.clone();
 
-        Ok((decoded.pixels, decoded.palette, sprites, content))
+        Ok((decoded.palette, sprites, content))
     }
 
     fn create_router(
         resources: ResourcesRef,
-        background: Vec<u8>,
         store: StoreRef,
         start_route: RouteTarget,
         save_manager: SaveRef,
@@ -146,7 +155,6 @@ impl Game {
         let layout = MainLayout::new(
             Rc::clone(&resources.langbase),
             VERSION.to_string(),
-            background,
             store.clone(),
         );
         let initial_view: Box<dyn View<RouteTarget>> = match &start_route {
@@ -318,8 +326,11 @@ impl Game {
         self.router
             .current_view()
             .render_snow(&mut self.framebuffer);
-        self.renderer.blit(&self.framebuffer);
-        self.renderer.present()?;
+
+        self.renderer.begin_frame();
+        self.renderer.draw_texture(self.main_background, None, None)?;
+        self.renderer.draw_legacy_framebuffer_overlay(&self.framebuffer)?;
+        self.renderer.end_frame();
         self.renderer.wait_frame();
         Ok(())
     }

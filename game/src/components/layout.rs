@@ -1,7 +1,6 @@
 use crate::gfx::palette::{FONT_DEFAULT, FONT_HELP, FONT_NEW};
 use crate::store::StoreRef;
 use crate::text::lang::LangBase;
-use engine::consts::{HEIGHT, WIDTH};
 use engine::ui::Element;
 use std::rc::Rc;
 
@@ -17,7 +16,6 @@ pub fn header_elements(text: &str, x: i32, y: i32, color: u8, bg: u8) -> Vec<Ele
 pub struct MainLayout {
     pub langbase: Rc<LangBase>,
     version: String,
-    background: Rc<[u8]>,
     store: StoreRef,
 }
 
@@ -25,13 +23,11 @@ impl MainLayout {
     pub fn new(
         langbase: Rc<LangBase>,
         version: String,
-        background: Vec<u8>,
         store: StoreRef,
     ) -> Self {
         Self {
             langbase,
             version,
-            background: background.into(),
             store,
         }
     }
@@ -39,14 +35,8 @@ impl MainLayout {
     #[must_use]
     pub fn background(&self) -> Vec<Element> {
         vec![
-            self.background_element(),
             Element::text(self.langbase.lstr(34), 170, 51, FONT_DEFAULT, false),
         ]
-    }
-
-    #[must_use]
-    pub fn background_element(&self) -> Element {
-        Element::image(Rc::clone(&self.background), WIDTH, HEIGHT)
     }
 
     #[must_use]
