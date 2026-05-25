@@ -1,5 +1,4 @@
 pub mod config;
-pub mod crypt;
 pub mod players;
 pub mod records;
 
@@ -12,17 +11,6 @@ use crate::text::lang::LangBase;
 
 use self::config::Config;
 use crate::files::FileStore;
-
-pub trait SaveFormat {
-    fn to_bytes(&self) -> Vec<u8>;
-}
-
-pub fn write_lines(out: &mut Vec<u8>, lines: &[impl AsRef<str>]) {
-    for line in lines {
-        out.extend(line.as_ref().as_bytes());
-        out.push(b'\n');
-    }
-}
 
 pub type SaveRef = Rc<SaveManager>;
 
@@ -93,10 +81,6 @@ impl SaveManager {
         } else {
             eprintln!("Warning: failed to serialize config");
         }
-    }
-
-    fn write_to_disk<T: SaveFormat>(&self, filename: &str, data: &T) {
-        self.save_bytes(filename, &data.to_bytes());
     }
 
     pub fn save_players(&self, store: &ProfileStore) {

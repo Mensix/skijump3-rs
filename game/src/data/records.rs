@@ -17,7 +17,9 @@ pub struct HillRecord {
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RecordStore {
+    #[serde(default)]
     pub top: Vec<Hiscore>,
+    #[serde(default)]
     pub hill_records: Vec<HillRecord>,
 }
 
