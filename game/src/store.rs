@@ -9,7 +9,7 @@ use crate::jump::types::DEFAULT_START_GATE;
 use crate::jump::wind::Wind;
 use crate::parsers::langbase::LangBase;
 use crate::rng::Random;
-use crate::save::files::FileStore;
+use crate::files::FileStore;
 use crate::save::SaveRef;
 use engine::ui::Font;
 use std::cell::{Cell, RefCell};

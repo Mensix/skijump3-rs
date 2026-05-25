@@ -1,4 +1,4 @@
-use crate::save::files::FileStore;
+use crate::files::FileStore;
 use engine::sprite::SpriteData;
 use serde::Deserialize;
 use std::collections::HashSet;
@@ -168,7 +168,7 @@ pub(crate) fn load_sprites(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::save::files::FileStore;
+use crate::files::FileStore;
     use std::fs;
     use tempfile::tempdir;
 

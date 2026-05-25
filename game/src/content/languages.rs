@@ -1,5 +1,5 @@
 use crate::parsers::langbase::LangBase;
-use crate::save::files::FileStore;
+use crate::files::FileStore;
 use serde::Deserialize;
 use std::collections::{BTreeMap, HashSet};
 
@@ -113,7 +113,7 @@ pub(crate) fn load_languages(files: &FileStore, manifest_path: &str) -> Result<L
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::save::files::FileStore;
+    use crate::files::FileStore;
     use std::fs;
     use tempfile::tempdir;
 

@@ -222,7 +222,7 @@ fn replay_panel_elements(
     els
 }
 
-fn load_replays(files: &crate::save::files::FileStore) -> Vec<ReplayEntry> {
+fn load_replays(files: &crate::files::FileStore) -> Vec<ReplayEntry> {
     let names = match files.list_by_ext_all("SJR") {
         Ok(n) => n,
         Err(_) => return Vec::new(),

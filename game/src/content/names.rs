@@ -1,4 +1,4 @@
-use crate::save::files::FileStore;
+use crate::files::FileStore;
 use serde::Deserialize;
 use std::collections::HashSet;
 
@@ -195,7 +195,7 @@ pub(crate) fn load_namesets(files: &FileStore, manifest_path: &str) -> Result<Na
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::save::files::FileStore;
+    use crate::files::FileStore;
     use std::fs;
     use tempfile::tempdir;
 

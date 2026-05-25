@@ -1,6 +1,5 @@
 pub mod config;
 pub mod crypt;
-pub mod files;
 pub mod players;
 pub mod records;
 
@@ -12,7 +11,7 @@ use crate::data::records::RecordStore;
 use crate::parsers::langbase::LangBase;
 
 use self::config::Config;
-use self::files::FileStore;
+use crate::files::FileStore;
 
 pub trait SaveFormat {
     fn to_bytes(&self) -> Vec<u8>;

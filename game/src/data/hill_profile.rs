@@ -1,7 +1,7 @@
 use crate::data::hill::HillInfo;
 use crate::parsers::pcx::{DecodedPcx, PcxParser};
 use crate::parsers::AssetParser;
-use crate::save::files::FileStore;
+use crate::files::FileStore;
 use engine::palette::Palette;
 use std::rc::Rc;
 

@@ -15,7 +15,7 @@ pub(crate) struct ContentSection {
 }
 
 impl ContentManifest {
-    pub(crate) fn load(files: &crate::save::files::FileStore, path: &str) -> Result<Self, String> {
+    pub(crate) fn load(files: &crate::files::FileStore, path: &str) -> Result<Self, String> {
         let data = files
             .read(path)
             .map_err(|e| format!("Failed to read {path}: {e}"))?;

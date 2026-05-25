@@ -1,5 +1,5 @@
 use crate::data::hill::{HillCatalog, HillInfo};
-use crate::save::files::FileStore;
+use crate::files::FileStore;
 use serde::Deserialize;
 use std::collections::HashSet;
 
@@ -176,7 +176,7 @@ pub(crate) fn load_hills(files: &FileStore, manifest_path: &str) -> Result<HillC
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::save::files::FileStore;
+use crate::files::FileStore;
     use std::fs;
     use tempfile::tempdir;
 
