@@ -92,6 +92,31 @@ impl Renderer {
         Ok(id)
     }
 
+    pub fn create_rgba_texture(
+        &mut self,
+        pixels: &[u8],
+        width: u32,
+        height: u32,
+    ) -> Result<TextureId, String> {
+        let tc = self.canvas.texture_creator();
+        let mut texture = tc
+            .create_texture(
+                PixelFormatEnum::RGBA8888,
+                sdl2::render::TextureAccess::Static,
+                width,
+                height,
+            )
+            .map_err(|e| e.to_string())?;
+        texture
+            .update(None, pixels, (width * 4) as usize)
+            .map_err(|e: sdl2::render::UpdateTextureError| e.to_string())?;
+
+        let id = TextureId(self.next_texture_id);
+        self.next_texture_id += 1;
+        self.textures.insert(id, texture);
+        Ok(id)
+    }
+
     pub fn draw_texture(
         &mut self,
         id: TextureId,
