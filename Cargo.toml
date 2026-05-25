@@ -9,7 +9,7 @@ authors = ["Ski Jump 3 Team"]
 license = "MIT"
 
 [workspace.dependencies]
-sdl2 = "0.38"
+sdl2 = { version = "0.38", features = ["unsafe_textures"] }
 
 [workspace.lints.clippy]
 ptr_arg = "warn"

@@ -1,5 +1,5 @@
 use sdl2::pixels::PixelFormatEnum;
-use sdl2::render::TextureAccess;
+use sdl2::render::Texture;
 use std::time::{Duration, Instant};
 
 use crate::consts::{HEIGHT, TARGET_FPS, WIDTH};
@@ -11,6 +11,7 @@ pub struct Renderer {
     rgb_pixels: Vec<u8>,
     palette: Palette,
     last_tick: Instant,
+    frame_texture: Texture,
 }
 
 impl Renderer {
@@ -33,12 +34,23 @@ impl Renderer {
             .set_logical_size(WIDTH, HEIGHT)
             .map_err(|e| e.to_string())?;
 
+        let tc = canvas.texture_creator();
+        let frame_texture = tc
+            .create_texture(
+                PixelFormatEnum::RGB24,
+                sdl2::render::TextureAccess::Streaming,
+                WIDTH,
+                HEIGHT,
+            )
+            .map_err(|e| e.to_string())?;
+
         Ok(Self {
             canvas,
             indexed_pixels: vec![0u8; (WIDTH * HEIGHT) as usize],
             rgb_pixels: vec![0u8; (WIDTH * HEIGHT * 3) as usize],
             palette: Palette::new(),
             last_tick: Instant::now(),
+            frame_texture,
         })
     }
 
@@ -63,30 +75,19 @@ impl Renderer {
     pub fn present(&mut self) -> Result<(), String> {
         for i in 0..self.indexed_pixels.len().min(self.rgb_pixels.len() / 3) {
             let idx = self.indexed_pixels[i] as usize;
-            let clamped_idx = idx;
-            let [r, g, b] = self.palette.color(clamped_idx);
+            let [r, g, b] = self.palette.color(idx);
             let pos = i * 3;
             self.rgb_pixels[pos] = ((r as u32) * 255 / 63) as u8;
             self.rgb_pixels[pos + 1] = ((g as u32) * 255 / 63) as u8;
             self.rgb_pixels[pos + 2] = ((b as u32) * 255 / 63) as u8;
         }
 
-        let tc = self.canvas.texture_creator();
-        let mut texture = tc
-            .create_texture(
-                PixelFormatEnum::RGB24,
-                TextureAccess::Streaming,
-                WIDTH,
-                HEIGHT,
-            )
-            .map_err(|e| e.to_string())?;
-
-        texture
+        self.frame_texture
             .update(None, &self.rgb_pixels, (WIDTH * 3) as usize)
-            .map_err(|e| e.to_string())?;
+            .map_err(|e: sdl2::render::UpdateTextureError| e.to_string())?;
 
         self.canvas.clear();
-        self.canvas.copy(&texture, None, None)?;
+        self.canvas.copy(&self.frame_texture, None, None)?;
         self.canvas.present();
         Ok(())
     }
