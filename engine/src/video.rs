@@ -13,7 +13,7 @@ pub struct TextureId(u32);
 pub struct Renderer {
     canvas: sdl2::render::WindowCanvas,
     indexed_pixels: Vec<u8>,
-    rgb_pixels: Vec<u8>,
+    overlay_rgba: Vec<u8>,
     palette: Palette,
     last_tick: Instant,
     frame_texture: Texture,
@@ -44,7 +44,7 @@ impl Renderer {
         let tc = canvas.texture_creator();
         let frame_texture = tc
             .create_texture(
-                PixelFormatEnum::RGB24,
+                PixelFormatEnum::RGBA8888,
                 sdl2::render::TextureAccess::Streaming,
                 WIDTH,
                 HEIGHT,
@@ -54,7 +54,7 @@ impl Renderer {
         Ok(Self {
             canvas,
             indexed_pixels: vec![0u8; (WIDTH * HEIGHT) as usize],
-            rgb_pixels: vec![0u8; (WIDTH * HEIGHT * 3) as usize],
+            overlay_rgba: vec![0u8; (WIDTH * HEIGHT * 4) as usize],
             palette: Palette::new(),
             last_tick: Instant::now(),
             frame_texture,
@@ -148,24 +148,70 @@ impl Renderer {
         self.indexed_pixels.copy_from_slice(pixels);
     }
 
+    // Legacy full-frame upload: all pixels opaque (alpha = 255).
     pub fn present(&mut self) -> Result<(), String> {
-        for i in 0..self.indexed_pixels.len().min(self.rgb_pixels.len() / 3) {
-            let idx = self.indexed_pixels[i] as usize;
-            let [r, g, b] = self.palette.color(idx);
-            let pos = i * 3;
-            self.rgb_pixels[pos] = ((r as u32) * 255 / 63) as u8;
-            self.rgb_pixels[pos + 1] = ((g as u32) * 255 / 63) as u8;
-            self.rgb_pixels[pos + 2] = ((b as u32) * 255 / 63) as u8;
-        }
-
+        self.indexed_to_opaque_rgba();
         self.frame_texture
-            .update(None, &self.rgb_pixels, (WIDTH * 3) as usize)
+            .update(None, &self.overlay_rgba, (WIDTH * 4) as usize)
             .map_err(|e: sdl2::render::UpdateTextureError| e.to_string())?;
 
         self.canvas.clear();
         self.canvas.copy(&self.frame_texture, None, None)?;
         self.canvas.present();
         Ok(())
+    }
+
+    // GPU frame layering API ------------------------------------------------
+
+    /// Start a new GPU frame. Clears the canvas.
+    /// Caller draws background textures, then `draw_legacy_framebuffer_overlay`.
+    pub fn begin_frame(&mut self) {
+        self.canvas.clear();
+    }
+
+    /// Finish the frame and present to screen.
+    pub fn end_frame(&mut self) {
+        self.canvas.present();
+    }
+
+    /// Convert the legacy indexed framebuffer to an RGBA overlay and draw it.
+    /// Index 0 becomes transparent (alpha = 0); all other indices are opaque.
+    pub fn draw_legacy_framebuffer_overlay(&mut self, pixels: &[u8]) -> Result<(), String> {
+        self.indexed_to_overlay_rgba(pixels);
+        self.frame_texture
+            .update(None, &self.overlay_rgba, (WIDTH * 4) as usize)
+            .map_err(|e: sdl2::render::UpdateTextureError| e.to_string())?;
+        self.canvas.copy(&self.frame_texture, None, None)?;
+        Ok(())
+    }
+
+    // Internal helpers -------------------------------------------------------
+
+    fn indexed_to_opaque_rgba(&mut self) {
+        self.overlay_rgba.clear();
+        for &idx in &self.indexed_pixels {
+            let [r6, g6, b6] = self.palette.color(idx as usize);
+            self.overlay_rgba.push((r6 as u32 * 255 / 63) as u8);
+            self.overlay_rgba.push((g6 as u32 * 255 / 63) as u8);
+            self.overlay_rgba.push((b6 as u32 * 255 / 63) as u8);
+            self.overlay_rgba.push(255);
+        }
+    }
+
+    fn indexed_to_overlay_rgba(&mut self, pixels: &[u8]) {
+        self.overlay_rgba.clear();
+        self.overlay_rgba.reserve(pixels.len() * 4);
+        for &idx in pixels {
+            if idx == 0 {
+                self.overlay_rgba.extend_from_slice(&[0, 0, 0, 0]);
+            } else {
+                let [r6, g6, b6] = self.palette.color(idx as usize);
+                self.overlay_rgba.push((r6 as u32 * 255 / 63) as u8);
+                self.overlay_rgba.push((g6 as u32 * 255 / 63) as u8);
+                self.overlay_rgba.push((b6 as u32 * 255 / 63) as u8);
+                self.overlay_rgba.push(255);
+            }
+        }
     }
 }
 
