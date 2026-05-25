@@ -47,7 +47,7 @@ impl ReplayView {
                     .hills
                     .hill(trace.meta.hill_idx)
                     .ok_or_else(|| format!("Hill {} not found", trace.meta.hill_idx))?;
-                HillTerrain::load(&resources.assets, info)
+                HillTerrain::load(&resources.files, info)
             },
         );
         let mut snow = SnowSystem::new();

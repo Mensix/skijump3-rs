@@ -1,6 +1,7 @@
 use crate::data::hill::HillInfo;
-use crate::loaders::assets::AssetStore;
 use crate::parsers::pcx::{DecodedPcx, PcxParser};
+use crate::parsers::AssetParser;
+use crate::save::files::FileStore;
 use engine::palette::Palette;
 use std::rc::Rc;
 
@@ -83,9 +84,15 @@ mod tests {
 }
 
 impl HillTerrain {
-    pub fn load(assets: &AssetStore, info: &HillInfo) -> Result<Self, String> {
-        let front = assets.parse::<PcxParser>(&format!("FRONT{}.PCX", info.front_index))?;
-        let mut back = assets.parse::<PcxParser>(&format!("BACK{}.PCX", info.back_index))?;
+    pub fn load(files: &FileStore, info: &HillInfo) -> Result<Self, String> {
+        let front_data = files
+            .read(&format!("FRONT{}.PCX", info.front_index))
+            .map_err(|e| e.to_string())?;
+        let front = PcxParser::parse(&front_data).map_err(|e| e.to_string())?;
+        let back_data = files
+            .read(&format!("BACK{}.PCX", info.back_index))
+            .map_err(|e| e.to_string())?;
+        let mut back = PcxParser::parse(&back_data).map_err(|e| e.to_string())?;
         if info.back_mirror != 0 {
             Self::mirror_pixels(&mut back.pixels, back.width as usize, back.height as usize);
         }

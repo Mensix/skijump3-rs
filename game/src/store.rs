@@ -7,7 +7,6 @@ use crate::data::records::RecordStore;
 use crate::jump::replay::ReplayTrace;
 use crate::jump::types::DEFAULT_START_GATE;
 use crate::jump::wind::Wind;
-use crate::loaders::assets::AssetStore;
 use crate::parsers::langbase::LangBase;
 use crate::rng::Random;
 use crate::save::files::FileStore;
@@ -23,7 +22,6 @@ pub struct Resources {
     pub langbase: Rc<LangBase>,
     pub namesets: NameCatalog,
     pub hills: HillCatalog,
-    pub(crate) assets: AssetStore,
     pub(crate) terrain_cache: RefCell<HashMap<usize, Rc<HillTerrain>>>,
     pub files: Rc<FileStore>,
     pub save_manager: SaveRef,
@@ -42,7 +40,6 @@ impl Resources {
         langbase: Rc<LangBase>,
         namesets: NameCatalog,
         hills: HillCatalog,
-        assets: AssetStore,
         files: Rc<FileStore>,
         save_manager: SaveRef,
     ) -> Self {
@@ -51,7 +48,6 @@ impl Resources {
             langbase,
             namesets,
             hills,
-            assets,
             terrain_cache: RefCell::new(HashMap::new()),
             files,
             save_manager,
@@ -69,7 +65,7 @@ impl Resources {
             .hills
             .hill(hill_idx)
             .ok_or_else(|| format!("Hill {hill_idx} not found"))?;
-        let terrain = HillTerrain::load(&self.assets, info)?;
+        let terrain = HillTerrain::load(&self.files, info)?;
         let terrain = Rc::new(terrain);
         cache.insert(hill_idx, terrain.clone());
         Ok(terrain)

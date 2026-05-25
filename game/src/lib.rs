@@ -5,7 +5,6 @@ pub mod controllers;
 pub mod data;
 pub mod gfx;
 pub mod jump;
-pub mod loaders;
 pub mod parsers;
 pub mod rng;
 pub mod route;
@@ -15,7 +14,10 @@ pub mod text;
 pub mod views;
 
 use crate::components::layout::MainLayout;
+use crate::content::ContentStore;
 use crate::gfx::palette::apply_standard_ui_palette;
+use crate::parsers::records::RecordsParser;
+use crate::parsers::AssetParser;
 use crate::save::files::FileStore;
 use crate::save::{SaveManager, SaveRef};
 use crate::store::{Resources, ResourcesRef, Store, StoreRef};
@@ -25,7 +27,6 @@ use engine::palette::Palette;
 use engine::sprite::SpriteData;
 use engine::ui::{Font, PaintCtx, Router, View};
 use engine::video::Renderer;
-use loaders::assets::AssetStore;
 use parsers::pcx::PcxParser;
 use route::RouteTarget;
 use std::rc::Rc;
@@ -59,9 +60,8 @@ impl Game {
         let save_dir = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
         let asset_dir = std::path::PathBuf::from("game/assets");
         let files = Rc::new(FileStore::new(asset_dir, save_dir));
-        let assets = AssetStore::new(Rc::clone(&files));
 
-        let (pixels, pcx_palette, sprites, content_store) = Self::load_assets(&assets)?;
+        let (pixels, pcx_palette, sprites, content_store) = Self::load_assets(&files)?;
         let langbase = Rc::new(content_store.langbase);
 
         let font = Font::from_sprites(&sprites);
@@ -80,13 +80,13 @@ impl Game {
             RouteTarget::MainMenu
         };
 
-        let records = assets.load_records(HISCORE_SKI)?;
+        let records_data = files.read(HISCORE_SKI).map_err(|e| e.to_string())?;
+        let records = RecordsParser::parse(&records_data).map_err(|e| e.to_string())?;
         let resources: ResourcesRef = Rc::new(Resources::new(
             font.clone(),
             Rc::clone(&langbase),
             content_store.namesets,
             content_store.hills,
-            assets,
             Rc::clone(&files),
             save_manager.clone(),
         ));
@@ -119,7 +119,7 @@ impl Game {
 
     #[allow(clippy::type_complexity)]
     fn load_assets(
-        assets: &AssetStore,
+        files: &FileStore,
     ) -> Result<
         (
             Vec<u8>,
@@ -129,8 +129,9 @@ impl Game {
         ),
         String,
     > {
-        let decoded = assets.parse::<PcxParser>(MAIN_PCX)?;
-        let content = assets.load_content(CONTENT_MANIFEST)?;
+        let pcx_data = files.read(MAIN_PCX).map_err(|e| e.to_string())?;
+        let decoded = PcxParser::parse(&pcx_data).map_err(|e| e.to_string())?;
+        let content = ContentStore::load(files, CONTENT_MANIFEST)?;
         let sprites = content.sprites.clone();
 
         Ok((decoded.pixels, decoded.palette, sprites, content))
