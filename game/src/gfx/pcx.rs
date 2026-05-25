@@ -1,4 +1,3 @@
-use crate::parsers::{AssetParser, ParseError};
 use engine::palette::Palette;
 
 const PCX_HEADER_SIZE: usize = 128;
@@ -42,20 +41,14 @@ impl PcxParser {
 
         pixels
     }
-}
 
-impl AssetParser for PcxParser {
-    type Output = DecodedPcx;
-    fn parse(data: &[u8]) -> Result<DecodedPcx, ParseError> {
+    pub fn parse(data: &[u8]) -> Result<DecodedPcx, String> {
         if data.len() <= PCX_HEADER_SIZE + 768 {
-            return Err(ParseError {
-                message: format!(
-                    "PCX file too small: {} bytes (expected > {})",
-                    data.len(),
-                    PCX_HEADER_SIZE + 769
-                ),
-                byte_offset: None,
-            });
+            return Err(format!(
+                "PCX file too small: {} bytes (expected > {})",
+                data.len(),
+                PCX_HEADER_SIZE + 769
+            ));
         }
 
         let width = u16::from_le_bytes([data[8], data[9]]).wrapping_add(1);
@@ -66,20 +59,14 @@ impl AssetParser for PcxParser {
         let pixels = Self::rle_decode(image_data, total_pixels);
 
         if pixels.len() != total_pixels {
-            return Err(ParseError {
-                message: format!(
-                    "PCX truncated: expected {total_pixels} pixels, decoded {}",
-                    pixels.len()
-                ),
-                byte_offset: Some(PCX_HEADER_SIZE),
-            });
+            return Err(format!(
+                "PCX truncated: expected {total_pixels} pixels, decoded {}",
+                pixels.len()
+            ));
         }
 
         let palette_data = &data[data.len() - 768..];
-        let palette = Palette::from_pcx_bytes(palette_data).map_err(|_| ParseError {
-            message: "Failed to parse PCX palette".to_string(),
-            byte_offset: Some(data.len() - 768),
-        })?;
+        let palette = Palette::from_pcx_bytes(palette_data).map_err(|e| format!("PCX palette: {e:?}"))?;
 
         Ok(DecodedPcx {
             pixels,

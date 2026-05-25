@@ -1,7 +1,6 @@
 use crate::data::hill::HillInfo;
-use crate::gfx::pcx::{DecodedPcx, PcxParser};
-use crate::parsers::AssetParser;
 use crate::files::FileStore;
+use crate::gfx::pcx::{DecodedPcx, PcxParser};
 use engine::palette::Palette;
 use std::rc::Rc;
 
@@ -25,7 +24,6 @@ pub struct HillTerrain {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::parsers::AssetParser;
 
     #[test]
     fn extracts_front_pcx_profile_and_takeoff_point() {

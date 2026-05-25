@@ -120,7 +120,6 @@ mod tests {
     use crate::jump::types::FlightWind;
     use crate::jump::JumpState;
     use crate::gfx::pcx::PcxParser;
-    use crate::parsers::AssetParser;
 
     fn snapshot(phase: JumpPhase) -> JumpSnapshot {
         JumpSnapshot {
