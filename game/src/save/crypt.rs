@@ -126,7 +126,7 @@ mod tests {
                     "crypt output must be 8 bytes for val={val} order={order}"
                 );
                 let enc = String::from_utf8(enc_bytes).unwrap();
-                let dec = super::super::super::parsers::records::uncrypt(&enc, order);
+                let dec = super::super::records::uncrypt(&enc, order);
                 assert_eq!(
                     dec, val,
                     "round-trip failed for val={val} order={order}: enc={enc:?}"

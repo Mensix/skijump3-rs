@@ -16,8 +16,8 @@ pub mod views;
 
 use crate::components::layout::MainLayout;
 use crate::content::ContentStore;
+use crate::data::records::RecordStore;
 use crate::gfx::palette::apply_standard_ui_palette;
-use crate::parsers::records::RecordsParser;
 use crate::parsers::AssetParser;
 use crate::files::FileStore;
 use crate::save::{SaveManager, SaveRef};
@@ -82,7 +82,7 @@ impl Game {
         };
 
         let records_data = files.read(HISCORE_SKI).map_err(|e| e.to_string())?;
-        let records = RecordsParser::parse(&records_data).map_err(|e| e.to_string())?;
+        let records = RecordStore::from_hiscore_bytes(&records_data).map_err(|e| e.to_string())?;
         let resources: ResourcesRef = Rc::new(Resources::new(
             font.clone(),
             Rc::clone(&langbase),
