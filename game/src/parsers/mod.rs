@@ -2,7 +2,6 @@ use std::fmt;
 
 pub mod langbase;
 pub mod pcx;
-pub mod players;
 pub mod records;
 
 #[derive(Debug, Clone, PartialEq, Eq)]

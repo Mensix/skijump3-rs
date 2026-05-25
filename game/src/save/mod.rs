@@ -101,21 +101,25 @@ impl SaveManager {
     }
 
     pub fn save_players(&self, store: &ProfileStore) {
-        self.write_to_disk("PLAYERS.SKI", store);
+        if let Ok(data) = store.to_toml_bytes() {
+            self.save_bytes("players.toml", &data);
+        } else {
+            eprintln!("Warning: failed to serialize players");
+        }
     }
 
     pub fn save_records(&self, store: &RecordStore) {
         self.write_to_disk("HISCORE.SKI", store);
     }
 
-    /// Load profiles from PLAYERS.SKI (save then asset fallback).
+    /// Load profiles from players.toml (save then asset fallback).
     pub fn load_players(&self) -> ProfileStore {
         *self.profiles_loaded.borrow_mut() = true;
-        match self.files.read("PLAYERS.SKI") {
-            Ok(data) => match crate::parsers::players::PlayersParser::parse(&data) {
+        match self.files.read("players.toml") {
+            Ok(data) => match ProfileStore::from_toml_bytes(&data) {
                 Ok(store) => store,
                 Err(e) => {
-                    eprintln!("Warning: failed to parse PLAYERS.SKI: {e}");
+                    eprintln!("Warning: failed to parse players.toml: {e}");
                     ProfileStore::new()
                 }
             },

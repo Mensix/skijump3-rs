@@ -3,7 +3,9 @@ pub const MAX_ACTIVE_PROFILES: usize = 10;
 pub const NUM_SUITS: usize = 8;
 pub const NUM_SKIS: usize = 4;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Profile {
     pub name: String,
     pub real_name: String,
@@ -46,9 +48,10 @@ pub struct Profile {
     pub koth_level: usize,
 
     // Display names populated from hill indices for render convenience.
-    // These are NOT part of the Pascal file format — they are derived
-    // from bestwchill / besthill_idx and the hill catalog at load time.
+    // These are NOT persisted to the TOML file.
+    #[serde(skip)]
     pub best_wc_hill_display: String,
+    #[serde(skip)]
     pub best_hill_display: String,
 }
 
@@ -82,9 +85,11 @@ impl Default for Profile {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProfileStore {
+    #[serde(default)]
     pub profiles: Vec<Profile>,
+    #[serde(default)]
     pub active_order: Vec<usize>,
 }
 
