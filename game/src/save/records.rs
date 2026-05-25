@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+
 use crate::data::records::{HillRecord, Hiscore, RecordStore};
 use crate::save::crypt::crypt;
 use crate::text::encoding;
@@ -168,9 +170,70 @@ impl super::SaveFormat for RecordStore {
     }
 }
 
+/// TOML wrapper — mirrors save/config.rs and save/players.rs pattern.
+#[derive(Debug, Deserialize, Serialize)]
+struct RecordsFile {
+    format_version: u32,
+    #[serde(flatten)]
+    store: RecordStore,
+}
+
+impl RecordStore {
+    pub fn from_toml_bytes(data: &[u8]) -> Result<Self, String> {
+        let text =
+            std::str::from_utf8(data).map_err(|e| format!("Invalid UTF-8 in hiscores: {e}"))?;
+        let file: RecordsFile =
+            toml::from_str(text).map_err(|e| format!("Failed to parse hiscores: {e}"))?;
+        if file.format_version != 1 {
+            return Err(format!(
+                "Unsupported hiscores format_version: {}",
+                file.format_version
+            ));
+        }
+
+        let store = &file.store;
+
+        if store.top.len() > 41 {
+            return Err(format!(
+                "hiscores.toml has {} top records (max 41)",
+                store.top.len()
+            ));
+        }
+        if store.hill_records.len() > 20 {
+            return Err(format!(
+                "hiscores.toml has {} hill records (max 20)",
+                store.hill_records.len()
+            ));
+        }
+
+        Ok(file.store)
+    }
+
+    pub fn to_toml_bytes(&self) -> Result<Vec<u8>, String> {
+        let file = RecordsFile {
+            format_version: 1,
+            store: self.clone(),
+        };
+        toml::to_string(&file)
+            .map(|s| s.into_bytes())
+            .map_err(|e| format!("Failed to serialize hiscores: {e}"))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    #[ignore]
+    /// Run with `--nocapture` to generate bundled hiscores.toml content.
+    fn generate_hiscores_toml() {
+        let original = include_bytes!("../../assets/HISCORE.SKI");
+        let store = RecordStore::from_hiscore_bytes(original).expect("parse HISCORE.SKI");
+        let toml_bytes = store.to_toml_bytes().expect("serialize");
+        let text = std::str::from_utf8(&toml_bytes).expect("utf8");
+        println!("{text}");
+    }
 
     #[test]
     fn roundtrip_preserves_data() {

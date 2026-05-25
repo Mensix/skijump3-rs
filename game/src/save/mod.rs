@@ -108,7 +108,10 @@ impl SaveManager {
     }
 
     pub fn save_records(&self, store: &RecordStore) {
-        self.write_to_disk("HISCORE.SKI", store);
+        match store.to_toml_bytes() {
+            Ok(data) => self.save_bytes("hiscores.toml", &data),
+            Err(e) => eprintln!("Warning: failed to serialize hiscores.toml: {e}"),
+        }
     }
 
     /// Load profiles from players.toml (save then asset fallback).

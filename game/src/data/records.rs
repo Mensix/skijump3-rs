@@ -1,4 +1,6 @@
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Hiscore {
     pub name: String,
     pub pos: usize,
@@ -6,17 +8,17 @@ pub struct Hiscore {
     pub time: String,
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct HillRecord {
     pub name: String,
     pub len: i64,
     pub time: String,
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RecordStore {
-    top: Vec<Hiscore>,
-    hill_records: Vec<HillRecord>,
+    pub top: Vec<Hiscore>,
+    pub hill_records: Vec<HillRecord>,
 }
 
 impl RecordStore {

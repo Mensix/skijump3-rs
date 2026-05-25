@@ -37,7 +37,7 @@ use views::{
 
 const MAIN_PCX: &str = "MAIN.PCX";
 const CONTENT_MANIFEST: &str = "content.toml";
-const HISCORE_SKI: &str = "HISCORE.SKI";
+const HISCORES_TOML: &str = "hiscores.toml";
 const VERSION: &str = "3.12";
 
 pub struct Game {
@@ -79,8 +79,8 @@ impl Game {
             RouteTarget::MainMenu
         };
 
-        let records_data = files.read(HISCORE_SKI).map_err(|e| e.to_string())?;
-        let records = RecordStore::from_hiscore_bytes(&records_data).map_err(|e| e.to_string())?;
+        let records_data = files.read(HISCORES_TOML).map_err(|e| e.to_string())?;
+        let records = RecordStore::from_toml_bytes(&records_data).map_err(|e| e.to_string())?;
         let resources: ResourcesRef = Rc::new(Resources::new(
             font.clone(),
             Rc::clone(&langbase),
