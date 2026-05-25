@@ -1,9 +1,14 @@
 use sdl2::pixels::PixelFormatEnum;
+use sdl2::rect::Rect;
 use sdl2::render::Texture;
+use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
 use crate::consts::{HEIGHT, TARGET_FPS, WIDTH};
 use crate::palette::Palette;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct TextureId(u32);
 
 pub struct Renderer {
     canvas: sdl2::render::WindowCanvas,
@@ -12,6 +17,8 @@ pub struct Renderer {
     palette: Palette,
     last_tick: Instant,
     frame_texture: Texture,
+    textures: HashMap<TextureId, Texture>,
+    next_texture_id: u32,
 }
 
 impl Renderer {
@@ -51,7 +58,51 @@ impl Renderer {
             palette: Palette::new(),
             last_tick: Instant::now(),
             frame_texture,
+            textures: HashMap::new(),
+            next_texture_id: 1,
         })
+    }
+
+    pub fn create_indexed_texture(
+        &mut self,
+        pixels: &[u8],
+        width: u32,
+        height: u32,
+        palette: &Palette,
+    ) -> Result<TextureId, String> {
+        let mut rgba = Vec::with_capacity(pixels.len() * 4);
+        indexed_to_rgba(pixels, palette, &mut rgba);
+
+        let tc = self.canvas.texture_creator();
+        let mut texture = tc
+            .create_texture(
+                PixelFormatEnum::RGBA8888,
+                sdl2::render::TextureAccess::Static,
+                width,
+                height,
+            )
+            .map_err(|e| e.to_string())?;
+        texture
+            .update(None, &rgba, (width * 4) as usize)
+            .map_err(|e: sdl2::render::UpdateTextureError| e.to_string())?;
+
+        let id = TextureId(self.next_texture_id);
+        self.next_texture_id += 1;
+        self.textures.insert(id, texture);
+        Ok(id)
+    }
+
+    pub fn draw_texture(
+        &mut self,
+        id: TextureId,
+        src: Option<Rect>,
+        dst: Option<Rect>,
+    ) -> Result<(), String> {
+        let Some(texture) = self.textures.get(&id) else {
+            return Err("TextureId not found".into());
+        };
+        self.canvas.copy(texture, src, dst)?;
+        Ok(())
     }
 
     pub fn set_palette(&mut self, palette: Palette) {
@@ -90,5 +141,17 @@ impl Renderer {
         self.canvas.copy(&self.frame_texture, None, None)?;
         self.canvas.present();
         Ok(())
+    }
+}
+
+fn indexed_to_rgba(pixels: &[u8], palette: &Palette, out: &mut Vec<u8>) {
+    out.clear();
+    out.reserve(pixels.len() * 4);
+    for &idx in pixels {
+        let [r6, g6, b6] = palette.color(idx as usize);
+        out.push((r6 as u32 * 255 / 63) as u8);
+        out.push((g6 as u32 * 255 / 63) as u8);
+        out.push((b6 as u32 * 255 / 63) as u8);
+        out.push(255);
     }
 }
