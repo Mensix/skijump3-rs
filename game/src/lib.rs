@@ -28,7 +28,7 @@ use engine::palette::Palette;
 use engine::sprite::SpriteData;
 use engine::ui::{Font, PaintCtx, Router, View};
 use engine::video::Renderer;
-use parsers::pcx::PcxParser;
+use gfx::pcx::PcxParser;
 use route::RouteTarget;
 use std::rc::Rc;
 use views::{

@@ -1,5 +1,5 @@
 use crate::data::hill::HillInfo;
-use crate::parsers::pcx::{DecodedPcx, PcxParser};
+use crate::gfx::pcx::{DecodedPcx, PcxParser};
 use crate::parsers::AssetParser;
 use crate::files::FileStore;
 use engine::palette::Palette;

@@ -119,7 +119,7 @@ mod tests {
     use crate::data::hill_profile::HillTerrain;
     use crate::jump::types::FlightWind;
     use crate::jump::JumpState;
-    use crate::parsers::pcx::PcxParser;
+    use crate::gfx::pcx::PcxParser;
     use crate::parsers::AssetParser;
 
     fn snapshot(phase: JumpPhase) -> JumpSnapshot {
