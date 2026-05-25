@@ -1,5 +1,5 @@
 use crate::data::profile::Profile;
-use crate::parsers::langbase::LangBase;
+use crate::text::lang::LangBase;
 use crate::text::layout::lstr;
 use engine::ui::Font;
 

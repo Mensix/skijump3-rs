@@ -7,7 +7,7 @@ use crate::data::records::RecordStore;
 use crate::jump::replay::ReplayTrace;
 use crate::jump::types::DEFAULT_START_GATE;
 use crate::jump::wind::Wind;
-use crate::parsers::langbase::LangBase;
+use crate::text::lang::LangBase;
 use crate::rng::Random;
 use crate::files::FileStore;
 use crate::save::SaveRef;

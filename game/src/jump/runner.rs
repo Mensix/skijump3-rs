@@ -9,7 +9,7 @@ use crate::jump::types::{FlightWind, JumpOutcome, JumpPhase};
 use crate::jump::wind::Wind;
 use crate::jump::wind::WindPosition;
 use crate::jump::{ComputerInputProvider, JumpPresentationContext, JumpSession, JumperControl};
-use crate::parsers::langbase::LangBase;
+use crate::text::lang::LangBase;
 use crate::rng::Random;
 use engine::consts::{HEIGHT, WIDTH};
 use engine::palette::Palette;

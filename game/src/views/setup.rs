@@ -1,7 +1,7 @@
 use crate::components::menu::{Menu, MenuItem};
 use crate::components::screen;
 use crate::gfx::palette::{FONT_DEFAULT, FONT_HEADER, FONT_HELP};
-use crate::parsers::langbase::LangBase;
+use crate::text::lang::LangBase;
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use engine::ui::{Element, Event, Key, View};
@@ -57,7 +57,7 @@ fn hex_char(index: usize) -> &'static str {
 }
 
 /// Pascal: WindPlaceName(place) — combos of lstr(390..396).
-fn wind_place_name(langbase: &crate::parsers::langbase::LangBase, place: usize) -> String {
+fn wind_place_name(langbase: &crate::text::lang::LangBase, place: usize) -> String {
     match place {
         1 => format!("{}-{}", langbase.lstr(392), langbase.lstr(393)),
         2 => format!("{}-{}", langbase.lstr(391), langbase.lstr(393)),
@@ -109,7 +109,7 @@ impl SetupView {
         self.menu = Self::make_menu(new_screen, &self.resources.langbase, selected);
     }
 
-    fn langbase(&self) -> &crate::parsers::langbase::LangBase {
+    fn langbase(&self) -> &crate::text::lang::LangBase {
         &self.resources.langbase
     }
 

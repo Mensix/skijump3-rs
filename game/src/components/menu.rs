@@ -1,4 +1,4 @@
-use crate::parsers::langbase::LangBase;
+use crate::text::lang::LangBase;
 use engine::ui::{Component, Element, Event, Key, SelectionState};
 use std::rc::Rc;
 

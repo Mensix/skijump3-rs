@@ -1,5 +1,5 @@
 use crate::gfx::palette::{FONT_DEFAULT, FONT_HELP, FONT_NEW};
-use crate::parsers::langbase::LangBase;
+use crate::text::lang::LangBase;
 use crate::store::StoreRef;
 use engine::consts::{HEIGHT, WIDTH};
 use engine::ui::Element;

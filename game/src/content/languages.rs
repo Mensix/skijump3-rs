@@ -1,4 +1,4 @@
-use crate::parsers::langbase::LangBase;
+use crate::text::lang::LangBase;
 use crate::files::FileStore;
 use serde::Deserialize;
 use std::collections::{BTreeMap, HashSet};

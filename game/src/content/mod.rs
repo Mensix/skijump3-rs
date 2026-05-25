@@ -5,7 +5,7 @@ pub(crate) mod names;
 pub(crate) mod sprites;
 
 use crate::data::hill::HillCatalog;
-use crate::parsers::langbase::LangBase;
+use crate::text::lang::LangBase;
 use crate::files::FileStore;
 use engine::sprite::SpriteData;
 

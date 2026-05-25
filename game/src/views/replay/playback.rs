@@ -11,7 +11,7 @@ use crate::jump::math;
 use crate::jump::presentation::{self, WindPosition};
 use crate::jump::replay_player::ReplaySession;
 use crate::jump::snow::SnowSystem;
-use crate::parsers::langbase::LangBase;
+use crate::text::lang::LangBase;
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use engine::consts::{HEIGHT, WIDTH};

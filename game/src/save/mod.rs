@@ -8,7 +8,7 @@ use std::rc::Rc;
 
 use crate::data::profile::ProfileStore;
 use crate::data::records::RecordStore;
-use crate::parsers::langbase::LangBase;
+use crate::text::lang::LangBase;
 
 use self::config::Config;
 use crate::files::FileStore;

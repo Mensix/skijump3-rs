@@ -1,4 +1,4 @@
-use crate::parsers::langbase::LangBase;
+use crate::text::lang::LangBase;
 use engine::ui::Font;
 
 const RIGHT_EDGE: i32 = 316;

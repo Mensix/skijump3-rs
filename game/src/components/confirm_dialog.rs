@@ -1,5 +1,5 @@
 use crate::components::screen;
-use crate::parsers::langbase::LangBase;
+use crate::text::lang::LangBase;
 use crate::text::layout::lstr;
 use engine::ui::{Blinker, Component, Element, Event, Font, Key};
 use std::rc::Rc;

@@ -7,7 +7,7 @@ use crate::gfx::palette::{
 use crate::gfx::sprites;
 use crate::jump::frame::JumpRenderFrame;
 use crate::jump::types::JumpPhase;
-use crate::parsers::langbase::LangBase;
+use crate::text::lang::LangBase;
 use engine::consts::{HEIGHT, WIDTH};
 use engine::sprite::SpriteColorRemap;
 use engine::ui::{Element, Font, ImageRegion};
