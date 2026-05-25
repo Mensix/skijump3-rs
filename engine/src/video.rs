@@ -1,6 +1,6 @@
 use sdl2::pixels::PixelFormatEnum;
 use sdl2::rect::Rect;
-use sdl2::render::Texture;
+use sdl2::render::{BlendMode, Texture};
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
@@ -42,14 +42,15 @@ impl Renderer {
             .map_err(|e| e.to_string())?;
 
         let tc = canvas.texture_creator();
-        let frame_texture = tc
+        let mut frame_texture = tc
             .create_texture(
-                PixelFormatEnum::RGBA8888,
+                PixelFormatEnum::ABGR8888,
                 sdl2::render::TextureAccess::Streaming,
                 WIDTH,
                 HEIGHT,
             )
             .map_err(|e| e.to_string())?;
+        frame_texture.set_blend_mode(BlendMode::Blend);
 
         Ok(Self {
             canvas,
@@ -76,12 +77,13 @@ impl Renderer {
         let tc = self.canvas.texture_creator();
         let mut texture = tc
             .create_texture(
-                PixelFormatEnum::RGBA8888,
+                PixelFormatEnum::ABGR8888,
                 sdl2::render::TextureAccess::Static,
                 width,
                 height,
             )
             .map_err(|e| e.to_string())?;
+        texture.set_blend_mode(BlendMode::Blend);
         texture
             .update(None, &rgba, (width * 4) as usize)
             .map_err(|e: sdl2::render::UpdateTextureError| e.to_string())?;
@@ -101,12 +103,13 @@ impl Renderer {
         let tc = self.canvas.texture_creator();
         let mut texture = tc
             .create_texture(
-                PixelFormatEnum::RGBA8888,
+                PixelFormatEnum::ABGR8888,
                 sdl2::render::TextureAccess::Static,
                 width,
                 height,
             )
             .map_err(|e| e.to_string())?;
+        texture.set_blend_mode(BlendMode::Blend);
         texture
             .update(None, pixels, (width * 4) as usize)
             .map_err(|e: sdl2::render::UpdateTextureError| e.to_string())?;
