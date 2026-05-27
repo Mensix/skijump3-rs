@@ -2,6 +2,7 @@ use crate::data::hill::HillCatalog;
 use crate::data::records::RecordStore;
 use crate::gfx::palette::{apply_jumper_palette, FONT_DEFAULT};
 use crate::jump::config::JumpConfig;
+use crate::jump::frame::JumpRenderFrame;
 use crate::jump::presentation;
 use crate::jump::replay::ReplayTrace;
 use crate::jump::snow::SnowSystem;
@@ -135,10 +136,11 @@ impl JumpRunner {
             .map(|h| format!("{} K{}", h.name, h.kr))
             .unwrap_or_default();
         let wind_pos = env.wind.position();
-        let frame = self
+        let mut frame = self
             .session
             .render_frame(self.last_wind, WIDTH, HEIGHT)
             .expect("loaded jump render frame");
+        self.apply_snow_to_viewport(&mut frame, env.wind.value);
         let ctx = JumpPresentationContext {
             font: env.font,
             langbase: env.langbase,
@@ -156,13 +158,15 @@ impl JumpRunner {
         presentation::elements(&frame, &ctx)
     }
 
-    pub(crate) fn render_snow(&mut self, framebuffer: &mut [u8], wind: i32) {
+    fn apply_snow_to_viewport(&mut self, frame: &mut JumpRenderFrame, wind: i32) {
         let draw = self.session.draws_snow();
         if let Some(camera) = self.session.camera() {
             let delta_x = self.prev_camera.0 - camera.0;
             let delta_y = self.prev_camera.1 - camera.1;
             self.prev_camera = camera;
-            self.snow.update(framebuffer, delta_x, delta_y, wind, draw);
+            let mut viewport = frame.viewport.to_vec();
+            self.snow.update(&mut viewport, delta_x, delta_y, wind, draw);
+            frame.viewport = viewport.into();
         }
     }
 

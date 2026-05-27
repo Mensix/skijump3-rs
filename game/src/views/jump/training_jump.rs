@@ -139,19 +139,9 @@ impl View<RouteTarget> for TrainingJumpView {
         }
     }
 
-    fn render_snow(&self, framebuffer: &mut [u8]) {
-        if !self.save_dialog.is_active() {
-            self.scene.borrow_mut().render_snow(framebuffer);
-        }
-    }
-
     fn apply_palette(&self, palette: &mut Palette) {
         if !self.save_dialog.is_active() {
             self.scene.borrow().apply_palette(palette);
         }
-    }
-
-    fn requires_legacy_framebuffer(&self) -> bool {
-        true
     }
 }

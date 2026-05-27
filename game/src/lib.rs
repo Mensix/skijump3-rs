@@ -321,18 +321,11 @@ impl Game {
         self.renderer.set_palette(palette);
 
         let elements = self.router.current_view().elements();
-        match self.router.current_view().gpu_background() {
-            BackgroundMode::MainPng => {
-                self.render_gpu_frame(&elements, Some(self.main_background))?;
-            }
-            BackgroundMode::NoneBlack => {
-                if self.router.current_view().requires_legacy_framebuffer() {
-                    self.render_legacy_black_frame(&elements)?;
-                } else {
-                    self.render_gpu_frame(&elements, None)?;
-                }
-            }
-        }
+        let background = match self.router.current_view().gpu_background() {
+            BackgroundMode::MainPng => Some(self.main_background),
+            BackgroundMode::NoneBlack => None,
+        };
+        self.render_gpu_frame(&elements, background)?;
         self.renderer.wait_frame();
         Ok(())
     }
@@ -510,18 +503,6 @@ impl Game {
         *dirty = true;
     }
 
-    /// Legacy CPU-only rendering path for views that need the indexed
-    /// framebuffer (snow effects, custom pixel manipulation).
-    fn render_legacy_black_frame(&mut self, elements: &[Element]) -> Result<(), String> {
-        self.framebuffer.fill(0);
-        let mut ctx = PaintCtx::new(&mut self.framebuffer, WIDTH, HEIGHT);
-        for el in elements {
-            el.render(&mut ctx, &self.font, &self.sprites);
-        }
-        self.router.current_view().render_snow(&mut self.framebuffer);
-        self.renderer.blit(&self.framebuffer);
-        self.renderer.present_legacy()
-    }
 }
 
 // ---------------------------------------------------------------------------

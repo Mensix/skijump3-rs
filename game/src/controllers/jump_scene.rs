@@ -184,13 +184,6 @@ impl JumpScene {
         self.runner.borrow_mut().update(&mut rng, &mut wind);
     }
 
-    pub fn render_snow(&self, framebuffer: &mut [u8]) {
-        if let Ok(mut runner) = self.runner.try_borrow_mut() {
-            let wind = self.store.jump_runtime.wind.borrow().value;
-            runner.render_snow(framebuffer, wind);
-        }
-    }
-
     pub fn apply_palette(&self, palette: &mut Palette) {
         if let Ok(runner) = self.runner.try_borrow() {
             runner.apply_palette(palette);

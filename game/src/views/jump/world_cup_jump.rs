@@ -359,14 +359,6 @@ impl View<RouteTarget> for WorldCupJumpView {
         }
     }
 
-    fn render_snow(&self, framebuffer: &mut [u8]) {
-        self.scene.render_snow(framebuffer);
-    }
-
-    fn requires_legacy_framebuffer(&self) -> bool {
-        true
-    }
-
     fn apply_palette(&self, palette: &mut Palette) {
         if self.is_result_display_state() {
             // Pascal: for style 1 screens, always MuutaMenu(3, 0) (gray base)

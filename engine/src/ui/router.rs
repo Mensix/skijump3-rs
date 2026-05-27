@@ -17,17 +17,10 @@ pub trait View<T: Clone + PartialEq + 'static> {
     fn elements(&self) -> Vec<Element>;
     fn handle_event(&mut self, event: Event) -> Option<T>;
     fn apply_palette(&self, _: &mut Palette) {}
-    fn render_snow(&self, _: &mut [u8]) {}
     /// Controls how the renderer layers the GPU background and legacy overlay.
     /// Default is `NoneBlack` (opaque legacy framebuffer, no GPU background).
     fn gpu_background(&self) -> BackgroundMode {
         BackgroundMode::NoneBlack
-    }
-    /// If true, the legacy indexed framebuffer is required for rendering
-    /// (e.g. for snow effects that read background pixels). Views that are
-    /// fully migrated to GPU can return false (default).
-    fn requires_legacy_framebuffer(&self) -> bool {
-        false
     }
 }
 
