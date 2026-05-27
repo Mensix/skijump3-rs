@@ -21,66 +21,6 @@ pub struct HillTerrain {
     pub tip_x: i32,
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn extracts_front_pcx_profile_and_takeoff_point() {
-        let pcx =
-            PcxParser::parse(include_bytes!("../../assets/FRONT1.PCX")).expect("valid FRONT1.PCX");
-        let terrain = HillTerrain::from_front_pcx(pcx, 120, 0.89);
-
-        assert_eq!(terrain.width, 1024);
-        assert_eq!(terrain.height, 512);
-        assert!(terrain.tip_x > 0);
-        assert!(terrain.height_at(terrain.tip_x) > 0);
-        assert_eq!(terrain.hill_angle(terrain.tip_x), 0);
-        assert_eq!(terrain.height_at(1299), terrain.height_at(1023));
-    }
-
-    #[test]
-    fn back_pcx_loads_nonzero_pixels() {
-        let front =
-            PcxParser::parse(include_bytes!("../../assets/FRONT1.PCX")).expect("FRONT1.PCX");
-        let back = PcxParser::parse(include_bytes!("../../assets/BACK0.PCX")).expect("BACK0.PCX");
-        let terrain = HillTerrain::from_pcxs(front, back, 120, 0.89);
-
-        assert_eq!(terrain.back_width, 1024);
-        assert_eq!(terrain.back_height, 400);
-
-        let pixel = terrain.back_pixel(50, 5);
-        assert_ne!(
-            pixel, 0,
-            "back pixel at (50,5) should not be 0, got {}",
-            pixel
-        );
-
-        let vp = terrain.viewport_pixels(0, 0, 320, 200);
-        let row5_nonzero = vp[5 * 320..6 * 320].iter().filter(|&&p| p != 0).count();
-        assert!(
-            row5_nonzero > 0,
-            "row 5 of viewport should have non-zero back pixels, got 0/320"
-        );
-        // Also check that row 5 at col 50 is non-zero
-        assert_ne!(vp[5 * 320 + 50], 0, "vp pixel at (50,5) should be non-zero");
-    }
-
-    #[test]
-    fn line_lengths_for_sky_rows_are_zero() {
-        let pcx = PcxParser::parse(include_bytes!("../../assets/FRONT1.PCX")).expect("FRONT1.PCX");
-        let terrain = HillTerrain::from_front_pcx(pcx, 120, 0.89);
-        for y in 0..15 {
-            assert_eq!(
-                terrain.line_lengths[y], 0,
-                "row {} should have line_length=0 (pure sky), got {}",
-                y, terrain.line_lengths[y]
-            );
-        }
-        assert!(terrain.line_lengths[200] > 0, "row 200 should have terrain");
-    }
-}
-
 impl HillTerrain {
     pub fn load(files: &FileStore, info: &HillInfo) -> Result<Self, String> {
         let front_data = files
@@ -304,5 +244,63 @@ impl HillTerrain {
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn extracts_front_pcx_profile_and_takeoff_point() {
+        let pcx =
+            PcxParser::parse(include_bytes!("../../assets/FRONT1.PCX")).expect("valid FRONT1.PCX");
+        let terrain = HillTerrain::from_front_pcx(pcx, 120, 0.89);
+
+        assert_eq!(terrain.width, 1024);
+        assert_eq!(terrain.height, 512);
+        assert!(terrain.tip_x > 0);
+        assert!(terrain.height_at(terrain.tip_x) > 0);
+        assert_eq!(terrain.hill_angle(terrain.tip_x), 0);
+        assert_eq!(terrain.height_at(1299), terrain.height_at(1023));
+    }
+
+    #[test]
+    fn back_pcx_loads_nonzero_pixels() {
+        let front =
+            PcxParser::parse(include_bytes!("../../assets/FRONT1.PCX")).expect("FRONT1.PCX");
+        let back = PcxParser::parse(include_bytes!("../../assets/BACK0.PCX")).expect("BACK0.PCX");
+        let terrain = HillTerrain::from_pcxs(front, back, 120, 0.89);
+
+        assert_eq!(terrain.back_width, 1024);
+        assert_eq!(terrain.back_height, 400);
+
+        let pixel = terrain.back_pixel(50, 5);
+        assert_ne!(
+            pixel, 0,
+            "back pixel at (50,5) should not be 0, got {pixel}"
+        );
+
+        let vp = terrain.viewport_pixels(0, 0, 320, 200);
+        let row5_nonzero = vp[5 * 320..6 * 320].iter().filter(|&&p| p != 0).count();
+        assert!(
+            row5_nonzero > 0,
+            "row 5 of viewport should have non-zero back pixels, got 0/320"
+        );
+        assert_ne!(vp[5 * 320 + 50], 0, "vp pixel at (50,5) should be non-zero");
+    }
+
+    #[test]
+    fn line_lengths_for_sky_rows_are_zero() {
+        let pcx = PcxParser::parse(include_bytes!("../../assets/FRONT1.PCX")).expect("FRONT1.PCX");
+        let terrain = HillTerrain::from_front_pcx(pcx, 120, 0.89);
+        for y in 0..15 {
+            assert_eq!(
+                terrain.line_lengths[y], 0,
+                "row {} should have line_length=0 (pure sky), got {}",
+                y, terrain.line_lengths[y]
+            );
+        }
+        assert!(terrain.line_lengths[200] > 0, "row 200 should have terrain");
     }
 }

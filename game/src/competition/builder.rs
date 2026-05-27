@@ -1,6 +1,6 @@
 use crate::competition::machine::Competition;
 use crate::competition::types::{CupStyle, Participant, QualificationStatus};
-use crate::data::profile::ProfileStore;
+use crate::data::profile::{Profile, ProfileStore};
 
 const TOTAL_SLOTS: usize = 75;
 
@@ -43,7 +43,7 @@ fn build_hill_order(style: CupStyle, hill_count: usize) -> Vec<usize> {
 
 fn build_participants(profiles: &ProfileStore, computer_names: &[String]) -> Vec<Participant> {
     let mut participants = Vec::with_capacity(TOTAL_SLOTS);
-    let active_profiles: Vec<(usize, &crate::data::profile::Profile)> = profiles
+    let active_profiles: Vec<(usize, &Profile)> = profiles
         .active_order
         .iter()
         .copied()
@@ -94,7 +94,7 @@ fn build_participants(profiles: &ProfileStore, computer_names: &[String]) -> Vec
 
 fn computer_names_without_replacements(
     computer_names: &[String],
-    active_profiles: &[(usize, &crate::data::profile::Profile)],
+    active_profiles: &[(usize, &Profile)],
 ) -> Vec<String> {
     computer_names
         .iter()
@@ -112,7 +112,7 @@ fn computer_names_without_replacements(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::data::profile::ProfileStore;
+    use crate::data::profile::{Profile, ProfileStore};
 
     #[test]
     fn builds_75_participants() {
@@ -139,9 +139,9 @@ mod tests {
     #[test]
     fn only_active_profiles_join_competition() {
         let mut profiles = ProfileStore::new();
-        profiles.profiles.push(crate::data::profile::Profile {
+        profiles.profiles.push(Profile {
             name: "INACTIVE".into(),
-            ..crate::data::profile::Profile::default()
+            ..Profile::default()
         });
         let names = vec!["CPU".into()];
 

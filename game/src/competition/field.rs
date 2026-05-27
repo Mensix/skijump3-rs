@@ -323,8 +323,8 @@ mod tests {
 
         let list = f.build_start_list(CompetitionPhase::Qualification);
         assert_eq!(list[65], human_idx, "human 10th WC at position 65");
-        for i in 0..65 {
-            assert!(f.get(list[i]).is_computer, "pos {i} should be AI");
+        for (i, &idx) in list[..65].iter().enumerate() {
+            assert!(f.get(idx).is_computer, "pos {i} should be AI");
         }
     }
 

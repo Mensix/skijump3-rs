@@ -43,6 +43,7 @@ pub struct Table {
 }
 
 impl Table {
+    #[must_use]
     pub fn new() -> Self {
         Self { cells: Vec::new() }
     }
@@ -51,6 +52,7 @@ impl Table {
         self.cells.push(cell);
     }
 
+    #[must_use]
     pub fn into_elements(self) -> Vec<Element> {
         self.cells
             .into_iter()

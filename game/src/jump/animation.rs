@@ -192,6 +192,7 @@ pub(crate) fn fall_body_anim(
     anim_idx as u16
 }
 
+#[must_use]
 pub const fn takeoff_body_anim(phase: u8) -> u16 {
     match phase {
         4..=6 => Sprite::Takeoff1 as u16,

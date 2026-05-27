@@ -47,7 +47,7 @@ impl RecordStore {
             store: self.clone(),
         };
         toml::to_string(&file)
-            .map(|s| s.into_bytes())
+            .map(std::string::String::into_bytes)
             .map_err(|e| format!("Failed to serialize hiscores: {e}"))
     }
 }

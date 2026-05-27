@@ -1,6 +1,7 @@
 mod router;
 
 use crate::app::router::create_router;
+use crate::content::atlas;
 use crate::content::ContentStore;
 use crate::data::records::RecordStore;
 use crate::files::FileStore;
@@ -83,17 +84,14 @@ impl Game {
             .set_wind_place(save_manager.config.borrow().windplace as u8);
         let router = create_router(resources, store, start_route, save_manager);
 
-        let sprite_atlas = match crate::content::atlas::load_sprite_atlas(
-            &files,
-            &mut renderer,
-            "sprites/original_atlas.toml",
-        ) {
-            Ok(a) => Some(a),
-            Err(e) => {
-                eprintln!("Warning: failed to load sprite atlas: {e}");
-                None
-            }
-        };
+        let sprite_atlas =
+            match atlas::load_sprite_atlas(&files, &mut renderer, "sprites/original_atlas.toml") {
+                Ok(a) => Some(a),
+                Err(e) => {
+                    eprintln!("Warning: failed to load sprite atlas: {e}");
+                    None
+                }
+            };
 
         Ok(Self {
             sdl,
@@ -126,9 +124,7 @@ impl Game {
     }
 
     #[allow(clippy::type_complexity)]
-    fn load_assets(
-        files: &FileStore,
-    ) -> Result<(Palette, Vec<SpriteData>, crate::content::ContentStore), String> {
+    fn load_assets(files: &FileStore) -> Result<(Palette, Vec<SpriteData>, ContentStore), String> {
         let pcx_data = files.read(MAIN_PCX).map_err(|e| e.to_string())?;
         let decoded = PcxParser::parse(&pcx_data)?;
         let content = ContentStore::load(files, CONTENT_MANIFEST)?;

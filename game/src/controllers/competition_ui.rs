@@ -1,3 +1,4 @@
+use crate::competition::types::CompetitionPhase;
 use std::cell::Cell;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -170,12 +171,7 @@ impl CompetitionUiState {
     }
 
     /// Select default screen based on competition style.
-    pub fn select_default_screen(
-        &self,
-        is_four_hills: bool,
-        phase: crate::competition::types::CompetitionPhase,
-    ) {
-        use crate::competition::types::CompetitionPhase;
+    pub fn select_default_screen(&self, is_four_hills: bool, phase: CompetitionPhase) {
         if is_four_hills {
             self.result_screen
                 .set(if phase == CompetitionPhase::QualificationResults {

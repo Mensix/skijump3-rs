@@ -130,19 +130,21 @@ impl Renderer {
         }
     }
 
+    #[must_use]
     pub fn palette(&self) -> &Palette {
         &self.palette
     }
 
+    #[must_use]
     pub fn palette_revision(&self) -> u64 {
         self.palette_revision
     }
 
     pub fn wait_frame(&mut self) {
         let elapsed = self.last_tick.elapsed();
-        let frame_time = Duration::from_secs_f64(1.0 / TARGET_FPS as f64);
+        let frame_time = Duration::from_secs_f64(1.0 / f64::from(TARGET_FPS));
         if elapsed < frame_time {
-            std::thread::sleep(frame_time - elapsed);
+            std::thread::sleep(frame_time.checked_sub(elapsed).unwrap());
         }
         self.last_tick = Instant::now();
     }
@@ -180,9 +182,9 @@ impl Renderer {
             return Ok(());
         }
         let [r6, g6, b6] = self.palette.color(bright_idx);
-        let r = (r6 as u32 * 255 / 63) as u8;
-        let g = (g6 as u32 * 255 / 63) as u8;
-        let b = (b6 as u32 * 255 / 63) as u8;
+        let r = (u32::from(r6) * 255 / 63) as u8;
+        let g = (u32::from(g6) * 255 / 63) as u8;
+        let b = (u32::from(b6) * 255 / 63) as u8;
         dither_rect_rgba(
             &mut self.overlay_rgba,
             WIDTH as usize,
@@ -233,9 +235,9 @@ impl Renderer {
             return Ok(());
         }
         let [r6, g6, b6] = self.palette.color(color as usize);
-        let r = (r6 as u32 * 255 / 63) as u8;
-        let g = (g6 as u32 * 255 / 63) as u8;
-        let b = (b6 as u32 * 255 / 63) as u8;
+        let r = (u32::from(r6) * 255 / 63) as u8;
+        let g = (u32::from(g6) * 255 / 63) as u8;
+        let b = (u32::from(b6) * 255 / 63) as u8;
         self.canvas
             .set_draw_color(sdl2::pixels::Color::RGB(r, g, b));
         self.canvas.fill_rect(Rect::new(x, y, w as u32, h as u32))?;
@@ -243,7 +245,7 @@ impl Renderer {
     }
 
     /// Draw a 1-pixel-wide outlined rectangle using a palette index.
-    /// Implemented as four fill_rect calls (matches old CPU `Box` behavior).
+    /// Implemented as four `fill_rect` calls (matches old CPU `Box` behavior).
     pub fn draw_indexed_box(
         &mut self,
         x: i32,
@@ -345,8 +347,8 @@ impl Renderer {
         x: i32,
         y: i32,
     ) -> Result<(), String> {
-        let dst_x = x - region.center_x as i32;
-        let dst_y = y - region.center_y as i32;
+        let dst_x = x - i32::from(region.center_x);
+        let dst_y = y - i32::from(region.center_y);
         let src = Rect::new(
             region.x as i32,
             region.y as i32,

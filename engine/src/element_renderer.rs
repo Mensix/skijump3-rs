@@ -5,6 +5,7 @@ use crate::atlas::Atlas;
 use crate::consts::{FILL_RANGE_MAX, PATTERN_SPRITE, SHADOW_PIXEL};
 use crate::sprite::{SpriteColorRemap, SpriteData};
 use crate::ui::{Element, Font};
+use crate::video::indexed::{indexed_pixels_to_rgba, remapped_sprite_to_rgba};
 use crate::video::{Renderer, TextureId};
 
 struct DitherRect {
@@ -75,6 +76,7 @@ impl Default for ElementRenderContext {
 }
 
 impl ElementRenderContext {
+    #[must_use]
     pub fn new() -> Self {
         Self {
             pending_dither_rects: Vec::new(),
@@ -126,7 +128,7 @@ struct ElementWorker<'a> {
     text_rgba_scratch: &'a mut Vec<u8>,
 }
 
-impl<'a> ElementWorker<'a> {
+impl ElementWorker<'_> {
     fn render_frame(
         &mut self,
         elements: &[Element],
@@ -252,15 +254,15 @@ impl<'a> ElementWorker<'a> {
                     Entry::Vacant(v) => {
                         if let Some(bitmap) = self.font.render_string_bitmap(text, fx, *y, *color) {
                             self.text_rgba_scratch.clear();
-                            crate::video::indexed::indexed_pixels_to_rgba(
+                            indexed_pixels_to_rgba(
                                 &bitmap.pixels,
                                 self.renderer.palette(),
-                                &mut self.text_rgba_scratch,
+                                self.text_rgba_scratch,
                             );
 
                             if self.text_rgba_scratch.iter().any(|&b| b != 0) {
                                 let tex_id = self.renderer.create_rgba_texture(
-                                    &self.text_rgba_scratch,
+                                    self.text_rgba_scratch,
                                     bitmap.width,
                                     bitmap.height,
                                 )?;
@@ -316,28 +318,28 @@ impl<'a> ElementWorker<'a> {
                     match self.remapped_sprite_cache.entry(key) {
                         Entry::Occupied(o) => {
                             let e = o.get();
-                            let dst_x = *x as i32 - e.center_x as i32;
-                            let dst_y = *y as i32 - e.center_y as i32;
+                            let dst_x = *x - i32::from(e.center_x);
+                            let dst_y = *y - i32::from(e.center_y);
                             self.renderer.draw_texture(
                                 e.texture_id,
                                 None,
                                 Some(sdl2::rect::Rect::new(
                                     dst_x,
                                     dst_y,
-                                    e.width as u32,
-                                    e.height as u32,
+                                    u32::from(e.width),
+                                    u32::from(e.height),
                                 )),
                             )?;
                         }
                         Entry::Vacant(v) => {
                             self.remapped_rgba_scratch.clear();
-                            crate::video::indexed::remapped_sprite_to_rgba(
+                            remapped_sprite_to_rgba(
                                 &sprite.data,
                                 sprite.width,
                                 sprite.height,
                                 self.renderer.palette(),
                                 remap,
-                                &mut self.remapped_rgba_scratch,
+                                self.remapped_rgba_scratch,
                             );
 
                             // Only create a texture when at least one opaque
@@ -345,9 +347,9 @@ impl<'a> ElementWorker<'a> {
                             // animation frames / fully-transparent sprites).
                             if self.remapped_rgba_scratch.iter().any(|&b| b != 0) {
                                 let tex_id = self.renderer.create_rgba_texture(
-                                    &self.remapped_rgba_scratch,
-                                    sprite.width as u32,
-                                    sprite.height as u32,
+                                    self.remapped_rgba_scratch,
+                                    u32::from(sprite.width),
+                                    u32::from(sprite.height),
                                 )?;
                                 let e = RemappedSpriteCacheEntry {
                                     texture_id: tex_id,
@@ -356,16 +358,16 @@ impl<'a> ElementWorker<'a> {
                                     width: sprite.width,
                                     height: sprite.height,
                                 };
-                                let dst_x = *x as i32 - e.center_x as i32;
-                                let dst_y = *y as i32 - e.center_y as i32;
+                                let dst_x = *x - i32::from(e.center_x);
+                                let dst_y = *y - i32::from(e.center_y);
                                 self.renderer.draw_texture(
                                     e.texture_id,
                                     None,
                                     Some(sdl2::rect::Rect::new(
                                         dst_x,
                                         dst_y,
-                                        e.width as u32,
-                                        e.height as u32,
+                                        u32::from(e.width),
+                                        u32::from(e.height),
                                     )),
                                 )?;
                                 v.insert(e);

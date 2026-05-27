@@ -10,6 +10,7 @@ pub struct TextEditState {
 }
 
 impl TextEditState {
+    #[must_use]
     pub fn new(initial: String, max_chars: usize) -> Self {
         let cursor = initial.chars().count();
         Self {
@@ -19,25 +20,28 @@ impl TextEditState {
         }
     }
 
+    #[must_use]
     pub fn buffer(&self) -> &str {
         &self.buffer
     }
 
+    #[must_use]
     pub fn char_count(&self) -> usize {
         self.buffer.chars().count()
     }
 
+    #[must_use]
     pub fn cursor(&self) -> usize {
         self.cursor.min(self.char_count())
     }
 
     /// Byte index of the cursor position, for slicing the buffer.
+    #[must_use]
     pub fn cursor_byte(&self) -> usize {
         self.buffer
             .char_indices()
             .nth(self.cursor)
-            .map(|(i, _)| i)
-            .unwrap_or(self.buffer.len())
+            .map_or(self.buffer.len(), |(i, _)| i)
     }
 
     /// Insert `c` at the cursor position.

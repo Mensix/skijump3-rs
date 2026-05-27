@@ -2,6 +2,7 @@ use std::fmt::Write;
 
 /// Format an integer representing tenths as a decimal string.
 /// `1195` → `"119.5"`, `0` → `"0.0"`, `-5` → `"-0.5"`.
+#[must_use]
 pub fn format_tenths(value: i32) -> String {
     if value == 0 {
         return "0.0".to_string();
@@ -17,6 +18,7 @@ pub fn format_tenths(value: i32) -> String {
 
 /// Format an i64 as tenths, delegating to `format_tenths`.
 /// Values outside i32 range are safe (no narrowing cast).
+#[must_use]
 pub fn format_tenths_i64(value: i64) -> String {
     if value == 0 {
         return "0.0".to_string();
@@ -31,6 +33,7 @@ pub fn format_tenths_i64(value: i64) -> String {
 }
 
 /// `"5."`, `"12."`, etc.
+#[must_use]
 pub fn ordinal_dot(n: usize) -> String {
     format!("{n}.")
 }

@@ -6,6 +6,7 @@ pub struct Blinker {
 }
 
 impl Blinker {
+    #[must_use]
     pub fn new() -> Self {
         Self {
             counter: Cell::new(0),

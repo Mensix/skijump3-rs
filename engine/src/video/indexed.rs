@@ -12,9 +12,9 @@ pub fn indexed_pixels_to_rgba(pixels: &[u8], palette: &Palette, out: &mut Vec<u8
             out.extend_from_slice(&[0, 0, 0, 0]);
         } else {
             let [r6, g6, b6] = palette.color(idx as usize);
-            out.push((r6 as u32 * 255 / 63) as u8);
-            out.push((g6 as u32 * 255 / 63) as u8);
-            out.push((b6 as u32 * 255 / 63) as u8);
+            out.push((u32::from(r6) * 255 / 63) as u8);
+            out.push((u32::from(g6) * 255 / 63) as u8);
+            out.push((u32::from(b6) * 255 / 63) as u8);
             out.push(255);
         }
     }
@@ -47,9 +47,9 @@ pub fn remapped_sprite_to_rgba(
                 out.extend_from_slice(&[0, 0, 0, 0]);
             } else {
                 let [r6, g6, b6] = palette.color(final_pixel as usize);
-                out.push((r6 as u32 * 255 / 63) as u8);
-                out.push((g6 as u32 * 255 / 63) as u8);
-                out.push((b6 as u32 * 255 / 63) as u8);
+                out.push((u32::from(r6) * 255 / 63) as u8);
+                out.push((u32::from(g6) * 255 / 63) as u8);
+                out.push((u32::from(b6) * 255 / 63) as u8);
                 out.push(255);
             }
         }
@@ -110,9 +110,9 @@ pub fn indexed_region_to_rgba(
                         out.extend_from_slice(&[0, 0, 0, 0]);
                     } else {
                         let [r6, g6, b6] = palette.color(pixel as usize);
-                        out.push((r6 as u32 * 255 / 63) as u8);
-                        out.push((g6 as u32 * 255 / 63) as u8);
-                        out.push((b6 as u32 * 255 / 63) as u8);
+                        out.push((u32::from(r6) * 255 / 63) as u8);
+                        out.push((u32::from(g6) * 255 / 63) as u8);
+                        out.push((u32::from(b6) * 255 / 63) as u8);
                         out.push(255);
                     }
                     continue;
@@ -335,9 +335,9 @@ mod tests {
     fn region_clips_to_screen_bounds() {
         let src = vec![1u8; 16]; // 4×4
         let mut out = Vec::new();
-        let screen_w = crate::consts::WIDTH as i32; // 320
-        let screen_h = crate::consts::HEIGHT as i32; // 200
-                                                     // Place at bottom-right corner, partially off-screen
+        let screen_w = WIDTH as i32;
+        let screen_h = HEIGHT as i32;
+        // Place at bottom-right corner, partially off-screen
         let rect = indexed_region_to_rgba(
             &src,
             4,

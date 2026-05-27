@@ -70,7 +70,7 @@ impl View<RouteTarget> for MainMenuView {
 
     fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {
         match self.menu.handle_event(&event) {
-            Some(0) | Some(7) => Some(RouteTarget::Quit),
+            Some(0 | 7) => Some(RouteTarget::Quit),
             Some(n) => MENU_ACTIONS.get(n - 1).and_then(|&a| a),
             _ => None,
         }

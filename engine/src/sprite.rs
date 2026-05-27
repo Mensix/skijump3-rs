@@ -16,14 +16,17 @@ pub struct SpriteColorRemap {
 }
 
 impl SpriteColorRemap {
+    #[must_use]
     pub fn new(pairs: Vec<(u8, u8)>) -> Self {
         Self { pairs }
     }
 
+    #[must_use]
     pub fn pairs(&self) -> &[(u8, u8)] {
         &self.pairs
     }
 
+    #[must_use]
     pub fn map(&self, pixel: u8) -> u8 {
         for &(from, to) in &self.pairs {
             if pixel == from {
@@ -38,11 +41,13 @@ impl SpriteData {
     /// Render sprite to a minimal indexed bitmap suitable for GPU upload.
     /// Returns `None` when the sprite is fully off-screen or has no
     /// non-zero visible pixels.
+    #[must_use]
     pub fn render_bitmap(&self, dst_x: i32, dst_y: i32) -> Option<IndexedBitmap> {
         self.render_bitmap_impl(dst_x, dst_y, None)
     }
 
     /// Render sprite with colour remapping to a minimal indexed bitmap.
+    #[must_use]
     pub fn render_bitmap_with_remap(
         &self,
         dst_x: i32,
@@ -58,14 +63,14 @@ impl SpriteData {
         dst_y: i32,
         remap: Option<&SpriteColorRemap>,
     ) -> Option<IndexedBitmap> {
-        let start_x = dst_x - self.center_x as i32;
-        let start_y = dst_y - self.center_y as i32;
+        let start_x = dst_x - i32::from(self.center_x);
+        let start_y = dst_y - i32::from(self.center_y);
 
         // Visible bounding box clipped to screen
         let vis_left = start_x.max(0);
         let vis_top = start_y.max(0);
-        let vis_right = (start_x + self.width as i32).min(WIDTH as i32);
-        let vis_bottom = (start_y + self.height as i32).min(HEIGHT as i32);
+        let vis_right = (start_x + i32::from(self.width)).min(WIDTH as i32);
+        let vis_bottom = (start_y + i32::from(self.height)).min(HEIGHT as i32);
         let vis_w = (vis_right - vis_left).max(0) as u32;
         let vis_h = (vis_bottom - vis_top).max(0) as u32;
 
@@ -76,12 +81,12 @@ impl SpriteData {
         let mut pixels = vec![0u8; (vis_w * vis_h) as usize];
         let mut has_opaque_pixel = false;
 
-        for src_y in 0..self.height as i32 {
+        for src_y in 0..i32::from(self.height) {
             let screen_y = start_y + src_y;
             if screen_y < vis_top || screen_y >= vis_bottom {
                 continue;
             }
-            for src_x in 0..self.width as i32 {
+            for src_x in 0..i32::from(self.width) {
                 let screen_x = start_x + src_x;
                 if screen_x < vis_left || screen_x >= vis_right {
                     continue;

@@ -3,11 +3,11 @@ use crate::controllers::competition_ui::CompetitionUiState;
 use crate::gfx::palette::{FONT_DEFAULT, FONT_GOLD, FONT_GREET, FONT_HELP};
 use crate::gfx::sprites;
 use crate::jump::types::JumpPhase;
-use crate::store::ResourcesRef;
+use crate::store::{ResourcesRef, StoreRef};
 use engine::ui::Element;
 
 /// Lightweight snapshot of competition data for overlay rendering.
-/// Built once per frame to avoid repeated store.read() calls.
+/// Built once per frame to avoid repeated `store.read()` calls.
 #[derive(Debug, Clone)]
 pub struct OverlayData {
     pub phase: CompetitionPhase,
@@ -33,7 +33,7 @@ pub struct WcStandingEntry {
 
 impl OverlayData {
     /// Collect all data the overlay needs from the competition store.
-    pub fn collect(store: &crate::store::StoreRef) -> Option<Self> {
+    pub fn collect(store: &StoreRef) -> Option<Self> {
         store.competition.try_with(|c| {
             let event_standings = c.event_standings();
             let event_top5 = event_standings
@@ -97,11 +97,11 @@ const KEY_NAMES: [&str; 5] = ["ARROW UP", "ARROW RIGHT", "ARROW LEFT", "T", "R"]
 /// jump scene during World Cup competition phases. Pure data-in/elements-out.
 pub struct CompetitionOverlay {
     resources: ResourcesRef,
-    store: crate::store::StoreRef,
+    store: StoreRef,
 }
 
 impl CompetitionOverlay {
-    pub fn new(resources: ResourcesRef, store: crate::store::StoreRef) -> Self {
+    pub fn new(resources: ResourcesRef, store: StoreRef) -> Self {
         Self { resources, store }
     }
 
@@ -202,7 +202,7 @@ impl CompetitionOverlay {
         }
     }
 
-    /// Pascal JumperInfoBox at (3,150).
+    /// Pascal `JumperInfoBox` at (3,150).
     fn jumper_info_box(
         &self,
         els: &mut Vec<Element>,
@@ -229,8 +229,7 @@ impl CompetitionOverlay {
                     standings
                         .iter()
                         .position(|p| p.id == participant.id)
-                        .map(|i| i + 1)
-                        .unwrap_or(0)
+                        .map_or(0, |i| i + 1)
                 };
                 let quali_wc = phase == CompetitionPhase::Qualification
                     && matches!(participant.qual, QualificationStatus::PreQualified);
@@ -281,7 +280,7 @@ impl CompetitionOverlay {
         ));
     }
 
-    /// Pascal drawinfo: cycling info on the InfoPanel.
+    /// Pascal drawinfo: cycling info on the `InfoPanel`.
     fn cycling_info_elements(
         &self,
         els: &mut Vec<Element>,
@@ -289,16 +288,11 @@ impl CompetitionOverlay {
         hill_idx: usize,
         data: &OverlayData,
     ) {
-        let has_wc_leader = data
-            .wc_standings_top5
-            .first()
-            .map(|e| e.points > 0)
-            .unwrap_or(false);
+        let has_wc_leader = data.wc_standings_top5.first().is_some_and(|e| e.points > 0);
         let has_event_leader = data
             .event_standings_top5
             .first()
-            .map(|e| e.points > 0)
-            .unwrap_or(false);
+            .is_some_and(|e| e.points > 0);
 
         if !has_event_leader {
             if has_wc_leader {
@@ -355,11 +349,7 @@ impl CompetitionOverlay {
 
         // Gap-to-leader line
         if let Some(ref pel) = data.current_participant {
-            let leader_pts = data
-                .event_standings_top5
-                .first()
-                .map(|e| e.points)
-                .unwrap_or(0);
+            let leader_pts = data.event_standings_top5.first().map_or(0, |e| e.points);
             let current_pts = pel.points.unwrap_or(0);
             let temp = leader_pts - current_pts;
             if temp > 0 {

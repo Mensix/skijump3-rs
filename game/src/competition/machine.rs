@@ -14,7 +14,7 @@ pub enum StepDecision {
     Done,
     /// Show a results/standings screen (then caller must `advance`).
     ShowResults,
-    /// Auto-advance through trivial phases (Training, Setup, EventComplete).
+    /// Auto-advance through trivial phases (Training, Setup, `EventComplete`).
     AdvancePhase,
     /// A specific participant must jump.
     Jump {
@@ -180,6 +180,7 @@ impl Competition {
 
     /// Participants in the saved KO seed-pairing order (Pascal luett/mcluett).
     /// Used for the KO pairs results display after Round 1.
+    #[must_use]
     pub fn ko_pairing_standings(&self) -> Vec<&Participant> {
         self.ko_pairings
             .iter()
@@ -361,6 +362,7 @@ impl Competition {
         }
     }
 
+    #[must_use]
     pub fn is_four_hills_event(&self) -> bool {
         self.style == CupStyle::FourHills
             || (self.style == CupStyle::WorldCup && (8..=11).contains(&self.current_hill()))
@@ -442,7 +444,7 @@ impl Competition {
     }
 
     /// Pascal lines 5487-5499: assign KO winners and lucky losers
-    /// Uses saved ko_pairings (seed order, Pascal luett/mcluett) for correct pairing.
+    /// Uses saved `ko_pairings` (seed order, Pascal luett/mcluett) for correct pairing.
     fn apply_ko_results(&mut self) {
         let pairings = self.ko_pairings.clone();
         // Reset all to Eliminated first

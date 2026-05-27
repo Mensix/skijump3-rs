@@ -6,6 +6,7 @@ pub struct Palette {
 }
 
 impl Palette {
+    #[must_use]
     pub fn new() -> Self {
         Self {
             colors: [[0; 3]; 256],
@@ -27,6 +28,7 @@ impl Palette {
         self.colors[index] = rgb;
     }
 
+    #[must_use]
     pub fn color(&self, index: usize) -> [u8; 3] {
         self.colors[index]
     }

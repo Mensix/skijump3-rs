@@ -85,6 +85,7 @@ pub struct JumpRuntime {
 }
 
 impl JumpRuntime {
+    #[must_use]
     pub fn new() -> Self {
         Self {
             rng: RefCell::new(Random::default()),
@@ -94,7 +95,7 @@ impl JumpRuntime {
         }
     }
 
-    /// Start a new competition event: mark first_event and init wind.
+    /// Start a new competition event: mark `first_event` and init wind.
     /// Pascal: Tuuli.Alusta(windplace) + first-event tracking.
     pub fn setup_event(&self) {
         self.first_event.set(true);
@@ -139,6 +140,7 @@ pub struct PracticeSettings {
 }
 
 impl PracticeSettings {
+    #[must_use]
     pub fn new() -> Self {
         Self {
             hill: Cell::new(0),
@@ -160,6 +162,7 @@ pub struct ReplaySelection {
 }
 
 impl ReplaySelection {
+    #[must_use]
     pub fn new() -> Self {
         Self {
             inner: RefCell::new(None),
@@ -189,6 +192,7 @@ pub struct CompetitionSlot {
 }
 
 impl CompetitionSlot {
+    #[must_use]
     pub fn new() -> Self {
         Self {
             inner: RefCell::new(None),

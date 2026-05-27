@@ -509,20 +509,17 @@ pixels = "0000"
         // Body sprites must use at least the expected suit source slots
         assert!(
             body_indices.contains(&JUMPER_SUIT_SOURCE_SHADE_1),
-            "body sprites must use source shade 1 ({})",
-            JUMPER_SUIT_SOURCE_SHADE_1
+            "body sprites must use source shade 1 ({JUMPER_SUIT_SOURCE_SHADE_1})"
         );
         assert!(
             body_indices.contains(&JUMPER_SUIT_SOURCE_SHADE_3),
-            "body sprites must use source shade 3 ({})",
-            JUMPER_SUIT_SOURCE_SHADE_3
+            "body sprites must use source shade 3 ({JUMPER_SUIT_SOURCE_SHADE_3})"
         );
 
         // Ski sprites must use the expected ski source slot
         assert!(
             ski_indices.contains(&JUMPER_SKI_SOURCE),
-            "ski sprites must use source ski index ({})",
-            JUMPER_SKI_SOURCE
+            "ski sprites must use source ski index ({JUMPER_SKI_SOURCE})"
         );
 
         // Private render slots must NOT appear in any sprite pixel data

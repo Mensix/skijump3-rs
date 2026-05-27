@@ -10,6 +10,7 @@ pub struct FileStore {
 }
 
 impl FileStore {
+    #[must_use]
     pub fn new(asset_dir: PathBuf, save_dir: PathBuf) -> Self {
         Self {
             asset_dir,
@@ -17,7 +18,7 @@ impl FileStore {
         }
     }
 
-    /// Read first from save_dir, fallback to asset_dir on NotFound.
+    /// Read first from `save_dir`, fallback to `asset_dir` on `NotFound`.
     pub fn read(&self, name: &str) -> Result<Vec<u8>, std::io::Error> {
         let save_path = self.save_dir.join(name);
         match std::fs::read(&save_path) {
@@ -43,13 +44,14 @@ impl FileStore {
     /// Atomically write to save dir.
     pub fn write(&self, name: &str, data: &[u8]) -> Result<(), std::io::Error> {
         let path = self.save_dir.join(name);
-        let tmp_path = self.save_dir.join(format!(".{}.tmp", name));
+        let tmp_path = self.save_dir.join(format!(".{name}.tmp"));
         std::fs::write(&tmp_path, data)?;
         std::fs::rename(&tmp_path, &path)?;
         Ok(())
     }
 
     /// Check if file exists in save dir.
+    #[must_use]
     pub fn exists_save(&self, name: &str) -> bool {
         self.save_dir.join(name).exists()
     }
@@ -72,7 +74,7 @@ impl FileStore {
     }
 
     fn list_by_ext_in(&self, dir: &Path, ext: &str) -> Result<Vec<String>, std::io::Error> {
-        let dot_ext = format!(".{}", ext);
+        let dot_ext = format!(".{ext}");
         let mut result = Vec::new();
         for entry in std::fs::read_dir(dir)? {
             let entry = entry?;
@@ -91,6 +93,7 @@ impl FileStore {
     }
 
     /// Save dir path for callers that need it directly.
+    #[must_use]
     pub fn save_dir(&self) -> &Path {
         &self.save_dir
     }
@@ -149,7 +152,7 @@ mod tests {
         // No .clean.txt.tmp should remain
         let entries: Vec<_> = fs::read_dir(save.path())
             .unwrap()
-            .filter_map(|e| e.ok())
+            .filter_map(std::result::Result::ok)
             .map(|e| e.file_name().to_string_lossy().to_string())
             .collect();
         assert!(!entries.iter().any(|n| n.starts_with('.')));

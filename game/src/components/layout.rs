@@ -1,5 +1,6 @@
 use crate::gfx::palette::{FONT_DEFAULT, FONT_HELP, FONT_NEW};
 use crate::store::StoreRef;
+use crate::text::format;
 use crate::text::lang::LangBase;
 use engine::ui::Element;
 use std::rc::Rc;
@@ -50,7 +51,7 @@ impl MainLayout {
             let profile = &pb.profiles[profile_idx];
             let y = (i as i32) * 9 + 64;
             els.push(Element::right_text(
-                crate::text::format::ordinal_dot(i + 1),
+                format::ordinal_dot(i + 1),
                 162,
                 y,
                 FONT_HELP,

@@ -53,7 +53,7 @@ impl SaveManager {
     }
 
     /// Apply a mutation to the config and persist immediately.
-    /// Pascal: modifies globals then calls WriteConfig at end of setupmenu.
+    /// Pascal: modifies globals then calls `WriteConfig` at end of setupmenu.
     pub fn update_config(&self, f: impl FnOnce(&mut Config)) {
         {
             let mut config = self.config.borrow_mut();

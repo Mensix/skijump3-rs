@@ -82,10 +82,12 @@ impl Element {
         }
     }
 
+    #[must_use]
     pub fn sprite(idx: u16, x: i32, y: i32) -> Self {
         Self::Sprite(idx, x, y)
     }
 
+    #[must_use]
     pub fn sprite_remapped(idx: u16, x: i32, y: i32, remap: SpriteColorRemap) -> Self {
         Self::SpriteRemapped(idx, x, y, remap)
     }
@@ -94,22 +96,27 @@ impl Element {
         Self::Image(pixels.into(), w, h)
     }
 
+    #[must_use]
     pub fn image_region(region: ImageRegion) -> Self {
         Self::ImageRegion(region)
     }
 
+    #[must_use]
     pub fn fillbox(x: i32, y: i32, w: i32, h: i32, color: u8) -> Self {
         Self::Fillbox { x, y, w, h, color }
     }
 
+    #[must_use]
     pub fn box_(x: i32, y: i32, w: i32, h: i32, color: u8) -> Self {
         Self::Box { x, y, w, h, color }
     }
 
+    #[must_use]
     pub fn fill_area(thing: u8) -> Self {
         Self::FillArea { thing }
     }
 
+    #[must_use]
     pub fn container(children: Vec<Element>) -> Self {
         Self::Container(children)
     }

@@ -1,10 +1,11 @@
 use crate::components::layout::{self, MainLayout};
 use crate::components::menu::{Menu, MenuItem};
 use crate::components::page_nav::cycle_index;
+use crate::files::FileStore;
 use crate::gfx::palette::{BG_ERASE, FONT_DEFAULT, FONT_GOLD, FONT_HEADER, FONT_HELP};
 use crate::jump::replay::ReplayTrace;
 use crate::route::RouteTarget;
-use crate::store::{ResourcesRef, StoreRef};
+use crate::store::{Resources, ResourcesRef, StoreRef};
 use engine::ui::{Component, Element, Event, Key, View};
 
 #[derive(Debug, Clone)]
@@ -118,7 +119,7 @@ impl View<RouteTarget> for ReplayBrowserView {
 }
 
 fn replay_panel_elements(
-    resources: &crate::store::Resources,
+    resources: &Resources,
     entries: &[ReplayEntry],
     selected: usize,
 ) -> Vec<Element> {
@@ -226,7 +227,7 @@ fn replay_panel_elements(
     els
 }
 
-fn load_replays(files: &crate::files::FileStore) -> Vec<ReplayEntry> {
+fn load_replays(files: &FileStore) -> Vec<ReplayEntry> {
     let names = match files.list_by_ext_all("SJR") {
         Ok(n) => n,
         Err(_) => return Vec::new(),

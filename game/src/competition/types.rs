@@ -25,6 +25,7 @@ pub enum CompetitionPhase {
 }
 
 impl CompetitionPhase {
+    #[must_use]
     pub const fn is_jump_phase(self) -> bool {
         matches!(
             self,
@@ -32,6 +33,7 @@ impl CompetitionPhase {
         )
     }
 
+    #[must_use]
     pub const fn is_result_phase(self) -> bool {
         matches!(
             self,
@@ -46,6 +48,7 @@ impl CompetitionPhase {
 
     /// Phases that auto-advance when the start list is empty
     /// (no human interaction needed).
+    #[must_use]
     pub const fn auto_advances_when_empty(self) -> bool {
         matches!(
             self,
@@ -59,11 +62,13 @@ impl CompetitionPhase {
     }
 
     /// Phases whose overlay needs live event results (top5, gap-to-leader).
+    #[must_use]
     pub const fn needs_event_results(self) -> bool {
         matches!(self, Self::Qualification | Self::Round1 | Self::Round2)
     }
 
     /// Result phase that corresponds to a numbered round (1 or 2).
+    #[must_use]
     pub const fn result_round_number(self) -> Option<usize> {
         match self {
             Self::Round1Results => Some(1),
@@ -117,7 +122,7 @@ pub struct Participant {
 
     // Per-event state. None = hasn't started (DNS)
     pub points: Option<i32>,
-    /// Current live rank in the event standings (updated by sort_field after each jump).
+    /// Current live rank in the event standings (updated by `sort_field` after each jump).
     pub rank: usize,
     /// Frozen Round 1 rank stored before Round 2 starts (Pascal's `sija` from `luett`).
     pub round1_rank: usize,

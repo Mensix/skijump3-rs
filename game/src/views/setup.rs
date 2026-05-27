@@ -2,6 +2,8 @@ use crate::components::menu::{Menu, MenuItem};
 use crate::components::screen;
 use crate::gfx::palette::{FONT_DEFAULT, FONT_HEADER, FONT_HELP};
 use crate::route::RouteTarget;
+use crate::save::config::Config;
+use crate::save::SaveManager;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::lang::LangBase;
 use engine::ui::{Element, Event, Key, View};
@@ -33,7 +35,7 @@ enum SetupModal {
     LanguagePicker(usize),
 }
 
-/// Pascal: HexCh[0..15] = '0123456789ABCDEF' (0-indexed)
+/// Pascal: `HexCh`[0..15] = '0123456789ABCDEF' (0-indexed)
 fn hex_char(index: usize) -> &'static str {
     match index {
         0 => "0",
@@ -57,7 +59,7 @@ fn hex_char(index: usize) -> &'static str {
 }
 
 /// Pascal: WindPlaceName(place) — combos of lstr(390..396).
-fn wind_place_name(langbase: &crate::text::lang::LangBase, place: usize) -> String {
+fn wind_place_name(langbase: &LangBase, place: usize) -> String {
     match place {
         1 => format!("{}-{}", langbase.lstr(392), langbase.lstr(393)),
         2 => format!("{}-{}", langbase.lstr(391), langbase.lstr(393)),
@@ -109,15 +111,15 @@ impl SetupView {
         self.menu = Self::make_menu(new_screen, &self.resources.langbase, selected);
     }
 
-    fn langbase(&self) -> &crate::text::lang::LangBase {
+    fn langbase(&self) -> &LangBase {
         &self.resources.langbase
     }
 
-    fn config(&self) -> std::cell::Ref<'_, crate::save::config::Config> {
+    fn config(&self) -> std::cell::Ref<'_, Config> {
         self.resources.save_manager.config.borrow()
     }
 
-    fn save_manager(&self) -> &crate::save::SaveManager {
+    fn save_manager(&self) -> &SaveManager {
         &self.resources.save_manager
     }
 
@@ -250,7 +252,7 @@ impl SetupView {
                         let n = cfg.namenumber;
                         let hint = self.resources.namesets.title_for_config(n);
                         els.push(Element::text(hint.to_string(), 40, 78, FONT_HELP, false));
-                        format!("{}", n)
+                        format!("{n}")
                     }
                     (2, 0) => {
                         if cfg.trainrounds == 0 {
@@ -378,7 +380,7 @@ impl SetupView {
                 }
                 self.switch_screen(0);
             }
-            Event::Keyboard(Key::Enter) | Event::Keyboard(Key::Char(' ')) => {
+            Event::Keyboard(Key::Enter | Key::Char(' ')) => {
                 let sel = self.menu.selected();
                 if sel >= entries {
                     if screen == 0 {
@@ -406,7 +408,7 @@ impl SetupView {
 
     fn activate_item(&mut self, screen: usize, item: usize) {
         match (screen, item) {
-            (0, 0) | (0, 1) | (0, 2) => {
+            (0, 0..=2) => {
                 self.switch_screen(item + 1);
             }
             (0, 3) => {} // configurekeys — skip
@@ -421,10 +423,10 @@ impl SetupView {
             }
             (1, 1) => self
                 .save_manager()
-                .update_config(|cfg| cfg.beeppi = if cfg.beeppi != 0 { 0 } else { 1 }),
+                .update_config(|cfg| cfg.beeppi = i32::from(cfg.beeppi == 0)),
             (1, 2) => self
                 .save_manager()
-                .update_config(|cfg| cfg.gdetail = if cfg.gdetail == 0 { 1 } else { 0 }),
+                .update_config(|cfg| cfg.gdetail = i32::from(cfg.gdetail == 0)),
             (1, 3) => {
                 let ns_len = self.resources.namesets.len();
                 self.save_manager()
@@ -435,25 +437,25 @@ impl SetupView {
                 .update_config(|cfg| cfg.trainrounds = (cfg.trainrounds + 1) % 4),
             (2, 1) => self
                 .save_manager()
-                .update_config(|cfg| cfg.lct = if cfg.lct != 0 { 0 } else { 1 }),
+                .update_config(|cfg| cfg.lct = i32::from(cfg.lct == 0)),
             (2, 2) => self
                 .save_manager()
-                .update_config(|cfg| cfg.diff = if cfg.diff != 0 { 0 } else { 1 }),
+                .update_config(|cfg| cfg.diff = i32::from(cfg.diff == 0)),
             (2, 3) => self
                 .save_manager()
-                .update_config(|cfg| cfg.diffwc = if cfg.diffwc != 0 { 0 } else { 1 }),
+                .update_config(|cfg| cfg.diffwc = i32::from(cfg.diffwc == 0)),
             (2, 4) => self
                 .save_manager()
-                .update_config(|cfg| cfg.compactlist = if cfg.compactlist != 0 { 0 } else { 1 }),
+                .update_config(|cfg| cfg.compactlist = i32::from(cfg.compactlist == 0)),
             (2, 5) => self
                 .save_manager()
-                .update_config(|cfg| cfg.invback = if cfg.invback != 0 { 0 } else { 1 }),
+                .update_config(|cfg| cfg.invback = i32::from(cfg.invback == 0)),
             (2, 6) => self
                 .save_manager()
-                .update_config(|cfg| cfg.automatichrr = if cfg.automatichrr != 0 { 0 } else { 1 }),
+                .update_config(|cfg| cfg.automatichrr = i32::from(cfg.automatichrr == 0)),
             (2, 7) => self
                 .save_manager()
-                .update_config(|cfg| cfg.goals = if cfg.goals != 0 { 0 } else { 1 }),
+                .update_config(|cfg| cfg.goals = i32::from(cfg.goals == 0)),
             (2, 8) => {
                 let current = self.config().seecomps;
                 let idx = if current >= 1 { current as usize } else { 240 };
@@ -466,13 +468,13 @@ impl SetupView {
             }
             (2, 10) => self
                 .save_manager()
-                .update_config(|cfg| cfg.kosystem = if cfg.kosystem != 0 { 0 } else { 1 }),
+                .update_config(|cfg| cfg.kosystem = i32::from(cfg.kosystem == 0)),
             (3, 0) => self
                 .save_manager()
-                .update_config(|cfg| cfg.comphrs = if cfg.comphrs != 0 { 0 } else { 1 }),
+                .update_config(|cfg| cfg.comphrs = i32::from(cfg.comphrs == 0)),
             (3, 1) => self
                 .save_manager()
-                .update_config(|cfg| cfg.nosamename = if cfg.nosamename != 0 { 0 } else { 1 }),
+                .update_config(|cfg| cfg.nosamename = i32::from(cfg.nosamename == 0)),
             (3, 2) => self.modal.set(Some(SetupModal::ConfirmReset(1))),
             (3, 3) => self.modal.set(Some(SetupModal::ConfirmReset(0))),
             (3, 4) => self.reset_config_defaults(),
@@ -482,7 +484,7 @@ impl SetupView {
 
     fn reset_config_defaults(&self) {
         self.save_manager().update_config(|cfg| {
-            *cfg = crate::save::config::Config::default();
+            *cfg = Config::default();
         });
     }
 }
@@ -512,13 +514,7 @@ impl View<RouteTarget> for SetupView {
                     } else {
                         wind_place_name(self.langbase(), apu1 + 2)
                     };
-                    els.push(Element::text(
-                        format!("{}.", apu1),
-                        85,
-                        yy,
-                        FONT_HEADER,
-                        true,
-                    ));
+                    els.push(Element::text(format!("{apu1}."), 85, yy, FONT_HEADER, true));
                     let color = if (apu1 - 1) == pos {
                         FONT_HEADER
                     } else {
@@ -565,7 +561,7 @@ impl View<RouteTarget> for SetupView {
                 let display = if val > 240 {
                     self.langbase().lstr(val).to_string()
                 } else {
-                    format!("#{}", val)
+                    format!("#{val}")
                 };
                 els.push(Element::fillbox(85, 105, 150, 20, 245));
                 els.push(Element::text(display, 95, 112, FONT_HEADER, false));
@@ -635,7 +631,7 @@ impl View<RouteTarget> for SetupView {
                         let new_pos = if pos >= winds - 1 { 0 } else { pos + 1 };
                         self.modal.set(Some(SetupModal::WindPlace(new_pos)));
                     }
-                    Event::Keyboard(Key::Enter) | Event::Keyboard(Key::Char(' ')) => {
+                    Event::Keyboard(Key::Enter | Key::Char(' ')) => {
                         let place = if pos < 8 { pos + 1 } else { pos + 3 };
                         self.save_manager()
                             .update_config(|cfg| cfg.windplace = place as i32);
@@ -652,7 +648,7 @@ impl View<RouteTarget> for SetupView {
             Some(SetupModal::SeeComps(mut val)) => {
                 let num_players: i32 = 250;
                 match event {
-                    Event::Keyboard(Key::Up) | Event::Keyboard(Key::Left) => {
+                    Event::Keyboard(Key::Up | Key::Left) => {
                         if val > 1 {
                             val -= 1;
                         } else {
@@ -663,7 +659,7 @@ impl View<RouteTarget> for SetupView {
                         }
                         self.modal.set(Some(SetupModal::SeeComps(val)));
                     }
-                    Event::Keyboard(Key::Down) | Event::Keyboard(Key::Right) => {
+                    Event::Keyboard(Key::Down | Key::Right) => {
                         if val >= 240 {
                             val = 1;
                         } else {
@@ -693,10 +689,7 @@ impl View<RouteTarget> for SetupView {
                         let _ = kind;
                         self.modal.set(None);
                     }
-                    Event::Keyboard(Key::Escape)
-                    | Event::Keyboard(Key::Enter)
-                    | Event::Keyboard(Key::Char('n'))
-                    | Event::Keyboard(Key::Char('N')) => {
+                    Event::Keyboard(Key::Escape | Key::Enter | Key::Char('n' | 'N')) => {
                         self.modal.set(None);
                     }
                     _ => {}
@@ -714,7 +707,7 @@ impl View<RouteTarget> for SetupView {
                         let new_sel = if sel >= langs.len() - 1 { 0 } else { sel + 1 };
                         self.modal.set(Some(SetupModal::LanguagePicker(new_sel)));
                     }
-                    Event::Keyboard(Key::Enter) | Event::Keyboard(Key::Char(' ')) => {
+                    Event::Keyboard(Key::Enter | Key::Char(' ')) => {
                         self.save_manager().set_language(sel);
                         self.modal.set(None);
                     }

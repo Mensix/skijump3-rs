@@ -18,7 +18,7 @@ pub enum WorldCupCommand {
     Done,
 }
 
-/// Convert a competition Participant to a jump-domain JumpParticipant.
+/// Convert a competition Participant to a jump-domain `JumpParticipant`.
 /// Lives here (the boundary) so neither `jump` nor `competition` needs
 /// to know about the other.
 pub(crate) fn participant_to_jump(p: &Participant) -> JumpParticipant {

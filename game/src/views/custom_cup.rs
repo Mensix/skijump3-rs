@@ -3,6 +3,7 @@ use crate::components::screen::new_screen;
 use crate::gfx::palette::{apply_menu_tint, FONT_DEFAULT, FONT_GREET, FONT_HEADER, FONT_HELP};
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
+use crate::text::format;
 use engine::ui::{Element, Event, Key, View};
 
 const MAX_HILLS: usize = 40;
@@ -41,7 +42,7 @@ impl CustomCupSetupView {
                 let kr_str = format!("K{}", h.kr);
                 els.push(Element::text(&kr_str, x + 18 + name_w, y, FONT_HELP, false));
             } else {
-                let num_str = crate::text::format::ordinal_dot(slot + 1);
+                let num_str = format::ordinal_dot(slot + 1);
                 els.push(Element::right_text(&num_str, x + 14, y, FONT_HEADER));
                 els.push(Element::text(&h.name, x + 15, y, FONT_DEFAULT, false));
                 let name_w = self.resources.font.string_width(&h.name) as i32;
@@ -133,7 +134,7 @@ impl View<RouteTarget> for CustomCupSetupView {
                 }
                 None
             }
-            Event::Keyboard(Key::Home) | Event::Keyboard(Key::Delete) => {
+            Event::Keyboard(Key::Home | Key::Delete) => {
                 self.preview = 0;
                 None
             }
@@ -149,13 +150,13 @@ impl View<RouteTarget> for CustomCupSetupView {
                 self.preview = (self.preview + 5).min(self.all_hill_count - 1);
                 None
             }
-            Event::Keyboard(Key::Down) | Event::Keyboard(Key::Char(' ')) => {
+            Event::Keyboard(Key::Down | Key::Char(' ')) => {
                 if self.selected.len() < MAX_HILLS {
                     self.selected.push(self.preview);
                 }
                 None
             }
-            Event::Keyboard(Key::Up) | Event::Keyboard(Key::Backspace) => {
+            Event::Keyboard(Key::Up | Key::Backspace) => {
                 self.selected.pop();
                 None
             }

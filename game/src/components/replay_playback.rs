@@ -22,6 +22,7 @@ pub enum PlaybackSpeed {
 }
 
 impl PlaybackSpeed {
+    #[must_use]
     pub fn next_up(self) -> Option<Self> {
         match self {
             Self::Variable => Some(Self::Pct25),
@@ -33,6 +34,7 @@ impl PlaybackSpeed {
         }
     }
 
+    #[must_use]
     pub fn next_down(self) -> Option<Self> {
         match self {
             Self::Variable => None,

@@ -9,6 +9,7 @@ pub struct MenuItem {
 }
 
 impl MenuItem {
+    #[must_use]
     pub const fn new(num: u8, label: usize) -> Self {
         Self {
             num,
@@ -17,6 +18,7 @@ impl MenuItem {
         }
     }
 
+    #[must_use]
     pub const fn with_y(num: u8, label: usize, y_off: i32) -> Self {
         Self { num, label, y_off }
     }

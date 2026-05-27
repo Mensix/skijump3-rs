@@ -1,7 +1,9 @@
 use crate::components::menu::{Menu, MenuItem};
+use crate::components::screen;
 use crate::gfx::palette::{apply_menu_tint, FONT_DEFAULT, FONT_GOLD, FONT_GREET};
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
+use crate::text::format;
 use engine::ui::{Component, Element, Event, Key, View};
 
 pub struct TrainingSetupView {
@@ -103,7 +105,7 @@ impl TrainingSetupView {
 
 impl View<RouteTarget> for TrainingSetupView {
     fn elements(&self) -> Vec<Element> {
-        let mut els = crate::components::screen::new_screen(2);
+        let mut els = screen::new_screen(2);
         els.push(Element::text(
             self.resources.langbase.lstr(151),
             30,
@@ -131,7 +133,7 @@ impl View<RouteTarget> for TrainingSetupView {
             let idx = self.start + i;
             let y = self.item_row(i) as i32 * 8 + 10;
             els.push(Element::right_text(
-                crate::text::format::ordinal_dot(i + 1),
+                format::ordinal_dot(i + 1),
                 130,
                 y,
                 FONT_GOLD,

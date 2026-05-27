@@ -152,7 +152,7 @@ pub(crate) fn load_hills(files: &FileStore, manifest_path: &str) -> Result<HillC
                 front_index: h.front_index.clone(),
                 back_index: h.back_index.clone(),
                 back_brightness: h.back_brightness,
-                back_mirror: if h.back_mirror { 1 } else { 0 },
+                back_mirror: i64::from(h.back_mirror),
                 vx_final: h.vx_final,
                 pk_hundred: h.pk_hundred,
                 pl_save_ten_thousand: h.pl_save_ten_thousand,

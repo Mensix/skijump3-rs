@@ -458,7 +458,7 @@ pub fn render_results_page(page: &ResultsPage, resources: &ResourcesRef) -> Vec<
     if is_wc {
         // Two-column layout: y computed from column/row, no separator needed
         for (i, entry) in page.items.iter().enumerate() {
-            let col = if i >= WC_COL_SPLIT { 1 } else { 0 };
+            let col = i32::from(i >= WC_COL_SPLIT);
             let col_off = col * WC_COL2_OFFSET;
             let y = START_Y + (i % WC_COL_SPLIT) as i32 * row_step;
             render_results_entry(

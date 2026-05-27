@@ -6,14 +6,17 @@ pub struct SelectionState {
 }
 
 impl SelectionState {
+    #[must_use]
     pub fn new(count: usize) -> Self {
         Self { selected: 0, count }
     }
 
+    #[must_use]
     pub fn selected(&self) -> usize {
         self.selected
     }
 
+    #[must_use]
     pub fn count(&self) -> usize {
         self.count
     }

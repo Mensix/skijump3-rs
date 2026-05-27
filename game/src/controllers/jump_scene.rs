@@ -1,5 +1,6 @@
 use crate::jump::config::JumpConfig;
 use crate::jump::replay::ReplayTrace;
+use crate::jump::sim;
 use crate::jump::snow::{calculate_snow_count, SnowSystem};
 use crate::jump::types::{JumpOutcome, JumpPhase};
 use crate::jump::{JumpParticipant, JumpPolicy, JumpRunner, JumpRunnerRenderEnv, JumpSession};
@@ -162,7 +163,7 @@ impl JumpScene {
             .expect("hill must exist");
         let mut rng = self.store.jump_runtime.rng.borrow_mut();
         let mut wind = self.store.jump_runtime.wind.borrow_mut();
-        crate::jump::sim::simulate_computer(&participant, &terrain, hill, &mut rng, &mut wind)
+        sim::simulate_computer(&participant, &terrain, hill, &mut rng, &mut wind)
     }
 
     pub fn elements(&self) -> Vec<Element> {

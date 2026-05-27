@@ -8,12 +8,14 @@ pub struct Font {
 }
 
 impl Font {
+    #[must_use]
     pub fn new() -> Self {
         Self {
             glyphs: (0..FONT_GLYPH_COUNT).map(|_| None).collect(),
         }
     }
 
+    #[must_use]
     pub fn from_sprites(sprites: &[SpriteData]) -> Self {
         let mut font = Self::new();
         for (i, sprite) in sprites.iter().enumerate() {
@@ -24,6 +26,7 @@ impl Font {
         font
     }
 
+    #[must_use]
     pub fn string_width(&self, text: &str) -> u32 {
         let mut w = 0u32;
         for ch in text.chars() {
@@ -33,7 +36,7 @@ impl Font {
                 _ => {
                     if let Some(idx) = Self::char_to_index(ch) {
                         if let Some(ref g) = self.glyphs[idx] {
-                            w += g.width as u32;
+                            w += u32::from(g.width);
                         }
                     }
                 }
@@ -49,6 +52,7 @@ impl Font {
     /// `color == 0`). The shadow pixel (`SHADOW_PIXEL = 242`) is preserved.
     ///
     /// The bitmap's (`x`, `y`) is the screen-space top-left corner.
+    #[must_use]
     pub fn render_string_bitmap(
         &self,
         text: &str,
@@ -57,16 +61,6 @@ impl Font {
         color: u8,
     ) -> Option<IndexedBitmap> {
         // First pass: compute bounding box of all glyphs
-        let mut min_x = i32::MAX;
-        let mut min_y = i32::MAX;
-        let mut max_x = i32::MIN;
-        let mut max_y = i32::MIN;
-        let mut px = x;
-        let mut defined = false;
-
-        // We need to store glyph references for second pass.
-        // Collect (glyph_idx, screen_px, screen_y) for each drawable glyph.
-        // The screen_y is always `y` for all glyphs (monospace line).
         struct GlyphPos {
             idx: usize,
             screen_px: i32,
@@ -75,6 +69,14 @@ impl Font {
             center_x: i8,
             center_y: i8,
         }
+
+        let mut min_x = i32::MAX;
+        let mut min_y = i32::MAX;
+        let mut max_x = i32::MIN;
+        let mut max_y = i32::MIN;
+        let mut px = x;
+        let mut defined = false;
+
         let mut positions: Vec<GlyphPos> = Vec::new();
 
         for ch in text.chars() {
@@ -84,10 +86,10 @@ impl Font {
                 _ => {
                     if let Some(glyph_idx) = Self::char_to_index(ch) {
                         if let Some(ref g) = self.glyphs[glyph_idx] {
-                            let left = px - g.center_x as i32;
-                            let top = y - g.center_y as i32;
-                            let right = left + g.width as i32;
-                            let bottom = top + g.height as i32;
+                            let left = px - i32::from(g.center_x);
+                            let top = y - i32::from(g.center_y);
+                            let right = left + i32::from(g.width);
+                            let bottom = top + i32::from(g.height);
                             min_x = min_x.min(left);
                             min_y = min_y.min(top);
                             max_x = max_x.max(right);
@@ -100,7 +102,7 @@ impl Font {
                                 center_x: g.center_x,
                                 center_y: g.center_y,
                             });
-                            px += g.width as i32;
+                            px += i32::from(g.width);
                             defined = true;
                         }
                     }
@@ -129,11 +131,11 @@ impl Font {
         // Second pass: render each glyph into the bitmap
         for gp in &positions {
             if let Some(ref g) = self.glyphs[gp.idx] {
-                let start_x = gp.screen_px - gp.center_x as i32;
-                let start_y = y - gp.center_y as i32;
-                for yy in 0..gp.height as i32 {
-                    for xx in 0..gp.width as i32 {
-                        let src_idx = (yy * gp.width as i32 + xx) as usize;
+                let start_x = gp.screen_px - i32::from(gp.center_x);
+                let start_y = y - i32::from(gp.center_y);
+                for yy in 0..i32::from(gp.height) {
+                    for xx in 0..i32::from(gp.width) {
+                        let src_idx = (yy * i32::from(gp.width) + xx) as usize;
                         if src_idx >= g.data.len() {
                             continue;
                         }
@@ -226,7 +228,7 @@ mod tests {
 
     /// Build a minimal font with two glyphs:
     ///   'A' (idx 0): 3×5 solid block of value 1, center=(0,0)
-    ///   'B' (idx 1): 2×4 with a SHADOW_PIXEL, center=(0,0)
+    ///   'B' (idx 1): 2×4 with a `SHADOW_PIXEL`, center=(0,0)
     fn make_font() -> Font {
         let mut sprites = Vec::with_capacity(FONT_GLYPH_COUNT);
         sprites.resize_with(FONT_GLYPH_COUNT, || SpriteData {

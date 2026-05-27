@@ -20,14 +20,17 @@ pub struct Atlas {
 }
 
 impl Atlas {
+    #[must_use]
     pub fn region(&self, index: usize) -> Option<&AtlasRegion> {
         self.regions.get(index)
     }
 
+    #[must_use]
     pub fn len(&self) -> usize {
         self.regions.len()
     }
 
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.regions.is_empty()
     }

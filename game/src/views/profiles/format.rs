@@ -1,6 +1,6 @@
 use crate::data::profile::Profile;
 use crate::text::lang::LangBase;
-use crate::text::layout::lstr;
+use crate::text::layout::{lstr, shorten_name};
 use engine::ui::Font;
 
 pub fn format_profile_value(
@@ -20,7 +20,7 @@ pub fn format_profile_value(
                 let x = 170 + font.string_width("Replace:") as i32;
                 let max_w = 316i32.saturating_sub(x).max(0);
                 let name = &player_names[profile.replace - 1];
-                crate::text::layout::shorten_name(name, font, max_w)
+                shorten_name(name, font, max_w)
             } else {
                 format!("#{}", profile.replace)
             }

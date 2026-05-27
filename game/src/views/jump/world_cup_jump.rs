@@ -6,8 +6,9 @@ use crate::controllers::jump_input::{JumpInputAction, JumpInputController};
 use crate::controllers::jump_scene::JumpScene;
 use crate::controllers::world_cup_flow::{self, WorldCupCommand};
 use crate::gfx::palette::{apply_menu_tint, FONT_GREET};
-use crate::jump::types::{FallType, JumpPhase};
+use crate::jump::types::{FallType, JumpOutcome, JumpPhase};
 use crate::jump::JumpParticipant;
+use crate::jump::JumpPolicy;
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::format::format_tenths;
@@ -37,7 +38,7 @@ impl WorldCupJumpView {
             0,
             15,
             JumpParticipant::trainee(),
-            crate::jump::JumpPolicy::competition(),
+            JumpPolicy::competition(),
         );
         Self {
             resources: ResourcesRef::clone(&resources),
@@ -66,7 +67,7 @@ impl WorldCupJumpView {
         if !self
             .store
             .competition
-            .try_with(|c| c.is_human_current())
+            .try_with(Competition::is_human_current)
             .unwrap_or(false)
         {
             return;
@@ -137,11 +138,10 @@ impl WorldCupJumpView {
 
     fn drive_competition(&self) {
         let command = self.store.competition.try_with_mut(|c| {
-            let mut simulate_computer = |participant: JumpParticipant,
-                                         hill_idx: usize|
-             -> crate::jump::types::JumpOutcome {
-                self.scene.simulate_hidden(participant, hill_idx)
-            };
+            let mut simulate_computer =
+                |participant: JumpParticipant, hill_idx: usize| -> JumpOutcome {
+                    self.scene.simulate_hidden(participant, hill_idx)
+                };
             world_cup_flow::drive(c, &self.last_event, &mut simulate_computer)
         });
 
@@ -254,16 +254,16 @@ impl WorldCupJumpView {
                 .filter(|p| p.id != own_id && p.points.is_some_and(|pts| pts > own_total))
                 .count()
                 + 1;
-            Element::right_text(format!("(${}.)", rank), 255, 45, FONT_GREET)
+            Element::right_text(format!("(${rank}.)"), 255, 45, FONT_GREET)
         })
     }
 
     fn select_default_result_screen(&self) {
-        if let Some(phase) = self.store.competition.try_with(|c| c.phase()) {
+        if let Some(phase) = self.store.competition.try_with(Competition::phase) {
             let is_4h = self
                 .store
                 .competition
-                .try_with(|c| c.is_four_hills_event())
+                .try_with(Competition::is_four_hills_event)
                 .unwrap_or(false);
             self.ui_state.select_default_screen(is_4h, phase);
         }
@@ -376,10 +376,8 @@ impl View<RouteTarget> for WorldCupJumpView {
                         } else {
                             5
                         }
-                    } else if c.phase() == CompetitionPhase::FourHillsStandings {
-                        1
                     } else {
-                        0
+                        usize::from(c.phase() == CompetitionPhase::FourHillsStandings)
                     }
                 })
                 .unwrap_or(0);
@@ -435,19 +433,19 @@ impl WorldCupJumpView {
                 // Pascal WaitForKey(0): any key on the last entry exits the list
                 self.blinker.reset();
                 self.ui_state.dismiss_results();
-                self.store.competition.try_with_mut(|c| c.advance());
+                self.store.competition.try_with_mut(Competition::advance);
                 self.drive_competition();
                 None
             }
-            Event::Keyboard(Key::Char('c') | Key::Char('C')) => {
+            Event::Keyboard(Key::Char('c' | 'C')) => {
                 self.ui_state.toggle_compact();
                 None
             }
-            Event::Keyboard(Key::Char('s') | Key::Char('S')) => {
+            Event::Keyboard(Key::Char('s' | 'S')) => {
                 self.ui_state.toggle_stats();
                 None
             }
-            Event::Keyboard(Key::Char('k') | Key::Char('K')) => {
+            Event::Keyboard(Key::Char('k' | 'K')) => {
                 let ko = self
                     .store
                     .competition
@@ -486,7 +484,7 @@ impl WorldCupJumpView {
                 }
                 self.blinker.reset();
                 self.ui_state.dismiss_results();
-                self.store.competition.try_with_mut(|c| c.advance());
+                self.store.competition.try_with_mut(Competition::advance);
                 self.drive_competition();
                 None
             }
@@ -498,7 +496,7 @@ impl WorldCupJumpView {
 /// Pascal: `txt(mcpisteet[who])+' ('+str1+')'` where str1 is `sija[who]+'.'`
 /// for the final event. Same applies to best4 result with `txtp` for tenths.
 fn format_wc_best_result(points: i32, rank: usize) -> String {
-    format!("{} ({}.)", points, rank)
+    format!("{points} ({rank}.)")
 }
 
 fn format_four_hills_best_result(points_tenths: i32, rank: usize) -> String {
