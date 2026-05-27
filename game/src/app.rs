@@ -1,7 +1,5 @@
-mod render;
 mod router;
 
-use crate::app::render::{count_fill_areas, is_fill_area_dither_color, DitherRect};
 use crate::app::router::create_router;
 use crate::content::ContentStore;
 use crate::data::records::RecordStore;
@@ -13,13 +11,11 @@ use crate::route::RouteTarget;
 use crate::save::{SaveManager, SaveRef};
 use crate::store::{Resources, ResourcesRef, Store, StoreRef};
 use engine::atlas::Atlas;
-use engine::consts::PATTERN_SPRITE;
+use engine::element_renderer::ElementRenderer;
 use engine::input::Input;
 use engine::palette::Palette;
 use engine::sprite::SpriteData;
-use engine::ui::{
-    render_image_bitmap, render_image_region_bitmap, BackgroundMode, Element, Font, Router,
-};
+use engine::ui::{BackgroundMode, Font, Router};
 use engine::video::{Renderer, TextureId};
 use std::rc::Rc;
 
@@ -37,7 +33,6 @@ pub struct Game {
     router: Router<RouteTarget>,
     sprites: Vec<SpriteData>,
     sprite_atlas: Option<Atlas>,
-    pending_dither_rects: Vec<DitherRect>,
     base_palette: Palette,
     main_background: TextureId,
 }
@@ -105,7 +100,6 @@ impl Game {
             router,
             sprites,
             sprite_atlas,
-            pending_dither_rects: Vec::new(),
             base_palette,
             main_background,
         })
@@ -177,183 +171,16 @@ impl Game {
             BackgroundMode::MainPng => Some(self.main_background),
             BackgroundMode::NoneBlack => None,
         };
-        self.render_gpu_frame(&elements, background)?;
+
+        ElementRenderer::new(
+            &mut self.renderer,
+            &self.font,
+            &self.sprites,
+            self.sprite_atlas.as_ref(),
+        )
+        .render_frame(&elements, background)?;
+
         self.renderer.wait_frame();
-        Ok(())
-    }
-
-    fn render_gpu_frame(
-        &mut self,
-        elements: &[Element],
-        background: Option<TextureId>,
-    ) -> Result<(), String> {
-        self.pending_dither_rects.clear();
-        self.renderer.begin_frame();
-        if let Some(bg) = background {
-            self.renderer.draw_texture(bg, None, None)?;
-        }
-
-        let mut remaining_fill_areas = count_fill_areas(elements);
-
-        for el in elements {
-            self.render_gpu_element(el, &mut remaining_fill_areas)?;
-        }
-
-        self.renderer.end_frame();
-        Ok(())
-    }
-
-    fn render_gpu_element(
-        &mut self,
-        element: &Element,
-        remaining_fill_areas: &mut usize,
-    ) -> Result<(), String> {
-        match element {
-            Element::Fillbox { x, y, w, h, color } if *remaining_fill_areas > 0 => {
-                self.renderer
-                    .draw_indexed_fill_rect(*x, *y, *w, *h, *color)?;
-                if is_fill_area_dither_color(*color) {
-                    self.pending_dither_rects.push(DitherRect {
-                        x: *x,
-                        y: *y,
-                        w: *w,
-                        h: *h,
-                        color: *color,
-                        is_box: false,
-                    });
-                }
-            }
-            Element::Box { x, y, w, h, color } if *remaining_fill_areas > 0 => {
-                self.renderer.draw_indexed_box(*x, *y, *w, *h, *color)?;
-                if is_fill_area_dither_color(*color) {
-                    self.pending_dither_rects.push(DitherRect {
-                        x: *x,
-                        y: *y,
-                        w: *w,
-                        h: *h,
-                        color: *color,
-                        is_box: true,
-                    });
-                }
-            }
-            Element::Fillbox { x, y, w, h, color } => {
-                self.renderer
-                    .draw_indexed_fill_rect(*x, *y, *w, *h, *color)?;
-            }
-            Element::Box { x, y, w, h, color } => {
-                self.renderer.draw_indexed_box(*x, *y, *w, *h, *color)?;
-            }
-            Element::FillArea { thing } => {
-                if let Some(pattern) = self.sprites.get(PATTERN_SPRITE) {
-                    for dr in &self.pending_dither_rects {
-                        self.renderer.dither_overlay_rect(
-                            dr.x,
-                            dr.y,
-                            dr.w,
-                            dr.h,
-                            dr.color,
-                            dr.is_box,
-                            *thing,
-                            &pattern.data,
-                        )?;
-                    }
-                }
-                if !self.pending_dither_rects.is_empty() {
-                    self.renderer.flush_dither_overlay()?;
-                    self.pending_dither_rects.clear();
-                }
-                *remaining_fill_areas = remaining_fill_areas.saturating_sub(1);
-            }
-            Element::Container(children) => {
-                for child in children {
-                    self.render_gpu_element(child, remaining_fill_areas)?;
-                }
-            }
-            Element::Text {
-                text,
-                x,
-                y,
-                color,
-                right,
-                center,
-            } => {
-                let text_w = self.font.string_width(text) as i32;
-                let fx = if *center {
-                    x - text_w / 2
-                } else if *right {
-                    x - text_w
-                } else {
-                    *x
-                };
-                if let Some(bitmap) = self.font.render_string_bitmap(text, fx, *y, *color) {
-                    self.renderer.draw_indexed_overlay_pixels(
-                        &bitmap.pixels,
-                        bitmap.width,
-                        bitmap.height,
-                        bitmap.x,
-                        bitmap.y,
-                    )?;
-                }
-            }
-            Element::Sprite(idx, x, y) => {
-                let mut drew = false;
-                if let Some(ref atlas) = self.sprite_atlas {
-                    if let Some(region) = atlas.region(*idx as usize) {
-                        self.renderer
-                            .draw_atlas_region(atlas.texture_id, region, *x, *y)?;
-                        drew = true;
-                    }
-                }
-                if !drew {
-                    if let Some(sprite) = self.sprites.get(*idx as usize) {
-                        if let Some(bitmap) = sprite.render_bitmap(*x, *y) {
-                            self.renderer.draw_indexed_overlay_pixels(
-                                &bitmap.pixels,
-                                bitmap.width,
-                                bitmap.height,
-                                bitmap.x,
-                                bitmap.y,
-                            )?;
-                        }
-                    }
-                }
-            }
-            Element::SpriteRemapped(idx, x, y, remap) => {
-                if let Some(sprite) = self.sprites.get(*idx as usize) {
-                    if let Some(bitmap) = sprite.render_bitmap_with_remap(*x, *y, remap) {
-                        self.renderer.draw_indexed_overlay_pixels(
-                            &bitmap.pixels,
-                            bitmap.width,
-                            bitmap.height,
-                            bitmap.x,
-                            bitmap.y,
-                        )?;
-                    }
-                }
-            }
-            Element::Image(pixels, w, h) => {
-                if let Some(bitmap) = render_image_bitmap(pixels, *w, *h) {
-                    self.renderer.draw_indexed_overlay_pixels(
-                        &bitmap.pixels,
-                        bitmap.width,
-                        bitmap.height,
-                        bitmap.x,
-                        bitmap.y,
-                    )?;
-                }
-            }
-            Element::ImageRegion(region) => {
-                if let Some(bitmap) = render_image_region_bitmap(region) {
-                    self.renderer.draw_indexed_overlay_pixels(
-                        &bitmap.pixels,
-                        bitmap.width,
-                        bitmap.height,
-                        bitmap.x,
-                        bitmap.y,
-                    )?;
-                }
-            }
-        }
         Ok(())
     }
 }

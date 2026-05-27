@@ -1,6 +1,7 @@
 pub mod atlas;
 pub mod bitmap;
 pub mod consts;
+pub mod element_renderer;
 pub mod input;
 pub mod palette;
 pub mod sprite;
