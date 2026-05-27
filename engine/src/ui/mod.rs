@@ -8,7 +8,7 @@ pub mod text_edit;
 
 pub use crate::bitmap::IndexedBitmap;
 pub use blinker::Blinker;
-pub use element::{render_image_bitmap, render_image_region_bitmap, Element, ImageRegion};
+pub use element::{Element, ImageRegion};
 pub use router::{BackgroundMode, Event, Key, Router, View};
 pub use selection::SelectionState;
 pub use table::{Align, Cell, Table};
