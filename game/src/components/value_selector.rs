@@ -1,4 +1,7 @@
+use engine::color::Rgba;
 use engine::ui::{Component, Element, Event, Key};
+
+use crate::gfx::palette::{ski_color, suit_color_shade, FONT_DEFAULT};
 
 #[derive(Debug)]
 pub enum ValueSelectorAction {
@@ -20,9 +23,9 @@ pub struct ValueSelector {
     max: usize,
     value: usize,
     kind: ValueSelectorKind,
-    bg: u8,
-    border: u8,
-    fg: u8,
+    bg: Rgba,
+    border: Rgba,
+    fg: Rgba,
     suit_boxes: bool,
     display: String,
     right_text: Option<String>,
@@ -36,8 +39,8 @@ impl ValueSelector {
         y: i32,
         max: usize,
         value: usize,
-        bg: u8,
-        border: u8,
+        bg: Rgba,
+        border: Rgba,
         suit_boxes: bool,
     ) -> Self {
         Self {
@@ -49,7 +52,7 @@ impl ValueSelector {
             kind: ValueSelectorKind::ColorBars,
             bg,
             border,
-            fg: 240,
+            fg: FONT_DEFAULT,
             suit_boxes,
             display: String::new(),
             right_text: None,
@@ -65,8 +68,8 @@ impl ValueSelector {
         width: i32,
         max: usize,
         value: usize,
-        bg: u8,
-        fg: u8,
+        bg: Rgba,
+        fg: Rgba,
         display: String,
     ) -> Self {
         Self {
@@ -177,20 +180,19 @@ impl ValueSelector {
         ];
         for value in 0..=self.max {
             let y = self.y + 4 + value as i32 * 8;
-            els.push(Element::fillbox(
-                self.x + 6,
-                y,
-                19,
-                5,
-                (value as u8 + 1) * 5,
-            ));
+            let fill = if self.suit_boxes {
+                suit_color_shade(value, 0)
+            } else {
+                ski_color(value)
+            };
+            els.push(Element::fillbox(self.x + 6, y, 19, 5, fill));
             if self.suit_boxes {
                 els.push(Element::box_(
                     self.x + 6,
                     y,
                     19,
                     5,
-                    (value as u8 + 1) * 5 + 2,
+                    suit_color_shade(value, 2),
                 ));
             }
         }

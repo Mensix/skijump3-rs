@@ -1,9 +1,13 @@
 use crate::competition::machine::Competition;
 use crate::competition::types::{CompetitionPhase, CupStyle, Participant, QualificationStatus};
 use crate::components::screen::{new_screen, page_hints};
-use crate::gfx::palette::{FONT_DEFAULT, FONT_GREET, FONT_HEADER};
+use crate::gfx::palette::{
+    BG_LEFT, BG_RIGHT_BRIGHT, FILL_HIGHLIGHT, FILL_TURQUOISE, FONT_DEFAULT, FONT_GREET,
+    FONT_HEADER, FONT_HELP,
+};
 use crate::store::ResourcesRef;
 use crate::text::format::{format_tenths, ordinal_dot};
+use engine::color::Rgba;
 use engine::ui::Element;
 
 pub const QUALIFICATION_ITEMS_PER_PAGE: usize = 25;
@@ -26,10 +30,10 @@ const WC_NAME: i32 = 23;
 const WC_POINTS: i32 = 153;
 const WC_COL2_OFFSET: i32 = 160;
 
-const OTHER_NAME: u8 = 241;
-const OTHER_RANK: u8 = 251;
-const OTHER_DISTANCE: u8 = 252;
-const INJURY_COLOR: u8 = 249;
+const OTHER_NAME: Rgba = FONT_HELP;
+const OTHER_RANK: Rgba = FILL_HIGHLIGHT;
+const OTHER_DISTANCE: Rgba = FILL_TURQUOISE;
+const INJURY_COLOR: Rgba = BG_RIGHT_BRIGHT;
 
 const KO_LEFT_POINTS: i32 = 40;
 const KO_LEFT_NAME: i32 = 145;
@@ -566,7 +570,7 @@ pub fn render_ko_pairs(
         FONT_DEFAULT,
         true,
     ));
-    els.push(Element::fillbox(304, 4, 9, 11, 243));
+    els.push(Element::fillbox(304, 4, 9, 11, BG_LEFT));
     if show_cursor {
         els.push(Element::fillbox(306, 12, 5, 1, FONT_DEFAULT));
     }

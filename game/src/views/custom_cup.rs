@@ -1,6 +1,8 @@
 use crate::competition::builder::build_custom_competition;
 use crate::components::screen::new_screen;
-use crate::gfx::palette::{apply_menu_tint, FONT_DEFAULT, FONT_GREET, FONT_HEADER, FONT_HELP};
+use crate::gfx::palette::{
+    apply_menu_tint, FILL_BORDER, FONT_DEFAULT, FONT_GREET, FONT_HEADER, FONT_HELP,
+};
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::format;
@@ -34,7 +36,7 @@ impl CustomCupSetupView {
         } else {
             (162, (slot as i32 - 20) * 7 + 39)
         };
-        let mut els = vec![Element::fillbox(x, y - 1, 143, 9, 248)];
+        let mut els = vec![Element::fillbox(x, y - 1, 143, 9, FILL_BORDER)];
         if let Some(h) = self.resources.hills.hill(hill_idx) {
             if is_preview {
                 els.push(Element::text(&h.name, x + 15, y, FONT_HELP, false));

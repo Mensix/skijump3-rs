@@ -1,12 +1,13 @@
-use crate::gfx::palette::{FONT_DEFAULT, FONT_HELP, FONT_NEW};
+use crate::gfx::palette::{FILL_BORDER, FILL_LINE, FONT_DEFAULT, FONT_HELP, FONT_NEW};
 use crate::store::StoreRef;
 use crate::text::format;
 use crate::text::lang::LangBase;
+use engine::color::Rgba;
 use engine::ui::Element;
 use std::rc::Rc;
 
 #[must_use]
-pub fn header_elements(text: &str, x: i32, y: i32, color: u8, bg: u8) -> Vec<Element> {
+pub fn header_elements(text: &str, x: i32, y: i32, color: Rgba, bg: Rgba) -> Vec<Element> {
     vec![
         Element::fillbox(x, y, 100, 6, bg),
         Element::text(text, x, y, color, false),
@@ -64,7 +65,7 @@ impl MainLayout {
     #[must_use]
     pub fn registration(&self) -> Vec<Element> {
         vec![
-            Element::fillbox(128, 155, 185, 1, 9),
+            Element::fillbox(128, 155, 185, 1, FILL_LINE),
             Element::text(
                 format!("{} {}", self.langbase.lstr(35), self.langbase.lstr(36)),
                 132,
@@ -72,7 +73,7 @@ impl MainLayout {
                 FONT_DEFAULT,
                 false,
             ),
-            Element::fillbox(132, 175, 177, 22, 248),
+            Element::fillbox(132, 175, 177, 22, FILL_BORDER),
             Element::text(
                 "EVERYONE - THANKS FOR THE SUPPORT!",
                 140,

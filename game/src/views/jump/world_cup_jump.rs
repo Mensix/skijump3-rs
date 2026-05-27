@@ -5,7 +5,7 @@ use crate::controllers::competition_ui::{CompetitionUiState, RenderMode, ResultS
 use crate::controllers::jump_input::{JumpInputAction, JumpInputController};
 use crate::controllers::jump_scene::JumpScene;
 use crate::controllers::world_cup_flow::{self, WorldCupCommand};
-use crate::gfx::palette::{apply_menu_tint, FONT_GREET};
+use crate::gfx::palette::{apply_menu_tint, BLACK, FONT_GREET};
 use crate::jump::types::{FallType, JumpOutcome, JumpPhase};
 use crate::jump::JumpParticipant;
 use crate::jump::JumpPolicy;
@@ -133,7 +133,7 @@ impl WorldCupJumpView {
                 els.extend(competition_results::render_header(c, &self.resources));
                 els
             })
-            .unwrap_or_else(|| vec![Element::fillbox(0, 0, 320, 200, 0)])
+            .unwrap_or_else(|| vec![Element::fillbox(0, 0, 320, 200, BLACK)])
     }
 
     fn drive_competition(&self) {

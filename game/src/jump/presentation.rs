@@ -1,19 +1,20 @@
 use crate::data::records::HillRecord;
 use crate::gfx::palette::{
-    FONT_DEFAULT, FONT_GOLD, FONT_GREET, FONT_HELP, JUMPER_SKI_RENDER, JUMPER_SKI_SOURCE,
-    JUMPER_SUIT_RENDER_SHADE_1, JUMPER_SUIT_RENDER_SHADE_3, JUMPER_SUIT_SOURCE_SHADE_1,
-    JUMPER_SUIT_SOURCE_SHADE_3,
+    FILL_BORDER, FONT_DEFAULT, FONT_GOLD, FONT_GREET, FONT_HELP, JUMPER_SKI_RENDER,
+    JUMPER_SKI_SOURCE, JUMPER_SUIT_RENDER_SHADE_1, JUMPER_SUIT_RENDER_SHADE_3,
+    JUMPER_SUIT_SOURCE_SHADE_1, JUMPER_SUIT_SOURCE_SHADE_3,
 };
 use crate::gfx::sprites;
 use crate::jump::frame::JumpRenderFrame;
 use crate::jump::types::JumpPhase;
 use crate::text::lang::LangBase;
+use engine::color::Rgba;
 use engine::consts::{HEIGHT, WIDTH};
 use engine::sprite::SpriteColorRemap;
 use engine::ui::{Element, Font, ImageRegion};
 use std::rc::Rc;
 
-const FONT_DIM_TURQUOISE: u8 = 252;
+const FONT_DIM_TURQUOISE: Rgba = Rgba::from_rgb6(0, 47, 52);
 
 pub use crate::jump::wind::WindPosition;
 
@@ -200,7 +201,7 @@ fn info_elements(
     jumper_info_box_elements(els, frame, ctx);
 }
 
-fn panel_header(els: &mut Vec<Element>, name: &str, color: u8) {
+fn panel_header(els: &mut Vec<Element>, name: &str, color: Rgba) {
     els.push(Element::sprite(sprites::Sprite::InfoPanel as u16, 227, 2));
     els.push(Element::right_text(name, 308, 9, color));
 }
@@ -300,15 +301,27 @@ fn dq_elements(els: &mut Vec<Element>, frame: &JumpRenderFrame, ctx: &JumpPresen
 pub fn wind_elements(els: &mut Vec<Element>, position: WindPosition, value: i32) {
     let x = position.x;
     let y = position.y;
-    els.push(Element::fillbox(x + 4, y + 1, 35, 2, 248));
-    els.push(Element::fillbox(x + 21, y + 1, 1, 2, 240));
-    els.push(Element::fillbox(x + 21, y + 9, 1, 1, 247));
+    els.push(Element::fillbox(x + 4, y + 1, 35, 2, FILL_BORDER));
+    els.push(Element::fillbox(x + 21, y + 1, 1, 2, FONT_DEFAULT));
+    els.push(Element::fillbox(x + 21, y + 9, 1, 1, FONT_GREET));
     if value > 0 {
-        els.push(Element::fillbox(x + 22, y + 1, value / 3 + 1, 2, 236));
+        els.push(Element::fillbox(
+            x + 22,
+            y + 1,
+            value / 3 + 1,
+            2,
+            Rgba::from_rgb6(56, 13, 13),
+        ));
     }
     if value < 0 {
         let w = (-value) / 3 + 1;
-        els.push(Element::fillbox(x + 21 - w, y + 1, w, 2, 237));
+        els.push(Element::fillbox(
+            x + 21 - w,
+            y + 1,
+            w,
+            2,
+            Rgba::from_rgb6(13, 53, 13),
+        ));
     }
 
     let text = format!("{:.1}", f64::from(value.abs()) / 10.0);

@@ -2,9 +2,9 @@ use crate::components::replay_playback::{PlaybackMode, PlaybackSpeed, ReplayPlay
 use crate::data::hill::HillInfo;
 use crate::data::hill_profile::HillTerrain;
 use crate::gfx::palette::{
-    apply_jumper_palette, FONT_DEFAULT, FONT_GOLD, FONT_GREET, FONT_HELP, JUMPER_SKI_RENDER,
-    JUMPER_SKI_SOURCE, JUMPER_SUIT_RENDER_SHADE_1, JUMPER_SUIT_RENDER_SHADE_3,
-    JUMPER_SUIT_SOURCE_SHADE_1, JUMPER_SUIT_SOURCE_SHADE_3,
+    apply_jumper_palette, BG_LEFT, BLACK, FILL_BORDER, FONT_DEFAULT, FONT_GOLD, FONT_GREET,
+    FONT_HELP, JUMPER_SKI_RENDER, JUMPER_SKI_SOURCE, JUMPER_SUIT_RENDER_SHADE_1,
+    JUMPER_SUIT_RENDER_SHADE_3, JUMPER_SUIT_SOURCE_SHADE_1, JUMPER_SUIT_SOURCE_SHADE_3,
 };
 use crate::gfx::sprites;
 use crate::jump::math;
@@ -141,7 +141,7 @@ impl View<RouteTarget> for ReplayView {
     fn elements(&self) -> Vec<Element> {
         let Ok(terrain) = &self.terrain else {
             return vec![
-                Element::fillbox(0, 0, WIDTH as i32, HEIGHT as i32, 0),
+                Element::fillbox(0, 0, WIDTH as i32, HEIGHT as i32, BLACK),
                 Element::text("Replay hill not found", 20, 80, FONT_DEFAULT, false),
                 Element::text("PRESS ESC", 20, 95, FONT_HELP, false),
             ];
@@ -149,13 +149,13 @@ impl View<RouteTarget> for ReplayView {
         let mut session_ref = self.session.borrow_mut();
         let Some(session) = session_ref.as_mut() else {
             return vec![
-                Element::fillbox(0, 0, WIDTH as i32, HEIGHT as i32, 0),
+                Element::fillbox(0, 0, WIDTH as i32, HEIGHT as i32, BLACK),
                 Element::text("No replay selected", 20, 80, FONT_DEFAULT, false),
                 Element::text("PRESS ESC", 20, 95, FONT_HELP, false),
             ];
         };
         let Some(frame) = session.render_frame() else {
-            return vec![Element::fillbox(0, 0, WIDTH as i32, HEIGHT as i32, 0)];
+            return vec![Element::fillbox(0, 0, WIDTH as i32, HEIGHT as i32, BLACK)];
         };
         let (x, y) = frame.position;
         let (sx, sy) = frame.scroll;
@@ -452,8 +452,8 @@ fn replay_speed_text(speed: PlaybackSpeed, langbase: &LangBase) -> String {
 fn intro_box_elements(els: &mut Vec<Element>, langbase: &LangBase, phase: u8) {
     let ix = 30;
     let iy = if phase <= 3 { 140 } else { 30 };
-    els.push(Element::fillbox(ix - 7, iy - 7, 269, 40, 248));
-    els.push(Element::fillbox(ix - 6, iy - 6, 267, 38, 243));
+    els.push(Element::fillbox(ix - 7, iy - 7, 269, 40, FILL_BORDER));
+    els.push(Element::fillbox(ix - 6, iy - 6, 267, 38, BG_LEFT));
     els.push(Element::text(
         langbase.lstr(360 + phase as usize * 2),
         ix,
@@ -475,5 +475,5 @@ fn intro_box_elements(els: &mut Vec<Element>, langbase: &LangBase, phase: u8) {
         FONT_DEFAULT,
         true,
     ));
-    els.push(Element::fillbox(ix + 245, iy + 19, 9, 11, 243));
+    els.push(Element::fillbox(ix + 245, iy + 19, 9, 11, BG_LEFT));
 }

@@ -1,3 +1,4 @@
+use crate::color::Rgba;
 use crate::sprite::SpriteColorRemap;
 use std::rc::Rc;
 
@@ -22,7 +23,7 @@ pub enum Element {
         text: String,
         x: i32,
         y: i32,
-        color: u8,
+        color: Rgba,
         right: bool,
         center: bool,
     },
@@ -32,7 +33,7 @@ pub enum Element {
         y: i32,
         w: i32,
         h: i32,
-        color: u8,
+        color: Rgba,
     },
     FillArea {
         thing: u8,
@@ -42,14 +43,14 @@ pub enum Element {
         y: i32,
         w: i32,
         h: i32,
-        color: u8,
+        color: Rgba,
     },
     SpriteRemapped(u16, i32, i32, SpriteColorRemap),
     Container(Vec<Element>),
 }
 
 impl Element {
-    pub fn text(text: impl Into<String>, x: i32, y: i32, color: u8, right: bool) -> Self {
+    pub fn text(text: impl Into<String>, x: i32, y: i32, color: Rgba, right: bool) -> Self {
         Self::Text {
             text: text.into(),
             x,
@@ -60,7 +61,7 @@ impl Element {
         }
     }
 
-    pub fn right_text(text: impl Into<String>, x: i32, y: i32, color: u8) -> Self {
+    pub fn right_text(text: impl Into<String>, x: i32, y: i32, color: Rgba) -> Self {
         Self::Text {
             text: text.into(),
             x,
@@ -71,7 +72,7 @@ impl Element {
         }
     }
 
-    pub fn center_text(text: impl Into<String>, x: i32, y: i32, color: u8) -> Self {
+    pub fn center_text(text: impl Into<String>, x: i32, y: i32, color: Rgba) -> Self {
         Self::Text {
             text: text.into(),
             x,
@@ -102,12 +103,12 @@ impl Element {
     }
 
     #[must_use]
-    pub fn fillbox(x: i32, y: i32, w: i32, h: i32, color: u8) -> Self {
+    pub fn fillbox(x: i32, y: i32, w: i32, h: i32, color: Rgba) -> Self {
         Self::Fillbox { x, y, w, h, color }
     }
 
     #[must_use]
-    pub fn box_(x: i32, y: i32, w: i32, h: i32, color: u8) -> Self {
+    pub fn box_(x: i32, y: i32, w: i32, h: i32, color: Rgba) -> Self {
         Self::Box { x, y, w, h, color }
     }
 

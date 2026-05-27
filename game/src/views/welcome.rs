@@ -1,5 +1,7 @@
 use crate::components::menu::{Menu, MenuItem};
-use crate::gfx::palette::{apply_logo_tint, FONT_DEFAULT, FONT_GOLD, FONT_GREET};
+use crate::gfx::palette::{
+    apply_logo_tint, BG_LEFT, BLACK, FILL_DIM, FONT_DEFAULT, FONT_GOLD, FONT_GREET,
+};
 use crate::gfx::sprites;
 use crate::route::RouteTarget;
 use crate::save::SaveRef;
@@ -33,10 +35,10 @@ impl WelcomeScreenView {
 impl View<RouteTarget> for WelcomeScreenView {
     fn elements(&self) -> Vec<Element> {
         let mut els = vec![
-            Element::fillbox(0, 0, 320, 200, 0),
-            Element::fillbox(0, 0, 51, 200, 245),
-            Element::fillbox(52, 0, 216, 200, 243),
-            Element::fillbox(269, 0, 51, 200, 245),
+            Element::fillbox(0, 0, 320, 200, BLACK),
+            Element::fillbox(0, 0, 51, 200, FILL_DIM),
+            Element::fillbox(52, 0, 216, 200, BG_LEFT),
+            Element::fillbox(269, 0, 51, 200, FILL_DIM),
             Element::fill_area(63),
             Element::sprite(sprites::Sprite::Logo as u16, 80, 6),
             Element::right_text("WELCOME!", 240, 6, FONT_DEFAULT),

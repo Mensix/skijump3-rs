@@ -3,7 +3,7 @@ use crate::components::text_input::{TextInput, TextInputAction};
 use crate::components::value_selector::{ValueSelector, ValueSelectorAction};
 use crate::data::profile::{Profile, NUM_SKIS, NUM_SUITS};
 use crate::gfx::palette::{
-    apply_ski_palette, apply_ski_palette_at, apply_suit_palette, apply_suit_palette_at,
+    apply_ski_palette, apply_ski_palette_at, apply_suit_palette, apply_suit_palette_at, FILL_DIM,
     FONT_DEFAULT,
 };
 use crate::route::RouteTarget;
@@ -138,7 +138,7 @@ impl ProfilesView {
         }
     }
 
-    fn active_profile(&self) -> Option<usize> {
+    pub(super) fn active_profile(&self) -> Option<usize> {
         match self.mode {
             Mode::Edit { profile, .. }
             | Mode::TextInput { profile, .. }
@@ -174,7 +174,7 @@ impl View<RouteTarget> for ProfilesView {
             Mode::ReplaceSelect { selector, .. } => {
                 let value = selector.value();
                 let x = self.resources.font.string_width("Replace:") as i32 + 170;
-                els.push(Element::fillbox(x - 2, 43, 320 - x, 8, 245));
+                els.push(Element::fillbox(x - 2, 43, 320 - x, 8, FILL_DIM));
                 if value > 0 {
                     if value <= self.resources.player_names().len() {
                         let n = replace_display_name(

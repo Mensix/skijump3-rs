@@ -4,7 +4,7 @@ use crate::components::confirm_dialog::ConfirmDialog;
 use crate::components::text_input::TextInput;
 use crate::components::value_selector::ValueSelector;
 use crate::data::profile::{Profile, NUM_SKIS, NUM_SUITS};
-use crate::gfx::palette::{BG_RIGHT, FONT_DEFAULT, FONT_NEW};
+use crate::gfx::palette::{BG_RIGHT, BLACK, FILL_DIM, FONT_DEFAULT, FONT_NEW};
 use crate::route::RouteTarget;
 use crate::text::layout::{lstr, replace_display_name};
 
@@ -115,7 +115,7 @@ pub(super) fn handle_edit_enter(view: &mut ProfilesView, profile: usize, selecte
                     24,
                     NUM_SUITS - 1,
                     value,
-                    242,
+                    BLACK,
                     BG_RIGHT,
                     true,
                 ),
@@ -139,7 +139,7 @@ pub(super) fn handle_edit_enter(view: &mut ProfilesView, profile: usize, selecte
                     32,
                     NUM_SKIS - 1,
                     value,
-                    242,
+                    BLACK,
                     BG_RIGHT,
                     false,
                 ),
@@ -166,7 +166,7 @@ pub(super) fn handle_edit_enter(view: &mut ProfilesView, profile: usize, selecte
                 320 - x,
                 REPLACE_MAX,
                 value,
-                245,
+                FILL_DIM,
                 FONT_DEFAULT,
                 display,
             );
@@ -237,7 +237,7 @@ pub(super) fn start_text_input(view: &mut ProfilesView, profile: usize, field: T
             y,
             max_width,
             old,
-            245,
+            FILL_DIM,
             FONT_NEW,
             view.resources.font.clone(),
         ),

@@ -1,4 +1,5 @@
 use crate::text::lang::LangBase;
+use engine::color::Rgba;
 use engine::ui::{Component, Element, Event, Key, SelectionState};
 use std::rc::Rc;
 
@@ -32,8 +33,8 @@ pub struct Menu {
     item_h: i32,
     items: Vec<MenuItem>,
     langbase: Rc<LangBase>,
-    fontcolor: u8,
-    boxcolor: u8,
+    fontcolor: Rgba,
+    boxcolor: Rgba,
     show_labels: bool,
     show_box: bool,
     exit_item: bool,
@@ -51,8 +52,8 @@ impl Menu {
         item_h: i32,
         items: Vec<MenuItem>,
         langbase: &Rc<LangBase>,
-        fontcolor: u8,
-        boxcolor: u8,
+        fontcolor: Rgba,
+        boxcolor: Rgba,
     ) -> Self {
         Self {
             selection: SelectionState::new(items.len()),

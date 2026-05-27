@@ -5,7 +5,8 @@ use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
 use crate::atlas::AtlasRegion;
-use crate::consts::{FILL_BRIGHTEN, HEIGHT, TARGET_FPS, WIDTH};
+use crate::color::Rgba;
+use crate::consts::{HEIGHT, TARGET_FPS, WIDTH};
 use crate::palette::Palette;
 
 mod dither;
@@ -159,48 +160,6 @@ impl Renderer {
     /// Finish the frame and present to screen.
     pub fn end_frame(&mut self) {
         self.canvas.present();
-    }
-
-    /// Write bright RGBA pixels into `overlay_rgba` for a single rect,
-    /// at positions where the dither pattern sprite has a non-zero pixel.
-    /// The rect is clipped to screen bounds. When `is_box` is true, only
-    /// the 1-pixel border is processed.
-    /// Tiling always uses the original `TILE_W`/`TILE_H` constants.
-    pub fn dither_overlay_rect(
-        &mut self,
-        x: i32,
-        y: i32,
-        w: i32,
-        h: i32,
-        color: u8,
-        is_box: bool,
-        thing: u8,
-        pattern: &[u8],
-    ) -> Result<(), String> {
-        let bright_idx = (color + FILL_BRIGHTEN) as usize;
-        if bright_idx >= 256 {
-            return Ok(());
-        }
-        let [r6, g6, b6] = self.palette.color(bright_idx);
-        let r = (u32::from(r6) * 255 / 63) as u8;
-        let g = (u32::from(g6) * 255 / 63) as u8;
-        let b = (u32::from(b6) * 255 / 63) as u8;
-        dither_rect_rgba(
-            &mut self.overlay_rgba,
-            WIDTH as usize,
-            HEIGHT as usize,
-            x,
-            y,
-            w,
-            h,
-            r,
-            g,
-            b,
-            is_box,
-            thing,
-            pattern,
-        );
-        Ok(())
     }
 
     /// Upload the current `overlay_rgba` as a transparent overlay via
@@ -357,5 +316,80 @@ impl Renderer {
         );
         let dst = Rect::new(dst_x, dst_y, region.width, region.height);
         self.draw_texture(texture_id, Some(src), Some(dst))
+    }
+
+    // RGBA primitives -------------------------------------------------------
+
+    /// Draw a filled rectangle using an explicit RGBA colour.
+    /// Clips to (WIDTH, HEIGHT). Negative w/h are treated as zero.
+    pub fn draw_fill_rect(
+        &mut self,
+        x: i32,
+        y: i32,
+        w: i32,
+        h: i32,
+        color: Rgba,
+    ) -> Result<(), String> {
+        let x = x.max(0);
+        let y = y.max(0);
+        let w = w.min(WIDTH as i32 - x).max(0);
+        let h = h.min(HEIGHT as i32 - y).max(0);
+        if w <= 0 || h <= 0 {
+            return Ok(());
+        }
+        self.canvas.set_draw_color(color.to_sdl());
+        self.canvas.fill_rect(Rect::new(x, y, w as u32, h as u32))?;
+        Ok(())
+    }
+
+    /// Draw a 1-pixel-wide outlined rectangle using an explicit RGBA colour.
+    pub fn draw_box(&mut self, x: i32, y: i32, w: i32, h: i32, color: Rgba) -> Result<(), String> {
+        self.draw_fill_rect(x, y, w, 1, color)?;
+        self.draw_fill_rect(x, y + h - 1, w, 1, color)?;
+        self.draw_fill_rect(x, y, 1, h, color)?;
+        self.draw_fill_rect(x + w - 1, y, 1, h, color)?;
+        Ok(())
+    }
+
+    /// Brighten an RGBA colour for dither overlay (replaces old
+    /// palette-index-offset brightening).
+    fn brighten_overlay(color: Rgba) -> Rgba {
+        let scale = |c: u8| (u32::from(c) * 130 / 100).min(255) as u8;
+        Rgba::rgb(scale(color.r), scale(color.g), scale(color.b))
+    }
+
+    /// Write bright RGBA pixels into `overlay_rgba` for a single rect,
+    /// at positions where the dither pattern sprite has a non-zero pixel.
+    pub fn dither_overlay_rect(
+        &mut self,
+        x: i32,
+        y: i32,
+        w: i32,
+        h: i32,
+        color: Rgba,
+        is_box: bool,
+        thing: u8,
+        pattern: &[u8],
+    ) -> Result<(), String> {
+        let bright = Self::brighten_overlay(color);
+        let r = bright.r;
+        let g = bright.g;
+        let b = bright.b;
+        dither_rect_rgba(
+            &mut self.overlay_rgba,
+            WIDTH as usize,
+            HEIGHT as usize,
+            x,
+            y,
+            w,
+            h,
+            r,
+            g,
+            b,
+            is_box,
+            thing,
+            pattern,
+        );
+        Ok(())
     }
 }

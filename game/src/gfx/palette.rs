@@ -1,3 +1,4 @@
+use engine::color::Rgba;
 use engine::palette::Palette;
 
 pub const UI_PALETTE_BASE: usize = 216;
@@ -45,25 +46,69 @@ pub const STANDARD_UI_PALETTE: [[u8; 3]; 40] = [
     [63, 63, 63],
 ];
 
+// ---------------------------------------------------------------------------
+// RGBA UI color constants (migrated from palette-index legacy)
+// ---------------------------------------------------------------------------
+
+pub const FONT_DEFAULT: Rgba = Rgba::from_rgb6(63, 63, 63);
+pub const FONT_HEADER: Rgba = Rgba::from_rgb6(63, 57, 9);
+pub const FONT_GOLD: Rgba = FONT_HEADER;
+pub const FONT_GREET: Rgba = Rgba::from_rgb6(9, 57, 63);
+pub const FONT_NAME: Rgba = FONT_DEFAULT;
+pub const FONT_NEW: Rgba = FONT_HEADER;
+pub const FONT_BACK: Rgba = FONT_DEFAULT;
+pub const FONT_HELP: Rgba = Rgba::from_rgb6(44, 44, 44);
+pub const BG_ERASE: Rgba = Rgba::from_rgb6(5, 8, 20);
+pub const BG_LIST: Rgba = BG_ERASE;
+pub const BG_LEFT: Rgba = Rgba::from_rgb6(34, 13, 18);
+pub const BG_RIGHT: Rgba = Rgba::from_rgb6(20, 20, 20);
+pub const BG_ORDER: Rgba = BG_LEFT;
+
+// Bright variants for dither overlay (old palette index + 5).
+// Used in a later migration milestone — keep for now.
+#[allow(dead_code)]
+pub const BG_LEFT_BRIGHT: Rgba = Rgba::from_rgb6(23, 16, 43);
+#[allow(dead_code)]
+pub const BG_DITHER_BRIGHT: Rgba = Rgba::from_rgb6(26, 26, 26);
+pub const BG_RIGHT_BRIGHT: Rgba = Rgba::from_rgb6(43, 16, 23);
+
+// Additional fill/text colours from old palette indices
+pub const FILL_BORDER: Rgba = Rgba::from_rgb6(23, 16, 43); // 248
+pub const FILL_HIGHLIGHT: Rgba = Rgba::from_rgb6(52, 47, 0); // 251
+pub const FILL_TURQUOISE: Rgba = Rgba::from_rgb6(0, 47, 52); // 252
+pub const FILL_LINE: Rgba = Rgba::from_rgb6(5, 8, 22); // 9
+pub const FILL_DIM: Rgba = Rgba::from_rgb6(20, 20, 20); // 244/245
+pub const BLACK: Rgba = Rgba::rgb(0, 0, 0);
+
+/// Return the brightened overlay colour for a dither-eligible fill colour.
+/// Kept for a later migration milestone.
+#[must_use]
+#[allow(dead_code)]
+pub fn brighten_fill_color(color: Rgba) -> Rgba {
+    if color == BG_LEFT {
+        BG_LEFT_BRIGHT
+    } else if color == BG_RIGHT || color == BG_ORDER {
+        BG_RIGHT_BRIGHT
+    } else {
+        BG_DITHER_BRIGHT
+    }
+}
+
+/// True when `color` is a dither-eligible fill colour (old palette slots 243-245).
+/// Kept for a later migration milestone.
+#[must_use]
+#[allow(dead_code)]
+pub fn is_dither_fill_color(color: Rgba) -> bool {
+    color == BG_LEFT || color == BG_RIGHT || color == BG_ORDER
+}
+
+/// Fill palette slots 216..=255 with the standard UI palette colours.
+/// Bridge function — only used by the legacy palette mutation path.
 pub fn apply_standard_ui_palette(palette: &mut Palette) {
     for (i, &rgb) in STANDARD_UI_PALETTE.iter().enumerate() {
         palette.set(UI_PALETTE_BASE + i, rgb);
     }
 }
-
-pub const FONT_DEFAULT: u8 = 240;
-pub const FONT_HEADER: u8 = 246;
-pub const FONT_GOLD: u8 = 246;
-pub const FONT_GREET: u8 = 247;
-pub const FONT_NAME: u8 = 240;
-pub const FONT_NEW: u8 = 246;
-pub const FONT_BACK: u8 = 240;
-pub const FONT_HELP: u8 = 241;
-pub const BG_ERASE: u8 = 8;
-pub const BG_LIST: u8 = 8;
-pub const BG_LEFT: u8 = 243;
-pub const BG_RIGHT: u8 = 244;
-pub const BG_ORDER: u8 = 243;
 
 pub const SUIT_PALETTE_BASE: usize = 215;
 pub const SKI_PALETTE_INDEX: usize = 231;
@@ -98,7 +143,7 @@ const SKI_COLORS: [[u8; 3]; 4] = [[63, 63, 32], [60, 60, 60], [33, 60, 33], [63,
 const SUIT_FADE_DOWN: [f32; 4] = [1.0, 0.87, 0.75, 0.63];
 const SUIT_FADE_UP: [f32; 4] = [1.0, 1.50, 2.00, 2.50];
 
-fn suit_shade_rgba(col: usize) -> [[u8; 3]; 4] {
+pub fn suit_shade_rgba(col: usize) -> [[u8; 3]; 4] {
     let col = col.min(SUIT_COLORS.len() - 1);
     let suit = SUIT_COLORS[col];
     let fade = if suit[0] == 0 {
@@ -117,9 +162,23 @@ fn suit_shade_rgba(col: usize) -> [[u8; 3]; 4] {
     colors
 }
 
-fn ski_rgb(col: usize) -> [u8; 3] {
+pub fn ski_rgb(col: usize) -> [u8; 3] {
     let col = col.min(SKI_COLORS.len() - 1);
     SKI_COLORS[col]
+}
+
+/// Return an arbitrary shade (0..4) of a suit colour as an Rgba.
+#[must_use]
+pub fn suit_color_shade(col: usize, shade: usize) -> Rgba {
+    let rgb = suit_shade_rgba(col)[shade];
+    Rgba::from_rgb6(rgb[0], rgb[1], rgb[2])
+}
+
+/// Return the ski colour as an Rgba.
+#[must_use]
+pub fn ski_color(col: usize) -> Rgba {
+    let rgb = ski_rgb(col);
+    Rgba::from_rgb6(rgb[0], rgb[1], rgb[2])
 }
 
 pub fn apply_suit_palette_at(palette: &mut Palette, col: usize, target_base: usize) {

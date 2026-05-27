@@ -1,4 +1,5 @@
-use crate::bitmap::IndexedBitmap;
+use crate::bitmap::{IndexedBitmap, RgbaBitmap};
+use crate::color::Rgba;
 use crate::consts::{FONT_GLYPH_COUNT, HEIGHT, SHADOW_PIXEL, WIDTH};
 use crate::sprite::SpriteData;
 
@@ -170,6 +171,155 @@ impl Font {
 
         Some(IndexedBitmap {
             pixels,
+            x: bitmap_x,
+            y: bitmap_y,
+            width: bitmap_w,
+            height: bitmap_h,
+        })
+    }
+
+    /// Render text directly to RGBA pixels into `out`.
+    /// Returns an `RgbaBitmap` or `None` when no visible glyphs exist.
+    /// `color` is the text colour; `shadow` replaces `SHADOW_PIXEL`.
+    #[must_use]
+    pub fn render_string_rgba(
+        &self,
+        text: &str,
+        x: i32,
+        y: i32,
+        color: Rgba,
+        shadow: Rgba,
+        out: &mut Vec<u8>,
+    ) -> Option<RgbaBitmap> {
+        // First pass: compute bounding box of all glyphs
+        struct GlyphPos {
+            idx: usize,
+            screen_px: i32,
+            width: u16,
+            height: u16,
+            center_x: i8,
+            center_y: i8,
+        }
+
+        let mut min_x = i32::MAX;
+        let mut min_y = i32::MAX;
+        let mut max_x = i32::MIN;
+        let mut max_y = i32::MIN;
+        let mut px = x;
+        let mut defined = false;
+
+        let mut positions: Vec<GlyphPos> = Vec::new();
+
+        for ch in text.chars() {
+            match ch {
+                ' ' => px += 4,
+                '$' => px += 5,
+                _ => {
+                    if let Some(glyph_idx) = Self::char_to_index(ch) {
+                        if let Some(ref g) = self.glyphs[glyph_idx] {
+                            let left = px - i32::from(g.center_x);
+                            let top = y - i32::from(g.center_y);
+                            let right = left + i32::from(g.width);
+                            let bottom = top + i32::from(g.height);
+                            min_x = min_x.min(left);
+                            min_y = min_y.min(top);
+                            max_x = max_x.max(right);
+                            max_y = max_y.max(bottom);
+                            positions.push(GlyphPos {
+                                idx: glyph_idx,
+                                screen_px: px,
+                                width: g.width,
+                                height: g.height,
+                                center_x: g.center_x,
+                                center_y: g.center_y,
+                            });
+                            px += i32::from(g.width);
+                            defined = true;
+                        }
+                    }
+                }
+            }
+        }
+
+        if !defined {
+            return None;
+        }
+
+        // Clip bounding box to screen
+        let bitmap_x = min_x.max(0);
+        let bitmap_y = min_y.max(0);
+        let bitmap_w = (max_x.min(WIDTH as i32) - bitmap_x).max(0) as u32;
+        let bitmap_h = (max_y.min(HEIGHT as i32) - bitmap_y).max(0) as u32;
+
+        if bitmap_w == 0 || bitmap_h == 0 {
+            return None;
+        }
+
+        let total = bitmap_w as usize * bitmap_h as usize * 4;
+        out.clear();
+        out.reserve(total);
+        out.resize(total, 0);
+
+        let bitmap_w_i32 = bitmap_w as i32;
+        let bitmap_h_i32 = bitmap_h as i32;
+
+        // Write shadow colour bytes once
+        let sr = shadow.r;
+        let sg = shadow.g;
+        let sb = shadow.b;
+        let sa = shadow.a;
+        // Write text colour bytes once
+        let tr = color.r;
+        let tg = color.g;
+        let tb = color.b;
+        let ta = color.a;
+
+        // Second pass: render each glyph into the RGBA output
+        for gp in &positions {
+            if let Some(ref g) = self.glyphs[gp.idx] {
+                let start_x = gp.screen_px - i32::from(gp.center_x);
+                let start_y = y - i32::from(gp.center_y);
+                for yy in 0..i32::from(gp.height) {
+                    for xx in 0..i32::from(gp.width) {
+                        let src_idx = (yy * i32::from(gp.width) + xx) as usize;
+                        if src_idx >= g.data.len() {
+                            continue;
+                        }
+                        let glyph_pixel = g.data[src_idx];
+                        if glyph_pixel == 0 {
+                            continue;
+                        }
+                        let sx = start_x + xx;
+                        let sy = start_y + yy;
+                        // Clip to bitmap
+                        if sx < bitmap_x
+                            || sy < bitmap_y
+                            || sx >= bitmap_x + bitmap_w_i32
+                            || sy >= bitmap_y + bitmap_h_i32
+                        {
+                            continue;
+                        }
+                        let dx = (sx - bitmap_x) as usize;
+                        let dy = (sy - bitmap_y) as usize;
+                        let pixel_offset = (dy * bitmap_w as usize + dx) * 4;
+                        if glyph_pixel == SHADOW_PIXEL {
+                            out[pixel_offset] = sr;
+                            out[pixel_offset + 1] = sg;
+                            out[pixel_offset + 2] = sb;
+                            out[pixel_offset + 3] = sa;
+                        } else {
+                            out[pixel_offset] = tr;
+                            out[pixel_offset + 1] = tg;
+                            out[pixel_offset + 2] = tb;
+                            out[pixel_offset + 3] = ta;
+                        }
+                    }
+                }
+            }
+        }
+
+        Some(RgbaBitmap {
+            pixels: std::mem::take(out),
             x: bitmap_x,
             y: bitmap_y,
             width: bitmap_w,

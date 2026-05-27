@@ -1,29 +1,29 @@
-use crate::gfx::palette::{BG_LEFT, FONT_HELP};
+use crate::gfx::palette::{BG_LEFT, BG_RIGHT, BLACK, FILL_DIM, FONT_HELP};
 use crate::gfx::sprites;
 use engine::ui::Element;
 
 #[must_use]
 pub fn new_screen(style: u8) -> Vec<Element> {
-    let mut els = vec![Element::fillbox(0, 0, 320, 200, 0)];
+    let mut els = vec![Element::fillbox(0, 0, 320, 200, BLACK)];
 
     match style {
         1 => {
-            els.push(Element::fillbox(0, 0, 320, 19, 245));
-            els.push(Element::fillbox(0, 20, 320, 180, 243));
+            els.push(Element::fillbox(0, 0, 320, 19, FILL_DIM));
+            els.push(Element::fillbox(0, 20, 320, 180, BG_LEFT));
         }
         2 => {
-            els.push(Element::fillbox(0, 0, 11, 200, 245));
+            els.push(Element::fillbox(0, 0, 11, 200, FILL_DIM));
             els.push(Element::fillbox(12, 0, 296, 200, BG_LEFT));
-            els.push(Element::fillbox(309, 0, 11, 200, 245));
+            els.push(Element::fillbox(309, 0, 11, 200, FILL_DIM));
         }
         4 => {
-            els.push(Element::fillbox(0, 0, 320, 19, 245));
-            els.push(Element::fillbox(0, 20, 320, 99, 243));
-            els.push(Element::fillbox(0, 120, 320, 19, 245));
-            els.push(Element::fillbox(0, 140, 320, 60, 243));
+            els.push(Element::fillbox(0, 0, 320, 19, FILL_DIM));
+            els.push(Element::fillbox(0, 20, 320, 99, BG_LEFT));
+            els.push(Element::fillbox(0, 120, 320, 19, FILL_DIM));
+            els.push(Element::fillbox(0, 140, 320, 60, BG_LEFT));
         }
         5 => {
-            els.push(Element::fillbox(0, 0, 320, 200, 243));
+            els.push(Element::fillbox(0, 0, 320, 200, BG_LEFT));
         }
         _ => {}
     }
@@ -47,8 +47,8 @@ pub fn new_screen(style: u8) -> Vec<Element> {
 #[must_use]
 pub fn modal_background(x: i32, y: i32, w: i32, h: i32) -> Vec<Element> {
     vec![
-        Element::fillbox(x, y, w, h, 242),
-        Element::fillbox(x + 1, y + 1, w - 2, h - 2, 244),
+        Element::fillbox(x, y, w, h, BLACK),
+        Element::fillbox(x + 1, y + 1, w - 2, h - 2, BG_RIGHT),
         Element::fill_area(63),
     ]
 }

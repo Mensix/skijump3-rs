@@ -2,10 +2,11 @@ use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 
 use crate::atlas::Atlas;
-use crate::consts::{FILL_RANGE_MAX, PATTERN_SPRITE, SHADOW_PIXEL};
+use crate::color::Rgba;
+use crate::consts::PATTERN_SPRITE;
 use crate::sprite::{SpriteColorRemap, SpriteData};
 use crate::ui::{Element, Font};
-use crate::video::indexed::{indexed_pixels_to_rgba, remapped_sprite_to_rgba};
+use crate::video::indexed::remapped_sprite_to_rgba;
 use crate::video::{Renderer, TextureId};
 
 struct DitherRect {
@@ -13,9 +14,23 @@ struct DitherRect {
     y: i32,
     w: i32,
     h: i32,
-    color: u8,
+    color: Rgba,
     is_box: bool,
 }
+
+// Dither-eligible fill colours (precomputed from STANDARD_UI_PALETTE entries
+// for old palette indices 243, 244, 245).
+const DITHER_FILL_COLORS: [Rgba; 3] = [
+    Rgba::from_rgb6(34, 13, 18),
+    Rgba::from_rgb6(20, 20, 20),
+    Rgba::from_rgb6(20, 20, 20),
+];
+
+fn is_fill_area_dither_color(color: Rgba) -> bool {
+    DITHER_FILL_COLORS.contains(&color)
+}
+
+const TEXT_SHADOW: Rgba = Rgba::rgb(0, 0, 0);
 
 // ---------------------------------------------------------------------------
 // Remapped sprite RGBA cache
@@ -45,10 +60,9 @@ struct TextCacheKey {
     text: String,
     x: i32,
     y: i32,
-    color: u8,
+    color: Rgba,
     right: bool,
     center: bool,
-    palette_revision: u64,
 }
 
 struct TextCacheEntry {
@@ -156,8 +170,7 @@ impl ElementWorker<'_> {
     ) -> Result<(), String> {
         match element {
             Element::Fillbox { x, y, w, h, color } if *remaining_fill_areas > 0 => {
-                self.renderer
-                    .draw_indexed_fill_rect(*x, *y, *w, *h, *color)?;
+                self.renderer.draw_fill_rect(*x, *y, *w, *h, *color)?;
                 if is_fill_area_dither_color(*color) {
                     self.pending_dither_rects.push(DitherRect {
                         x: *x,
@@ -170,7 +183,7 @@ impl ElementWorker<'_> {
                 }
             }
             Element::Box { x, y, w, h, color } if *remaining_fill_areas > 0 => {
-                self.renderer.draw_indexed_box(*x, *y, *w, *h, *color)?;
+                self.renderer.draw_box(*x, *y, *w, *h, *color)?;
                 if is_fill_area_dither_color(*color) {
                     self.pending_dither_rects.push(DitherRect {
                         x: *x,
@@ -183,11 +196,10 @@ impl ElementWorker<'_> {
                 }
             }
             Element::Fillbox { x, y, w, h, color } => {
-                self.renderer
-                    .draw_indexed_fill_rect(*x, *y, *w, *h, *color)?;
+                self.renderer.draw_fill_rect(*x, *y, *w, *h, *color)?;
             }
             Element::Box { x, y, w, h, color } => {
-                self.renderer.draw_indexed_box(*x, *y, *w, *h, *color)?;
+                self.renderer.draw_box(*x, *y, *w, *h, *color)?;
             }
             Element::FillArea { thing } => {
                 if let Some(pattern) = self.sprites.get(PATTERN_SPRITE) {
@@ -239,7 +251,6 @@ impl ElementWorker<'_> {
                     color: *color,
                     right: *right,
                     center: *center,
-                    palette_revision: self.renderer.palette_revision(),
                 };
 
                 match self.text_cache.entry(key) {
@@ -252,17 +263,17 @@ impl ElementWorker<'_> {
                         )?;
                     }
                     Entry::Vacant(v) => {
-                        if let Some(bitmap) = self.font.render_string_bitmap(text, fx, *y, *color) {
-                            self.text_rgba_scratch.clear();
-                            indexed_pixels_to_rgba(
-                                &bitmap.pixels,
-                                self.renderer.palette(),
-                                self.text_rgba_scratch,
-                            );
-
-                            if self.text_rgba_scratch.iter().any(|&b| b != 0) {
+                        if let Some(bitmap) = self.font.render_string_rgba(
+                            text,
+                            fx,
+                            *y,
+                            *color,
+                            TEXT_SHADOW,
+                            self.text_rgba_scratch,
+                        ) {
+                            if bitmap.pixels.iter().any(|&b| b != 0) {
                                 let tex_id = self.renderer.create_rgba_texture(
-                                    self.text_rgba_scratch,
+                                    &bitmap.pixels,
                                     bitmap.width,
                                     bitmap.height,
                                 )?;
@@ -410,10 +421,6 @@ fn count_fill_areas_in_element(element: &Element) -> usize {
     }
 }
 
-fn is_fill_area_dither_color(color: u8) -> bool {
-    color > SHADOW_PIXEL && color <= FILL_RANGE_MAX
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -426,8 +433,8 @@ mod tests {
     #[test]
     fn count_fill_areas_no_fillareas() {
         let els = vec![
-            Element::fillbox(0, 0, 10, 10, 1),
-            Element::text("hi", 0, 0, 2, false),
+            Element::fillbox(0, 0, 10, 10, Rgba::rgb(1, 1, 1)),
+            Element::text("hi", 0, 0, Rgba::rgb(2, 2, 2), false),
         ];
         assert_eq!(count_fill_areas(&els), 0);
     }
@@ -445,7 +452,7 @@ mod tests {
                 Element::fill_area(63),
                 Element::container(vec![
                     Element::fill_area(63),
-                    Element::fillbox(0, 0, 10, 10, 1),
+                    Element::fillbox(0, 0, 10, 10, Rgba::rgb(1, 1, 1)),
                 ]),
             ]),
             Element::fill_area(64),
@@ -456,8 +463,8 @@ mod tests {
     #[test]
     fn count_fill_areas_mixed() {
         let els = vec![
-            Element::fillbox(0, 0, 10, 10, 1),
-            Element::text("test", 0, 0, 2, false),
+            Element::fillbox(0, 0, 10, 10, Rgba::rgb(1, 1, 1)),
+            Element::text("test", 0, 0, Rgba::rgb(2, 2, 2), false),
             Element::fill_area(63),
             Element::sprite(0, 0, 0),
         ];
@@ -471,14 +478,14 @@ mod tests {
             y: 20,
             w: 30,
             h: 40,
-            color: 243,
+            color: Rgba::rgb(137, 52, 72),
             is_box: false,
         };
         assert_eq!(dr.x, 10);
         assert_eq!(dr.y, 20);
         assert_eq!(dr.w, 30);
         assert_eq!(dr.h, 40);
-        assert_eq!(dr.color, 243);
+        assert_eq!(dr.color, Rgba::rgb(137, 52, 72));
         assert!(!dr.is_box);
     }
 
@@ -489,35 +496,30 @@ mod tests {
             y: 0,
             w: 10,
             h: 10,
-            color: 244,
+            color: Rgba::rgb(80, 80, 80),
             is_box: true,
         };
         assert!(dr.is_box);
-        assert_eq!(dr.color, 244);
+        assert_eq!(dr.color, Rgba::rgb(80, 80, 80));
     }
 
     #[test]
     fn is_fill_area_dither_color_eligible() {
-        assert!(is_fill_area_dither_color(243));
-        assert!(is_fill_area_dither_color(244));
-        assert!(is_fill_area_dither_color(245));
+        assert!(is_fill_area_dither_color(DITHER_FILL_COLORS[0]));
+        assert!(is_fill_area_dither_color(DITHER_FILL_COLORS[1]));
+        assert!(is_fill_area_dither_color(DITHER_FILL_COLORS[2]));
     }
 
     #[test]
     fn is_fill_area_dither_color_ineligible() {
-        assert!(!is_fill_area_dither_color(0));
-        assert!(!is_fill_area_dither_color(100));
-        assert!(!is_fill_area_dither_color(SHADOW_PIXEL));
-        assert!(!is_fill_area_dither_color(FILL_RANGE_MAX + 1));
-        assert!(!is_fill_area_dither_color(255));
+        assert!(!is_fill_area_dither_color(Rgba::rgb(0, 0, 0)));
+        assert!(!is_fill_area_dither_color(Rgba::rgb(100, 100, 100)));
+        assert!(!is_fill_area_dither_color(Rgba::rgb(255, 255, 255)));
     }
 
     #[test]
-    fn is_fill_area_dither_color_boundaries() {
-        assert!(is_fill_area_dither_color(SHADOW_PIXEL + 1));
-        assert!(!is_fill_area_dither_color(SHADOW_PIXEL));
-        assert!(is_fill_area_dither_color(FILL_RANGE_MAX));
-        assert!(!is_fill_area_dither_color(FILL_RANGE_MAX + 1));
+    fn is_fill_area_dither_color_black_not_eligible() {
+        assert!(!is_fill_area_dither_color(Rgba::rgb(0, 0, 0)));
     }
 
     #[test]

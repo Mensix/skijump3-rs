@@ -2,7 +2,9 @@ use crate::components::layout::{self, MainLayout};
 use crate::components::menu::{Menu, MenuItem};
 use crate::components::page_nav::cycle_index;
 use crate::files::FileStore;
-use crate::gfx::palette::{BG_ERASE, FONT_DEFAULT, FONT_GOLD, FONT_HEADER, FONT_HELP};
+use crate::gfx::palette::{
+    BG_ERASE, BG_LEFT, FILL_BORDER, FONT_DEFAULT, FONT_GOLD, FONT_HEADER, FONT_HELP,
+};
 use crate::jump::replay::ReplayTrace;
 use crate::route::RouteTarget;
 use crate::store::{Resources, ResourcesRef, StoreRef};
@@ -128,8 +130,8 @@ fn replay_panel_elements(
     let mut els = Vec::new();
 
     // Pascal clearscreen: right panel background with dither + labels
-    els.push(Element::fillbox(145, 50, 174, 149, 243));
-    els.push(Element::fillbox(128, 70, 17, 129, 243));
+    els.push(Element::fillbox(145, 50, 174, 149, BG_LEFT));
+    els.push(Element::fillbox(128, 70, 17, 129, BG_LEFT));
     els.push(Element::fill_area(64));
     els.push(Element::text(
         format!("{}:", langbase.lstr(25)),
@@ -181,8 +183,8 @@ fn replay_panel_elements(
         FONT_HELP,
         false,
     ));
-    els.push(Element::fillbox(163, 78, 95, 21, 248));
-    els.push(Element::fillbox(164, 79, 93, 19, 243));
+    els.push(Element::fillbox(163, 78, 95, 21, FILL_BORDER));
+    els.push(Element::fillbox(164, 79, 93, 19, BG_LEFT));
     els.push(Element::text(&entry.filename, 170, 85, FONT_GOLD, false));
 
     if let Some(trace) = &entry.trace {

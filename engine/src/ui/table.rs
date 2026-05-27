@@ -1,3 +1,4 @@
+use crate::color::Rgba;
 use crate::ui::{Component, Element, Event};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -11,12 +12,12 @@ pub struct Cell {
     text: String,
     x: i32,
     y: i32,
-    color: u8,
+    color: Rgba,
     align: Align,
 }
 
 impl Cell {
-    pub fn left(text: impl Into<String>, x: i32, y: i32, color: u8) -> Self {
+    pub fn left(text: impl Into<String>, x: i32, y: i32, color: Rgba) -> Self {
         Self {
             text: text.into(),
             x,
@@ -26,7 +27,7 @@ impl Cell {
         }
     }
 
-    pub fn right(text: impl Into<String>, x: i32, y: i32, color: u8) -> Self {
+    pub fn right(text: impl Into<String>, x: i32, y: i32, color: Rgba) -> Self {
         Self {
             text: text.into(),
             x,

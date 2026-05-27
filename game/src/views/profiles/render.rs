@@ -1,7 +1,8 @@
 use engine::ui::Element;
 
 use crate::gfx::palette::{
-    BG_LEFT, BG_ORDER, BG_RIGHT, FONT_BACK, FONT_DEFAULT, FONT_HELP, FONT_NAME, FONT_NEW,
+    ski_color, suit_color_shade, BG_LEFT, BG_ORDER, BG_RIGHT, BLACK, FONT_BACK, FONT_DEFAULT,
+    FONT_HELP, FONT_NAME, FONT_NEW,
 };
 use crate::text::layout::lstr;
 use crate::views::profiles::format::format_profile_value;
@@ -9,7 +10,7 @@ use crate::views::profiles::format::format_profile_value;
 use super::list::{Mode, ProfilesView};
 
 pub(super) fn draw_screen_base(view: &ProfilesView, els: &mut Vec<Element>) {
-    els.push(Element::fillbox(0, 0, 320, 200, 0));
+    els.push(Element::fillbox(0, 0, 320, 200, BLACK));
     els.push(Element::fillbox(0, 0, 159, 200, BG_LEFT));
     els.push(Element::fillbox(160, 0, 160, 200, BG_RIGHT));
     els.push(Element::fill_area(63));
@@ -128,7 +129,12 @@ pub(super) fn draw_empty_edit(els: &mut Vec<Element>) {
     els.push(Element::fill_area(63));
 }
 
-pub(super) fn draw_suit_ski(view: &ProfilesView, els: &mut Vec<Element>) {
+pub(super) fn draw_suit_ski(
+    view: &ProfilesView,
+    els: &mut Vec<Element>,
+    suit_idx: usize,
+    ski_idx: usize,
+) {
     let suit_label = profile_label(view, 3);
     let ski_label = profile_label(view, 4);
     let suit_w = view.resources.font.string_width(&suit_label) as i32;
@@ -136,9 +142,27 @@ pub(super) fn draw_suit_ski(view: &ProfilesView, els: &mut Vec<Element>) {
     let x = 178 + suit_w.max(ski_w);
     let xl = (x + 18).min(318);
 
-    els.push(Element::fillbox(x, 28, xl - x + 1, 5, 216));
-    els.push(Element::box_(x, 28, xl - x + 1, 5, 218));
-    els.push(Element::fillbox(x + 1, 37, xl - x - 1, 3, 231));
+    els.push(Element::fillbox(
+        x,
+        28,
+        xl - x + 1,
+        5,
+        suit_color_shade(suit_idx, 1),
+    ));
+    els.push(Element::box_(
+        x,
+        28,
+        xl - x + 1,
+        5,
+        suit_color_shade(suit_idx, 3),
+    ));
+    els.push(Element::fillbox(
+        x + 1,
+        37,
+        xl - x - 1,
+        3,
+        ski_color(ski_idx),
+    ));
 }
 
 pub(super) fn profile_label(view: &ProfilesView, field: usize) -> String {
@@ -188,7 +212,7 @@ pub(super) fn draw_profile(
         els.push(Element::fillbox(175, 85, 131, 1, FONT_HELP));
     }
 
-    draw_suit_ski(view, els);
+    draw_suit_ski(view, els, profile.suit_color, profile.ski_color);
 
     for field in 1..=18 {
         if !edit_phase && field > 7 && field < 10 {

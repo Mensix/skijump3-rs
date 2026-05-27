@@ -1,4 +1,7 @@
+use engine::color::Rgba;
 use engine::ui::{Blinker, Component, Element, Event, Font, Key, TextEditState};
+
+use crate::gfx::palette::FONT_DEFAULT;
 
 #[derive(Debug)]
 pub enum TextInputAction {
@@ -11,8 +14,8 @@ pub struct TextInput {
     x: i32,
     y: i32,
     max_width: i32,
-    bg: u8,
-    fg: u8,
+    bg: Rgba,
+    fg: Rgba,
     font: Font,
     old: String,
     editor: TextEditState,
@@ -21,7 +24,15 @@ pub struct TextInput {
 
 impl TextInput {
     #[must_use]
-    pub fn new(x: i32, y: i32, max_width: i32, old: String, bg: u8, fg: u8, font: Font) -> Self {
+    pub fn new(
+        x: i32,
+        y: i32,
+        max_width: i32,
+        old: String,
+        bg: Rgba,
+        fg: Rgba,
+        font: Font,
+    ) -> Self {
         Self {
             x,
             y,
@@ -55,7 +66,7 @@ impl Component for TextInput {
             Element::text(buf, self.x, self.y, self.fg, false),
         ];
         if self.blinker.visible(11, 10) {
-            els.push(Element::fillbox(cx, self.y + 6, 5, 1, 240));
+            els.push(Element::fillbox(cx, self.y + 6, 5, 1, FONT_DEFAULT));
         }
         els
     }

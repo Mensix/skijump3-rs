@@ -1,6 +1,6 @@
 use crate::components::menu::{Menu, MenuItem};
 use crate::components::screen;
-use crate::gfx::palette::{FONT_DEFAULT, FONT_HEADER, FONT_HELP};
+use crate::gfx::palette::{BG_LEFT, FILL_BORDER, FILL_DIM, FONT_DEFAULT, FONT_HEADER, FONT_HELP};
 use crate::route::RouteTarget;
 use crate::save::config::Config;
 use crate::save::SaveManager;
@@ -125,8 +125,8 @@ impl SetupView {
 
     fn rect_bg(x: i32, y: i32, w: i32, h: i32) -> Vec<Element> {
         vec![
-            Element::fillbox(x, y, w, h, 248),
-            Element::fillbox(x + 1, y + 1, w - 2, h - 2, 243),
+            Element::fillbox(x, y, w, h, FILL_BORDER),
+            Element::fillbox(x + 1, y + 1, w - 2, h - 2, BG_LEFT),
         ]
     }
 
@@ -561,7 +561,7 @@ impl View<RouteTarget> for SetupView {
                 } else {
                     format!("#{val}")
                 };
-                els.push(Element::fillbox(85, 105, 150, 20, 245));
+                els.push(Element::fillbox(85, 105, 150, 20, FILL_DIM));
                 els.push(Element::text(display, 95, 112, FONT_HEADER, false));
             }
             Some(SetupModal::ConfirmReset(kind)) => {
@@ -590,8 +590,8 @@ impl View<RouteTarget> for SetupView {
             Some(SetupModal::LanguagePicker(sel)) => {
                 let langs = &self.langbase().languages;
                 // Pascal: non-full WelcomeScreen — fillbox(74,41,246,186,248)
-                els.push(Element::fillbox(74, 41, 173, 146, 248));
-                els.push(Element::fillbox(75, 42, 171, 144, 243));
+                els.push(Element::fillbox(74, 41, 173, 146, FILL_BORDER));
+                els.push(Element::fillbox(75, 42, 171, 144, BG_LEFT));
                 // Title: writefont(100,50,'PLEASE CHOOSE A LANGUAGE:')
                 els.push(Element::text(
                     "PLEASE CHOOSE A LANGUAGE:",
