@@ -127,6 +127,7 @@ impl SpriteData {
         }
 
         let mut pixels = vec![0u8; (vis_w * vis_h) as usize];
+        let mut has_opaque_pixel = false;
 
         for src_y in 0..self.height as i32 {
             let screen_y = start_y + src_y;
@@ -151,10 +152,15 @@ impl SpriteData {
                 } else {
                     pixel
                 };
+                has_opaque_pixel |= final_pixel != 0;
                 let dx = (screen_x - vis_left) as u32;
                 let dy = (screen_y - vis_top) as u32;
                 pixels[(dy * vis_w + dx) as usize] = final_pixel;
             }
+        }
+
+        if !has_opaque_pixel {
+            return None;
         }
 
         Some(SpriteBitmap {
@@ -435,10 +441,7 @@ mod tests {
     }
 
     #[test]
-    fn render_bitmap_all_transparent_returns_some_with_zeros() {
-        // render_bitmap always returns Some when there are visible pixels,
-        // even if they're all transparent (pixel == 0 is skipped, so the
-        // bitmap is all zeros, but the bounding box still exists)
+    fn render_bitmap_all_transparent_returns_none() {
         let sprite = SpriteData {
             data: vec![0, 0, 0, 0],
             width: 2,
@@ -446,10 +449,7 @@ mod tests {
             center_x: 0,
             center_y: 0,
         };
-        let bm = sprite.render_bitmap(0, 0).unwrap();
-        assert_eq!(bm.width, 2);
-        assert_eq!(bm.height, 2);
-        assert!(bm.pixels.iter().all(|&p| p == 0));
+        assert!(sprite.render_bitmap(0, 0).is_none());
     }
 
     #[test]
