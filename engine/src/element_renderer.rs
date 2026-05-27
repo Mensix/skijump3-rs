@@ -1,50 +1,76 @@
 use crate::atlas::Atlas;
 use crate::consts::{FILL_RANGE_MAX, PATTERN_SPRITE, SHADOW_PIXEL};
 use crate::sprite::SpriteData;
-use crate::ui::{
-    render_image_bitmap, render_image_region_bitmap, Element, Font,
-};
+use crate::ui::{render_image_bitmap, render_image_region_bitmap, Element, Font};
 use crate::video::{Renderer, TextureId};
 
-pub(crate) struct DitherRect {
-    pub x: i32,
-    pub y: i32,
-    pub w: i32,
-    pub h: i32,
-    pub color: u8,
-    pub is_box: bool,
+struct DitherRect {
+    x: i32,
+    y: i32,
+    w: i32,
+    h: i32,
+    color: u8,
+    is_box: bool,
 }
 
-pub struct ElementRenderer<'a> {
-    renderer: &'a mut Renderer,
-    font: &'a Font,
-    sprites: &'a [SpriteData],
-    sprite_atlas: Option<&'a Atlas>,
+/// Persistent context for element rendering.  Owns reusable per-frame
+/// scratch state so temporary allocations do not escape each frame.
+pub struct ElementRenderContext {
     pending_dither_rects: Vec<DitherRect>,
 }
 
-impl<'a> ElementRenderer<'a> {
-    pub fn new(
-        renderer: &'a mut Renderer,
-        font: &'a Font,
-        sprites: &'a [SpriteData],
-        sprite_atlas: Option<&'a Atlas>,
-    ) -> Self {
+impl Default for ElementRenderContext {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl ElementRenderContext {
+    pub fn new() -> Self {
         Self {
-            renderer,
-            font,
-            sprites,
-            sprite_atlas,
             pending_dither_rects: Vec::new(),
         }
     }
 
     pub fn render_frame(
         &mut self,
+        renderer: &mut Renderer,
+        font: &Font,
+        sprites: &[SpriteData],
+        sprite_atlas: Option<&Atlas>,
         elements: &[Element],
         background: Option<TextureId>,
     ) -> Result<(), String> {
         self.pending_dither_rects.clear();
+        let mut ew = ElementWorker {
+            renderer,
+            font,
+            sprites,
+            sprite_atlas,
+            pending_dither_rects: &mut self.pending_dither_rects,
+        };
+        ew.render_frame(elements, background)
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Internal per-frame worker — borrows everything from the context.
+// ---------------------------------------------------------------------------
+
+struct ElementWorker<'a> {
+    renderer: &'a mut Renderer,
+    font: &'a Font,
+    sprites: &'a [SpriteData],
+    sprite_atlas: Option<&'a Atlas>,
+    pending_dither_rects: &'a mut Vec<DitherRect>,
+}
+
+impl<'a> ElementWorker<'a> {
+    fn render_frame(
+        &mut self,
+        elements: &[Element],
+        background: Option<TextureId>,
+    ) -> Result<(), String> {
         self.renderer.begin_frame();
         if let Some(bg) = background {
             self.renderer.draw_texture(bg, None, None)?;
@@ -102,7 +128,7 @@ impl<'a> ElementRenderer<'a> {
             }
             Element::FillArea { thing } => {
                 if let Some(pattern) = self.sprites.get(PATTERN_SPRITE) {
-                    for dr in &self.pending_dither_rects {
+                    for dr in self.pending_dither_rects.iter() {
                         self.renderer.dither_overlay_rect(
                             dr.x,
                             dr.y,
@@ -284,7 +310,12 @@ mod tests {
     #[test]
     fn dither_rect_tracks_eligible_rects_in_pending() {
         let dr = DitherRect {
-            x: 10, y: 20, w: 30, h: 40, color: 243, is_box: false,
+            x: 10,
+            y: 20,
+            w: 30,
+            h: 40,
+            color: 243,
+            is_box: false,
         };
         assert_eq!(dr.x, 10);
         assert_eq!(dr.y, 20);
@@ -297,7 +328,12 @@ mod tests {
     #[test]
     fn dither_rect_box_default_is_box() {
         let dr = DitherRect {
-            x: 0, y: 0, w: 10, h: 10, color: 244, is_box: true,
+            x: 0,
+            y: 0,
+            w: 10,
+            h: 10,
+            color: 244,
+            is_box: true,
         };
         assert!(dr.is_box);
         assert_eq!(dr.color, 244);
@@ -325,5 +361,17 @@ mod tests {
         assert!(!is_fill_area_dither_color(SHADOW_PIXEL));
         assert!(is_fill_area_dither_color(FILL_RANGE_MAX));
         assert!(!is_fill_area_dither_color(FILL_RANGE_MAX + 1));
+    }
+
+    #[test]
+    fn render_context_default_constructs() {
+        let ctx = ElementRenderContext::default();
+        assert!(ctx.pending_dither_rects.is_empty());
+    }
+
+    #[test]
+    fn render_context_new_constructs() {
+        let ctx = ElementRenderContext::new();
+        assert!(ctx.pending_dither_rects.is_empty());
     }
 }

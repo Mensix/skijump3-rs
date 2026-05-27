@@ -11,7 +11,7 @@ use crate::route::RouteTarget;
 use crate::save::{SaveManager, SaveRef};
 use crate::store::{Resources, ResourcesRef, Store, StoreRef};
 use engine::atlas::Atlas;
-use engine::element_renderer::ElementRenderer;
+use engine::element_renderer::ElementRenderContext;
 use engine::input::Input;
 use engine::palette::Palette;
 use engine::sprite::SpriteData;
@@ -35,6 +35,7 @@ pub struct Game {
     sprite_atlas: Option<Atlas>,
     base_palette: Palette,
     main_background: TextureId,
+    element_render_context: ElementRenderContext,
 }
 
 impl Game {
@@ -83,7 +84,9 @@ impl Game {
         let router = create_router(resources, store, start_route, save_manager);
 
         let sprite_atlas = match crate::content::atlas::load_sprite_atlas(
-            &files, &mut renderer, "sprites/original_atlas.toml",
+            &files,
+            &mut renderer,
+            "sprites/original_atlas.toml",
         ) {
             Ok(a) => Some(a),
             Err(e) => {
@@ -102,6 +105,7 @@ impl Game {
             sprite_atlas,
             base_palette,
             main_background,
+            element_render_context: ElementRenderContext::new(),
         })
     }
 
@@ -172,13 +176,14 @@ impl Game {
             BackgroundMode::NoneBlack => None,
         };
 
-        ElementRenderer::new(
+        self.element_render_context.render_frame(
             &mut self.renderer,
             &self.font,
             &self.sprites,
             self.sprite_atlas.as_ref(),
-        )
-        .render_frame(&elements, background)?;
+            &elements,
+            background,
+        )?;
 
         self.renderer.wait_frame();
         Ok(())
