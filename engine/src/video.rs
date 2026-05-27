@@ -289,6 +289,53 @@ impl Renderer {
         Ok(())
     }
 
+    /// Convert a region of indexed pixels directly to RGBA and draw via the
+    /// reusable scratch texture.  Clips to screen bounds.  Source indices
+    /// outside the source rect or past the source buffer produce transparent
+    /// pixels.  Index `0` is also transparent.
+    pub fn draw_indexed_region_pixels(
+        &mut self,
+        pixels: &[u8],
+        src_w: u32,
+        src_h: u32,
+        src_x: i32,
+        src_y: i32,
+        dst_x: i32,
+        dst_y: i32,
+        w: u32,
+        h: u32,
+    ) -> Result<(), String> {
+        self.scratch_rgba.clear();
+        let Some((vis_left, vis_top, vis_w, vis_h)) = indexed::indexed_region_to_rgba(
+            pixels,
+            src_w,
+            src_h,
+            src_x,
+            src_y,
+            dst_x,
+            dst_y,
+            w,
+            h,
+            &self.palette,
+            &mut self.scratch_rgba,
+        ) else {
+            return Ok(());
+        };
+        self.scratch_texture
+            .update(
+                Some(Rect::new(0, 0, vis_w, vis_h)),
+                &self.scratch_rgba,
+                (vis_w * 4) as usize,
+            )
+            .map_err(|e: sdl2::render::UpdateTextureError| e.to_string())?;
+        self.canvas.copy(
+            &self.scratch_texture,
+            Some(Rect::new(0, 0, vis_w, vis_h)),
+            Rect::new(vis_left, vis_top, vis_w, vis_h),
+        )?;
+        Ok(())
+    }
+
     /// Draw a region from an RGBA atlas texture at (`x`, `y`) with center
     /// offset applied.  Clipping is handled by SDL2.
     pub fn draw_atlas_region(

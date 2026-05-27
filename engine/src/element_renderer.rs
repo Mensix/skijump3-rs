@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use crate::atlas::Atlas;
 use crate::consts::{FILL_RANGE_MAX, PATTERN_SPRITE, SHADOW_PIXEL};
 use crate::sprite::{SpriteColorRemap, SpriteData};
-use crate::ui::{render_image_bitmap, render_image_region_bitmap, Element, Font};
+use crate::ui::{Element, Font};
 use crate::video::{Renderer, TextureId};
 
 struct DitherRect {
@@ -375,26 +375,21 @@ impl<'a> ElementWorker<'a> {
                 }
             }
             Element::Image(pixels, w, h) => {
-                if let Some(bitmap) = render_image_bitmap(pixels, *w, *h) {
-                    self.renderer.draw_indexed_overlay_pixels(
-                        &bitmap.pixels,
-                        bitmap.width,
-                        bitmap.height,
-                        bitmap.x,
-                        bitmap.y,
-                    )?;
-                }
+                self.renderer
+                    .draw_indexed_region_pixels(pixels, *w, *h, 0, 0, 0, 0, *w, *h)?;
             }
             Element::ImageRegion(region) => {
-                if let Some(bitmap) = render_image_region_bitmap(region) {
-                    self.renderer.draw_indexed_overlay_pixels(
-                        &bitmap.pixels,
-                        bitmap.width,
-                        bitmap.height,
-                        bitmap.x,
-                        bitmap.y,
-                    )?;
-                }
+                self.renderer.draw_indexed_region_pixels(
+                    &region.pixels,
+                    region.src_w,
+                    region.src_h,
+                    region.src_x,
+                    region.src_y,
+                    region.dst_x,
+                    region.dst_y,
+                    region.w,
+                    region.h,
+                )?;
             }
         }
         Ok(())
