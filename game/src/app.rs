@@ -87,12 +87,15 @@ impl Game {
             .set_wind_place(save_manager.config.borrow().windplace as u8);
         let router = create_router(resources, store, start_route, save_manager);
 
-        let sprite_atlas = crate::content::atlas::load_sprite_atlas(
-            &files,
-            &mut renderer,
-            "sprites/original_atlas.toml",
-        )
-        .ok();
+        let sprite_atlas = match crate::content::atlas::load_sprite_atlas(
+            &files, &mut renderer, "sprites/original_atlas.toml",
+        ) {
+            Ok(a) => Some(a),
+            Err(e) => {
+                eprintln!("Warning: failed to load sprite atlas: {e}");
+                None
+            }
+        };
 
         Ok(Self {
             sdl,
@@ -293,14 +296,15 @@ impl Game {
                 }
             }
             Element::Sprite(idx, x, y) => {
-                let drew_from_atlas = self.sprite_atlas.as_ref().is_some_and(|atlas| {
-                    atlas.region(*idx as usize).is_some_and(|region| {
+                let mut drew = false;
+                if let Some(ref atlas) = self.sprite_atlas {
+                    if let Some(region) = atlas.region(*idx as usize) {
                         self.renderer
-                            .draw_atlas_region(atlas.texture_id, region, *x, *y)
-                            .is_ok()
-                    })
-                });
-                if !drew_from_atlas {
+                            .draw_atlas_region(atlas.texture_id, region, *x, *y)?;
+                        drew = true;
+                    }
+                }
+                if !drew {
                     if let Some(sprite) = self.sprites.get(*idx as usize) {
                         if let Some(bitmap) = sprite.render_bitmap(*x, *y) {
                             self.renderer.draw_indexed_overlay_pixels(

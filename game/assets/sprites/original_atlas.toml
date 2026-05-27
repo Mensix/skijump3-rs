@@ -1,5 +1,5 @@
 format_version = 2
-image = "sprites/original_atlas.png"
+image = "original_atlas.png"
 
 [[sprites]]
 index = 0

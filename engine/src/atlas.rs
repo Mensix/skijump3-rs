@@ -27,4 +27,8 @@ impl Atlas {
     pub fn len(&self) -> usize {
         self.regions.len()
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.regions.is_empty()
+    }
 }
