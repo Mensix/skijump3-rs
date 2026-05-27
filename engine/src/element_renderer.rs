@@ -35,12 +35,37 @@ struct RemappedSpriteCacheEntry {
     height: u16,
 }
 
+// ---------------------------------------------------------------------------
+// Text RGBA cache
+// ---------------------------------------------------------------------------
+
+#[derive(Clone, PartialEq, Eq, Hash)]
+struct TextCacheKey {
+    text: String,
+    x: i32,
+    y: i32,
+    color: u8,
+    right: bool,
+    center: bool,
+    palette_revision: u64,
+}
+
+struct TextCacheEntry {
+    texture_id: TextureId,
+    x: i32,
+    y: i32,
+    width: u32,
+    height: u32,
+}
+
 /// Persistent context for element rendering.  Owns reusable per-frame
 /// scratch state so temporary allocations do not escape each frame.
 pub struct ElementRenderContext {
     pending_dither_rects: Vec<DitherRect>,
     remapped_sprite_cache: HashMap<RemappedSpriteCacheKey, RemappedSpriteCacheEntry>,
     remapped_rgba_scratch: Vec<u8>,
+    text_cache: HashMap<TextCacheKey, TextCacheEntry>,
+    text_rgba_scratch: Vec<u8>,
 }
 
 impl Default for ElementRenderContext {
@@ -55,6 +80,8 @@ impl ElementRenderContext {
             pending_dither_rects: Vec::new(),
             remapped_sprite_cache: HashMap::new(),
             remapped_rgba_scratch: Vec::new(),
+            text_cache: HashMap::new(),
+            text_rgba_scratch: Vec::new(),
         }
     }
 
@@ -76,6 +103,8 @@ impl ElementRenderContext {
             pending_dither_rects: &mut self.pending_dither_rects,
             remapped_sprite_cache: &mut self.remapped_sprite_cache,
             remapped_rgba_scratch: &mut self.remapped_rgba_scratch,
+            text_cache: &mut self.text_cache,
+            text_rgba_scratch: &mut self.text_rgba_scratch,
         };
         ew.render_frame(elements, background)
     }
@@ -93,6 +122,8 @@ struct ElementWorker<'a> {
     pending_dither_rects: &'a mut Vec<DitherRect>,
     remapped_sprite_cache: &'a mut HashMap<RemappedSpriteCacheKey, RemappedSpriteCacheEntry>,
     remapped_rgba_scratch: &'a mut Vec<u8>,
+    text_cache: &'a mut HashMap<TextCacheKey, TextCacheEntry>,
+    text_rgba_scratch: &'a mut Vec<u8>,
 }
 
 impl<'a> ElementWorker<'a> {
@@ -198,14 +229,57 @@ impl<'a> ElementWorker<'a> {
                 } else {
                     *x
                 };
-                if let Some(bitmap) = self.font.render_string_bitmap(text, fx, *y, *color) {
-                    self.renderer.draw_indexed_overlay_pixels(
-                        &bitmap.pixels,
-                        bitmap.width,
-                        bitmap.height,
-                        bitmap.x,
-                        bitmap.y,
-                    )?;
+
+                let key = TextCacheKey {
+                    text: text.clone(),
+                    x: fx,
+                    y: *y,
+                    color: *color,
+                    right: *right,
+                    center: *center,
+                    palette_revision: self.renderer.palette_revision(),
+                };
+
+                match self.text_cache.entry(key) {
+                    Entry::Occupied(o) => {
+                        let e = o.get();
+                        self.renderer.draw_texture(
+                            e.texture_id,
+                            None,
+                            Some(sdl2::rect::Rect::new(e.x, e.y, e.width, e.height)),
+                        )?;
+                    }
+                    Entry::Vacant(v) => {
+                        if let Some(bitmap) = self.font.render_string_bitmap(text, fx, *y, *color) {
+                            self.text_rgba_scratch.clear();
+                            crate::video::indexed::indexed_pixels_to_rgba(
+                                &bitmap.pixels,
+                                self.renderer.palette(),
+                                &mut self.text_rgba_scratch,
+                            );
+
+                            if self.text_rgba_scratch.iter().any(|&b| b != 0) {
+                                let tex_id = self.renderer.create_rgba_texture(
+                                    &self.text_rgba_scratch,
+                                    bitmap.width,
+                                    bitmap.height,
+                                )?;
+                                let e = TextCacheEntry {
+                                    texture_id: tex_id,
+                                    x: bitmap.x,
+                                    y: bitmap.y,
+                                    width: bitmap.width,
+                                    height: bitmap.height,
+                                };
+                                self.renderer.draw_texture(
+                                    e.texture_id,
+                                    None,
+                                    Some(sdl2::rect::Rect::new(e.x, e.y, e.width, e.height)),
+                                )?;
+                                v.insert(e);
+                            }
+                        }
+                    }
                 }
             }
             Element::Sprite(idx, x, y) => {
