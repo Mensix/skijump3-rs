@@ -82,6 +82,10 @@ impl View<RouteTarget> for JumpMenuView {
             _ => None,
         }
     }
+
+    fn gpu_background(&self) -> engine::ui::BackgroundMode {
+        engine::ui::BackgroundMode::MainPng
+    }
 }
 
 impl JumpMenuView {

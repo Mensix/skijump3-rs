@@ -79,4 +79,8 @@ impl View<RouteTarget> for MainMenuView {
     fn apply_palette(&self, palette: &mut engine::palette::Palette) {
         apply_logo_tint(palette, 0);
     }
+
+    fn gpu_background(&self) -> engine::ui::BackgroundMode {
+        engine::ui::BackgroundMode::MainPng
+    }
 }

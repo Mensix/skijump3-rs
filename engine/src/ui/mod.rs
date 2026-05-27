@@ -10,7 +10,7 @@ pub mod text_edit;
 pub use blinker::Blinker;
 pub use element::{Element, ImageRegion};
 pub use paint::PaintCtx;
-pub use router::{Event, Key, Router, View};
+pub use router::{BackgroundMode, Event, Key, Router, View};
 pub use selection::SelectionState;
 pub use table::{Align, Cell, Table};
 pub use text::Font;

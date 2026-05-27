@@ -111,6 +111,10 @@ impl View<RouteTarget> for ReplayBrowserView {
             Event::Keyboard(_) => None,
         }
     }
+
+    fn gpu_background(&self) -> engine::ui::BackgroundMode {
+        engine::ui::BackgroundMode::MainPng
+    }
 }
 
 fn replay_panel_elements(

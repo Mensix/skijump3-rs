@@ -1,6 +1,30 @@
 use crate::palette::Palette;
 use crate::ui::Element;
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum BackgroundMode {
+    /// No GPU background — use opaque legacy framebuffer (default).
+    NoneBlack,
+    /// Draw MAIN.png as GPU background behind a transparent indexed overlay.
+    MainPng,
+}
+
+pub trait View<T: Clone + PartialEq + 'static> {
+    /// Called once per frame before `elements()`.
+    /// Use for game-state updates, simulation steps, etc.
+    /// Default is a no-op.
+    fn update(&mut self) {}
+    fn elements(&self) -> Vec<Element>;
+    fn handle_event(&mut self, event: Event) -> Option<T>;
+    fn apply_palette(&self, _: &mut Palette) {}
+    fn render_snow(&self, _: &mut [u8]) {}
+    /// Controls how the renderer layers the GPU background and legacy overlay.
+    /// Default is `NoneBlack` (opaque legacy framebuffer, no GPU background).
+    fn gpu_background(&self) -> BackgroundMode {
+        BackgroundMode::NoneBlack
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Event {
     Keyboard(Key),
@@ -22,17 +46,6 @@ pub enum Key {
     Delete,
     F5,
     Char(char),
-}
-
-pub trait View<T: Clone + PartialEq + 'static> {
-    /// Called once per frame before `elements()`.
-    /// Use for game-state updates, simulation steps, etc.
-    /// Default is a no-op.
-    fn update(&mut self) {}
-    fn elements(&self) -> Vec<Element>;
-    fn handle_event(&mut self, event: Event) -> Option<T>;
-    fn apply_palette(&self, _: &mut Palette) {}
-    fn render_snow(&self, _: &mut [u8]) {}
 }
 
 #[allow(clippy::type_complexity)]

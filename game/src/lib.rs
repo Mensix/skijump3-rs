@@ -26,7 +26,7 @@ use engine::consts::{HEIGHT, WIDTH};
 use engine::input::Input;
 use engine::palette::Palette;
 use engine::sprite::SpriteData;
-use engine::ui::{Font, PaintCtx, Router, View};
+use engine::ui::{BackgroundMode, Font, PaintCtx, Router, View};
 use engine::video::{Renderer, TextureId};
 use route::RouteTarget;
 use std::rc::Rc;
@@ -328,8 +328,16 @@ impl Game {
             .render_snow(&mut self.framebuffer);
 
         self.renderer.begin_frame();
-        self.renderer.draw_texture(self.main_background, None, None)?;
-        self.renderer.draw_legacy_framebuffer_overlay(&self.framebuffer)?;
+        match self.router.current_view().gpu_background() {
+            BackgroundMode::MainPng => {
+                self.renderer.draw_texture(self.main_background, None, None)?;
+                self.renderer.draw_legacy_framebuffer_overlay(&self.framebuffer)?;
+            }
+            BackgroundMode::NoneBlack => {
+                self.renderer.blit(&self.framebuffer);
+                self.renderer.present_legacy()?;
+            }
+        }
         self.renderer.end_frame();
         self.renderer.wait_frame();
         Ok(())

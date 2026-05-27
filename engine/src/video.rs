@@ -152,7 +152,7 @@ impl Renderer {
     }
 
     // Legacy full-frame upload: all pixels opaque (alpha = 255).
-    pub fn present(&mut self) -> Result<(), String> {
+    pub fn present_legacy(&mut self) -> Result<(), String> {
         self.indexed_to_opaque_rgba();
         self.frame_texture
             .update(None, &self.overlay_rgba, (WIDTH * 4) as usize)
