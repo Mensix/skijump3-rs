@@ -297,6 +297,45 @@ fn dq_elements(els: &mut Vec<Element>, frame: &JumpRenderFrame, ctx: &JumpPresen
     ));
 }
 
+pub fn wind_elements(els: &mut Vec<Element>, position: WindPosition, value: i32) {
+    let x = position.x;
+    let y = position.y;
+    els.push(Element::fillbox(x + 4, y + 1, 35, 2, 248));
+    els.push(Element::fillbox(x + 21, y + 1, 1, 2, 240));
+    els.push(Element::fillbox(x + 21, y + 9, 1, 1, 247));
+    if value > 0 {
+        els.push(Element::fillbox(x + 22, y + 1, value / 3 + 1, 2, 236));
+    }
+    if value < 0 {
+        let w = (-value) / 3 + 1;
+        els.push(Element::fillbox(x + 21 - w, y + 1, w, 2, 237));
+    }
+
+    let text = format!("{:.1}", f64::from(value.abs()) / 10.0);
+    if value < 0 {
+        els.push(Element::text("-", x + 10, y + 5, FONT_GREET, false));
+    }
+    let mut chars = text.chars();
+    if let Some(ones) = chars.next() {
+        els.push(Element::text(
+            ones.to_string(),
+            x + 15,
+            y + 5,
+            FONT_GREET,
+            false,
+        ));
+    }
+    if let Some(tenths) = text.chars().nth(2) {
+        els.push(Element::text(
+            tenths.to_string(),
+            x + 24,
+            y + 5,
+            FONT_GREET,
+            false,
+        ));
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -338,44 +377,5 @@ mod tests {
             "suit indices pass through ski remap"
         );
         assert_eq!(ski_remap.map(0), 0, "transparent passes through");
-    }
-}
-
-pub fn wind_elements(els: &mut Vec<Element>, position: WindPosition, value: i32) {
-    let x = position.x;
-    let y = position.y;
-    els.push(Element::fillbox(x + 4, y + 1, 35, 2, 248));
-    els.push(Element::fillbox(x + 21, y + 1, 1, 2, 240));
-    els.push(Element::fillbox(x + 21, y + 9, 1, 1, 247));
-    if value > 0 {
-        els.push(Element::fillbox(x + 22, y + 1, value / 3 + 1, 2, 236));
-    }
-    if value < 0 {
-        let w = (-value) / 3 + 1;
-        els.push(Element::fillbox(x + 21 - w, y + 1, w, 2, 237));
-    }
-
-    let text = format!("{:.1}", f64::from(value.abs()) / 10.0);
-    if value < 0 {
-        els.push(Element::text("-", x + 10, y + 5, FONT_GREET, false));
-    }
-    let mut chars = text.chars();
-    if let Some(ones) = chars.next() {
-        els.push(Element::text(
-            ones.to_string(),
-            x + 15,
-            y + 5,
-            FONT_GREET,
-            false,
-        ));
-    }
-    if let Some(tenths) = text.chars().nth(2) {
-        els.push(Element::text(
-            tenths.to_string(),
-            x + 24,
-            y + 5,
-            FONT_GREET,
-            false,
-        ));
     }
 }

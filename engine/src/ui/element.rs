@@ -118,187 +118,6 @@ impl Element {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_render_image_bitmap_small() {
-        // 10x10 image within screen bounds
-        let w = 10u32;
-        let h = 10u32;
-        let pixels: Vec<u8> = (0..(w * h)).map(|i| (i % 256) as u8).collect();
-        let result = render_image_bitmap(&pixels, w, h);
-        assert!(result.is_some());
-        let bm = result.unwrap();
-        assert_eq!(bm.width, 10);
-        assert_eq!(bm.height, 10);
-        assert_eq!(bm.x, 0);
-        assert_eq!(bm.y, 0);
-        assert_eq!(bm.pixels, pixels);
-    }
-
-    #[test]
-    fn test_render_image_bitmap_wider_than_screen() {
-        // Image wider than WIDTH
-        let image_w = WIDTH + 50;
-        let image_h = 10u32;
-        let pixels: Vec<u8> = (0..(image_w * image_h)).map(|i| (i % 256) as u8).collect();
-        let result = render_image_bitmap(&pixels, image_w, image_h);
-        assert!(result.is_some());
-        let bm = result.unwrap();
-        assert_eq!(bm.width, WIDTH);
-        assert_eq!(bm.height, 10);
-        assert_eq!(bm.x, 0);
-        assert_eq!(bm.y, 0);
-        // Each row should contain the first WIDTH pixels
-        for y in 0..10usize {
-            let src_start = y * (image_w as usize);
-            let bm_start = y * (WIDTH as usize);
-            assert_eq!(
-                bm.pixels[bm_start..bm_start + WIDTH as usize],
-                pixels[src_start..src_start + WIDTH as usize]
-            );
-        }
-    }
-
-    #[test]
-    fn test_render_image_bitmap_taller_than_screen() {
-        let image_w = 10u32;
-        let image_h = HEIGHT + 50;
-        let pixels: Vec<u8> = (0..(image_w * image_h)).map(|i| (i % 256) as u8).collect();
-        let result = render_image_bitmap(&pixels, image_w, image_h);
-        assert!(result.is_some());
-        let bm = result.unwrap();
-        assert_eq!(bm.width, 10);
-        assert_eq!(bm.height, HEIGHT);
-        assert_eq!(bm.x, 0);
-        assert_eq!(bm.y, 0);
-    }
-
-    #[test]
-    fn test_render_image_bitmap_zero() {
-        assert!(render_image_bitmap(&[], 0, 0).is_none());
-        assert!(render_image_bitmap(&[1, 2, 3], 0, 5).is_none());
-        assert!(render_image_bitmap(&[1, 2, 3], 5, 0).is_none());
-    }
-
-    #[test]
-    fn test_render_image_region_bitmap_basic() {
-        let src_w = 20u32;
-        let src_h = 20u32;
-        let pixels: Vec<u8> = (0..(src_w * src_h)).map(|i| (i % 256) as u8).collect();
-        let region = ImageRegion {
-            pixels: pixels.into(),
-            src_w,
-            src_h,
-            src_x: 0,
-            src_y: 0,
-            dst_x: 5,
-            dst_y: 5,
-            w: 10,
-            h: 10,
-        };
-        let result = render_image_region_bitmap(&region);
-        assert!(result.is_some());
-        let bm = result.unwrap();
-        assert_eq!(bm.width, 10);
-        assert_eq!(bm.height, 10);
-        assert_eq!(bm.x, 5);
-        assert_eq!(bm.y, 5);
-        // Top-left of output should be pixel (0,0) of source
-        assert_eq!(bm.pixels[0], region.pixels[0]);
-    }
-
-    #[test]
-    fn test_render_image_region_bitmap_partial_clip() {
-        let src_w = 20u32;
-        let src_h = 20u32;
-        let pixels: Vec<u8> = (0..(src_w * src_h)).map(|i| (i % 256) as u8).collect();
-        // Place region partially off-screen left and top
-        let region = ImageRegion {
-            pixels: pixels.clone().into(),
-            src_w,
-            src_h,
-            src_x: 5,
-            src_y: 5,
-            dst_x: -3,
-            dst_y: -2,
-            w: 10,
-            h: 10,
-        };
-        let result = render_image_region_bitmap(&region);
-        assert!(result.is_some());
-        let bm = result.unwrap();
-        // Visible width: (-3 + 10) - 0 = 7, visible height: (-2 + 10) - 0 = 8
-        assert_eq!(bm.width, 7);
-        assert_eq!(bm.height, 8);
-        assert_eq!(bm.x, 0);
-        assert_eq!(bm.y, 0);
-        // First pixel (dx=0,dy=0) maps to source (sx=5+3=8, sy=5+2=7)
-        let expected_src_idx = (7usize) * (src_w as usize) + 8usize;
-        assert_eq!(bm.pixels[0], pixels[expected_src_idx]);
-    }
-
-    #[test]
-    fn test_render_image_region_bitmap_fully_offscreen() {
-        let pixels: Vec<u8> = vec![0u8; 100];
-        let region = ImageRegion {
-            pixels: pixels.into(),
-            src_w: 10,
-            src_h: 10,
-            src_x: 0,
-            src_y: 0,
-            dst_x: 400,
-            dst_y: 300,
-            w: 10,
-            h: 10,
-        };
-        assert!(render_image_region_bitmap(&region).is_none());
-    }
-
-    #[test]
-    fn test_render_image_region_src_oob() {
-        // Source coordinates outside the source image
-        let src_w = 5u32;
-        let src_h = 5u32;
-        let pixels: Vec<u8> = vec![1u8; 25];
-        let region = ImageRegion {
-            pixels: pixels.into(),
-            src_w,
-            src_h,
-            src_x: 10, // past right edge
-            src_y: 0,
-            dst_x: 0,
-            dst_y: 0,
-            w: 5,
-            h: 5,
-        };
-        let result = render_image_region_bitmap(&region);
-        assert!(result.is_some());
-        let bm = result.unwrap();
-        // All source lookups should fail, so all pixels should be 0
-        assert!(bm.pixels.iter().all(|&p| p == 0));
-    }
-
-    #[test]
-    fn test_render_image_bitmap_shorter_row() {
-        // Image where a row has fewer bytes than WIDTH
-        let pixels = vec![10u8, 20, 30]; // 3 pixels, image claims 10x1
-        let result = render_image_bitmap(&pixels, 10, 1);
-        assert!(result.is_some());
-        let bm = result.unwrap();
-        assert_eq!(bm.width, 10);
-        assert_eq!(bm.height, 1);
-        // First 3 pixels copied, rest should be zero
-        assert_eq!(bm.pixels[0], 10);
-        assert_eq!(bm.pixels[1], 20);
-        assert_eq!(bm.pixels[2], 30);
-        assert_eq!(bm.pixels[3], 0);
-        assert_eq!(bm.pixels[9], 0);
-    }
-}
-
 /// Render an Element::Image as an IndexedBitmap suitable for GPU overlay.
 /// The image is placed at (0, 0) and clipped to the screen.
 pub fn render_image_bitmap(pixels: &[u8], image_w: u32, image_h: u32) -> Option<IndexedBitmap> {
@@ -366,4 +185,174 @@ pub fn render_image_region_bitmap(region: &ImageRegion) -> Option<IndexedBitmap>
         width: vis_w,
         height: vis_h,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_render_image_bitmap_small() {
+        let w = 10u32;
+        let h = 10u32;
+        let pixels: Vec<u8> = (0..(w * h)).map(|i| (i % 256) as u8).collect();
+        let result = render_image_bitmap(&pixels, w, h);
+        assert!(result.is_some());
+        let bm = result.unwrap();
+        assert_eq!(bm.width, 10);
+        assert_eq!(bm.height, 10);
+        assert_eq!(bm.x, 0);
+        assert_eq!(bm.y, 0);
+        assert_eq!(bm.pixels, pixels);
+    }
+
+    #[test]
+    fn test_render_image_bitmap_wider_than_screen() {
+        let image_w = WIDTH + 50;
+        let image_h = 10u32;
+        let pixels: Vec<u8> = (0..(image_w * image_h)).map(|i| (i % 256) as u8).collect();
+        let result = render_image_bitmap(&pixels, image_w, image_h);
+        assert!(result.is_some());
+        let bm = result.unwrap();
+        assert_eq!(bm.width, WIDTH);
+        assert_eq!(bm.height, 10);
+        assert_eq!(bm.x, 0);
+        assert_eq!(bm.y, 0);
+        for y in 0..10usize {
+            let src_start = y * (image_w as usize);
+            let bm_start = y * (WIDTH as usize);
+            assert_eq!(
+                bm.pixels[bm_start..bm_start + WIDTH as usize],
+                pixels[src_start..src_start + WIDTH as usize]
+            );
+        }
+    }
+
+    #[test]
+    fn test_render_image_bitmap_taller_than_screen() {
+        let image_w = 10u32;
+        let image_h = HEIGHT + 50;
+        let pixels: Vec<u8> = (0..(image_w * image_h)).map(|i| (i % 256) as u8).collect();
+        let result = render_image_bitmap(&pixels, image_w, image_h);
+        assert!(result.is_some());
+        let bm = result.unwrap();
+        assert_eq!(bm.width, 10);
+        assert_eq!(bm.height, HEIGHT);
+        assert_eq!(bm.x, 0);
+        assert_eq!(bm.y, 0);
+    }
+
+    #[test]
+    fn test_render_image_bitmap_zero() {
+        assert!(render_image_bitmap(&[], 0, 0).is_none());
+        assert!(render_image_bitmap(&[1, 2, 3], 0, 5).is_none());
+        assert!(render_image_bitmap(&[1, 2, 3], 5, 0).is_none());
+    }
+
+    #[test]
+    fn test_render_image_region_bitmap_basic() {
+        let src_w = 20u32;
+        let src_h = 20u32;
+        let pixels: Vec<u8> = (0..(src_w * src_h)).map(|i| (i % 256) as u8).collect();
+        let region = ImageRegion {
+            pixels: pixels.into(),
+            src_w,
+            src_h,
+            src_x: 0,
+            src_y: 0,
+            dst_x: 5,
+            dst_y: 5,
+            w: 10,
+            h: 10,
+        };
+        let result = render_image_region_bitmap(&region);
+        assert!(result.is_some());
+        let bm = result.unwrap();
+        assert_eq!(bm.width, 10);
+        assert_eq!(bm.height, 10);
+        assert_eq!(bm.x, 5);
+        assert_eq!(bm.y, 5);
+        assert_eq!(bm.pixels[0], region.pixels[0]);
+    }
+
+    #[test]
+    fn test_render_image_region_bitmap_partial_clip() {
+        let src_w = 20u32;
+        let src_h = 20u32;
+        let pixels: Vec<u8> = (0..(src_w * src_h)).map(|i| (i % 256) as u8).collect();
+        let region = ImageRegion {
+            pixels: pixels.clone().into(),
+            src_w,
+            src_h,
+            src_x: 5,
+            src_y: 5,
+            dst_x: -3,
+            dst_y: -2,
+            w: 10,
+            h: 10,
+        };
+        let result = render_image_region_bitmap(&region);
+        assert!(result.is_some());
+        let bm = result.unwrap();
+        assert_eq!(bm.width, 7);
+        assert_eq!(bm.height, 8);
+        assert_eq!(bm.x, 0);
+        assert_eq!(bm.y, 0);
+        let expected_src_idx = (7usize) * (src_w as usize) + 8usize;
+        assert_eq!(bm.pixels[0], pixels[expected_src_idx]);
+    }
+
+    #[test]
+    fn test_render_image_region_bitmap_fully_offscreen() {
+        let pixels: Vec<u8> = vec![0u8; 100];
+        let region = ImageRegion {
+            pixels: pixels.into(),
+            src_w: 10,
+            src_h: 10,
+            src_x: 0,
+            src_y: 0,
+            dst_x: 400,
+            dst_y: 300,
+            w: 10,
+            h: 10,
+        };
+        assert!(render_image_region_bitmap(&region).is_none());
+    }
+
+    #[test]
+    fn test_render_image_region_src_oob() {
+        let src_w = 5u32;
+        let src_h = 5u32;
+        let pixels: Vec<u8> = vec![1u8; 25];
+        let region = ImageRegion {
+            pixels: pixels.into(),
+            src_w,
+            src_h,
+            src_x: 10,
+            src_y: 0,
+            dst_x: 0,
+            dst_y: 0,
+            w: 5,
+            h: 5,
+        };
+        let result = render_image_region_bitmap(&region);
+        assert!(result.is_some());
+        let bm = result.unwrap();
+        assert!(bm.pixels.iter().all(|&p| p == 0));
+    }
+
+    #[test]
+    fn test_render_image_bitmap_shorter_row() {
+        let pixels = vec![10u8, 20, 30];
+        let result = render_image_bitmap(&pixels, 10, 1);
+        assert!(result.is_some());
+        let bm = result.unwrap();
+        assert_eq!(bm.width, 10);
+        assert_eq!(bm.height, 1);
+        assert_eq!(bm.pixels[0], 10);
+        assert_eq!(bm.pixels[1], 20);
+        assert_eq!(bm.pixels[2], 30);
+        assert_eq!(bm.pixels[3], 0);
+        assert_eq!(bm.pixels[9], 0);
+    }
 }

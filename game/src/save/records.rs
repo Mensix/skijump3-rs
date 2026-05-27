@@ -140,9 +140,9 @@ time = ""
     #[test]
     fn loads_bundled_hiscores() {
         let store = bundled_store();
-        assert!(store.top.len() > 0);
+        assert!(!store.top.is_empty());
         assert!(store.top.len() <= 41);
-        assert!(store.hill_records.len() > 0);
+        assert!(!store.hill_records.is_empty());
         assert!(store.hill_records.len() <= 20);
 
         let first = store.top(0).expect("first top record");

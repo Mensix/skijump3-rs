@@ -86,11 +86,11 @@ impl HillTerrain {
         let front_data = files
             .read(&format!("FRONT{}.PCX", info.front_index))
             .map_err(|e| e.to_string())?;
-        let front = PcxParser::parse(&front_data).map_err(|e| e.to_string())?;
+        let front = PcxParser::parse(&front_data)?;
         let back_data = files
             .read(&format!("BACK{}.PCX", info.back_index))
             .map_err(|e| e.to_string())?;
-        let mut back = PcxParser::parse(&back_data).map_err(|e| e.to_string())?;
+        let mut back = PcxParser::parse(&back_data)?;
         if info.back_mirror != 0 {
             Self::mirror_pixels(&mut back.pixels, back.width as usize, back.height as usize);
         }

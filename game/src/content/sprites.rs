@@ -108,7 +108,7 @@ pub(crate) fn load_sprites(
 
             let expected_byte_count = s.width as usize * s.height as usize;
             let hex_clean: String = s.pixels.chars().filter(|c| !c.is_whitespace()).collect();
-            if hex_clean.len() % 2 != 0 {
+            if !hex_clean.len().is_multiple_of(2) {
                 return Err(format!(
                     "Sprite {} in {full_path} has odd number of hex digits ({})",
                     s.index,

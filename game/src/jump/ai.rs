@@ -322,7 +322,7 @@ mod tests {
                 state.handle_input(JumpInput::Telemark);
             }
             state.tick(&terrain, wind, &mut rng, true);
-            if let Some(_) = state.outcome() {
+            if state.outcome().is_some() {
                 assert_eq!(state.phase, JumpPhase::Result);
                 assert_eq!(state.landing_counter, 0);
                 return;
@@ -349,7 +349,7 @@ mod tests {
         // The angle has moved 101 steps; a fresh sample produces a valid value
         let value = wind.sample(&mut rng);
         assert!(
-            value >= -50 && value <= 50,
+            (-50..=50).contains(&value),
             "wind value out of range: {value}"
         );
     }

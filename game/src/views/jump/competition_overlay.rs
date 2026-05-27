@@ -306,7 +306,7 @@ impl CompetitionOverlay {
                 if phase <= 130 {
                     self.hill_info_elements(els, hill_idx);
                 } else if (146..=276).contains(&phase) {
-                    self.wc_standings_elements(els, &data);
+                    self.wc_standings_elements(els, data);
                 } else {
                     els.push(Element::sprite(sprites::Sprite::InfoPanel as u16, 227, 2));
                 }
@@ -320,11 +320,11 @@ impl CompetitionOverlay {
         let phase = (frame_counter as usize) % cycle;
 
         if phase <= 130 {
-            self.top5_event_elements(els, &data);
+            self.top5_event_elements(els, data);
         } else if (146..=276).contains(&phase) {
             self.hill_info_elements(els, hill_idx);
         } else if has_wc_leader && (292..=422).contains(&phase) {
-            self.wc_standings_elements(els, &data);
+            self.wc_standings_elements(els, data);
         } else {
             els.push(Element::sprite(sprites::Sprite::InfoPanel as u16, 227, 2));
         }

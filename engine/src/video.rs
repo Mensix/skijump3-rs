@@ -144,8 +144,7 @@ impl Renderer {
     /// at positions where the dither pattern sprite has a non-zero pixel.
     /// The rect is clipped to screen bounds. When `is_box` is true, only
     /// the 1-pixel border is processed.
-    /// Tiling always uses the original `TILE_W`/`TILE_H` constants,
-    /// matching the legacy CPU FillArea behaviour.
+    /// Tiling always uses the original `TILE_W`/`TILE_H` constants.
     pub fn dither_overlay_rect(
         &mut self,
         x: i32,
@@ -301,7 +300,7 @@ pub fn indexed_pixels_to_rgba(pixels: &[u8], palette: &Palette, out: &mut Vec<u8
 /// Write bright RGBA pixels into a full-screen RGBA buffer at pattern-hit
 /// positions within the given rect.  The rect is clipped to
 /// `(0, 0, screen_w, screen_h)`.  Tiling always uses `TILE_W`/`TILE_H`
-/// constants, matching the legacy CPU FillArea behaviour.
+/// constants.
 ///
 /// `thing` controls the tile offset: `thing == 64` shifts by (2, 7),
 /// anything else uses (0, 0).  When `is_box` is true only the 1-pixel
@@ -391,15 +390,15 @@ mod tests {
     #[test]
     fn indexed_to_rgba_mixed() {
         let mut palette = Palette::new();
-        palette.set(1, [63, 0, 0]);   // max red 6-bit
-        palette.set(2, [0, 63, 0]);   // max green
+        palette.set(1, [63, 0, 0]); // max red 6-bit
+        palette.set(2, [0, 63, 0]); // max green
         let mut out = Vec::new();
         indexed_pixels_to_rgba(&[0, 1, 2], &palette, &mut out);
         // 0 → transparent, 1 → red-ish, 2 → green-ish
         assert_eq!(out.len(), 12);
-        assert_eq!(&out[0..4], &[0, 0, 0, 0]);       // idx 0
-        assert_eq!(&out[4..8], &[255, 0, 0, 255]);   // idx 1: 63*255/63 = 255
-        assert_eq!(&out[8..12], &[0, 255, 0, 255]);  // idx 2
+        assert_eq!(&out[0..4], &[0, 0, 0, 0]); // idx 0
+        assert_eq!(&out[4..8], &[255, 0, 0, 255]); // idx 1: 63*255/63 = 255
+        assert_eq!(&out[8..12], &[0, 255, 0, 255]); // idx 2
     }
 
     #[test]
@@ -437,7 +436,7 @@ mod tests {
         assert_eq!(rgba[3], 255);
 
         // Pixel (1,0) -- pattern miss (index 1) -- should be transparent
-        let idx_miss = (0 * screen_w + 1) * 4;
+        let idx_miss = 4;
         assert_eq!(rgba[idx_miss], 0);
         assert_eq!(rgba[idx_miss + 3], 0);
     }
@@ -483,7 +482,7 @@ mod tests {
         );
 
         // Pixel (1,0): ax = 1%19 = 1, ay = 0 -> miss
-        let idx_miss = (0 * screen_w + 1) * 4;
+        let idx_miss = 4;
         assert_eq!(rgba[idx_miss], 0);
         assert_eq!(rgba[idx_miss + 3], 0);
     }
@@ -510,7 +509,7 @@ mod tests {
         assert_eq!(rgba[idx_corner + 3], 255);
 
         // Interior pixel (1,1) is not on border -> should be transparent
-        let idx_interior = (1 * screen_w + 1) * 4;
+        let idx_interior = (screen_w + 1) * 4;
         assert_eq!(rgba[idx_interior], 0);
         assert_eq!(rgba[idx_interior + 3], 0);
     }
@@ -535,7 +534,7 @@ mod tests {
         assert_eq!(rgba[3], 255);
 
         // Pixel (14, 0) is outside the clipped rect -> untouched
-        let idx_outside = (0 * screen_w + 14) * 4;
+        let idx_outside = 14 * 4;
         assert_eq!(rgba[idx_outside], 0);
         assert_eq!(rgba[idx_outside + 3], 0);
     }
@@ -577,18 +576,18 @@ mod tests {
         );
 
         // Pixel (0,0): visible, on original top edge -> border, ax=0 -> miss
-        let idx0 = (0 * screen_w + 0) * 4;
+        let idx0 = 0;
         assert_eq!(rgba[idx0 + 3], 0, "top-left clipped miss");
 
         // Pixel (2,0): visible, on original top edge -> border, ax=2 -> hit
-        let idx2 = (0 * screen_w + 2) * 4;
+        let idx2 = 8;
         assert_eq!(rgba[idx2], bright, "top edge hit at x=2");
         assert_eq!(rgba[idx2 + 3], 255);
 
         // Pixel (0, 5): interior of visible portion, but original left edge
         // at x=-2 is offscreen, so clipped pixel at x=0 is NOT on original
         // left border -> should NOT be brightened
-        let idx_interior = (5 * screen_w + 0) * 4;
+        let idx_interior = 5 * screen_w * 4;
         assert_eq!(
             rgba[idx_interior + 3],
             0,
@@ -617,13 +616,13 @@ mod tests {
         );
 
         // Pixel (0,7): visible, on original top edge -> border, ay=7 -> hit
-        let idx_hit = (7 * screen_w + 0) * 4;
+        let idx_hit = 7 * screen_w * 4;
         assert_eq!(rgba[idx_hit], bright, "top edge hit at y=7");
         assert_eq!(rgba[idx_hit + 3], 255);
 
         // Pixel (0,14): visible, clipped bottom (y=14 is NOT y+h-1=13),
         // not on left/right/top edge of original box -> should be transparent
-        let idx_bottom = (14 * screen_w + 0) * 4;
+        let idx_bottom = 14 * screen_w * 4;
         assert_eq!(
             rgba[idx_bottom + 3],
             0,

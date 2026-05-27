@@ -649,7 +649,7 @@ mod tests {
                 m.advance();
                 continue;
             }
-            while let Some(_) = m.current_jumper() {
+            while m.current_jumper().is_some() {
                 match m.phase {
                     CompetitionPhase::Round1 => total_r1 += 1,
                     CompetitionPhase::Round2 => total_r2 += 1,
