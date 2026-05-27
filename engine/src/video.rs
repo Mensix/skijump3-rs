@@ -235,6 +235,53 @@ impl Renderer {
         Ok(())
     }
 
+    // Indexed overlay upload -------------------------------------------------
+
+    /// Upload a small indexed pixel buffer as an ABGR8888 texture and draw it.
+    /// Index 0 becomes fully transparent; other indices are opaque via the
+    /// current palette. This creates and destroys a temporary texture each
+    /// call — acceptable for occasional use (text rendering, sprites).
+    pub fn draw_indexed_overlay_pixels(
+        &mut self,
+        pixels: &[u8],
+        width: u32,
+        height: u32,
+        x: i32,
+        y: i32,
+    ) -> Result<(), String> {
+        let mut rgba = Vec::with_capacity(pixels.len() * 4);
+        for &idx in pixels {
+            if idx == 0 {
+                rgba.extend_from_slice(&[0, 0, 0, 0]);
+            } else {
+                let [r6, g6, b6] = self.palette.color(idx as usize);
+                rgba.push((r6 as u32 * 255 / 63) as u8);
+                rgba.push((g6 as u32 * 255 / 63) as u8);
+                rgba.push((b6 as u32 * 255 / 63) as u8);
+                rgba.push(255);
+            }
+        }
+
+        let tc = self.canvas.texture_creator();
+        let mut texture = tc
+            .create_texture(
+                PixelFormatEnum::ABGR8888,
+                sdl2::render::TextureAccess::Static,
+                width,
+                height,
+            )
+            .map_err(|e| e.to_string())?;
+        texture.set_blend_mode(BlendMode::Blend);
+        texture
+            .update(None, &rgba, (width * 4) as usize)
+            .map_err(|e: sdl2::render::UpdateTextureError| e.to_string())?;
+
+        self.canvas
+            .copy(&texture, None, Rect::new(x, y, width, height))?;
+
+        Ok(())
+    }
+
     // Internal helpers -------------------------------------------------------
 
     fn indexed_to_opaque_rgba(&mut self) {

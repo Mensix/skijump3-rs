@@ -397,6 +397,33 @@ impl Game {
                     self.render_main_png_element(child, dirty, remaining_fill_areas)?;
                 }
             }
+            Element::Text {
+                text,
+                x,
+                y,
+                color,
+                right,
+                center,
+            } if *remaining_fill_areas == 0 => {
+                self.flush_main_png_overlay_if_dirty(dirty)?;
+                let text_w = self.font.string_width(text) as i32;
+                let fx = if *center {
+                    x - text_w / 2
+                } else if *right {
+                    x - text_w
+                } else {
+                    *x
+                };
+                if let Some(bitmap) = self.font.render_string_bitmap(text, fx, *y, *color) {
+                    self.renderer.draw_indexed_overlay_pixels(
+                        &bitmap.pixels,
+                        bitmap.width,
+                        bitmap.height,
+                        bitmap.x,
+                        bitmap.y,
+                    )?;
+                }
+            }
             _ => {
                 self.render_into_framebuffer(element, dirty);
             }
