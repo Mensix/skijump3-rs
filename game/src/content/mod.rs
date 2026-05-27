@@ -1,3 +1,4 @@
+pub(crate) mod atlas;
 pub(crate) mod hills;
 pub(crate) mod languages;
 mod manifest;

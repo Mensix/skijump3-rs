@@ -1,3 +1,4 @@
+pub mod atlas;
 pub mod bitmap;
 pub mod consts;
 pub mod input;

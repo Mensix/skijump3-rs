@@ -12,6 +12,7 @@ use crate::gfx::png::load_png;
 use crate::route::RouteTarget;
 use crate::save::{SaveManager, SaveRef};
 use crate::store::{Resources, ResourcesRef, Store, StoreRef};
+use engine::atlas::Atlas;
 use engine::consts::PATTERN_SPRITE;
 use engine::input::Input;
 use engine::palette::Palette;
@@ -35,6 +36,7 @@ pub struct Game {
     font: Font,
     router: Router<RouteTarget>,
     sprites: Vec<SpriteData>,
+    sprite_atlas: Option<Atlas>,
     pending_dither_rects: Vec<DitherRect>,
     base_palette: Palette,
     main_background: TextureId,
@@ -85,6 +87,13 @@ impl Game {
             .set_wind_place(save_manager.config.borrow().windplace as u8);
         let router = create_router(resources, store, start_route, save_manager);
 
+        let sprite_atlas = crate::content::atlas::load_sprite_atlas(
+            &files,
+            &mut renderer,
+            "sprites/original_atlas.toml",
+        )
+        .ok();
+
         Ok(Self {
             sdl,
             renderer,
@@ -92,6 +101,7 @@ impl Game {
             font,
             router,
             sprites,
+            sprite_atlas,
             pending_dither_rects: Vec::new(),
             base_palette,
             main_background,
@@ -283,15 +293,24 @@ impl Game {
                 }
             }
             Element::Sprite(idx, x, y) => {
-                if let Some(sprite) = self.sprites.get(*idx as usize) {
-                    if let Some(bitmap) = sprite.render_bitmap(*x, *y) {
-                        self.renderer.draw_indexed_overlay_pixels(
-                            &bitmap.pixels,
-                            bitmap.width,
-                            bitmap.height,
-                            bitmap.x,
-                            bitmap.y,
-                        )?;
+                let drew_from_atlas = self.sprite_atlas.as_ref().is_some_and(|atlas| {
+                    atlas.region(*idx as usize).is_some_and(|region| {
+                        self.renderer
+                            .draw_atlas_region(atlas.texture_id, region, *x, *y)
+                            .is_ok()
+                    })
+                });
+                if !drew_from_atlas {
+                    if let Some(sprite) = self.sprites.get(*idx as usize) {
+                        if let Some(bitmap) = sprite.render_bitmap(*x, *y) {
+                            self.renderer.draw_indexed_overlay_pixels(
+                                &bitmap.pixels,
+                                bitmap.width,
+                                bitmap.height,
+                                bitmap.x,
+                                bitmap.y,
+                            )?;
+                        }
                     }
                 }
             }

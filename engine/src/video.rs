@@ -4,6 +4,7 @@ use sdl2::render::{BlendMode, Texture};
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
+use crate::atlas::AtlasRegion;
 use crate::consts::{FILL_BRIGHTEN, HEIGHT, TARGET_FPS, TILE_H, TILE_W, WIDTH};
 use crate::palette::Palette;
 
@@ -268,6 +269,27 @@ impl Renderer {
             Rect::new(x, y, width, height),
         )?;
         Ok(())
+    }
+
+    /// Draw a region from an RGBA atlas texture at (`x`, `y`) with center
+    /// offset applied.  Clipping is handled by SDL2.
+    pub fn draw_atlas_region(
+        &mut self,
+        texture_id: TextureId,
+        region: &AtlasRegion,
+        x: i32,
+        y: i32,
+    ) -> Result<(), String> {
+        let dst_x = x - region.center_x as i32;
+        let dst_y = y - region.center_y as i32;
+        let src = Rect::new(
+            region.x as i32,
+            region.y as i32,
+            region.width,
+            region.height,
+        );
+        let dst = Rect::new(dst_x, dst_y, region.width, region.height);
+        self.draw_texture(texture_id, Some(src), Some(dst))
     }
 }
 
