@@ -12,7 +12,6 @@ pub struct TextureId(u32);
 
 pub struct Renderer {
     canvas: sdl2::render::WindowCanvas,
-    indexed_pixels: Vec<u8>,
     overlay_rgba: Vec<u8>,
     palette: Palette,
     last_tick: Instant,
@@ -54,7 +53,6 @@ impl Renderer {
 
         Ok(Self {
             canvas,
-            indexed_pixels: vec![0u8; (WIDTH * HEIGHT) as usize],
             overlay_rgba: vec![0u8; (WIDTH * HEIGHT * 4) as usize],
             palette: Palette::new(),
             last_tick: Instant::now(),
@@ -62,36 +60,6 @@ impl Renderer {
             textures: HashMap::new(),
             next_texture_id: 1,
         })
-    }
-
-    pub fn create_indexed_texture(
-        &mut self,
-        pixels: &[u8],
-        width: u32,
-        height: u32,
-        palette: &Palette,
-    ) -> Result<TextureId, String> {
-        let mut rgba = Vec::with_capacity(pixels.len() * 4);
-        indexed_to_rgba(pixels, palette, &mut rgba);
-
-        let tc = self.canvas.texture_creator();
-        let mut texture = tc
-            .create_texture(
-                PixelFormatEnum::ABGR8888,
-                sdl2::render::TextureAccess::Static,
-                width,
-                height,
-            )
-            .map_err(|e| e.to_string())?;
-        texture.set_blend_mode(BlendMode::Blend);
-        texture
-            .update(None, &rgba, (width * 4) as usize)
-            .map_err(|e: sdl2::render::UpdateTextureError| e.to_string())?;
-
-        let id = TextureId(self.next_texture_id);
-        self.next_texture_id += 1;
-        self.textures.insert(id, texture);
-        Ok(id)
     }
 
     pub fn create_rgba_texture(
@@ -144,24 +112,6 @@ impl Renderer {
             std::thread::sleep(frame_time - elapsed);
         }
         self.last_tick = Instant::now();
-    }
-
-    pub fn blit(&mut self, pixels: &[u8]) {
-        assert_eq!(pixels.len(), self.indexed_pixels.len());
-        self.indexed_pixels.copy_from_slice(pixels);
-    }
-
-    // Legacy full-frame upload: all pixels opaque (alpha = 255).
-    pub fn present_legacy(&mut self) -> Result<(), String> {
-        self.indexed_to_opaque_rgba();
-        self.frame_texture
-            .update(None, &self.overlay_rgba, (WIDTH * 4) as usize)
-            .map_err(|e: sdl2::render::UpdateTextureError| e.to_string())?;
-
-        self.canvas.clear();
-        self.canvas.copy(&self.frame_texture, None, None)?;
-        self.canvas.present();
-        Ok(())
     }
 
     // GPU frame layering API ------------------------------------------------
@@ -284,17 +234,6 @@ impl Renderer {
 
     // Internal helpers -------------------------------------------------------
 
-    fn indexed_to_opaque_rgba(&mut self) {
-        self.overlay_rgba.clear();
-        for &idx in &self.indexed_pixels {
-            let [r6, g6, b6] = self.palette.color(idx as usize);
-            self.overlay_rgba.push((r6 as u32 * 255 / 63) as u8);
-            self.overlay_rgba.push((g6 as u32 * 255 / 63) as u8);
-            self.overlay_rgba.push((b6 as u32 * 255 / 63) as u8);
-            self.overlay_rgba.push(255);
-        }
-    }
-
     fn indexed_to_overlay_rgba(&mut self, pixels: &[u8]) {
         self.overlay_rgba.clear();
         self.overlay_rgba.reserve(pixels.len() * 4);
@@ -309,17 +248,5 @@ impl Renderer {
                 self.overlay_rgba.push(255);
             }
         }
-    }
-}
-
-fn indexed_to_rgba(pixels: &[u8], palette: &Palette, out: &mut Vec<u8>) {
-    out.clear();
-    out.reserve(pixels.len() * 4);
-    for &idx in pixels {
-        let [r6, g6, b6] = palette.color(idx as usize);
-        out.push((r6 as u32 * 255 / 63) as u8);
-        out.push((g6 as u32 * 255 / 63) as u8);
-        out.push((b6 as u32 * 255 / 63) as u8);
-        out.push(255);
     }
 }
