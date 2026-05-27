@@ -23,6 +23,12 @@ pub trait View<T: Clone + PartialEq + 'static> {
     fn gpu_background(&self) -> BackgroundMode {
         BackgroundMode::NoneBlack
     }
+    /// If true, the legacy indexed framebuffer is required for rendering
+    /// (e.g. for snow effects that read background pixels). Views that are
+    /// fully migrated to GPU can return false (default).
+    fn requires_legacy_framebuffer(&self) -> bool {
+        false
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]

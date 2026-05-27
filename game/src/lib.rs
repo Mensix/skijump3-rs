@@ -320,43 +320,42 @@ impl Game {
         };
         self.renderer.set_palette(palette);
 
+        let elements = self.router.current_view().elements();
         match self.router.current_view().gpu_background() {
             BackgroundMode::MainPng => {
-                let elements = self.router.current_view().elements();
-                self.render_main_png_frame(&elements)?;
+                self.render_gpu_frame(&elements, Some(self.main_background))?;
             }
             BackgroundMode::NoneBlack => {
-                self.framebuffer.fill(0);
-                let mut ctx = PaintCtx::new(&mut self.framebuffer, WIDTH, HEIGHT);
-                let elements = self.router.current_view().elements();
-                for el in &elements {
-                    el.render(&mut ctx, &self.font, &self.sprites);
+                if self.router.current_view().requires_legacy_framebuffer() {
+                    self.render_legacy_black_frame(&elements)?;
+                } else {
+                    self.render_gpu_frame(&elements, None)?;
                 }
-                self.router
-                    .current_view()
-                    .render_snow(&mut self.framebuffer);
-                self.renderer.blit(&self.framebuffer);
-                self.renderer.present_legacy()?;
             }
         }
         self.renderer.wait_frame();
         Ok(())
     }
 
-    /// Render a frame using the GPU background (MAIN.png).
-    /// Fillbox and Box elements are drawn directly via SDL2 when no
-    /// later FillArea may read the indexed framebuffer; otherwise
-    /// they fall back to the legacy CPU path so FillArea sees them.
-    fn render_main_png_frame(&mut self, elements: &[Element]) -> Result<(), String> {
+    /// Render elements via GPU with an optional background texture.
+    /// Pass `Some(texture_id)` for MAIN.png background, or `None` for black.
+    /// FillArea-dependent elements fall back to the legacy indexed framebuffer.
+    fn render_gpu_frame(
+        &mut self,
+        elements: &[Element],
+        background: Option<TextureId>,
+    ) -> Result<(), String> {
         self.renderer.begin_frame();
-        self.renderer.draw_texture(self.main_background, None, None)?;
+        if let Some(bg) = background {
+            self.renderer.draw_texture(bg, None, None)?;
+        }
 
         self.framebuffer.fill(0);
         let mut dirty = false;
         let mut remaining_fill_areas = count_fill_areas(elements);
 
         for el in elements {
-            self.render_main_png_element(el, &mut dirty, &mut remaining_fill_areas)?;
+            self.render_gpu_element(el, &mut dirty, &mut remaining_fill_areas)?;
         }
 
         if dirty {
@@ -367,11 +366,11 @@ impl Game {
         Ok(())
     }
 
-    /// Recursively process a single element for the MainPng GPU path.
+    /// Recursively process a single element for the GPU rendering path.
     /// `remaining_fill_areas` tracks how many FillArea elements remain
-    /// later in the element tree. When > 0, Fillbox/Box must render
+    /// later in the element tree. When > 0, certain elements must render
     /// into the legacy framebuffer so FillArea can read them.
-    fn render_main_png_element(
+    fn render_gpu_element(
         &mut self,
         element: &Element,
         dirty: &mut bool,
@@ -382,12 +381,12 @@ impl Game {
                 self.render_into_framebuffer(element, dirty);
             }
             Element::Fillbox { x, y, w, h, color } => {
-                self.flush_main_png_overlay_if_dirty(dirty)?;
+                self.flush_gpu_overlay_if_dirty(dirty)?;
                 self.renderer
                     .draw_indexed_fill_rect(*x, *y, *w, *h, *color)?;
             }
             Element::Box { x, y, w, h, color } => {
-                self.flush_main_png_overlay_if_dirty(dirty)?;
+                self.flush_gpu_overlay_if_dirty(dirty)?;
                 self.renderer
                     .draw_indexed_box(*x, *y, *w, *h, *color)?;
             }
@@ -397,7 +396,7 @@ impl Game {
             }
             Element::Container(children) => {
                 for child in children {
-                    self.render_main_png_element(child, dirty, remaining_fill_areas)?;
+                    self.render_gpu_element(child, dirty, remaining_fill_areas)?;
                 }
             }
             Element::Text {
@@ -408,7 +407,7 @@ impl Game {
                 right,
                 center,
             } if *remaining_fill_areas == 0 => {
-                self.flush_main_png_overlay_if_dirty(dirty)?;
+                self.flush_gpu_overlay_if_dirty(dirty)?;
                 let text_w = self.font.string_width(text) as i32;
                 let fx = if *center {
                     x - text_w / 2
@@ -428,7 +427,7 @@ impl Game {
                 }
             }
             Element::Sprite(idx, x, y) if *remaining_fill_areas == 0 => {
-                self.flush_main_png_overlay_if_dirty(dirty)?;
+                self.flush_gpu_overlay_if_dirty(dirty)?;
                 if let Some(sprite) = self.sprites.get(*idx as usize) {
                     if let Some(bitmap) = sprite.render_bitmap(*x, *y) {
                         self.renderer.draw_indexed_overlay_pixels(
@@ -442,7 +441,7 @@ impl Game {
                 }
             }
             Element::SpriteRemapped(idx, x, y, remap) if *remaining_fill_areas == 0 => {
-                self.flush_main_png_overlay_if_dirty(dirty)?;
+                self.flush_gpu_overlay_if_dirty(dirty)?;
                 if let Some(sprite) = self.sprites.get(*idx as usize) {
                     if let Some(bitmap) = sprite.render_bitmap_with_remap(*x, *y, remap) {
                         self.renderer.draw_indexed_overlay_pixels(
@@ -456,7 +455,7 @@ impl Game {
                 }
             }
             Element::Image(pixels, w, h) if *remaining_fill_areas == 0 => {
-                self.flush_main_png_overlay_if_dirty(dirty)?;
+                self.flush_gpu_overlay_if_dirty(dirty)?;
                 if let Some(bitmap) = render_image_bitmap(pixels, *w, *h) {
                     self.renderer.draw_indexed_overlay_pixels(
                         &bitmap.pixels,
@@ -468,7 +467,7 @@ impl Game {
                 }
             }
             Element::ImageRegion(region) if *remaining_fill_areas == 0 => {
-                self.flush_main_png_overlay_if_dirty(dirty)?;
+                self.flush_gpu_overlay_if_dirty(dirty)?;
                 if let Some(bitmap) = render_image_region_bitmap(region) {
                     self.renderer.draw_indexed_overlay_pixels(
                         &bitmap.pixels,
@@ -491,7 +490,7 @@ impl Game {
     }
 
     /// Flush the legacy overlay if dirty, then clear the framebuffer.
-    fn flush_main_png_overlay_if_dirty(&mut self, dirty: &mut bool) -> Result<(), String> {
+    fn flush_gpu_overlay_if_dirty(&mut self, dirty: &mut bool) -> Result<(), String> {
         if *dirty {
             self.renderer
                 .draw_legacy_framebuffer_overlay(&self.framebuffer)?;
@@ -509,6 +508,19 @@ impl Game {
         let mut ctx = PaintCtx::new(&mut self.framebuffer, WIDTH, HEIGHT);
         element.render(&mut ctx, &self.font, &self.sprites);
         *dirty = true;
+    }
+
+    /// Legacy CPU-only rendering path for views that need the indexed
+    /// framebuffer (snow effects, custom pixel manipulation).
+    fn render_legacy_black_frame(&mut self, elements: &[Element]) -> Result<(), String> {
+        self.framebuffer.fill(0);
+        let mut ctx = PaintCtx::new(&mut self.framebuffer, WIDTH, HEIGHT);
+        for el in elements {
+            el.render(&mut ctx, &self.font, &self.sprites);
+        }
+        self.router.current_view().render_snow(&mut self.framebuffer);
+        self.renderer.blit(&self.framebuffer);
+        self.renderer.present_legacy()
     }
 }
 

@@ -150,4 +150,8 @@ impl View<RouteTarget> for TrainingJumpView {
             self.scene.borrow().apply_palette(palette);
         }
     }
+
+    fn requires_legacy_framebuffer(&self) -> bool {
+        true
+    }
 }
