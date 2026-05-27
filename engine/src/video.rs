@@ -13,9 +13,11 @@ pub struct TextureId(u32);
 pub struct Renderer {
     canvas: sdl2::render::WindowCanvas,
     overlay_rgba: Vec<u8>,
+    scratch_rgba: Vec<u8>,
     palette: Palette,
     last_tick: Instant,
     frame_texture: Texture,
+    scratch_texture: Texture,
     textures: HashMap<TextureId, Texture>,
     next_texture_id: u32,
 }
@@ -51,12 +53,24 @@ impl Renderer {
             .map_err(|e| e.to_string())?;
         frame_texture.set_blend_mode(BlendMode::Blend);
 
+        let mut scratch_texture = tc
+            .create_texture(
+                PixelFormatEnum::ABGR8888,
+                sdl2::render::TextureAccess::Streaming,
+                WIDTH,
+                HEIGHT,
+            )
+            .map_err(|e| e.to_string())?;
+        scratch_texture.set_blend_mode(BlendMode::Blend);
+
         Ok(Self {
             canvas,
             overlay_rgba: vec![0u8; (WIDTH * HEIGHT * 4) as usize],
+            scratch_rgba: Vec::new(),
             palette: Palette::new(),
             last_tick: Instant::now(),
             frame_texture,
+            scratch_texture,
             textures: HashMap::new(),
             next_texture_id: 1,
         })
@@ -229,10 +243,9 @@ impl Renderer {
 
     // Indexed overlay upload -------------------------------------------------
 
-    /// Upload a small indexed pixel buffer as an ABGR8888 texture and draw it.
-    /// Index 0 becomes fully transparent; other indices are opaque via the
-    /// current palette. This creates and destroys a temporary texture each
-    /// call -- acceptable for occasional use (text rendering, sprites).
+    /// Convert indexed pixels to RGBA and draw via the reusable scratch
+    /// texture.  Index 0 becomes fully transparent; other indices are
+    /// opaque via the current palette.
     pub fn draw_indexed_overlay_pixels(
         &mut self,
         pixels: &[u8],
@@ -241,37 +254,43 @@ impl Renderer {
         x: i32,
         y: i32,
     ) -> Result<(), String> {
-        let mut rgba = Vec::with_capacity(pixels.len() * 4);
-        for &idx in pixels {
-            if idx == 0 {
-                rgba.extend_from_slice(&[0, 0, 0, 0]);
-            } else {
-                let [r6, g6, b6] = self.palette.color(idx as usize);
-                rgba.push((r6 as u32 * 255 / 63) as u8);
-                rgba.push((g6 as u32 * 255 / 63) as u8);
-                rgba.push((b6 as u32 * 255 / 63) as u8);
-                rgba.push(255);
-            }
-        }
-
-        let tc = self.canvas.texture_creator();
-        let mut texture = tc
-            .create_texture(
-                PixelFormatEnum::ABGR8888,
-                sdl2::render::TextureAccess::Static,
-                width,
-                height,
+        self.scratch_rgba.clear();
+        indexed_pixels_to_rgba(pixels, &self.palette, &mut self.scratch_rgba);
+        self.scratch_texture
+            .update(
+                Some(Rect::new(0, 0, width, height)),
+                &self.scratch_rgba,
+                (width * 4) as usize,
             )
-            .map_err(|e| e.to_string())?;
-        texture.set_blend_mode(BlendMode::Blend);
-        texture
-            .update(None, &rgba, (width * 4) as usize)
             .map_err(|e: sdl2::render::UpdateTextureError| e.to_string())?;
-
-        self.canvas
-            .copy(&texture, None, Rect::new(x, y, width, height))?;
-
+        self.canvas.copy(
+            &self.scratch_texture,
+            Some(Rect::new(0, 0, width, height)),
+            Rect::new(x, y, width, height),
+        )?;
         Ok(())
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Indexed conversion helper (testable without SDL)
+// ---------------------------------------------------------------------------
+
+/// Convert a slice of indexed pixels to ABGR8888 RGBA bytes.
+/// Index 0 → transparent `[0,0,0,0]`; other indices are opaque palette colours
+/// scaled from 6‑bit to 8‑bit.
+pub fn indexed_pixels_to_rgba(pixels: &[u8], palette: &Palette, out: &mut Vec<u8>) {
+    out.reserve(pixels.len() * 4);
+    for &idx in pixels {
+        if idx == 0 {
+            out.extend_from_slice(&[0, 0, 0, 0]);
+        } else {
+            let [r6, g6, b6] = palette.color(idx as usize);
+            out.push((r6 as u32 * 255 / 63) as u8);
+            out.push((g6 as u32 * 255 / 63) as u8);
+            out.push((b6 as u32 * 255 / 63) as u8);
+            out.push(255);
+        }
     }
 }
 
@@ -349,6 +368,47 @@ fn dither_rect_rgba(
 mod tests {
     use super::*;
     use crate::consts::{FILL_BRIGHTEN, SHADOW_PIXEL, TILE_H, TILE_W};
+
+    #[test]
+    fn indexed_to_rgba_zero_transparent() {
+        let mut palette = Palette::new();
+        palette.set(0, [10, 20, 30]);
+        let mut out = Vec::new();
+        indexed_pixels_to_rgba(&[0, 0, 0], &palette, &mut out);
+        assert_eq!(out, vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+    }
+
+    #[test]
+    fn indexed_to_rgba_nonzero_opaque() {
+        let mut palette = Palette::new();
+        palette.set(7, [10, 20, 30]); // 6-bit values
+        let mut out = Vec::new();
+        indexed_pixels_to_rgba(&[7], &palette, &mut out);
+        // 10*255/63 ≈ 40, 20*255/63 ≈ 80, 30*255/63 ≈ 121
+        assert_eq!(out, vec![40, 80, 121, 255]);
+    }
+
+    #[test]
+    fn indexed_to_rgba_mixed() {
+        let mut palette = Palette::new();
+        palette.set(1, [63, 0, 0]);   // max red 6-bit
+        palette.set(2, [0, 63, 0]);   // max green
+        let mut out = Vec::new();
+        indexed_pixels_to_rgba(&[0, 1, 2], &palette, &mut out);
+        // 0 → transparent, 1 → red-ish, 2 → green-ish
+        assert_eq!(out.len(), 12);
+        assert_eq!(&out[0..4], &[0, 0, 0, 0]);       // idx 0
+        assert_eq!(&out[4..8], &[255, 0, 0, 255]);   // idx 1: 63*255/63 = 255
+        assert_eq!(&out[8..12], &[0, 255, 0, 255]);  // idx 2
+    }
+
+    #[test]
+    fn indexed_to_rgba_empty_input() {
+        let palette = Palette::new();
+        let mut out = Vec::new();
+        indexed_pixels_to_rgba(&[], &palette, &mut out);
+        assert!(out.is_empty());
+    }
 
     fn make_pattern() -> Vec<u8> {
         let mut d = vec![0u8; (TILE_W * TILE_H) as usize];
