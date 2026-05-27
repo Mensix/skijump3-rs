@@ -26,7 +26,10 @@ use engine::consts::{HEIGHT, WIDTH};
 use engine::input::Input;
 use engine::palette::Palette;
 use engine::sprite::SpriteData;
-use engine::ui::{BackgroundMode, Element, Font, PaintCtx, Router, View};
+use engine::ui::{
+    BackgroundMode, Element, Font, PaintCtx, Router, View,
+    render_image_bitmap, render_image_region_bitmap,
+};
 use engine::video::{Renderer, TextureId};
 use route::RouteTarget;
 use std::rc::Rc;
@@ -450,6 +453,30 @@ impl Game {
                             bitmap.y,
                         )?;
                     }
+                }
+            }
+            Element::Image(pixels, w, h) if *remaining_fill_areas == 0 => {
+                self.flush_main_png_overlay_if_dirty(dirty)?;
+                if let Some(bitmap) = render_image_bitmap(pixels, *w, *h) {
+                    self.renderer.draw_indexed_overlay_pixels(
+                        &bitmap.pixels,
+                        bitmap.width,
+                        bitmap.height,
+                        bitmap.x,
+                        bitmap.y,
+                    )?;
+                }
+            }
+            Element::ImageRegion(region) if *remaining_fill_areas == 0 => {
+                self.flush_main_png_overlay_if_dirty(dirty)?;
+                if let Some(bitmap) = render_image_region_bitmap(region) {
+                    self.renderer.draw_indexed_overlay_pixels(
+                        &bitmap.pixels,
+                        bitmap.width,
+                        bitmap.height,
+                        bitmap.x,
+                        bitmap.y,
+                    )?;
                 }
             }
             _ => {

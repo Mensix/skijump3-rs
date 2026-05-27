@@ -8,7 +8,9 @@ pub mod text;
 pub mod text_edit;
 
 pub use blinker::Blinker;
-pub use element::{Element, ImageRegion};
+pub use element::{
+    Element, ImageRegion, IndexedBitmap, render_image_bitmap, render_image_region_bitmap,
+};
 pub use paint::PaintCtx;
 pub use router::{BackgroundMode, Event, Key, Router, View};
 pub use selection::SelectionState;
