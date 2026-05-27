@@ -1,6 +1,9 @@
+use std::collections::hash_map::Entry;
+use std::collections::HashMap;
+
 use crate::atlas::Atlas;
 use crate::consts::{FILL_RANGE_MAX, PATTERN_SPRITE, SHADOW_PIXEL};
-use crate::sprite::SpriteData;
+use crate::sprite::{SpriteColorRemap, SpriteData};
 use crate::ui::{render_image_bitmap, render_image_region_bitmap, Element, Font};
 use crate::video::{Renderer, TextureId};
 
@@ -13,10 +16,31 @@ struct DitherRect {
     is_box: bool,
 }
 
+// ---------------------------------------------------------------------------
+// Remapped sprite RGBA cache
+// ---------------------------------------------------------------------------
+
+#[derive(Clone, PartialEq, Eq, Hash)]
+struct RemappedSpriteCacheKey {
+    sprite_idx: u16,
+    remap: SpriteColorRemap,
+    palette_revision: u64,
+}
+
+struct RemappedSpriteCacheEntry {
+    texture_id: TextureId,
+    center_x: i8,
+    center_y: i8,
+    width: u16,
+    height: u16,
+}
+
 /// Persistent context for element rendering.  Owns reusable per-frame
 /// scratch state so temporary allocations do not escape each frame.
 pub struct ElementRenderContext {
     pending_dither_rects: Vec<DitherRect>,
+    remapped_sprite_cache: HashMap<RemappedSpriteCacheKey, RemappedSpriteCacheEntry>,
+    remapped_rgba_scratch: Vec<u8>,
 }
 
 impl Default for ElementRenderContext {
@@ -29,6 +53,8 @@ impl ElementRenderContext {
     pub fn new() -> Self {
         Self {
             pending_dither_rects: Vec::new(),
+            remapped_sprite_cache: HashMap::new(),
+            remapped_rgba_scratch: Vec::new(),
         }
     }
 
@@ -48,6 +74,8 @@ impl ElementRenderContext {
             sprites,
             sprite_atlas,
             pending_dither_rects: &mut self.pending_dither_rects,
+            remapped_sprite_cache: &mut self.remapped_sprite_cache,
+            remapped_rgba_scratch: &mut self.remapped_rgba_scratch,
         };
         ew.render_frame(elements, background)
     }
@@ -63,6 +91,8 @@ struct ElementWorker<'a> {
     sprites: &'a [SpriteData],
     sprite_atlas: Option<&'a Atlas>,
     pending_dither_rects: &'a mut Vec<DitherRect>,
+    remapped_sprite_cache: &'a mut HashMap<RemappedSpriteCacheKey, RemappedSpriteCacheEntry>,
+    remapped_rgba_scratch: &'a mut Vec<u8>,
 }
 
 impl<'a> ElementWorker<'a> {
@@ -203,14 +233,70 @@ impl<'a> ElementWorker<'a> {
             }
             Element::SpriteRemapped(idx, x, y, remap) => {
                 if let Some(sprite) = self.sprites.get(*idx as usize) {
-                    if let Some(bitmap) = sprite.render_bitmap_with_remap(*x, *y, remap) {
-                        self.renderer.draw_indexed_overlay_pixels(
-                            &bitmap.pixels,
-                            bitmap.width,
-                            bitmap.height,
-                            bitmap.x,
-                            bitmap.y,
-                        )?;
+                    let key = RemappedSpriteCacheKey {
+                        sprite_idx: *idx,
+                        remap: remap.clone(),
+                        palette_revision: self.renderer.palette_revision(),
+                    };
+
+                    match self.remapped_sprite_cache.entry(key) {
+                        Entry::Occupied(o) => {
+                            let e = o.get();
+                            let dst_x = *x as i32 - e.center_x as i32;
+                            let dst_y = *y as i32 - e.center_y as i32;
+                            self.renderer.draw_texture(
+                                e.texture_id,
+                                None,
+                                Some(sdl2::rect::Rect::new(
+                                    dst_x,
+                                    dst_y,
+                                    e.width as u32,
+                                    e.height as u32,
+                                )),
+                            )?;
+                        }
+                        Entry::Vacant(v) => {
+                            self.remapped_rgba_scratch.clear();
+                            crate::video::indexed::remapped_sprite_to_rgba(
+                                &sprite.data,
+                                sprite.width,
+                                sprite.height,
+                                self.renderer.palette(),
+                                remap,
+                                &mut self.remapped_rgba_scratch,
+                            );
+
+                            // Only create a texture when at least one opaque
+                            // pixel exists (saves a GPU upload for invisible
+                            // animation frames / fully-transparent sprites).
+                            if self.remapped_rgba_scratch.iter().any(|&b| b != 0) {
+                                let tex_id = self.renderer.create_rgba_texture(
+                                    &self.remapped_rgba_scratch,
+                                    sprite.width as u32,
+                                    sprite.height as u32,
+                                )?;
+                                let e = RemappedSpriteCacheEntry {
+                                    texture_id: tex_id,
+                                    center_x: sprite.center_x,
+                                    center_y: sprite.center_y,
+                                    width: sprite.width,
+                                    height: sprite.height,
+                                };
+                                let dst_x = *x as i32 - e.center_x as i32;
+                                let dst_y = *y as i32 - e.center_y as i32;
+                                self.renderer.draw_texture(
+                                    e.texture_id,
+                                    None,
+                                    Some(sdl2::rect::Rect::new(
+                                        dst_x,
+                                        dst_y,
+                                        e.width as u32,
+                                        e.height as u32,
+                                    )),
+                                )?;
+                                v.insert(e);
+                            }
+                        }
                     }
                 }
             }

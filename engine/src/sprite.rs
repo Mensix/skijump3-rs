@@ -10,7 +10,7 @@ pub struct SpriteData {
     pub center_y: i8,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SpriteColorRemap {
     pairs: Vec<(u8, u8)>,
 }
@@ -18,6 +18,10 @@ pub struct SpriteColorRemap {
 impl SpriteColorRemap {
     pub fn new(pairs: Vec<(u8, u8)>) -> Self {
         Self { pairs }
+    }
+
+    pub fn pairs(&self) -> &[(u8, u8)] {
+        &self.pairs
     }
 
     pub fn map(&self, pixel: u8) -> u8 {
