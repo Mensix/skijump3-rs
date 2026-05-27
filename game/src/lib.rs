@@ -327,18 +327,18 @@ impl Game {
             .current_view()
             .render_snow(&mut self.framebuffer);
 
-        self.renderer.begin_frame();
         match self.router.current_view().gpu_background() {
             BackgroundMode::MainPng => {
+                self.renderer.begin_frame();
                 self.renderer.draw_texture(self.main_background, None, None)?;
                 self.renderer.draw_legacy_framebuffer_overlay(&self.framebuffer)?;
+                self.renderer.end_frame();
             }
             BackgroundMode::NoneBlack => {
                 self.renderer.blit(&self.framebuffer);
                 self.renderer.present_legacy()?;
             }
         }
-        self.renderer.end_frame();
         self.renderer.wait_frame();
         Ok(())
     }
