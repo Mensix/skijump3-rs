@@ -479,7 +479,11 @@ impl Game {
                     )?;
                 }
             }
-            _ => {
+            Element::Text { .. }
+            | Element::Sprite(..)
+            | Element::SpriteRemapped(..)
+            | Element::Image(..)
+            | Element::ImageRegion(..) => {
                 self.render_into_framebuffer(element, dirty);
             }
         }
