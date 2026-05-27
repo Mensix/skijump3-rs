@@ -1,3 +1,4 @@
+pub mod bitmap;
 pub mod consts;
 pub mod input;
 pub mod palette;

@@ -1,3 +1,4 @@
+use crate::bitmap::IndexedBitmap;
 use crate::consts::{HEIGHT, WIDTH};
 
 #[derive(Debug, Clone)]
@@ -7,16 +8,6 @@ pub struct SpriteData {
     pub height: u16,
     pub center_x: i8,
     pub center_y: i8,
-}
-
-/// Indexed-color pixel bitmap produced by `render_bitmap` / `render_bitmap_with_remap`.
-/// Index 0 is transparent; other indices use the current palette.
-pub struct SpriteBitmap {
-    pub pixels: Vec<u8>,
-    pub x: i32,
-    pub y: i32,
-    pub width: u32,
-    pub height: u32,
 }
 
 #[derive(Debug, Clone)]
@@ -91,7 +82,7 @@ impl SpriteData {
     /// Render sprite to a minimal indexed bitmap suitable for GPU upload.
     /// Returns `None` when the sprite is fully off-screen or has no
     /// non-zero visible pixels.
-    pub fn render_bitmap(&self, dst_x: i32, dst_y: i32) -> Option<SpriteBitmap> {
+    pub fn render_bitmap(&self, dst_x: i32, dst_y: i32) -> Option<IndexedBitmap> {
         self.render_bitmap_impl(dst_x, dst_y, None)
     }
 
@@ -101,7 +92,7 @@ impl SpriteData {
         dst_x: i32,
         dst_y: i32,
         remap: &SpriteColorRemap,
-    ) -> Option<SpriteBitmap> {
+    ) -> Option<IndexedBitmap> {
         self.render_bitmap_impl(dst_x, dst_y, Some(remap))
     }
 
@@ -110,7 +101,7 @@ impl SpriteData {
         dst_x: i32,
         dst_y: i32,
         remap: Option<&SpriteColorRemap>,
-    ) -> Option<SpriteBitmap> {
+    ) -> Option<IndexedBitmap> {
         let start_x = dst_x - self.center_x as i32;
         let start_y = dst_y - self.center_y as i32;
 
@@ -163,7 +154,7 @@ impl SpriteData {
             return None;
         }
 
-        Some(SpriteBitmap {
+        Some(IndexedBitmap {
             pixels,
             x: vis_left,
             y: vis_top,
@@ -275,7 +266,7 @@ mod tests {
     }
 
     // ---------------------------------------------------------------------------
-    // SpriteBitmap rendering tests
+    // IndexedBitmap rendering tests
     // ---------------------------------------------------------------------------
 
     #[test]

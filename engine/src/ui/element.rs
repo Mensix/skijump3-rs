@@ -3,6 +3,7 @@ use crate::ui::paint::PaintCtx;
 use crate::ui::Font;
 use std::rc::Rc;
 
+use crate::bitmap::IndexedBitmap;
 use crate::consts::{FILL_BRIGHTEN, FILL_RANGE_MAX, HEIGHT, PATTERN_SPRITE, SHADOW_PIXEL, TILE_H, TILE_W, WIDTH};
 
 #[derive(Debug, Clone)]
@@ -218,17 +219,6 @@ impl Element {
     pub fn container(children: Vec<Element>) -> Self {
         Self::Container(children)
     }
-}
-
-/// A bitmap of indexed-color pixels for GPU overlay drawing.
-/// Fields are intentionally compatible with TextBitmap and SpriteBitmap.
-#[derive(Debug, Clone)]
-pub struct IndexedBitmap {
-    pub pixels: Vec<u8>,
-    pub x: i32,
-    pub y: i32,
-    pub width: u32,
-    pub height: u32,
 }
 
 #[cfg(test)]

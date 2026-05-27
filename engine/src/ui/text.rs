@@ -1,15 +1,6 @@
+use crate::bitmap::IndexedBitmap;
 use crate::consts::{FONT_GLYPH_COUNT, HEIGHT, SHADOW_PIXEL, WIDTH};
 use crate::sprite::SpriteData;
-
-/// Indexed-color pixel bitmap rendered by `render_string_bitmap`.
-/// Index 0 is transparent; all other indices use the current palette.
-pub struct TextBitmap {
-    pub pixels: Vec<u8>,
-    pub x: i32,
-    pub y: i32,
-    pub width: u32,
-    pub height: u32,
-}
 
 fn blit_glyph_color(
     g: &SpriteData,
@@ -133,7 +124,7 @@ impl Font {
         x: i32,
         y: i32,
         color: u8,
-    ) -> Option<TextBitmap> {
+    ) -> Option<IndexedBitmap> {
         // First pass: compute bounding box of all glyphs
         let mut min_x = i32::MAX;
         let mut min_y = i32::MAX;
@@ -244,7 +235,7 @@ impl Font {
             }
         }
 
-        Some(TextBitmap {
+        Some(IndexedBitmap {
             pixels,
             x: bitmap_x,
             y: bitmap_y,
@@ -294,7 +285,7 @@ impl Default for Font {
 }
 
 // ---------------------------------------------------------------------------
-// Unit tests for TextBitmap rendering
+// Unit tests for IndexedBitmap rendering
 // ---------------------------------------------------------------------------
 
 #[cfg(test)]
