@@ -188,6 +188,53 @@ impl Renderer {
         Ok(())
     }
 
+    // Indexed-color rect drawing for GPU path -------------------------------
+
+    /// Draw a filled rectangle using a palette index.
+    /// Clips to (WIDTH, HEIGHT). Negative w/h are treated as zero.
+    pub fn draw_indexed_fill_rect(
+        &mut self,
+        x: i32,
+        y: i32,
+        w: i32,
+        h: i32,
+        color: u8,
+    ) -> Result<(), String> {
+        let x = x.max(0);
+        let y = y.max(0);
+        let w = w.min(WIDTH as i32 - x).max(0);
+        let h = h.min(HEIGHT as i32 - y).max(0);
+        if w <= 0 || h <= 0 {
+            return Ok(());
+        }
+        let [r6, g6, b6] = self.palette.color(color as usize);
+        let r = (r6 as u32 * 255 / 63) as u8;
+        let g = (g6 as u32 * 255 / 63) as u8;
+        let b = (b6 as u32 * 255 / 63) as u8;
+        self.canvas
+            .set_draw_color(sdl2::pixels::Color::RGB(r, g, b));
+        self.canvas
+            .fill_rect(Rect::new(x, y, w as u32, h as u32))?;
+        Ok(())
+    }
+
+    /// Draw a 1-pixel-wide outlined rectangle using a palette index.
+    /// Implemented as four fill_rect calls (matches old CPU `Box` behavior).
+    pub fn draw_indexed_box(
+        &mut self,
+        x: i32,
+        y: i32,
+        w: i32,
+        h: i32,
+        color: u8,
+    ) -> Result<(), String> {
+        self.draw_indexed_fill_rect(x, y, w, 1, color)?;
+        self.draw_indexed_fill_rect(x, y + h - 1, w, 1, color)?;
+        self.draw_indexed_fill_rect(x, y, 1, h, color)?;
+        self.draw_indexed_fill_rect(x + w - 1, y, 1, h, color)?;
+        Ok(())
+    }
+
     // Internal helpers -------------------------------------------------------
 
     fn indexed_to_opaque_rgba(&mut self) {

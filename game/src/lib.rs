@@ -26,7 +26,7 @@ use engine::consts::{HEIGHT, WIDTH};
 use engine::input::Input;
 use engine::palette::Palette;
 use engine::sprite::SpriteData;
-use engine::ui::{BackgroundMode, Font, PaintCtx, Router, View};
+use engine::ui::{BackgroundMode, Element, Font, PaintCtx, Router, View};
 use engine::video::{Renderer, TextureId};
 use route::RouteTarget;
 use std::rc::Rc;
@@ -317,30 +317,178 @@ impl Game {
         };
         self.renderer.set_palette(palette);
 
-        self.framebuffer.fill(0);
-        let mut ctx = PaintCtx::new(&mut self.framebuffer, WIDTH, HEIGHT);
-        let elements = self.router.current_view().elements();
-        for el in &elements {
-            el.render(&mut ctx, &self.font, &self.sprites);
-        }
-        self.router
-            .current_view()
-            .render_snow(&mut self.framebuffer);
-
         match self.router.current_view().gpu_background() {
             BackgroundMode::MainPng => {
-                self.renderer.begin_frame();
-                self.renderer.draw_texture(self.main_background, None, None)?;
-                self.renderer.draw_legacy_framebuffer_overlay(&self.framebuffer)?;
-                self.renderer.end_frame();
+                let elements = self.router.current_view().elements();
+                self.render_main_png_frame(&elements)?;
             }
             BackgroundMode::NoneBlack => {
+                self.framebuffer.fill(0);
+                let mut ctx = PaintCtx::new(&mut self.framebuffer, WIDTH, HEIGHT);
+                let elements = self.router.current_view().elements();
+                for el in &elements {
+                    el.render(&mut ctx, &self.font, &self.sprites);
+                }
+                self.router
+                    .current_view()
+                    .render_snow(&mut self.framebuffer);
                 self.renderer.blit(&self.framebuffer);
                 self.renderer.present_legacy()?;
             }
         }
         self.renderer.wait_frame();
         Ok(())
+    }
+
+    /// Render a frame using the GPU background (MAIN.png).
+    /// Fillbox and Box elements are drawn directly via SDL2 when no
+    /// later FillArea may read the indexed framebuffer; otherwise
+    /// they fall back to the legacy CPU path so FillArea sees them.
+    fn render_main_png_frame(&mut self, elements: &[Element]) -> Result<(), String> {
+        self.renderer.begin_frame();
+        self.renderer.draw_texture(self.main_background, None, None)?;
+
+        self.framebuffer.fill(0);
+        let mut dirty = false;
+        let mut remaining_fill_areas = count_fill_areas(elements);
+
+        for el in elements {
+            self.render_main_png_element(el, &mut dirty, &mut remaining_fill_areas)?;
+        }
+
+        if dirty {
+            self.renderer.draw_legacy_framebuffer_overlay(&self.framebuffer)?;
+        }
+
+        self.renderer.end_frame();
+        Ok(())
+    }
+
+    /// Recursively process a single element for the MainPng GPU path.
+    /// `remaining_fill_areas` tracks how many FillArea elements remain
+    /// later in the element tree. When > 0, Fillbox/Box must render
+    /// into the legacy framebuffer so FillArea can read them.
+    fn render_main_png_element(
+        &mut self,
+        element: &Element,
+        dirty: &mut bool,
+        remaining_fill_areas: &mut usize,
+    ) -> Result<(), String> {
+        match element {
+            Element::Fillbox { .. } | Element::Box { .. } if *remaining_fill_areas > 0 => {
+                self.render_into_framebuffer(element, dirty);
+            }
+            Element::Fillbox { x, y, w, h, color } => {
+                self.flush_main_png_overlay_if_dirty(dirty)?;
+                self.renderer
+                    .draw_indexed_fill_rect(*x, *y, *w, *h, *color)?;
+            }
+            Element::Box { x, y, w, h, color } => {
+                self.flush_main_png_overlay_if_dirty(dirty)?;
+                self.renderer
+                    .draw_indexed_box(*x, *y, *w, *h, *color)?;
+            }
+            Element::FillArea { .. } => {
+                self.render_into_framebuffer(element, dirty);
+                *remaining_fill_areas = remaining_fill_areas.saturating_sub(1);
+            }
+            Element::Container(children) => {
+                for child in children {
+                    self.render_main_png_element(child, dirty, remaining_fill_areas)?;
+                }
+            }
+            _ => {
+                self.render_into_framebuffer(element, dirty);
+            }
+        }
+        Ok(())
+    }
+
+    /// Flush the legacy overlay if dirty, then clear the framebuffer.
+    fn flush_main_png_overlay_if_dirty(&mut self, dirty: &mut bool) -> Result<(), String> {
+        if *dirty {
+            self.renderer
+                .draw_legacy_framebuffer_overlay(&self.framebuffer)?;
+            self.framebuffer.fill(0);
+            *dirty = false;
+        }
+        Ok(())
+    }
+
+    /// Render an element into the legacy indexed framebuffer.
+    fn render_into_framebuffer(&mut self, element: &Element, dirty: &mut bool) {
+        if !*dirty {
+            self.framebuffer.fill(0);
+        }
+        let mut ctx = PaintCtx::new(&mut self.framebuffer, WIDTH, HEIGHT);
+        element.render(&mut ctx, &self.font, &self.sprites);
+        *dirty = true;
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Helper functions for GPU-render element processing
+// ---------------------------------------------------------------------------
+
+/// Count how many `FillArea` elements exist in an element tree.
+/// Used to decide whether Fillbox/Box can safely use the GPU path.
+fn count_fill_areas(elements: &[Element]) -> usize {
+    elements.iter().map(|el| count_fill_areas_in_element(el)).sum()
+}
+
+fn count_fill_areas_in_element(element: &Element) -> usize {
+    match element {
+        Element::FillArea { .. } => 1,
+        Element::Container(children) => count_fill_areas(children),
+        _ => 0,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn count_fill_areas_empty() {
+        assert_eq!(count_fill_areas(&[]), 0);
+    }
+
+    #[test]
+    fn count_fill_areas_no_fillareas() {
+        let els = vec![Element::fillbox(0, 0, 10, 10, 1), Element::text("hi", 0, 0, 2, false)];
+        assert_eq!(count_fill_areas(&els), 0);
+    }
+
+    #[test]
+    fn count_fill_areas_single() {
+        let els = vec![Element::fill_area(64)];
+        assert_eq!(count_fill_areas(&els), 1);
+    }
+
+    #[test]
+    fn count_fill_areas_nested_in_containers() {
+        let els = vec![
+            Element::container(vec![
+                Element::fill_area(63),
+                Element::container(vec![
+                    Element::fill_area(63),
+                    Element::fillbox(0, 0, 10, 10, 1),
+                ]),
+            ]),
+            Element::fill_area(64),
+        ];
+        assert_eq!(count_fill_areas(&els), 3);
+    }
+
+    #[test]
+    fn count_fill_areas_mixed() {
+        let els = vec![
+            Element::fillbox(0, 0, 10, 10, 1),
+            Element::text("test", 0, 0, 2, false),
+            Element::fill_area(63),
+            Element::sprite(0, 0, 0),
+        ];
+        assert_eq!(count_fill_areas(&els), 1);
     }
 }
 
