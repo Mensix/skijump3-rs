@@ -424,6 +424,34 @@ impl Game {
                     )?;
                 }
             }
+            Element::Sprite(idx, x, y) if *remaining_fill_areas == 0 => {
+                self.flush_main_png_overlay_if_dirty(dirty)?;
+                if let Some(sprite) = self.sprites.get(*idx as usize) {
+                    if let Some(bitmap) = sprite.render_bitmap(*x, *y) {
+                        self.renderer.draw_indexed_overlay_pixels(
+                            &bitmap.pixels,
+                            bitmap.width,
+                            bitmap.height,
+                            bitmap.x,
+                            bitmap.y,
+                        )?;
+                    }
+                }
+            }
+            Element::SpriteRemapped(idx, x, y, remap) if *remaining_fill_areas == 0 => {
+                self.flush_main_png_overlay_if_dirty(dirty)?;
+                if let Some(sprite) = self.sprites.get(*idx as usize) {
+                    if let Some(bitmap) = sprite.render_bitmap_with_remap(*x, *y, remap) {
+                        self.renderer.draw_indexed_overlay_pixels(
+                            &bitmap.pixels,
+                            bitmap.width,
+                            bitmap.height,
+                            bitmap.x,
+                            bitmap.y,
+                        )?;
+                    }
+                }
+            }
             _ => {
                 self.render_into_framebuffer(element, dirty);
             }
