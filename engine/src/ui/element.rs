@@ -1,10 +1,8 @@
-use crate::sprite::{SpriteColorRemap, SpriteData};
-use crate::ui::paint::PaintCtx;
-use crate::ui::Font;
+use crate::sprite::SpriteColorRemap;
 use std::rc::Rc;
 
 use crate::bitmap::IndexedBitmap;
-use crate::consts::{FILL_BRIGHTEN, FILL_RANGE_MAX, HEIGHT, PATTERN_SPRITE, SHADOW_PIXEL, TILE_H, TILE_W, WIDTH};
+use crate::consts::{HEIGHT, WIDTH};
 
 #[derive(Debug, Clone)]
 pub struct ImageRegion {
@@ -54,107 +52,6 @@ pub enum Element {
 }
 
 impl Element {
-    pub fn render(&self, ctx: &mut PaintCtx, font: &Font, sprites: &[SpriteData]) {
-        match self {
-            Element::Image(pixels, w, h) => {
-                let dst_w = ctx.width.min(*w);
-                let dst_h = ctx.height.min(*h);
-                for y in 0..dst_h {
-                    let src_row = (y as usize) * (*w as usize);
-                    let dst_row = (y as usize) * (ctx.width as usize);
-                    let src = &pixels[src_row..src_row + dst_w as usize];
-                    ctx.pixels[dst_row..dst_row + dst_w as usize].copy_from_slice(src);
-                }
-            }
-            Element::ImageRegion(region) => {
-                for y in 0..region.h as i32 {
-                    let sy = region.src_y + y;
-                    let dy = region.dst_y + y;
-                    if sy < 0 || dy < 0 || sy >= region.src_h as i32 || dy >= ctx.height as i32 {
-                        continue;
-                    }
-                    for x in 0..region.w as i32 {
-                        let sx = region.src_x + x;
-                        let dx = region.dst_x + x;
-                        if sx < 0 || dx < 0 || sx >= region.src_w as i32 || dx >= ctx.width as i32 {
-                            continue;
-                        }
-                        let src_idx = sy as usize * region.src_w as usize + sx as usize;
-                        let dst_idx = dy as usize * ctx.width as usize + dx as usize;
-                        if let Some(&pixel) = region.pixels.get(src_idx) {
-                            ctx.pixels[dst_idx] = pixel;
-                        }
-                    }
-                }
-            }
-            Element::Text {
-                text,
-                x,
-                y,
-                color,
-                right,
-                center,
-            } => {
-                let text_w = font.string_width(text) as i32;
-                let fx = if *center {
-                    x - text_w / 2
-                } else if *right {
-                    x - text_w
-                } else {
-                    *x
-                };
-                font.blit_string_color(ctx.pixels, ctx.width, text, fx, *y, *color);
-            }
-            Element::Fillbox { x, y, w, h, color } => {
-                ctx.fill_rect(*x, *y, *w, *h, *color);
-            }
-            Element::FillArea { thing } => {
-                let Some(pattern) = sprites.get(PATTERN_SPRITE) else {
-                    return;
-                };
-                for py in 0..ctx.height {
-                    for px in 0..ctx.width {
-                        let cur = ctx.pixels[(py as usize) * (ctx.width as usize) + (px as usize)];
-                        if cur <= SHADOW_PIXEL || cur > FILL_RANGE_MAX {
-                            continue;
-                        }
-                        let (ax, ay) = if *thing == 64 {
-                            ((px + 2) % TILE_W, (py + 7) % TILE_H)
-                        } else {
-                            (px % TILE_W, py % TILE_H)
-                        };
-                        let pi = (ay * TILE_W + ax) as usize;
-                        if pi < pattern.data.len() && pattern.data[pi] != 0 {
-                            let idx = (py as usize) * (ctx.width as usize) + (px as usize);
-                            ctx.pixels[idx] = cur + FILL_BRIGHTEN;
-                        }
-                    }
-                }
-            }
-            Element::Box { x, y, w, h, color } => {
-                ctx.fill_rect(*x, *y, *w, 1, *color);
-                ctx.fill_rect(*x, *y + *h - 1, *w, 1, *color);
-                ctx.fill_rect(*x, *y, 1, *h, *color);
-                ctx.fill_rect(*x + *w - 1, *y, 1, *h, *color);
-            }
-            Element::Container(children) => {
-                for child in children {
-                    child.render(ctx, font, sprites);
-                }
-            }
-            Element::Sprite(idx, x, y) => {
-                if let Some(s) = sprites.get(*idx as usize) {
-                    s.blit_to(ctx.pixels, ctx.width, *x, *y);
-                }
-            }
-            Element::SpriteRemapped(idx, x, y, remap) => {
-                if let Some(s) = sprites.get(*idx as usize) {
-                    s.blit_to_with_remap(ctx.pixels, ctx.width, *x, *y, remap);
-                }
-            }
-        }
-    }
-
     pub fn text(text: impl Into<String>, x: i32, y: i32, color: u8, right: bool) -> Self {
         Self::Text {
             text: text.into(),
@@ -258,7 +155,10 @@ mod tests {
         for y in 0..10usize {
             let src_start = y * (image_w as usize);
             let bm_start = y * (WIDTH as usize);
-            assert_eq!(bm.pixels[bm_start..bm_start + WIDTH as usize], pixels[src_start..src_start + WIDTH as usize]);
+            assert_eq!(
+                bm.pixels[bm_start..bm_start + WIDTH as usize],
+                pixels[src_start..src_start + WIDTH as usize]
+            );
         }
     }
 
@@ -367,7 +267,7 @@ mod tests {
             pixels: pixels.into(),
             src_w,
             src_h,
-            src_x: 10,  // past right edge
+            src_x: 10, // past right edge
             src_y: 0,
             dst_x: 0,
             dst_y: 0,
@@ -384,7 +284,7 @@ mod tests {
     #[test]
     fn test_render_image_bitmap_shorter_row() {
         // Image where a row has fewer bytes than WIDTH
-        let pixels = vec![10u8, 20, 30];  // 3 pixels, image claims 10x1
+        let pixels = vec![10u8, 20, 30]; // 3 pixels, image claims 10x1
         let result = render_image_bitmap(&pixels, 10, 1);
         assert!(result.is_some());
         let bm = result.unwrap();

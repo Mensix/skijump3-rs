@@ -165,7 +165,8 @@ impl JumpRunner {
             let delta_y = self.prev_camera.1 - camera.1;
             self.prev_camera = camera;
             let mut viewport = frame.viewport.to_vec();
-            self.snow.update(&mut viewport, delta_x, delta_y, wind, draw);
+            self.snow
+                .update(&mut viewport, delta_x, delta_y, wind, draw);
             frame.viewport = viewport.into();
         }
     }

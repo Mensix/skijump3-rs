@@ -117,7 +117,7 @@ impl Renderer {
     // GPU frame layering API ------------------------------------------------
 
     /// Start a new GPU frame. Clears the canvas.
-    /// Caller draws background textures, then `draw_legacy_framebuffer_overlay`.
+    /// Caller draws background textures, then `draw_indexed_overlay`.
     pub fn begin_frame(&mut self) {
         self.canvas.clear();
     }
@@ -127,9 +127,9 @@ impl Renderer {
         self.canvas.present();
     }
 
-    /// Convert the legacy indexed framebuffer to an RGBA overlay and draw it.
+    /// Convert an indexed pixel buffer to an RGBA overlay and draw it.
     /// Index 0 becomes transparent (alpha = 0); all other indices are opaque.
-    pub fn draw_legacy_framebuffer_overlay(&mut self, pixels: &[u8]) -> Result<(), String> {
+    pub fn draw_indexed_overlay(&mut self, pixels: &[u8]) -> Result<(), String> {
         self.indexed_to_overlay_rgba(pixels);
         self.frame_texture
             .update(None, &self.overlay_rgba, (WIDTH * 4) as usize)
@@ -163,8 +163,7 @@ impl Renderer {
         let b = (b6 as u32 * 255 / 63) as u8;
         self.canvas
             .set_draw_color(sdl2::pixels::Color::RGB(r, g, b));
-        self.canvas
-            .fill_rect(Rect::new(x, y, w as u32, h as u32))?;
+        self.canvas.fill_rect(Rect::new(x, y, w as u32, h as u32))?;
         Ok(())
     }
 

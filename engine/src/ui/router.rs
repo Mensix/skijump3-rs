@@ -3,7 +3,7 @@ use crate::ui::Element;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum BackgroundMode {
-    /// No GPU background — use opaque legacy framebuffer (default).
+    /// No GPU background — black canvas (default).
     NoneBlack,
     /// Draw MAIN.png as GPU background behind a transparent indexed overlay.
     MainPng,
@@ -17,8 +17,8 @@ pub trait View<T: Clone + PartialEq + 'static> {
     fn elements(&self) -> Vec<Element>;
     fn handle_event(&mut self, event: Event) -> Option<T>;
     fn apply_palette(&self, _: &mut Palette) {}
-    /// Controls how the renderer layers the GPU background and legacy overlay.
-    /// Default is `NoneBlack` (opaque legacy framebuffer, no GPU background).
+    /// Controls how the renderer layers the GPU background.
+    /// Default is `NoneBlack` (no GPU background, just black canvas).
     fn gpu_background(&self) -> BackgroundMode {
         BackgroundMode::NoneBlack
     }

@@ -2,41 +2,6 @@ use crate::bitmap::IndexedBitmap;
 use crate::consts::{FONT_GLYPH_COUNT, HEIGHT, SHADOW_PIXEL, WIDTH};
 use crate::sprite::SpriteData;
 
-fn blit_glyph_color(
-    g: &SpriteData,
-    pixels: &mut [u8],
-    screen_w: u32,
-    dst_x: i32,
-    dst_y: i32,
-    color: u8,
-) {
-    let start_x = dst_x - g.center_x as i32;
-    let start_y = dst_y - g.center_y as i32;
-    for yy in 0..g.height as i32 {
-        for xx in 0..g.width as i32 {
-            let src_idx = (yy * g.width as i32 + xx) as usize;
-            if src_idx >= g.data.len() {
-                continue;
-            }
-            let pixel = g.data[src_idx];
-            if pixel == 0 {
-                continue;
-            }
-            let px = start_x + xx;
-            let py = start_y + yy;
-            if px < 0 || py < 0 || px >= screen_w as i32 || py >= HEIGHT as i32 {
-                continue;
-            }
-            let idx = py as usize * screen_w as usize + px as usize;
-            pixels[idx] = if pixel == SHADOW_PIXEL {
-                SHADOW_PIXEL
-            } else {
-                color
-            };
-        }
-    }
-}
-
 #[derive(Debug, Clone)]
 pub struct Font {
     glyphs: Vec<Option<SpriteData>>,
@@ -59,10 +24,6 @@ impl Font {
         font
     }
 
-    pub fn blit_string(&self, pixels: &mut [u8], screen_w: u32, text: &str, x: i32, y: i32) {
-        self.blit_string_color(pixels, screen_w, text, x, y, 0);
-    }
-
     pub fn string_width(&self, text: &str) -> u32 {
         let mut w = 0u32;
         for ch in text.chars() {
@@ -79,36 +40,6 @@ impl Font {
             }
         }
         w
-    }
-
-    pub fn blit_string_color(
-        &self,
-        pixels: &mut [u8],
-        screen_w: u32,
-        text: &str,
-        x: i32,
-        y: i32,
-        color: u8,
-    ) {
-        let mut px = x;
-        for ch in text.chars() {
-            match ch {
-                ' ' => px += 4,
-                '$' => px += 5,
-                _ => {
-                    if let Some(idx) = Self::char_to_index(ch) {
-                        if let Some(ref g) = self.glyphs[idx] {
-                            if color != 0 {
-                                blit_glyph_color(g, pixels, screen_w, px, y, color);
-                            } else {
-                                g.blit_to(pixels, screen_w, px, y);
-                            }
-                            px += g.width as i32;
-                        }
-                    }
-                }
-            }
-        }
     }
 
     /// Render text into a minimal indexed bitmap suitable for GPU upload.
@@ -314,10 +245,14 @@ mod tests {
         };
         sprites[1] = SpriteData {
             data: vec![
-                2,      2,          // row 0
-                2,      2,          // row 1
-                2,      SHADOW_PIXEL, // row 2
-                2,      2,          // row 3
+                2,
+                2, // row 0
+                2,
+                2, // row 1
+                2,
+                SHADOW_PIXEL, // row 2
+                2,
+                2, // row 3
             ],
             width: 2,
             height: 4,
@@ -421,7 +356,9 @@ mod tests {
     fn bitmap_clips_to_screen_right_edge() {
         let font = make_font();
         // 'A' is 3 wide, place it at WIDTH-1 → only 1 pixel visible
-        let bm = font.render_string_bitmap("A", (WIDTH - 1) as i32, 0, 1).unwrap();
+        let bm = font
+            .render_string_bitmap("A", (WIDTH - 1) as i32, 0, 1)
+            .unwrap();
         assert_eq!(bm.width, 1);
     }
 

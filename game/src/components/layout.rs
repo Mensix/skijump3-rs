@@ -20,11 +20,7 @@ pub struct MainLayout {
 }
 
 impl MainLayout {
-    pub fn new(
-        langbase: Rc<LangBase>,
-        version: String,
-        store: StoreRef,
-    ) -> Self {
+    pub fn new(langbase: Rc<LangBase>, version: String, store: StoreRef) -> Self {
         Self {
             langbase,
             version,
@@ -34,9 +30,13 @@ impl MainLayout {
 
     #[must_use]
     pub fn background(&self) -> Vec<Element> {
-        vec![
-            Element::text(self.langbase.lstr(34), 170, 51, FONT_DEFAULT, false),
-        ]
+        vec![Element::text(
+            self.langbase.lstr(34),
+            170,
+            51,
+            FONT_DEFAULT,
+            false,
+        )]
     }
 
     #[must_use]
