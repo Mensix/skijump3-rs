@@ -74,9 +74,9 @@ impl View<RouteTarget> for JumpMenuView {
 
     fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {
         match self.menu.handle_event(&event) {
-            Some(1) => self.start_competition(CupStyle::WorldCup),
+            Some(1) => Some(self.start_competition(CupStyle::WorldCup)),
             Some(2) => Some(RouteTarget::CustomCupSetup),
-            Some(3) => self.start_competition(CupStyle::FourHills),
+            Some(3) => Some(self.start_competition(CupStyle::FourHills)),
             Some(0) => Some(RouteTarget::MainMenu),
             Some(n) => JUMP_MENU_ACTIONS.get(n - 1).and_then(|&a| a),
             _ => None,
@@ -89,7 +89,7 @@ impl View<RouteTarget> for JumpMenuView {
 }
 
 impl JumpMenuView {
-    fn start_competition(&self, style: CupStyle) -> Option<RouteTarget> {
+    fn start_competition(&self, style: CupStyle) -> RouteTarget {
         let profiles = self.store.profiles.borrow();
         let trainrounds = self.resources.save_manager.config.borrow().trainrounds;
         let comp = build_competition(
@@ -101,6 +101,6 @@ impl JumpMenuView {
         );
         drop(profiles);
         self.store.competition.start(comp);
-        Some(RouteTarget::CompetitionJump)
+        RouteTarget::CompetitionJump
     }
 }

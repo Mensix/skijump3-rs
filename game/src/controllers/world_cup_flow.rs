@@ -231,9 +231,9 @@ mod tests {
         // visible state (HumanJump for next human, or ShowResults)
         let result = drive(&mut c, &last_event, &mut simulate);
         match result {
-            WorldCupCommand::HumanJump { .. } => { /* next human is up */ }
-            WorldCupCommand::ShowResults => { /* phase is done */ }
-            WorldCupCommand::Done => { /* season over */ }
+            WorldCupCommand::HumanJump { .. }
+            | WorldCupCommand::ShowResults
+            | WorldCupCommand::Done => {}
         }
     }
 

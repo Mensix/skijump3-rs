@@ -234,8 +234,8 @@ mod tests {
 
         assert_eq!(state.phase, JumpPhase::Inrun);
         assert_eq!(state.frame, 0);
-        assert_eq!(state.travel, -45.0);
-        assert_eq!(state.px, 131.0);
+        assert!((state.travel - (-45.0)).abs() < f64::EPSILON);
+        assert!((state.px - 131.0).abs() < f64::EPSILON);
     }
 
     #[test]
@@ -253,8 +253,8 @@ mod tests {
         state.prepare_silent_computer_jump(&terrain);
         state.tick(&terrain, wind, &mut rng, true);
 
-        assert_eq!(
-            state.px, 131.0,
+        assert!(
+            (state.px - 131.0).abs() < f64::EPSILON,
             "silent path should not reset px to visible-start speed"
         );
     }

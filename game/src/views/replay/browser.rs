@@ -228,9 +228,8 @@ fn replay_panel_elements(
 }
 
 fn load_replays(files: &FileStore) -> Vec<ReplayEntry> {
-    let names = match files.list_by_ext_all("SJR") {
-        Ok(n) => n,
-        Err(_) => return Vec::new(),
+    let Ok(names) = files.list_by_ext_all("SJR") else {
+        return Vec::new();
     };
     names
         .into_iter()

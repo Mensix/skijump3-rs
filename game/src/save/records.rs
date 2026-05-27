@@ -55,6 +55,7 @@ impl RecordStore {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fmt::Write;
 
     /// Parses the bundled hiscores.toml to verify it loads correctly.
     fn bundled_store() -> RecordStore {
@@ -104,9 +105,7 @@ time = ""
         let mut toml = String::from("format_version = 1\n");
         for i in 0..50 {
             toml.push_str("[[top]]\n");
-            toml.push_str(&format!(
-                "name = \"{i}\"\npos = 1\nscore = 1\ntime = \"\"\n"
-            ));
+            write!(toml, "name = \"{i}\"\npos = 1\nscore = 1\ntime = \"\"\n").unwrap();
         }
         let result = RecordStore::from_toml_bytes(toml.as_bytes());
         let err = result.unwrap_err();
@@ -121,7 +120,7 @@ time = ""
         let mut toml = String::from("format_version = 1\n");
         for i in 0..30 {
             toml.push_str("[[hill_records]]\n");
-            toml.push_str(&format!("name = \"{i}\"\nlen = 100\ntime = \"\"\n"));
+            write!(toml, "name = \"{i}\"\nlen = 100\ntime = \"\"\n").unwrap();
         }
         let result = RecordStore::from_toml_bytes(toml.as_bytes());
         let err = result.unwrap_err();

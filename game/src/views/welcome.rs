@@ -15,24 +15,15 @@ pub struct WelcomeScreenView {
 
 impl WelcomeScreenView {
     #[must_use]
-    pub fn new(languages: Vec<String>, langbase: Rc<LangBase>, save_manager: SaveRef) -> Self {
+    pub fn new(languages: Vec<String>, langbase: &Rc<LangBase>, save_manager: SaveRef) -> Self {
         let count = languages.len();
         let mut items = Vec::with_capacity(count);
         for (i, _) in languages.iter().enumerate() {
             items.push(MenuItem::new((i + 1) as u8, 0));
         }
         Self {
-            menu: Menu::new(
-                112,
-                64,
-                100,
-                8,
-                items,
-                &langbase,
-                FONT_DEFAULT,
-                FONT_DEFAULT,
-            )
-            .with_labels(false),
+            menu: Menu::new(112, 64, 100, 8, items, langbase, FONT_DEFAULT, FONT_DEFAULT)
+                .with_labels(false),
             languages,
             save_manager,
         }

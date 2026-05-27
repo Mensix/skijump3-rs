@@ -26,7 +26,7 @@ pub fn create_router(
     let initial_view: Box<dyn View<RouteTarget>> = match &start_route {
         RouteTarget::Welcome => Box::new(WelcomeScreenView::new(
             resources.langbase.languages.clone(),
-            Rc::clone(&resources.langbase),
+            &resources.langbase,
             save_manager.clone(),
         )),
         _ => Box::new(MainMenuView::new(layout.clone(), store.clone())),
@@ -130,7 +130,7 @@ pub fn create_router(
                 Box::new(move || {
                     Box::new(WelcomeScreenView::new(
                         r.langbase.languages.clone(),
-                        Rc::clone(&r.langbase),
+                        &r.langbase,
                         sm.clone(),
                     ))
                 })

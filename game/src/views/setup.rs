@@ -123,7 +123,7 @@ impl SetupView {
         &self.resources.save_manager
     }
 
-    fn rect_bg(&self, x: i32, y: i32, w: i32, h: i32) -> Vec<Element> {
+    fn rect_bg(x: i32, y: i32, w: i32, h: i32) -> Vec<Element> {
         vec![
             Element::fillbox(x, y, w, h, 248),
             Element::fillbox(x + 1, y + 1, w - 2, h - 2, 243),
@@ -411,9 +411,7 @@ impl SetupView {
             (0, 0..=2) => {
                 self.switch_screen(item + 1);
             }
-            (0, 3) => {} // configurekeys — skip
-            (0, 4) => {} // setgoals — skip
-            (0, 5) => {} // hillmaker — skip
+            // (0, 3..=5) handled by wildcard — configurekeys, setgoals, hillmaker
             (1, 0) => {
                 let current = self.config().languagenumber;
                 let idx = if current >= 0 { current as usize } else { 0 };
@@ -497,7 +495,7 @@ impl View<RouteTarget> for SetupView {
         match self.modal.get() {
             Some(SetupModal::WindPlace(pos)) => {
                 // Pascal: choosewindplace (SJ3UNIT.PAS:2240-2281)
-                els.extend(self.rect_bg(54, 19, 222, 162));
+                els.extend(Self::rect_bg(54, 19, 222, 162));
                 els.push(Element::text(
                     self.langbase().lstr(221),
                     75,
@@ -543,7 +541,7 @@ impl View<RouteTarget> for SetupView {
             }
             Some(SetupModal::SeeComps(val)) => {
                 // Pascal: chooseseecomps (SJ3INFO.PAS:1806-1872)
-                els.extend(self.rect_bg(74, 79, 172, 54));
+                els.extend(Self::rect_bg(74, 79, 172, 54));
                 els.push(Element::text(
                     self.langbase().lstr(220),
                     85,
@@ -568,7 +566,7 @@ impl View<RouteTarget> for SetupView {
             }
             Some(SetupModal::ConfirmReset(kind)) => {
                 // Pascal: fillbox + text + Y/N
-                els.extend(self.rect_bg(69, 79, 182, 52));
+                els.extend(Self::rect_bg(69, 79, 182, 52));
                 let label = if kind == 1 {
                     self.langbase().lstr(190)
                 } else {
