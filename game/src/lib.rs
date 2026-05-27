@@ -340,6 +340,7 @@ impl Game {
         elements: &[Element],
         background: Option<TextureId>,
     ) -> Result<(), String> {
+        self.pending_dither_rects.clear();
         self.renderer.begin_frame();
         if let Some(bg) = background {
             self.renderer.draw_texture(bg, None, None)?;
@@ -368,7 +369,7 @@ impl Game {
             Element::Fillbox { x, y, w, h, color } if *remaining_fill_areas > 0 => {
                 self.renderer
                     .draw_indexed_fill_rect(*x, *y, *w, *h, *color)?;
-                if *color > SHADOW_PIXEL && *color <= FILL_RANGE_MAX {
+                if is_fill_area_dither_color(*color) {
                     self.pending_dither_rects.push(DitherRect {
                         x: *x,
                         y: *y,
@@ -381,7 +382,7 @@ impl Game {
             }
             Element::Box { x, y, w, h, color } if *remaining_fill_areas > 0 => {
                 self.renderer.draw_indexed_box(*x, *y, *w, *h, *color)?;
-                if *color > SHADOW_PIXEL && *color <= FILL_RANGE_MAX {
+                if is_fill_area_dither_color(*color) {
                     self.pending_dither_rects.push(DitherRect {
                         x: *x,
                         y: *y,
@@ -401,8 +402,6 @@ impl Game {
             }
             Element::FillArea { thing } => {
                 if let Some(pattern) = self.sprites.get(PATTERN_SPRITE) {
-                    let pw = pattern.width as u32;
-                    let ph = pattern.height as u32;
                     for dr in &self.pending_dither_rects {
                         self.renderer.dither_overlay_rect(
                             dr.x,
@@ -413,8 +412,6 @@ impl Game {
                             dr.is_box,
                             *thing,
                             &pattern.data,
-                            pw,
-                            ph,
                         )?;
                     }
                 }
@@ -529,6 +526,13 @@ fn count_fill_areas_in_element(element: &Element) -> usize {
     }
 }
 
+/// Whether a palette colour is eligible for FillArea dither brightening.
+/// Eligible colours are those in (SHADOW_PIXEL ..= FILL_RANGE_MAX],
+/// i.e. 243, 244, 245.
+fn is_fill_area_dither_color(color: u8) -> bool {
+    color > SHADOW_PIXEL && color <= FILL_RANGE_MAX
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -613,23 +617,32 @@ mod tests {
     }
 
     #[test]
-    fn eligible_color_range_check() {
-        // Colors eligible for dither: SHADOW_PIXEL < color <= FILL_RANGE_MAX
-        // i.e., 243, 244, 245
-        let eligible = [243u8, 244, 245];
-        let ineligible = [0u8, 100, SHADOW_PIXEL, FILL_RANGE_MAX + 1];
-        for &c in &eligible {
-            assert!(
-                c > SHADOW_PIXEL && c <= FILL_RANGE_MAX,
-                "color {c} should be eligible"
-            );
-        }
-        for &c in &ineligible {
-            assert!(
-                !(c > SHADOW_PIXEL && c <= FILL_RANGE_MAX),
-                "color {c} should be ineligible"
-            );
-        }
+    fn is_fill_area_dither_color_eligible() {
+        // Colors eligible for dither: 243, 244, 245
+        assert!(is_fill_area_dither_color(243));
+        assert!(is_fill_area_dither_color(244));
+        assert!(is_fill_area_dither_color(245));
+    }
+
+    #[test]
+    fn is_fill_area_dither_color_ineligible() {
+        assert!(!is_fill_area_dither_color(0));
+        assert!(!is_fill_area_dither_color(100));
+        assert!(!is_fill_area_dither_color(SHADOW_PIXEL)); // 242
+        assert!(!is_fill_area_dither_color(FILL_RANGE_MAX + 1)); // 246
+        assert!(!is_fill_area_dither_color(255));
+    }
+
+    #[test]
+    fn is_fill_area_dither_color_boundaries() {
+        // Just above SHADOW_PIXEL is eligible
+        assert!(is_fill_area_dither_color(SHADOW_PIXEL + 1)); // 243
+                                                              // SHADOW_PIXEL itself is not
+        assert!(!is_fill_area_dither_color(SHADOW_PIXEL)); // 242
+                                                           // FILL_RANGE_MAX is eligible
+        assert!(is_fill_area_dither_color(FILL_RANGE_MAX)); // 245
+                                                            // Just above is not
+        assert!(!is_fill_area_dither_color(FILL_RANGE_MAX + 1)); // 246
     }
 }
 

@@ -4,7 +4,7 @@ use sdl2::render::{BlendMode, Texture};
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
-use crate::consts::{FILL_BRIGHTEN, HEIGHT, TARGET_FPS, WIDTH};
+use crate::consts::{FILL_BRIGHTEN, HEIGHT, TARGET_FPS, TILE_H, TILE_W, WIDTH};
 use crate::palette::Palette;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -117,7 +117,6 @@ impl Renderer {
     // GPU frame layering API ------------------------------------------------
 
     /// Start a new GPU frame. Clears the canvas.
-    /// Caller draws background textures, then `draw_indexed_overlay`.
     pub fn begin_frame(&mut self) {
         self.canvas.clear();
     }
@@ -131,6 +130,8 @@ impl Renderer {
     /// at positions where the dither pattern sprite has a non-zero pixel.
     /// The rect is clipped to screen bounds. When `is_box` is true, only
     /// the 1-pixel border is processed.
+    /// Tiling always uses the original `TILE_W`/`TILE_H` constants,
+    /// matching the legacy CPU FillArea behaviour.
     pub fn dither_overlay_rect(
         &mut self,
         x: i32,
@@ -141,8 +142,6 @@ impl Renderer {
         is_box: bool,
         thing: u8,
         pattern: &[u8],
-        pattern_w: u32,
-        pattern_h: u32,
     ) -> Result<(), String> {
         let bright_idx = (color + FILL_BRIGHTEN) as usize;
         if bright_idx >= 256 {
@@ -166,8 +165,6 @@ impl Renderer {
             is_box,
             thing,
             pattern,
-            pattern_w as usize,
-            pattern_h as usize,
         );
         Ok(())
     }
@@ -235,7 +232,7 @@ impl Renderer {
     /// Upload a small indexed pixel buffer as an ABGR8888 texture and draw it.
     /// Index 0 becomes fully transparent; other indices are opaque via the
     /// current palette. This creates and destroys a temporary texture each
-    /// call — acceptable for occasional use (text rendering, sprites).
+    /// call -- acceptable for occasional use (text rendering, sprites).
     pub fn draw_indexed_overlay_pixels(
         &mut self,
         pixels: &[u8],
@@ -284,10 +281,11 @@ impl Renderer {
 
 /// Write bright RGBA pixels into a full-screen RGBA buffer at pattern-hit
 /// positions within the given rect.  The rect is clipped to
-/// `(0, 0, screen_w, screen_h)`.
+/// `(0, 0, screen_w, screen_h)`.  Tiling always uses `TILE_W`/`TILE_H`
+/// constants, matching the legacy CPU FillArea behaviour.
 ///
-/// `thing` controls the tile offset: `thing == 64` shifts by (2, 7),
-/// anything else uses (0, 0).  When `is_box` is true only the 1-pixel
+/// `thing` controls the tile offset: `thing == 64` shifts by (2, 7),
+/// anything else uses (0, 0).  When `is_box` is true only the 1-pixel
 /// border of the rect is processed.
 fn dither_rect_rgba(
     rgba: &mut [u8],
@@ -303,8 +301,6 @@ fn dither_rect_rgba(
     is_box: bool,
     thing: u8,
     pattern: &[u8],
-    pattern_w: usize,
-    pattern_h: usize,
 ) {
     let (shift_x, shift_y) = if thing == 64 { (2, 7) } else { (0, 0) };
     let left = x.max(0) as usize;
@@ -316,24 +312,26 @@ fn dither_rect_rgba(
     }
     let rect_w = right - left;
     let rect_h = bottom - top;
-    let pattern_w = pattern_w.max(1);
-    let pattern_h = pattern_h.max(1);
+    let tw = TILE_W as usize;
+    let th = TILE_H as usize;
     for py in 0..rect_h {
         for px in 0..rect_w {
             if is_box {
-                let on_top = (top + py) == (y as usize);
-                let on_bottom = (top + py) == ((y + h - 1) as usize);
-                let on_left = (left + px) == (x as usize);
-                let on_right = (left + px) == ((x + w - 1) as usize);
+                let sx_i = (left + px) as i32;
+                let sy_i = (top + py) as i32;
+                let on_top = sy_i == y;
+                let on_bottom = sy_i == y + h - 1;
+                let on_left = sx_i == x;
+                let on_right = sx_i == x + w - 1;
                 if !on_top && !on_bottom && !on_left && !on_right {
                     continue;
                 }
             }
             let sx = left + px;
             let sy = top + py;
-            let ax = ((sx as i32 + shift_x) as usize) % pattern_w;
-            let ay = ((sy as i32 + shift_y) as usize) % pattern_h;
-            let pi = ay * pattern_w + ax;
+            let ax = ((sx as i32 + shift_x) as usize) % tw;
+            let ay = ((sy as i32 + shift_y) as usize) % th;
+            let pi = ay * tw + ax;
             if pi < pattern.len() && pattern[pi] != 0 {
                 let idx = (sy * screen_w + sx) * 4;
                 if idx + 3 < rgba.len() {
@@ -368,21 +366,8 @@ mod tests {
 
         // Rect at (0,0, 19,13) so tile (0,0) maps to pixel (0,0) which is a hit
         dither_rect_rgba(
-            &mut rgba,
-            screen_w,
-            screen_h,
-            0,
-            0,
-            19,
-            13,
-            bright,
-            bright,
-            bright,
-            false,
-            63,
+            &mut rgba, screen_w, screen_h, 0, 0, 19, 13, bright, bright, bright, false, 63,
             &pattern,
-            TILE_W as usize,
-            TILE_H as usize,
         );
 
         // Pixel (0,0) should be brightened
@@ -391,7 +376,7 @@ mod tests {
         assert_eq!(rgba[2], bright);
         assert_eq!(rgba[3], 255);
 
-        // Pixel (1,0) — pattern miss (index 1) — should be transparent
+        // Pixel (1,0) -- pattern miss (index 1) -- should be transparent
         let idx_miss = (0 * screen_w + 1) * 4;
         assert_eq!(rgba[idx_miss], 0);
         assert_eq!(rgba[idx_miss + 3], 0);
@@ -406,30 +391,17 @@ mod tests {
         let bright = SHADOW_PIXEL + 1 + FILL_BRIGHTEN;
 
         // With thing=64, shift is (2,7).  Pixel at (17,6):
-        //   ax = (17+2)%19 = 0, ay = (6+7)%13 = 0 → hit
+        //   ax = (17+2)%19 = 0, ay = (6+7)%13 = 0 -> hit
         dither_rect_rgba(
-            &mut rgba,
-            screen_w,
-            screen_h,
-            0,
-            0,
-            19,
-            13,
-            bright,
-            bright,
-            bright,
-            false,
-            64,
+            &mut rgba, screen_w, screen_h, 0, 0, 19, 13, bright, bright, bright, false, 64,
             &pattern,
-            TILE_W as usize,
-            TILE_H as usize,
         );
 
         let idx_hit = (6 * screen_w + 17) * 4;
         assert_eq!(rgba[idx_hit], bright);
         assert_eq!(rgba[idx_hit + 3], 255);
 
-        // Pixel at (0,0): ax = 2, ay = 7 → miss → transparent
+        // Pixel at (0,0): ax = 2, ay = 7 -> miss -> transparent
         let idx_miss = 0;
         assert_eq!(rgba[idx_miss], 0);
         assert_eq!(rgba[idx_miss + 3], 0);
@@ -443,27 +415,14 @@ mod tests {
         let pattern = make_pattern();
         let bright = SHADOW_PIXEL + 1 + FILL_BRIGHTEN;
 
-        // Rect at (1,0, 19,13) — tile origin (0,0) now maps to screen (1,0)
-        // which is offset from the tile → no hit
+        // Rect at (1,0, 19,13) -- tile origin (0,0) now maps to screen (1,0)
+        // which is offset from the tile -> no hit
         dither_rect_rgba(
-            &mut rgba,
-            screen_w,
-            screen_h,
-            1,
-            0,
-            19,
-            13,
-            bright,
-            bright,
-            bright,
-            false,
-            63,
+            &mut rgba, screen_w, screen_h, 1, 0, 19, 13, bright, bright, bright, false, 63,
             &pattern,
-            TILE_W as usize,
-            TILE_H as usize,
         );
 
-        // Pixel (1,0): ax = 1%19 = 1, ay = 0 → miss
+        // Pixel (1,0): ax = 1%19 = 1, ay = 0 -> miss
         let idx_miss = (0 * screen_w + 1) * 4;
         assert_eq!(rgba[idx_miss], 0);
         assert_eq!(rgba[idx_miss + 3], 0);
@@ -478,33 +437,19 @@ mod tests {
         pattern[0] = 1;
         let bright = 248;
 
-        // Box at (0,0, 19,13) — only border pixels at tile-origin positions
+        // Box at (0,0, 19,13) -- only border pixels at tile-origin positions
         // get brightened.  The top-left corner pixel (0,0) is a hit.
         // The interior pixel (1,1) should remain transparent.
         dither_rect_rgba(
-            &mut rgba,
-            screen_w,
-            screen_h,
-            0,
-            0,
-            19,
-            13,
-            bright,
-            bright,
-            bright,
-            true,
-            63,
-            &pattern,
-            TILE_W as usize,
-            TILE_H as usize,
+            &mut rgba, screen_w, screen_h, 0, 0, 19, 13, bright, bright, bright, true, 63, &pattern,
         );
 
-        // Top-left corner is on border → hit
+        // Top-left corner is on border -> hit
         let idx_corner = 0;
         assert_eq!(rgba[idx_corner], bright);
         assert_eq!(rgba[idx_corner + 3], 255);
 
-        // Interior pixel (1,1) is not on border → should be transparent
+        // Interior pixel (1,1) is not on border -> should be transparent
         let idx_interior = (1 * screen_w + 1) * 4;
         assert_eq!(rgba[idx_interior], 0);
         assert_eq!(rgba[idx_interior + 3], 0);
@@ -518,31 +463,18 @@ mod tests {
         let pattern = make_pattern();
         let bright = 248;
 
-        // Rect at (-5, -5, 19, 13) — clips to (0,0, 14,8)
+        // Rect at (-5, -5, 19, 13) -- clips to (0,0, 14,8)
         dither_rect_rgba(
-            &mut rgba,
-            screen_w,
-            screen_h,
-            -5,
-            -5,
-            19,
-            13,
-            bright,
-            bright,
-            bright,
-            false,
-            63,
+            &mut rgba, screen_w, screen_h, -5, -5, 19, 13, bright, bright, bright, false, 63,
             &pattern,
-            TILE_W as usize,
-            TILE_H as usize,
         );
 
         // Only the clipped region (0..14, 0..8) should be touched.
-        // Pixel (0,0) is a hit (tile origin) → brightened
+        // Pixel (0,0) is a hit (tile origin) -> brightened
         assert_eq!(rgba[0], bright);
         assert_eq!(rgba[3], 255);
 
-        // Pixel (14, 0) is outside the clipped rect → untouched
+        // Pixel (14, 0) is outside the clipped rect -> untouched
         let idx_outside = (0 * screen_w + 14) * 4;
         assert_eq!(rgba[idx_outside], 0);
         assert_eq!(rgba[idx_outside + 3], 0);
@@ -557,23 +489,86 @@ mod tests {
         let bright = 248;
 
         dither_rect_rgba(
-            &mut rgba,
-            screen_w,
-            screen_h,
-            0,
-            0,
-            0,
-            10,
-            bright,
-            bright,
-            bright,
-            false,
-            63,
-            &pattern,
-            TILE_W as usize,
-            TILE_H as usize,
+            &mut rgba, screen_w, screen_h, 0, 0, 0, 10, bright, bright, bright, false, 63, &pattern,
         );
         assert!(rgba.iter().all(|&b| b == 0));
+    }
+
+    #[test]
+    fn dither_rect_box_negative_x_dithers_visible_right_edge() {
+        let screen_w = 320usize;
+        let screen_h = 200usize;
+        let mut rgba = vec![0u8; screen_w * screen_h * 4];
+        let mut pattern = vec![0u8; (TILE_W * TILE_H) as usize];
+        // Make pixel at tile (2,0) non-zero (ax = 2 for x=0 with no shift)
+        pattern[2] = 1;
+        let bright = 248;
+
+        // Box at (-2, 0, 19, 10).  Clipped left edge at x=0.
+        // Visible right-edge pixel (0, 0) maps to ax=(0+0)%19=0 -> miss
+        // Visible right-edge pixel (1, 0) maps to ax=1 -> miss
+        // Visible right-edge pixel (2, 0) maps to ax=2 -> hit
+        // Left-edge of visible portion (x=0) is NOT the original box's left
+        // edge (x=-2), so it's only part of border if it's top, bottom, or
+        // the original box left edge.
+        dither_rect_rgba(
+            &mut rgba, screen_w, screen_h, -2, 0, 19, 10, bright, bright, bright, true, 63,
+            &pattern,
+        );
+
+        // Pixel (0,0): visible, on original top edge -> border, ax=0 -> miss
+        let idx0 = (0 * screen_w + 0) * 4;
+        assert_eq!(rgba[idx0 + 3], 0, "top-left clipped miss");
+
+        // Pixel (2,0): visible, on original top edge -> border, ax=2 -> hit
+        let idx2 = (0 * screen_w + 2) * 4;
+        assert_eq!(rgba[idx2], bright, "top edge hit at x=2");
+        assert_eq!(rgba[idx2 + 3], 255);
+
+        // Pixel (0, 5): interior of visible portion, but original left edge
+        // at x=-2 is offscreen, so clipped pixel at x=0 is NOT on original
+        // left border -> should NOT be brightened
+        let idx_interior = (5 * screen_w + 0) * 4;
+        assert_eq!(
+            rgba[idx_interior + 3],
+            0,
+            "interior pixel should be transparent"
+        );
+    }
+
+    #[test]
+    fn dither_rect_box_negative_y_dithers_visible_bottom_edge() {
+        let screen_w = 320usize;
+        let screen_h = 200usize;
+        let mut rgba = vec![0u8; screen_w * screen_h * 4];
+        let mut pattern = vec![0u8; (TILE_W * TILE_H) as usize];
+        // Make pixel at tile (0,7) non-zero (ay = 7 for y=0 with no shift)
+        pattern[7 * TILE_W as usize] = 1;
+        let bright = 248;
+
+        // Box at (0, -5, 10, 19).  Clips to (0,0, 10, 14).
+        // Pixel (0,0): on original top edge at y=-5 -> border, ay=0 -> miss
+        // Pixel (0,7): on original top edge -> border, ay=7 -> hit
+        // Pixel (0,14): on clipped bottom (y=14), but NOT original bottom
+        // (y=-5+19-1=13) -> border only if on top/left/right edge.
+        dither_rect_rgba(
+            &mut rgba, screen_w, screen_h, 0, -5, 10, 19, bright, bright, bright, true, 63,
+            &pattern,
+        );
+
+        // Pixel (0,7): visible, on original top edge -> border, ay=7 -> hit
+        let idx_hit = (7 * screen_w + 0) * 4;
+        assert_eq!(rgba[idx_hit], bright, "top edge hit at y=7");
+        assert_eq!(rgba[idx_hit + 3], 255);
+
+        // Pixel (0,14): visible, clipped bottom (y=14 is NOT y+h-1=13),
+        // not on left/right/top edge of original box -> should be transparent
+        let idx_bottom = (14 * screen_w + 0) * 4;
+        assert_eq!(
+            rgba[idx_bottom + 3],
+            0,
+            "clipped bottom pixel should be transparent"
+        );
     }
 
     #[test]
@@ -585,21 +580,8 @@ mod tests {
         let bright = 248;
 
         dither_rect_rgba(
-            &mut rgba,
-            screen_w,
-            screen_h,
-            -100,
-            0,
-            10,
-            10,
-            bright,
-            bright,
-            bright,
-            false,
-            63,
+            &mut rgba, screen_w, screen_h, -100, 0, 10, 10, bright, bright, bright, false, 63,
             &pattern,
-            TILE_W as usize,
-            TILE_H as usize,
         );
         assert!(rgba.iter().all(|&b| b == 99));
     }
@@ -629,8 +611,6 @@ mod tests {
             false,
             63,
             &pattern,
-            TILE_W as usize,
-            TILE_H as usize,
         );
 
         // Check a few tile-origin positions
