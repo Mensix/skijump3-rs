@@ -1,3 +1,28 @@
+use crate::jump::types::FallType;
+
+/// A jump result as recorded into the competition. Carries only the fields
+/// the competition cares about: score, distance, and whether the jumper
+/// crashed (which may cause an injury).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct CompetitionJumpOutcome {
+    pub(crate) score: i32,
+    pub(crate) distance: i32,
+    pub(crate) fall_type: FallType,
+}
+
+impl CompetitionJumpOutcome {
+    /// Convenience constructor for non-crash jumps (tests and default outcomes).
+    #[must_use]
+    #[allow(dead_code)]
+    pub(crate) fn ok(score: i32, distance: i32) -> Self {
+        Self {
+            score,
+            distance,
+            fall_type: FallType::None,
+        }
+    }
+}
+
 /// Identifies the scoring/ruleset for a competition series.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CupStyle {

@@ -112,6 +112,7 @@ fn computer_names_without_replacements(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::competition::types::CompetitionJumpOutcome;
     use crate::data::profile::{Profile, ProfileStore};
 
     #[test]
@@ -177,7 +178,7 @@ mod tests {
         let mut last = None;
         while let Some(idx) = comp.current_jumper() {
             last = Some(idx);
-            comp.record_jump(0, 0);
+            comp.record_jump(CompetitionJumpOutcome::ok(0, 0));
         }
         assert_eq!(last, Some(0));
         assert_eq!(comp.field.get(0).name, "ROAR");

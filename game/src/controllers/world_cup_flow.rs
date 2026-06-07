@@ -98,7 +98,9 @@ pub(crate) fn drive(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::competition::types::{CupStyle, Participant, QualificationStatus};
+    use crate::competition::types::{
+        CompetitionJumpOutcome, CupStyle, Participant, QualificationStatus,
+    };
 
     fn human_participant(id: usize) -> Participant {
         Participant {
@@ -219,7 +221,7 @@ mod tests {
 
         // Emulate what record_finished_human_jump + advance does
         // after acknowledgement
-        c.record_jump(100, 900);
+        c.record_jump(CompetitionJumpOutcome::ok(100, 900));
         c.advance();
 
         // Drive should now skip simulated computers until the next

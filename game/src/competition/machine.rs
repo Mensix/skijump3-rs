@@ -1,6 +1,8 @@
 use crate::competition::field::{CompetitionField, SortBy};
 use crate::competition::scoring;
-use crate::competition::types::{CompetitionPhase, CupStyle, Participant, QualificationStatus};
+use crate::competition::types::{
+    CompetitionJumpOutcome, CompetitionPhase, CupStyle, Participant, QualificationStatus,
+};
 use crate::jump::types::{FallType, JumpOutcome};
 
 const QUALIFICATION_SPOTS: usize = 50;
@@ -277,36 +279,41 @@ impl Competition {
     }
 
     /// Apply a complete jump outcome from the jump simulation domain.
-    /// Wraps injury domain logic (crash → 3-round injury) and recording.
+    /// Delegates to `record_jump` with the appropriate competition type.
     pub fn apply_jump_outcome(&mut self, outcome: JumpOutcome) {
-        if outcome.fall_type == FallType::Crash {
-            self.injure_current(3);
-        }
-        self.record_jump(outcome.score, outcome.distance);
+        self.record_jump(CompetitionJumpOutcome {
+            score: outcome.score,
+            distance: outcome.distance,
+            fall_type: outcome.fall_type,
+        });
     }
 
     /// Store a jump result for the current participant and advance
     /// to the next jumper within the current phase (without phase
     /// transition — call `advance()` separately for that).
-    pub fn record_jump(&mut self, jump_points: i32, length: i32) {
+    /// Domain rule: crash → 3-round injury.
+    pub(crate) fn record_jump(&mut self, outcome: CompetitionJumpOutcome) {
+        if outcome.fall_type == FallType::Crash {
+            self.injure_current(3);
+        }
         let Some(&idx) = self.start_list.get(self.start_pos) else {
             return;
         };
         match self.phase {
             CompetitionPhase::Training(_) => {}
             CompetitionPhase::Qualification => {
-                self.field.get_mut(idx).points = Some(jump_points);
-                self.field.get_mut(idx).qual_len = length;
+                self.field.get_mut(idx).points = Some(outcome.score);
+                self.field.get_mut(idx).qual_len = outcome.distance;
             }
             CompetitionPhase::Round1 => {
-                self.field.get_mut(idx).points = Some(jump_points);
-                self.field.get_mut(idx).round1_score = jump_points;
-                self.field.get_mut(idx).round1_len = length;
+                self.field.get_mut(idx).points = Some(outcome.score);
+                self.field.get_mut(idx).round1_score = outcome.score;
+                self.field.get_mut(idx).round1_len = outcome.distance;
             }
             CompetitionPhase::Round2 => {
                 let existing = self.field.get(idx).points.unwrap_or(0);
-                self.field.get_mut(idx).points = Some(existing + jump_points);
-                self.field.get_mut(idx).round2_len = length;
+                self.field.get_mut(idx).points = Some(existing + outcome.score);
+                self.field.get_mut(idx).round2_len = outcome.distance;
             }
             _ => {}
         }
@@ -584,7 +591,7 @@ mod tests {
             while machine.current_jumper().is_some() {
                 let pts = 150 + (machine.start_pos as i32 % 100);
                 let len = 80 + (machine.start_pos as i32 % 50);
-                machine.record_jump(pts, len);
+                machine.record_jump(CompetitionJumpOutcome::ok(pts, len));
             }
         }
     }
@@ -633,7 +640,7 @@ mod tests {
                 continue;
             }
             while let Some(idx) = m.current_jumper() {
-                m.record_jump(200 - idx as i32, 90);
+                m.record_jump(CompetitionJumpOutcome::ok(200 - idx as i32, 90));
             }
         }
 
@@ -671,7 +678,7 @@ mod tests {
                     CompetitionPhase::Round1 => 200 - total_r1 as i32,
                     _ => 150,
                 };
-                m.record_jump(score, 90);
+                m.record_jump(CompetitionJumpOutcome::ok(score, 90));
             }
         }
 
@@ -684,7 +691,7 @@ mod tests {
         let mut m = make_season(1);
         m.advance();
         while m.current_jumper().is_some() {
-            m.record_jump(100, 80);
+            m.record_jump(CompetitionJumpOutcome::ok(100, 80));
         }
 
         m.advance();
@@ -696,7 +703,7 @@ mod tests {
 
         while m.current_jumper().is_some() {
             let score = 200 - m.start_pos as i32;
-            m.record_jump(score, 90);
+            m.record_jump(CompetitionJumpOutcome::ok(score, 90));
         }
         m.advance();
         assert_eq!(m.phase, CompetitionPhase::Round1Results);
@@ -712,14 +719,14 @@ mod tests {
         let mut m = make_season(1);
         m.advance();
         while m.current_jumper().is_some() {
-            m.record_jump(100, 80);
+            m.record_jump(CompetitionJumpOutcome::ok(100, 80));
         }
         assert_eq!(m.decide_next(), StepDecision::AdvancePhase);
         m.advance();
 
         m.advance();
         while m.current_jumper().is_some() {
-            m.record_jump(200 - m.start_pos as i32, 90);
+            m.record_jump(CompetitionJumpOutcome::ok(200 - m.start_pos as i32, 90));
         }
         assert_eq!(m.phase, CompetitionPhase::Round1);
         assert_eq!(m.decide_next(), StepDecision::AdvancePhase);
@@ -728,7 +735,7 @@ mod tests {
 
         m.advance();
         while m.current_jumper().is_some() {
-            m.record_jump(200 - m.start_pos as i32, 90);
+            m.record_jump(CompetitionJumpOutcome::ok(200 - m.start_pos as i32, 90));
         }
         assert_eq!(m.phase, CompetitionPhase::Round2);
         assert_eq!(m.decide_next(), StepDecision::AdvancePhase);
@@ -747,7 +754,7 @@ mod tests {
                 continue;
             }
             while c.current_jumper().is_some() {
-                c.record_jump(150, 90);
+                c.record_jump(CompetitionJumpOutcome::ok(150, 90));
             }
         }
 
@@ -786,17 +793,17 @@ mod tests {
         // Run event 1 so setup for event 2 marks PreQualified
         c.advance(); // Setup -> Qualification
         while c.current_jumper().is_some() {
-            c.record_jump(150, 90);
+            c.record_jump(CompetitionJumpOutcome::ok(150, 90));
         }
         c.advance(); // -> QualificationResults
         c.advance(); // -> Round1
         while c.current_jumper().is_some() {
-            c.record_jump(150, 90);
+            c.record_jump(CompetitionJumpOutcome::ok(150, 90));
         }
         c.advance(); // -> Round1Results
         c.advance(); // -> Round2
         while c.current_jumper().is_some() {
-            c.record_jump(150, 90);
+            c.record_jump(CompetitionJumpOutcome::ok(150, 90));
         }
         c.advance(); // -> Round2Results
         c.advance(); // -> WC standings
@@ -812,7 +819,7 @@ mod tests {
                 assert_eq!(c.decide_next(), StepDecision::Skip);
                 return;
             }
-            c.record_jump(0, 0);
+            c.record_jump(CompetitionJumpOutcome::ok(0, 0));
         }
         panic!("human never reached current jumper in qualification");
     }
@@ -838,7 +845,7 @@ mod tests {
                 "AI should get Jump, got {:?}",
                 c.decide_next()
             );
-            c.record_jump(0, 0);
+            c.record_jump(CompetitionJumpOutcome::ok(0, 0));
         }
     }
 
@@ -854,12 +861,12 @@ mod tests {
 
         c.advance(); // -> Qualification
         while c.current_jumper().is_some() {
-            c.record_jump(0, 90);
+            c.record_jump(CompetitionJumpOutcome::ok(0, 90));
         }
         c.advance(); // -> QualificationResults
         c.advance(); // -> Round1
         while c.current_jumper().is_some() {
-            c.record_jump(0, 90);
+            c.record_jump(CompetitionJumpOutcome::ok(0, 90));
         }
         c.advance(); // -> Round1Results (event_order sorted, rank set)
         c.advance(); // -> Round2 (cut_to_round2 freezes round1_rank)
