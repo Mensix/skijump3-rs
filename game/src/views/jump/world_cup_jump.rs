@@ -11,7 +11,7 @@ use crate::jump::JumpPolicy;
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::views::jump::competition_overlay::CompetitionOverlay;
-use crate::views::jump::results as competition_results;
+use crate::views::jump::competition_results;
 use engine::ui::{Blinker, Element, Event, Key, View};
 
 pub struct WorldCupJumpView {
