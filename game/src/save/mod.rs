@@ -3,6 +3,7 @@ pub mod players;
 pub mod records;
 
 use std::cell::RefCell;
+use std::fmt;
 use std::rc::Rc;
 
 use crate::data::profile::ProfileStore;
@@ -13,6 +14,30 @@ use self::config::Config;
 use crate::files::FileStore;
 
 pub type SaveRef = Rc<SaveManager>;
+
+#[derive(Debug)]
+pub enum SaveError {
+    Io(std::io::Error),
+    Serialization(String),
+}
+
+impl fmt::Display for SaveError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Io(e) => write!(f, "I/O error: {e}"),
+            Self::Serialization(msg) => write!(f, "serialization error: {msg}"),
+        }
+    }
+}
+
+impl std::error::Error for SaveError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::Io(e) => Some(e),
+            Self::Serialization(_) => None,
+        }
+    }
+}
 
 #[derive(Debug)]
 pub struct SaveManager {
@@ -59,43 +84,46 @@ impl SaveManager {
             let mut config = self.config.borrow_mut();
             f(&mut config);
         }
-        self.save_config();
+        if let Err(e) = self.save_config() {
+            eprintln!("Warning: failed to save config: {e}");
+        }
     }
 
     pub fn set_language(&self, idx: usize) {
         self.langbase.selected.set(idx);
         self.config.borrow_mut().languagenumber = idx as i32;
-        self.save_config();
-    }
-
-    fn save_bytes(&self, filename: &str, data: &[u8]) {
-        if let Err(e) = self.files.write(filename, data) {
-            eprintln!("Warning: failed to write {filename}: {e}");
+        if let Err(e) = self.save_config() {
+            eprintln!("Warning: failed to save config: {e}");
         }
     }
 
-    fn save_config(&self) {
+    fn save_bytes(&self, filename: &str, data: &[u8]) -> Result<(), SaveError> {
+        self.files
+            .write(filename, data)
+            .map_err(SaveError::Io)?;
+        Ok(())
+    }
+
+    fn save_config(&self) -> Result<(), SaveError> {
         let config = self.config.borrow();
-        if let Ok(data) = config.to_toml_bytes() {
-            self.save_bytes("config.toml", &data);
-        } else {
-            eprintln!("Warning: failed to serialize config");
-        }
+        let data = config
+            .to_toml_bytes()
+            .map_err(SaveError::Serialization)?;
+        self.save_bytes("config.toml", &data)
     }
 
-    pub fn save_players(&self, store: &ProfileStore) {
-        if let Ok(data) = store.to_toml_bytes() {
-            self.save_bytes("players.toml", &data);
-        } else {
-            eprintln!("Warning: failed to serialize players");
-        }
+    pub fn save_players(&self, store: &ProfileStore) -> Result<(), SaveError> {
+        let data = store
+            .to_toml_bytes()
+            .map_err(SaveError::Serialization)?;
+        self.save_bytes("players.toml", &data)
     }
 
-    pub fn save_records(&self, store: &RecordStore) {
-        match store.to_toml_bytes() {
-            Ok(data) => self.save_bytes("hiscores.toml", &data),
-            Err(e) => eprintln!("Warning: failed to serialize hiscores.toml: {e}"),
-        }
+    pub fn save_records(&self, store: &RecordStore) -> Result<(), SaveError> {
+        let data = store
+            .to_toml_bytes()
+            .map_err(SaveError::Serialization)?;
+        self.save_bytes("hiscores.toml", &data)
     }
 
     /// Load profiles from players.toml (save then asset fallback).

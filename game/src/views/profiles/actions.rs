@@ -12,8 +12,12 @@ use super::list::{ColorField, Mode, ProfilesView, QuestionAction, TextField, REP
 use super::render::profile_label;
 
 pub(super) fn save_players(view: &ProfilesView) {
-    view.save_manager
-        .save_players(&view.store.profiles.borrow());
+    if let Err(e) = view
+        .save_manager
+        .save_players(&view.store.profiles.borrow())
+    {
+        eprintln!("Warning: failed to save players: {e}");
+    }
 }
 
 pub(super) fn handle_list_enter(view: &mut ProfilesView) -> Option<RouteTarget> {

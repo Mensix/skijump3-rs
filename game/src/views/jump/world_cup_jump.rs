@@ -224,11 +224,17 @@ impl WorldCupJumpView {
                 }
             }
         });
-        self.resources
+        if let Err(e) = self
+            .resources
             .save_manager
-            .save_players(&self.store.profiles.borrow());
+            .save_players(&self.store.profiles.borrow())
+        {
+            eprintln!("Warning: failed to save players: {e}");
+        }
         if let Ok(records) = self.store.records.try_borrow() {
-            self.resources.save_manager.save_records(&records);
+            if let Err(e) = self.resources.save_manager.save_records(&records) {
+                eprintln!("Warning: failed to save records: {e}");
+            }
         }
     }
 
