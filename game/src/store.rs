@@ -57,6 +57,9 @@ impl Resources {
     /// Load (or retrieve cached) terrain for a given hill index.
     /// Loads pre-converted hill data from generated assets.
     pub(crate) fn terrain(&self, hill_idx: usize) -> Result<Rc<HillTerrain>, String> {
+        self.hills
+            .hill(hill_idx)
+            .ok_or_else(|| format!("Hill {hill_idx} not found"))?;
         let mut cache = self.terrain_cache.borrow_mut();
         if let Some(terrain) = cache.get(&hill_idx) {
             return Ok(terrain.clone());

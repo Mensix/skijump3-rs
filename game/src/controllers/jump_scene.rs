@@ -149,7 +149,7 @@ impl JumpScene {
 
     /// Simulate a computer jump invisibly using the lightweight path:
     /// no `JumpRunner`, `JumpSession`, `SnowSystem`, or `ReplayRecorder` overhead.
-    /// Terrain is cached in `Resources` so PCX parsing happens at most once per hill.
+    /// Terrain is cached in `Resources` after loading from generated assets.
     pub fn simulate_hidden(&self, participant: JumpParticipant, hill_idx: usize) -> JumpOutcome {
         let terrain = self
             .resources

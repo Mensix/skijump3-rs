@@ -5,8 +5,7 @@ use crate::content::atlas;
 use crate::content::ContentStore;
 use crate::data::records::RecordStore;
 use crate::files::FileStore;
-use crate::gfx::palette::apply_standard_ui_palette;
-use crate::gfx::pcx::PcxPalette;
+use crate::gfx::palette::Rgb6Palette;
 use crate::gfx::png::load_png;
 use crate::route::RouteTarget;
 use crate::save::{SaveManager, SaveRef};
@@ -37,7 +36,7 @@ pub struct Game {
     element_render_context: ElementRenderContext,
 }
 
-fn palette_to_rgba(pixel: u8, palette: &PcxPalette) -> [u8; 4] {
+fn palette_to_rgba(pixel: u8, palette: &Rgb6Palette) -> [u8; 4] {
     if pixel == 0 {
         [0, 0, 0, 0]
     } else {
@@ -51,7 +50,7 @@ fn palette_to_rgba(pixel: u8, palette: &PcxPalette) -> [u8; 4] {
     }
 }
 
-fn precompute_sprite_rgba(sprite: &mut SpriteData, palette: &PcxPalette) {
+fn precompute_sprite_rgba(sprite: &mut SpriteData, palette: &Rgb6Palette) {
     sprite.rgba_data = sprite
         .data
         .iter()
@@ -67,15 +66,14 @@ impl Game {
         let asset_dir = std::path::PathBuf::from("game/assets");
         let files = Rc::new(FileStore::new(asset_dir, save_dir));
 
-        let (mut pcx_palette, mut sprites, content_store) = Self::load_assets(&files)?;
+        let (palette, mut sprites, content_store) = Self::load_assets(&files)?;
         let main_background = Self::load_background_texture(&files, &mut renderer)?;
         let langbase = Rc::new(content_store.langbase);
 
         let font = Font::from_sprites(&sprites);
 
-        apply_standard_ui_palette(&mut pcx_palette);
         for sprite in &mut sprites {
-            precompute_sprite_rgba(sprite, &pcx_palette);
+            precompute_sprite_rgba(sprite, &palette);
         }
 
         let save_manager: SaveRef =
@@ -146,7 +144,7 @@ impl Game {
     #[allow(clippy::type_complexity)]
     fn load_assets(
         files: &FileStore,
-    ) -> Result<(PcxPalette, Vec<SpriteData>, ContentStore), String> {
+    ) -> Result<(Rgb6Palette, Vec<SpriteData>, ContentStore), String> {
         let palette_toml = files.read("palette.toml").map_err(|e| e.to_string())?;
 
         #[derive(Deserialize)]
@@ -165,7 +163,7 @@ impl Game {
                 pt.format_version
             ));
         }
-        let palette = PcxPalette::from_6bit_bytes(&pt.data)?;
+        let palette = Rgb6Palette::from_6bit_bytes(&pt.data)?;
         let content = ContentStore::load(files, CONTENT_MANIFEST)?;
         let sprites = content.sprites.clone();
 

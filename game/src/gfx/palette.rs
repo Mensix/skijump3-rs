@@ -2,52 +2,31 @@ use engine::color::Rgba;
 use engine::sprite::SpriteColorRecolor;
 
 use crate::components::replay_playback::PlaybackMode;
-use crate::gfx::pcx::PcxPalette;
 
-pub const UI_PALETTE_BASE: usize = 216;
+/// A 256-entry 6-bit RGB palette, used for sprite RGBA precomputation.
+/// Each channel stores a 6-bit value (0-63).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Rgb6Palette {
+    data: [u8; 768],
+}
 
-pub const STANDARD_UI_PALETTE: [[u8; 3]; 40] = [
-    [53, 17, 53],
-    [63, 0, 0],
-    [43, 12, 43],
-    [63, 0, 0],
-    [49, 45, 0],
-    [34, 31, 0],
-    [63, 0, 0],
-    [56, 54, 54],
-    [63, 63, 21],
-    [54, 52, 10],
-    [42, 42, 42],
-    [42, 20, 10],
-    [21, 21, 21],
-    [57, 45, 38],
-    [63, 0, 0],
-    [63, 63, 32],
-    [40, 40, 41],
-    [48, 48, 49],
-    [55, 55, 56],
-    [63, 63, 63],
-    [56, 13, 13],
-    [13, 53, 13],
-    [23, 23, 63],
-    [63, 23, 23],
-    [63, 63, 63],
-    [44, 44, 44],
-    [0, 0, 0],
-    [18, 13, 34],
-    [34, 13, 18],
-    [20, 20, 20],
-    [63, 57, 9],
-    [9, 57, 63],
-    [23, 16, 43],
-    [43, 16, 23],
-    [26, 26, 26],
-    [52, 47, 0],
-    [0, 47, 52],
-    [46, 46, 63],
-    [32, 32, 63],
-    [63, 63, 63],
-];
+impl Rgb6Palette {
+    /// Create from 768 bytes of pre-computed 6-bit RGB values.
+    pub fn from_6bit_bytes(bytes: &[u8]) -> Result<Self, String> {
+        if bytes.len() != 768 {
+            return Err(format!("Palette: expected 768 bytes, got {}", bytes.len()));
+        }
+        let mut data = [0u8; 768];
+        data.copy_from_slice(bytes);
+        Ok(Self { data })
+    }
+
+    /// Return the 6-bit RGB triple for palette entry `idx`.
+    pub fn color(&self, idx: usize) -> [u8; 3] {
+        let off = idx * 3;
+        [self.data[off], self.data[off + 1], self.data[off + 2]]
+    }
+}
 
 // ---------------------------------------------------------------------------
 // RGBA UI color constants (migrated from palette-index legacy)
@@ -76,13 +55,6 @@ pub const FILL_TURQUOISE: Rgba = Rgba::from_rgb6(0, 47, 52); // 252
 pub const FILL_LINE: Rgba = Rgba::from_rgb6(5, 8, 22); // 9
 pub const FILL_DIM: Rgba = Rgba::from_rgb6(20, 20, 20); // 244/245
 pub const BLACK: Rgba = Rgba::rgb(0, 0, 0);
-
-/// Fill palette slots 216..=255 with the standard UI palette colours.
-pub fn apply_standard_ui_palette(palette: &mut PcxPalette) {
-    for (i, &rgb) in STANDARD_UI_PALETTE.iter().enumerate() {
-        palette.set(UI_PALETTE_BASE + i, rgb);
-    }
-}
 
 pub const JUMPER_SUIT_SOURCE_SHADE_1: u8 = 216;
 pub const JUMPER_SUIT_SOURCE_SHADE_3: u8 = 218;
@@ -175,4 +147,22 @@ pub fn replay_speed_recolor(mode: PlaybackMode) -> SpriteColorRecolor {
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use super::*;
+
+    #[test]
+    fn from_6bit_bytes_preserves_values() {
+        let mut raw = [0u8; 768];
+        raw[0] = 63;
+        raw[1] = 32;
+        raw[2] = 0;
+        let pal = Rgb6Palette::from_6bit_bytes(&raw).unwrap();
+        assert_eq!(pal.color(0), [63, 32, 0]);
+    }
+
+    #[test]
+    fn from_6bit_bytes_rejects_wrong_size() {
+        assert!(Rgb6Palette::from_6bit_bytes(&[0; 767]).is_err());
+        assert!(Rgb6Palette::from_6bit_bytes(&[0; 769]).is_err());
+    }
+}
