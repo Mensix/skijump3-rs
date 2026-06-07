@@ -1,4 +1,5 @@
 use crate::bitmap::IndexedBitmap;
+use crate::color::Rgba;
 use crate::consts::{HEIGHT, WIDTH};
 
 #[derive(Debug, Clone)]
@@ -34,6 +35,28 @@ impl SpriteColorRemap {
             }
         }
         pixel
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct SpriteColorRecolor {
+    pairs: Vec<(u8, Rgba)>,
+}
+
+impl SpriteColorRecolor {
+    #[must_use]
+    pub fn new(pairs: Vec<(u8, Rgba)>) -> Self {
+        Self { pairs }
+    }
+
+    #[must_use]
+    pub fn get(&self, source: u8) -> Option<Rgba> {
+        for &(from, to) in &self.pairs {
+            if from == source {
+                return Some(to);
+            }
+        }
+        None
     }
 }
 

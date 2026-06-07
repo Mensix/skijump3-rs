@@ -2,9 +2,8 @@ use crate::components::replay_playback::{PlaybackMode, PlaybackSpeed, ReplayPlay
 use crate::data::hill::HillInfo;
 use crate::data::hill_profile::HillTerrain;
 use crate::gfx::palette::{
-    apply_jumper_palette, BG_LEFT, BLACK, FILL_BORDER, FONT_DEFAULT, FONT_GOLD, FONT_GREET,
-    FONT_HELP, JUMPER_SKI_RENDER, JUMPER_SKI_SOURCE, JUMPER_SUIT_RENDER_SHADE_1,
-    JUMPER_SUIT_RENDER_SHADE_3, JUMPER_SUIT_SOURCE_SHADE_1, JUMPER_SUIT_SOURCE_SHADE_3,
+    self, BG_LEFT, BLACK, FILL_BORDER, FONT_DEFAULT, FONT_GOLD, FONT_GREET, FONT_HELP,
+    JUMPER_SKI_SOURCE, JUMPER_SUIT_SOURCE_SHADE_1, JUMPER_SUIT_SOURCE_SHADE_3,
 };
 use crate::gfx::sprites;
 use crate::jump::math;
@@ -16,7 +15,7 @@ use crate::store::{ResourcesRef, StoreRef};
 use crate::text::lang::LangBase;
 use engine::consts::{HEIGHT, WIDTH};
 use engine::palette::Palette;
-use engine::sprite::SpriteColorRemap;
+use engine::sprite::SpriteColorRecolor;
 use engine::ui::{Blinker, Element, Event, ImageRegion, Key, View};
 use std::cell::{Cell, RefCell};
 use std::collections::VecDeque;
@@ -196,22 +195,31 @@ impl View<RouteTarget> for ReplayView {
                 hr_y - sy,
             ));
         }
-        let body_remap = SpriteColorRemap::new(vec![
-            (JUMPER_SUIT_SOURCE_SHADE_1, JUMPER_SUIT_RENDER_SHADE_1),
-            (JUMPER_SUIT_SOURCE_SHADE_3, JUMPER_SUIT_RENDER_SHADE_3),
+        let suit_color = session.trace().meta.suit_color as usize;
+        let ski_color = session.trace().meta.ski_color as usize;
+        let body_recolor = SpriteColorRecolor::new(vec![
+            (
+                JUMPER_SUIT_SOURCE_SHADE_1,
+                palette::suit_color_shade(suit_color, 1),
+            ),
+            (
+                JUMPER_SUIT_SOURCE_SHADE_3,
+                palette::suit_color_shade(suit_color, 3),
+            ),
         ]);
-        let ski_remap = SpriteColorRemap::new(vec![(JUMPER_SKI_SOURCE, JUMPER_SKI_RENDER)]);
+        let ski_recolor =
+            SpriteColorRecolor::new(vec![(JUMPER_SKI_SOURCE, palette::ski_color(ski_color))]);
         els.push(Element::sprite_remapped(
             u16::from(replay_frame.body_anim),
             x - sx,
             y - sy - 2,
-            body_remap,
+            body_recolor,
         ));
         els.push(Element::sprite_remapped(
             u16::from(replay_frame.ski_anim),
             x - sx,
             y - sy - 1,
-            ski_remap,
+            ski_recolor,
         ));
 
         let wind_pos = WindPosition { x: 10, y: 180 };
@@ -365,13 +373,6 @@ impl View<RouteTarget> for ReplayView {
     fn apply_palette(&self, palette: &mut Palette) {
         if let Ok(terrain) = &self.terrain {
             terrain.apply_hill_palette(palette);
-        }
-        if let Some(session) = self.session.borrow().as_ref() {
-            apply_jumper_palette(
-                palette,
-                session.trace().meta.suit_color as usize,
-                session.trace().meta.ski_color as usize,
-            );
         }
         highlight_active_speed(palette, self.playback.mode());
     }

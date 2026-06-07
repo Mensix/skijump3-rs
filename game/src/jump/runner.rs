@@ -1,6 +1,6 @@
 use crate::data::hill::HillCatalog;
 use crate::data::records::RecordStore;
-use crate::gfx::palette::{apply_jumper_palette, BLACK, FONT_DEFAULT};
+use crate::gfx::palette::{BLACK, FONT_DEFAULT};
 use crate::jump::config::JumpConfig;
 use crate::jump::frame::JumpRenderFrame;
 use crate::jump::presentation;
@@ -154,6 +154,8 @@ impl JumpRunner {
             phase_label: &self.config.phase_label,
             allow_gate_adjust: self.config.policy.allow_start_gate_adjust,
             hide_info_panel_text: self.hide_info_panel_text.get(),
+            suit_color: self.config.participant.suit_color as usize,
+            ski_color: self.config.participant.ski_color as usize,
         };
         presentation::elements(&frame, &ctx)
     }
@@ -176,18 +178,11 @@ impl JumpRunner {
         if let Ok(terrain) = self.session.terrain() {
             terrain.apply_hill_palette(palette);
         }
-        apply_jumper_palette(
-            palette,
-            self.config.participant.suit_color as usize,
-            self.config.participant.ski_color as usize,
-        );
         let is_dq = self.session.phase() == Some(JumpPhase::Disqualified);
         if is_dq {
-            // Pascal MuutaLogo(4) — red start light
             palette.set(253, [54, 10, 10]);
             palette.set(254, [47, 0, 0]);
         } else {
-            // Pascal MuutaLogo(6) — green start light
             palette.set(253, [10, 54, 10]);
             palette.set(254, [0, 47, 0]);
         }

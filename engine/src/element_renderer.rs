@@ -4,9 +4,9 @@ use std::collections::HashMap;
 use crate::atlas::Atlas;
 use crate::color::Rgba;
 use crate::consts::PATTERN_SPRITE;
-use crate::sprite::{SpriteColorRemap, SpriteData};
+use crate::sprite::{SpriteColorRecolor, SpriteData};
 use crate::ui::{Element, Font};
-use crate::video::indexed::remapped_sprite_to_rgba;
+use crate::video::indexed::recolored_sprite_to_rgba;
 use crate::video::{Renderer, TextureId};
 
 struct DitherRect {
@@ -39,8 +39,7 @@ const TEXT_SHADOW: Rgba = Rgba::rgb(0, 0, 0);
 #[derive(Clone, PartialEq, Eq, Hash)]
 struct RemappedSpriteCacheKey {
     sprite_idx: u16,
-    remap: SpriteColorRemap,
-    palette_revision: u64,
+    recolor: SpriteColorRecolor,
 }
 
 struct RemappedSpriteCacheEntry {
@@ -318,12 +317,11 @@ impl ElementWorker<'_> {
                     }
                 }
             }
-            Element::SpriteRemapped(idx, x, y, remap) => {
+            Element::SpriteRemapped(idx, x, y, recolor) => {
                 if let Some(sprite) = self.sprites.get(*idx as usize) {
                     let key = RemappedSpriteCacheKey {
                         sprite_idx: *idx,
-                        remap: remap.clone(),
-                        palette_revision: self.renderer.palette_revision(),
+                        recolor: recolor.clone(),
                     };
 
                     match self.remapped_sprite_cache.entry(key) {
@@ -344,12 +342,12 @@ impl ElementWorker<'_> {
                         }
                         Entry::Vacant(v) => {
                             self.remapped_rgba_scratch.clear();
-                            remapped_sprite_to_rgba(
+                            recolored_sprite_to_rgba(
                                 &sprite.data,
                                 sprite.width,
                                 sprite.height,
                                 self.renderer.palette(),
-                                remap,
+                                recolor,
                                 self.remapped_rgba_scratch,
                             );
 

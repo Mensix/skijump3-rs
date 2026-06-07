@@ -1,5 +1,6 @@
 use crate::consts::{HEIGHT, WIDTH};
 use crate::palette::Palette;
+use crate::sprite::SpriteColorRecolor;
 use crate::sprite::SpriteColorRemap;
 
 /// Convert a slice of indexed pixels to ABGR8888 RGBA bytes.
@@ -28,6 +29,7 @@ pub fn indexed_pixels_to_rgba(pixels: &[u8], palette: &Palette, out: &mut Vec<u8
 /// *   Non-zero source indices are first run through `remap.map()`, then if the
 ///     remapped index is `0` the pixel is transparent, otherwise it is opaque
 ///     using the current palette.
+#[allow(dead_code)]
 pub fn remapped_sprite_to_rgba(
     pixels: &[u8],
     width: u16,
@@ -52,6 +54,44 @@ pub fn remapped_sprite_to_rgba(
                 out.push((u32::from(b6) * 255 / 63) as u8);
                 out.push(255);
             }
+        }
+    }
+}
+
+/// Convert a full sprite's indexed pixels to RGBA, applying direct
+/// colour recolor (source index → explicit RGBA) with palette fallback
+/// for non-recolored indices.
+/// The output is a complete RGBA buffer of size `width * height * 4` suitable
+/// for use as a static texture.
+///
+/// *   Source index `0` → fully transparent.
+/// *   Non-zero source indices are checked against `recolor`; if present the
+///     RGBA value is used directly.
+/// *   Otherwise the index is looked up in `palette` (6‑bit → 8‑bit, opaque).
+pub fn recolored_sprite_to_rgba(
+    pixels: &[u8],
+    width: u16,
+    height: u16,
+    palette: &Palette,
+    recolor: &SpriteColorRecolor,
+    out: &mut Vec<u8>,
+) {
+    let count = width as usize * height as usize;
+    out.reserve(count * 4);
+    for &pixel in pixels.iter().take(count) {
+        if pixel == 0 {
+            out.extend_from_slice(&[0, 0, 0, 0]);
+        } else if let Some(rgba) = recolor.get(pixel) {
+            out.push(rgba.r);
+            out.push(rgba.g);
+            out.push(rgba.b);
+            out.push(rgba.a);
+        } else {
+            let [r6, g6, b6] = palette.color(pixel as usize);
+            out.push((u32::from(r6) * 255 / 63) as u8);
+            out.push((u32::from(g6) * 255 / 63) as u8);
+            out.push((u32::from(b6) * 255 / 63) as u8);
+            out.push(255);
         }
     }
 }
@@ -115,6 +155,7 @@ pub fn rgba_region_to_rgba(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::color::Rgba;
 
     #[test]
     fn indexed_to_rgba_zero_transparent() {
@@ -222,6 +263,77 @@ mod tests {
         let remap = SpriteColorRemap::new(vec![]);
         let mut out = Vec::new();
         remapped_sprite_to_rgba(&[], 0, 0, &palette, &remap, &mut out);
+        assert!(out.is_empty());
+    }
+
+    // -----------------------------------------------------------------------
+    // recolored_sprite_to_rgba tests
+    // -----------------------------------------------------------------------
+
+    fn make_recolor_palette() -> Palette {
+        let mut p = Palette::new();
+        p.set(5, [10, 20, 30]); // non-recolored fallback
+        p.set(7, [40, 50, 60]);
+        p
+    }
+
+    fn recolor_blue() -> Rgba {
+        Rgba::rgb(0, 0, 255)
+    }
+
+    fn recolor_green() -> Rgba {
+        Rgba::rgb(0, 255, 0)
+    }
+
+    #[test]
+    fn recolored_sprite_zero_is_transparent() {
+        let palette = make_recolor_palette();
+        let recolor = SpriteColorRecolor::new(vec![(3, recolor_blue())]);
+        let mut out = Vec::new();
+        recolored_sprite_to_rgba(&[0, 0, 0], 1, 3, &palette, &recolor, &mut out);
+        assert_eq!(out.len(), 12);
+        assert_eq!(&out, &[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+    }
+
+    #[test]
+    fn recolored_sprite_recolors_to_rgba() {
+        let palette = make_recolor_palette();
+        let recolor = SpriteColorRecolor::new(vec![(3, recolor_blue())]);
+        let mut out = Vec::new();
+        recolored_sprite_to_rgba(&[3], 1, 1, &palette, &recolor, &mut out);
+        assert_eq!(out, vec![0, 0, 255, 255]);
+    }
+
+    #[test]
+    fn recolored_sprite_unmapped_falls_back_to_palette() {
+        let palette = make_recolor_palette();
+        let recolor = SpriteColorRecolor::new(vec![(3, recolor_blue())]);
+        let mut out = Vec::new();
+        recolored_sprite_to_rgba(&[7], 1, 1, &palette, &recolor, &mut out);
+        // Index 7 not recolored → palette[7] = [40,50,60] → 161,202,242
+        assert_eq!(out, vec![161, 202, 242, 255]);
+    }
+
+    #[test]
+    fn recolored_sprite_mixed_recolor_and_palette() {
+        let palette = make_recolor_palette();
+        let recolor = SpriteColorRecolor::new(vec![(3, recolor_blue()), (5, recolor_green())]);
+        let mut out = Vec::new();
+        recolored_sprite_to_rgba(&[0, 3, 5, 7], 2, 2, &palette, &recolor, &mut out);
+        // 0 → transparent; 3 → blue; 5 → green; 7 → palette fallback
+        assert_eq!(out.len(), 16);
+        assert_eq!(&out[0..4], &[0, 0, 0, 0]);
+        assert_eq!(&out[4..8], &[0, 0, 255, 255]);
+        assert_eq!(&out[8..12], &[0, 255, 0, 255]);
+        assert_eq!(&out[12..16], &[161, 202, 242, 255]);
+    }
+
+    #[test]
+    fn recolored_sprite_empty_pixels() {
+        let palette = make_recolor_palette();
+        let recolor = SpriteColorRecolor::new(vec![]);
+        let mut out = Vec::new();
+        recolored_sprite_to_rgba(&[], 0, 0, &palette, &recolor, &mut out);
         assert!(out.is_empty());
     }
 

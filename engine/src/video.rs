@@ -22,7 +22,6 @@ pub struct Renderer {
     overlay_rgba: Vec<u8>,
     scratch_rgba: Vec<u8>,
     palette: Palette,
-    palette_revision: u64,
     last_tick: Instant,
     frame_texture: Texture,
     scratch_texture: Texture,
@@ -76,7 +75,7 @@ impl Renderer {
             overlay_rgba: vec![0u8; (WIDTH * HEIGHT * 4) as usize],
             scratch_rgba: Vec::new(),
             palette: Palette::new(),
-            palette_revision: 0,
+
             last_tick: Instant::now(),
             frame_texture,
             scratch_texture,
@@ -127,18 +126,12 @@ impl Renderer {
     pub fn set_palette(&mut self, palette: Palette) {
         if palette != self.palette {
             self.palette = palette;
-            self.palette_revision += 1;
         }
     }
 
     #[must_use]
     pub fn palette(&self) -> &Palette {
         &self.palette
-    }
-
-    #[must_use]
-    pub fn palette_revision(&self) -> u64 {
-        self.palette_revision
     }
 
     pub fn wait_frame(&mut self) {

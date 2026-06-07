@@ -1,5 +1,5 @@
 use crate::color::Rgba;
-use crate::sprite::SpriteColorRemap;
+use crate::sprite::SpriteColorRecolor;
 use std::rc::Rc;
 
 #[derive(Debug, Clone)]
@@ -45,7 +45,7 @@ pub enum Element {
         h: i32,
         color: Rgba,
     },
-    SpriteRemapped(u16, i32, i32, SpriteColorRemap),
+    SpriteRemapped(u16, i32, i32, SpriteColorRecolor),
     Container(Vec<Element>),
 }
 
@@ -89,8 +89,8 @@ impl Element {
     }
 
     #[must_use]
-    pub fn sprite_remapped(idx: u16, x: i32, y: i32, remap: SpriteColorRemap) -> Self {
-        Self::SpriteRemapped(idx, x, y, remap)
+    pub fn sprite_remapped(idx: u16, x: i32, y: i32, recolor: SpriteColorRecolor) -> Self {
+        Self::SpriteRemapped(idx, x, y, recolor)
     }
 
     pub fn image(pixels: impl Into<Rc<[u8]>>, w: u32, h: u32) -> Self {

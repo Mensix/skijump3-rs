@@ -534,6 +534,23 @@ pixels = "0000"
             );
         }
 
+        // Verify no mutable palette indices (249-254) appear in jumper body
+        // or ski sprites.  These indices are overwritten per-frame by
+        // start-light, logo-tint, and replay-speed-highlight palette
+        // mutations.  If a cached remapped sprite contained a fallback pixel
+        // at one of these indices the RGBA texture would go stale after the
+        // first palette change.
+        for idx in 249..=254u8 {
+            assert!(
+                !body_indices.contains(&idx),
+                "body sprites use mutable index {idx} — stale cached RGBA risk"
+            );
+            assert!(
+                !ski_indices.contains(&idx),
+                "ski sprites use mutable index {idx} — stale cached RGBA risk"
+            );
+        }
+
         // Body sprites should NOT use source slots 215 or 217
         // (those exist in the SUIT_PALETTE_BASE range but no body sprite uses them)
         assert!(

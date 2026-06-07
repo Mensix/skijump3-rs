@@ -123,8 +123,11 @@ pub const JUMPER_SKI_SOURCE: u8 = 231;
 // element uses them as color indices; terrain uses 0..=215; snow uses 232..=235.
 // They are reserved — do not add non-jumper fillbox/text colors in this range
 // to jump or replay views.
+#[allow(dead_code)]
 pub const JUMPER_SUIT_RENDER_SHADE_1: u8 = 219;
+#[allow(dead_code)]
 pub const JUMPER_SUIT_RENDER_SHADE_3: u8 = 222;
+#[allow(dead_code)]
 pub const JUMPER_SKI_RENDER: u8 = 230;
 
 const SUIT_COLORS: [[u8; 4]; 8] = [
@@ -200,6 +203,7 @@ pub fn apply_ski_palette(palette: &mut Palette, col: usize) {
     apply_ski_palette_at(palette, col, SKI_PALETTE_INDEX);
 }
 
+#[allow(dead_code)]
 pub fn apply_jumper_palette(palette: &mut Palette, suit_color: usize, ski_color: usize) {
     let suit = suit_shade_rgba(suit_color);
     palette.set(JUMPER_SUIT_RENDER_SHADE_1 as usize, suit[1]);
