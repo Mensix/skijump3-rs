@@ -51,17 +51,12 @@ impl WorldCupJumpView {
 
     fn apply_command(&self, command: WorldCupUiCommand) {
         match command {
-            WorldCupUiCommand::HumanJump {
-                participant,
-                hill_idx,
-                phase,
-                is_new_event,
-            } => {
-                if is_new_event {
+            WorldCupUiCommand::HumanJump(req) => {
+                if req.is_new_event {
                     JumpScene::setup_event(&self.store);
                 }
-                let phase_label = phase_label(&self.resources, phase);
-                self.handle_human_jump(participant, hill_idx, phase_label);
+                let phase_label = phase_label(&self.resources, req.phase);
+                self.handle_human_jump(req.participant, req.hill_idx, phase_label);
                 self.ui_state.enter_jump();
             }
             WorldCupUiCommand::ShowResults => {

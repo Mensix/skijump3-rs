@@ -10,18 +10,19 @@ use crate::jump::JumpParticipant;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::format::format_tenths;
 
-/// Commands the view layer should execute after the controller
-/// advances competition state. Keeps the controller free of
-/// `CompetitionUiState` dependency.
+/// Describes what the view needs to set up for the next human jump.
+#[derive(Debug, Clone)]
+pub(crate) struct HumanJumpRequest {
+    pub(crate) participant: JumpParticipant,
+    pub(crate) hill_idx: usize,
+    pub(crate) phase: CompetitionPhase,
+    pub(crate) is_new_event: bool,
+}
+
 #[derive(Debug)]
 pub(crate) enum WorldCupUiCommand {
     /// Prepare the jump scene for the next human jumper.
-    HumanJump {
-        participant: JumpParticipant,
-        hill_idx: usize,
-        phase: CompetitionPhase,
-        is_new_event: bool,
-    },
+    HumanJump(HumanJumpRequest),
     /// Display the results/standings screen.
     ShowResults,
     /// Season batch is complete — persist results.
@@ -88,12 +89,12 @@ impl WorldCupSessionController {
                 hill_idx,
                 phase,
                 is_new_event,
-            } => WorldCupUiCommand::HumanJump {
+            } => WorldCupUiCommand::HumanJump(HumanJumpRequest {
                 participant,
                 hill_idx,
                 phase,
                 is_new_event,
-            },
+            }),
             WorldCupCommand::ShowResults => WorldCupUiCommand::ShowResults,
             WorldCupCommand::Done => {
                 self.save_competition_results();
