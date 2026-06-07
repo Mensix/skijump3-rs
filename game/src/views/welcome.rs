@@ -1,7 +1,5 @@
 use crate::components::menu::{Menu, MenuItem};
-use crate::gfx::palette::{
-    apply_logo_tint, BG_LEFT, BLACK, FILL_DIM, FONT_DEFAULT, FONT_GOLD, FONT_GREET,
-};
+use crate::gfx::palette::{BG_LEFT, BLACK, FILL_DIM, FONT_DEFAULT, FONT_GOLD, FONT_GREET};
 use crate::gfx::sprites;
 use crate::route::RouteTarget;
 use crate::save::SaveRef;
@@ -69,9 +67,5 @@ impl View<RouteTarget> for WelcomeScreenView {
             }
             _ => None,
         }
-    }
-
-    fn apply_palette(&self, palette: &mut engine::palette::Palette) {
-        apply_logo_tint(palette, 0);
     }
 }

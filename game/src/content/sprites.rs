@@ -483,8 +483,7 @@ pixels = "0000"
     #[test]
     fn jumper_sprite_indices_match_remap_sources() {
         use crate::gfx::palette::{
-            JUMPER_SKI_RENDER, JUMPER_SKI_SOURCE, JUMPER_SUIT_RENDER_SHADE_1,
-            JUMPER_SUIT_RENDER_SHADE_3, JUMPER_SUIT_SOURCE_SHADE_1, JUMPER_SUIT_SOURCE_SHADE_3,
+            JUMPER_SKI_SOURCE, JUMPER_SUIT_SOURCE_SHADE_1, JUMPER_SUIT_SOURCE_SHADE_3,
         };
         let store = FileStore::new(
             std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets"),
@@ -522,18 +521,6 @@ pixels = "0000"
             "ski sprites must use source ski index ({JUMPER_SKI_SOURCE})"
         );
 
-        // Private render slots must NOT appear in any sprite pixel data
-        for &slot in &[
-            JUMPER_SUIT_RENDER_SHADE_1,
-            JUMPER_SUIT_RENDER_SHADE_3,
-            JUMPER_SKI_RENDER,
-        ] {
-            assert!(
-                !all_indices.contains(&slot),
-                "private render slot {slot} must not appear in any sprite"
-            );
-        }
-
         // Verify no mutable palette indices (249-254) appear in jumper body
         // or ski sprites.  These indices are overwritten per-frame by
         // start-light, logo-tint, and replay-speed-highlight palette
@@ -552,7 +539,7 @@ pixels = "0000"
         }
 
         // Body sprites should NOT use source slots 215 or 217
-        // (those exist in the SUIT_PALETTE_BASE range but no body sprite uses them)
+        // (those exist in the old suit palette range but no body sprite uses them)
         assert!(
             !body_indices.contains(&215u8),
             "body sprites should not use index 215"

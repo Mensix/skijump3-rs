@@ -1,4 +1,3 @@
-use crate::palette::Palette;
 use crate::ui::Element;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -16,7 +15,6 @@ pub trait View<T: Clone + PartialEq + 'static> {
     fn update(&mut self) {}
     fn elements(&self) -> Vec<Element>;
     fn handle_event(&mut self, event: Event) -> Option<T>;
-    fn apply_palette(&self, _: &mut Palette) {}
     /// Controls how the renderer layers the GPU background.
     /// Default is `NoneBlack` (no GPU background, just black canvas).
     fn gpu_background(&self) -> BackgroundMode {
@@ -99,9 +97,5 @@ impl<T: Clone + PartialEq + 'static> Router<T> {
 
     pub fn current_route(&self) -> Option<&T> {
         self.current_route.as_ref()
-    }
-
-    pub fn apply_palette(&self, palette: &mut Palette) {
-        self.current.apply_palette(palette);
     }
 }

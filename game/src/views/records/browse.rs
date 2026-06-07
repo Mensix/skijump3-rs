@@ -1,6 +1,6 @@
 use crate::components::screen::{new_screen, page_hints};
 use crate::data::records::{HillRecord, Hiscore};
-use crate::gfx::palette::{apply_menu_tint, FONT_DEFAULT, FONT_GREET, FONT_HELP, FONT_NEW};
+use crate::gfx::palette::{FONT_DEFAULT, FONT_GREET, FONT_HELP, FONT_NEW};
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::format::{format_tenths_i64, ordinal_dot};
@@ -256,13 +256,6 @@ impl View<RouteTarget> for HallOfFameView {
         handle_page_event(event, &mut self.page, HALL_PAGES)
             .and_then(|action| apply_page_action(action, &mut self.page, HALL_PAGES))
     }
-
-    fn apply_palette(&self, palette: &mut engine::palette::Palette) {
-        apply_menu_tint(palette, 3, 0);
-        if self.page == 2 {
-            apply_menu_tint(palette, 1, 4);
-        }
-    }
 }
 
 #[derive(Debug)]
@@ -423,9 +416,5 @@ impl View<RouteTarget> for HillRecordsView {
         let pages = self.pages();
         handle_page_event(event, &mut self.page, pages)
             .and_then(|action| apply_page_action(action, &mut self.page, pages))
-    }
-
-    fn apply_palette(&self, palette: &mut engine::palette::Palette) {
-        apply_menu_tint(palette, 3, 0);
     }
 }

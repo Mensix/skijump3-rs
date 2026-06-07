@@ -5,7 +5,7 @@ use crate::controllers::competition_ui::{CompetitionUiState, RenderMode, ResultS
 use crate::controllers::jump_input::{JumpInputAction, JumpInputController};
 use crate::controllers::jump_scene::JumpScene;
 use crate::controllers::world_cup_flow::{self, WorldCupCommand};
-use crate::gfx::palette::{apply_menu_tint, BLACK, FONT_GREET};
+use crate::gfx::palette::{BLACK, FONT_GREET};
 use crate::jump::types::{FallType, JumpOutcome, JumpPhase};
 use crate::jump::JumpParticipant;
 use crate::jump::JumpPolicy;
@@ -14,7 +14,6 @@ use crate::store::{ResourcesRef, StoreRef};
 use crate::text::format::format_tenths;
 use crate::views::jump::competition_overlay::CompetitionOverlay;
 use crate::views::jump::results as competition_results;
-use engine::palette::Palette;
 use engine::ui::{Blinker, Element, Event, Key, View};
 use std::cell::Cell;
 
@@ -357,36 +356,6 @@ impl View<RouteTarget> for WorldCupJumpView {
             JumpInputAction::RouteBack => Some(RouteTarget::Back),
             _ => None,
         }
-    }
-
-    fn apply_palette(&self, palette: &mut Palette) {
-        if self.is_result_display_state() {
-            // Pascal: for style 1 screens, always MuutaMenu(3, 0) (gray base)
-            apply_menu_tint(palette, 3, 0);
-            // Pascal: color-specific tint on index 1 — col=5 (red) for WC standings
-            let tint = self
-                .store
-                .competition
-                .try_with(|c| {
-                    if c.phase() == CompetitionPhase::WorldCupStandings
-                        || c.phase() == CompetitionPhase::SeasonComplete
-                    {
-                        if c.is_four_hills_event() {
-                            1
-                        } else {
-                            5
-                        }
-                    } else {
-                        usize::from(c.phase() == CompetitionPhase::FourHillsStandings)
-                    }
-                })
-                .unwrap_or(0);
-            if tint > 0 {
-                apply_menu_tint(palette, 1, tint);
-            }
-            return;
-        }
-        self.scene.apply_palette(palette);
     }
 }
 

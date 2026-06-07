@@ -1,6 +1,6 @@
 use crate::components::menu::{Menu, MenuItem};
 use crate::components::screen;
-use crate::gfx::palette::{apply_menu_tint, FONT_DEFAULT, FONT_GOLD, FONT_GREET};
+use crate::gfx::palette::{FONT_DEFAULT, FONT_GOLD, FONT_GREET};
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::format;
@@ -208,9 +208,5 @@ impl View<RouteTarget> for TrainingSetupView {
         self.menu
             .handle_event(&event)
             .and_then(|_idx| self.confirm())
-    }
-
-    fn apply_palette(&self, palette: &mut engine::palette::Palette) {
-        apply_menu_tint(palette, 3, 0);
     }
 }

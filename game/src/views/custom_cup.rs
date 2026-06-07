@@ -1,8 +1,6 @@
 use crate::competition::builder::build_custom_competition;
 use crate::components::screen::new_screen;
-use crate::gfx::palette::{
-    apply_menu_tint, FILL_BORDER, FONT_DEFAULT, FONT_GREET, FONT_HEADER, FONT_HELP,
-};
+use crate::gfx::palette::{FILL_BORDER, FONT_DEFAULT, FONT_GREET, FONT_HEADER, FONT_HELP};
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::format;
@@ -100,10 +98,6 @@ impl View<RouteTarget> for CustomCupSetupView {
         }
 
         els
-    }
-
-    fn apply_palette(&self, palette: &mut engine::palette::Palette) {
-        apply_menu_tint(palette, 3, 0);
     }
 
     fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {

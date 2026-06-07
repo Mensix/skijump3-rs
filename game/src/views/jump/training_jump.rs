@@ -4,7 +4,6 @@ use crate::controllers::jump_scene::JumpScene;
 use crate::jump::{JumpParticipant, JumpPolicy};
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
-use engine::palette::Palette;
 use engine::ui::{Component, Element, Event, View};
 use std::cell::RefCell;
 
@@ -136,12 +135,6 @@ impl View<RouteTarget> for TrainingJumpView {
             None
         } else {
             self.handle_jump_event(event)
-        }
-    }
-
-    fn apply_palette(&self, palette: &mut Palette) {
-        if !self.save_dialog.is_active() {
-            self.scene.borrow().apply_palette(palette);
         }
     }
 }

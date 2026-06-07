@@ -1,16 +1,12 @@
 use crate::components::confirm_dialog::{ConfirmAction, ConfirmDialog};
 use crate::components::text_input::{TextInput, TextInputAction};
 use crate::components::value_selector::{ValueSelector, ValueSelectorAction};
-use crate::data::profile::{Profile, NUM_SKIS, NUM_SUITS};
-use crate::gfx::palette::{
-    apply_ski_palette, apply_ski_palette_at, apply_suit_palette, apply_suit_palette_at, FILL_DIM,
-    FONT_DEFAULT,
-};
+use crate::data::profile::Profile;
+use crate::gfx::palette::{FILL_DIM, FONT_DEFAULT};
 use crate::route::RouteTarget;
 use crate::save::SaveRef;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::layout::{lstr, replace_display_name};
-use engine::palette::Palette;
 use engine::ui::{Component, Element, Event, Key, View};
 
 use super::actions::{
@@ -388,29 +384,5 @@ impl View<RouteTarget> for ProfilesView {
             None => {}
         }
         None
-    }
-
-    fn apply_palette(&self, palette: &mut Palette) {
-        if let Some(profile) = self.active_profile() {
-            let store = self.store.profiles.borrow();
-            if let Some(p) = store.profiles.get(profile) {
-                apply_suit_palette(palette, p.suit_color);
-                apply_ski_palette(palette, p.ski_color);
-            }
-        }
-        if let Mode::ColorSelect { field, .. } = &self.mode {
-            match field {
-                ColorField::Suit => {
-                    for i in 0..NUM_SUITS {
-                        apply_suit_palette_at(palette, i, (i + 1) * 5);
-                    }
-                }
-                ColorField::Ski => {
-                    for i in 0..NUM_SKIS {
-                        apply_ski_palette_at(palette, i, (i + 1) * 5);
-                    }
-                }
-            }
-        }
     }
 }

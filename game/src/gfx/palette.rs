@@ -1,5 +1,8 @@
 use engine::color::Rgba;
 use engine::palette::Palette;
+use engine::sprite::SpriteColorRecolor;
+
+use crate::components::replay_playback::PlaybackMode;
 
 pub const UI_PALETTE_BASE: usize = 216;
 
@@ -41,8 +44,8 @@ pub const STANDARD_UI_PALETTE: [[u8; 3]; 40] = [
     [26, 26, 26],
     [52, 47, 0],
     [0, 47, 52],
-    [51, 51, 51],
-    [38, 38, 38],
+    [46, 46, 63],
+    [32, 32, 63],
     [63, 63, 63],
 ];
 
@@ -64,12 +67,6 @@ pub const BG_LEFT: Rgba = Rgba::from_rgb6(34, 13, 18);
 pub const BG_RIGHT: Rgba = Rgba::from_rgb6(20, 20, 20);
 pub const BG_ORDER: Rgba = BG_LEFT;
 
-// Bright variants for dither overlay (old palette index + 5).
-// Used in a later migration milestone — keep for now.
-#[allow(dead_code)]
-pub const BG_LEFT_BRIGHT: Rgba = Rgba::from_rgb6(23, 16, 43);
-#[allow(dead_code)]
-pub const BG_DITHER_BRIGHT: Rgba = Rgba::from_rgb6(26, 26, 26);
 pub const BG_RIGHT_BRIGHT: Rgba = Rgba::from_rgb6(43, 16, 23);
 
 // Additional fill/text colours from old palette indices
@@ -80,28 +77,6 @@ pub const FILL_LINE: Rgba = Rgba::from_rgb6(5, 8, 22); // 9
 pub const FILL_DIM: Rgba = Rgba::from_rgb6(20, 20, 20); // 244/245
 pub const BLACK: Rgba = Rgba::rgb(0, 0, 0);
 
-/// Return the brightened overlay colour for a dither-eligible fill colour.
-/// Kept for a later migration milestone.
-#[must_use]
-#[allow(dead_code)]
-pub fn brighten_fill_color(color: Rgba) -> Rgba {
-    if color == BG_LEFT {
-        BG_LEFT_BRIGHT
-    } else if color == BG_RIGHT || color == BG_ORDER {
-        BG_RIGHT_BRIGHT
-    } else {
-        BG_DITHER_BRIGHT
-    }
-}
-
-/// True when `color` is a dither-eligible fill colour (old palette slots 243-245).
-/// Kept for a later migration milestone.
-#[must_use]
-#[allow(dead_code)]
-pub fn is_dither_fill_color(color: Rgba) -> bool {
-    color == BG_LEFT || color == BG_RIGHT || color == BG_ORDER
-}
-
 /// Fill palette slots 216..=255 with the standard UI palette colours.
 /// Bridge function — only used by the legacy palette mutation path.
 pub fn apply_standard_ui_palette(palette: &mut Palette) {
@@ -110,25 +85,9 @@ pub fn apply_standard_ui_palette(palette: &mut Palette) {
     }
 }
 
-pub const SUIT_PALETTE_BASE: usize = 215;
-pub const SKI_PALETTE_INDEX: usize = 231;
-
-// Jumper sprite source indices (what body/ski sprites natively contain)
 pub const JUMPER_SUIT_SOURCE_SHADE_1: u8 = 216;
 pub const JUMPER_SUIT_SOURCE_SHADE_3: u8 = 218;
 pub const JUMPER_SKI_SOURCE: u8 = 231;
-
-// Jumper private render slots (isolated from sprite/terrain/UI indices).
-// These are within the standard UI palette range but no jump/replay view
-// element uses them as color indices; terrain uses 0..=215; snow uses 232..=235.
-// They are reserved — do not add non-jumper fillbox/text colors in this range
-// to jump or replay views.
-#[allow(dead_code)]
-pub const JUMPER_SUIT_RENDER_SHADE_1: u8 = 219;
-#[allow(dead_code)]
-pub const JUMPER_SUIT_RENDER_SHADE_3: u8 = 222;
-#[allow(dead_code)]
-pub const JUMPER_SKI_RENDER: u8 = 230;
 
 const SUIT_COLORS: [[u8; 4]; 8] = [
     [0, 53, 17, 53],
@@ -184,124 +143,37 @@ pub fn ski_color(col: usize) -> Rgba {
     Rgba::from_rgb6(rgb[0], rgb[1], rgb[2])
 }
 
-pub fn apply_suit_palette_at(palette: &mut Palette, col: usize, target_base: usize) {
-    let colors = suit_shade_rgba(col);
-    for (i, rgb) in colors.iter().enumerate() {
-        palette.set(target_base + i, *rgb);
+#[must_use]
+pub fn start_light_recolor(is_dq: bool) -> SpriteColorRecolor {
+    if is_dq {
+        SpriteColorRecolor::new(vec![
+            (253, Rgba::from_rgb6(54, 10, 10)),
+            (254, Rgba::from_rgb6(47, 0, 0)),
+        ])
+    } else {
+        SpriteColorRecolor::new(vec![
+            (253, Rgba::from_rgb6(10, 54, 10)),
+            (254, Rgba::from_rgb6(0, 47, 0)),
+        ])
     }
 }
 
-pub fn apply_suit_palette(palette: &mut Palette, col: usize) {
-    apply_suit_palette_at(palette, col, SUIT_PALETTE_BASE);
-}
-
-pub fn apply_ski_palette_at(palette: &mut Palette, col: usize, target: usize) {
-    palette.set(target, ski_rgb(col));
-}
-
-pub fn apply_ski_palette(palette: &mut Palette, col: usize) {
-    apply_ski_palette_at(palette, col, SKI_PALETTE_INDEX);
-}
-
-#[allow(dead_code)]
-pub fn apply_jumper_palette(palette: &mut Palette, suit_color: usize, ski_color: usize) {
-    let suit = suit_shade_rgba(suit_color);
-    palette.set(JUMPER_SUIT_RENDER_SHADE_1 as usize, suit[1]);
-    palette.set(JUMPER_SUIT_RENDER_SHADE_3 as usize, suit[3]);
-    palette.set(JUMPER_SKI_RENDER as usize, ski_rgb(ski_color));
-}
-
-const REPLACE_MENU: [[u8; 3]; 12] = [
-    [20, 20, 20],
-    [26, 26, 26],
-    [10, 10, 10],
-    [15, 15, 15],
-    [28, 8, 24],
-    [34, 13, 28],
-    [0, 24, 24],
-    [6, 30, 30],
-    [0, 25, 0],
-    [5, 30, 5],
-    [47, 0, 0],
-    [54, 10, 10],
-];
-
-pub fn apply_menu_tint(palette: &mut Palette, index: usize, col: usize) {
-    let col = col.min(5);
-    let upper = &REPLACE_MENU[col * 2];
-    let lower = &REPLACE_MENU[col * 2 + 1];
-    palette.set(242 + index, *upper);
-    palette.set(247 + index, *lower);
-}
-
-pub fn apply_logo_tint(palette: &mut Palette, col: usize) {
-    const REPLACE_LOGO: [[u8; 3]; 4] = [[46, 46, 63], [32, 32, 63], [51, 51, 51], [38, 38, 38]];
-    let col = col.min(3);
-    palette.set(253, REPLACE_LOGO[col * 2]);
-    palette.set(254, REPLACE_LOGO[col * 2 + 1]);
+#[must_use]
+pub fn replay_speed_recolor(mode: PlaybackMode) -> SpriteColorRecolor {
+    let active: u8 = match mode {
+        PlaybackMode::Forward => 250,
+        PlaybackMode::Rewind => 253,
+        PlaybackMode::SpeedChange => 251,
+        _ => 249,
+    };
+    let green = Rgba::from_rgb6(10, 63, 20);
+    let black = Rgba::rgb(0, 0, 0);
+    let mut pairs = Vec::with_capacity(5);
+    for i in 249..=253 {
+        pairs.push((i, if i == active { green } else { black }));
+    }
+    SpriteColorRecolor::new(pairs)
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn jumper_palette_sets_private_render_slots() {
-        let mut pal = Palette::new();
-        // Pre-set source slots to known values so we can detect tampering
-        for i in 0..=255 {
-            pal.set(i, [99, 99, 99]);
-        }
-
-        apply_jumper_palette(&mut pal, 1, 2);
-
-        // Should use private slots 219, 222, 230
-        assert_ne!(
-            pal.color(JUMPER_SUIT_RENDER_SHADE_1 as usize),
-            [99, 99, 99],
-            "render shade 1 should be set"
-        );
-        assert_ne!(
-            pal.color(JUMPER_SUIT_RENDER_SHADE_3 as usize),
-            [99, 99, 99],
-            "render shade 3 should be set"
-        );
-        assert_ne!(
-            pal.color(JUMPER_SKI_RENDER as usize),
-            [99, 99, 99],
-            "ski render should be set"
-        );
-    }
-
-    #[test]
-    fn jumper_palette_does_not_touch_source_slots() {
-        let mut pal = Palette::new();
-        // Set source slots to a sentinel value
-        for s in [
-            JUMPER_SUIT_SOURCE_SHADE_1,
-            JUMPER_SUIT_SOURCE_SHADE_3,
-            JUMPER_SKI_SOURCE,
-        ] {
-            pal.set(s as usize, [42, 42, 42]);
-        }
-
-        apply_jumper_palette(&mut pal, 1, 2);
-
-        // Source slots should remain unchanged
-        assert_eq!(
-            pal.color(JUMPER_SUIT_SOURCE_SHADE_1 as usize),
-            [42, 42, 42],
-            "source shade 1 unchanged"
-        );
-        assert_eq!(
-            pal.color(JUMPER_SUIT_SOURCE_SHADE_3 as usize),
-            [42, 42, 42],
-            "source shade 3 unchanged"
-        );
-        assert_eq!(
-            pal.color(JUMPER_SKI_SOURCE as usize),
-            [42, 42, 42],
-            "source ski unchanged"
-        );
-    }
-}
+mod tests {}

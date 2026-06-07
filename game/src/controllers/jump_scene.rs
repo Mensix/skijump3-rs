@@ -5,7 +5,6 @@ use crate::jump::snow::{calculate_snow_count, SnowSystem};
 use crate::jump::types::{JumpOutcome, JumpPhase};
 use crate::jump::{JumpParticipant, JumpPolicy, JumpRunner, JumpRunnerRenderEnv, JumpSession};
 use crate::store::{ResourcesRef, StoreRef};
-use engine::palette::Palette;
 use engine::ui::Element;
 use std::cell::RefCell;
 
@@ -183,12 +182,6 @@ impl JumpScene {
         let mut rng = self.store.jump_runtime.rng.borrow_mut();
         let mut wind = self.store.jump_runtime.wind.borrow_mut();
         self.runner.borrow_mut().update(&mut rng, &mut wind);
-    }
-
-    pub fn apply_palette(&self, palette: &mut Palette) {
-        if let Ok(runner) = self.runner.try_borrow() {
-            runner.apply_palette(palette);
-        }
     }
 
     #[allow(clippy::too_many_arguments)]

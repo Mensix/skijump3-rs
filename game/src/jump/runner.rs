@@ -13,7 +13,6 @@ use crate::jump::{ComputerInputProvider, JumpPresentationContext, JumpSession, J
 use crate::rng::Random;
 use crate::text::lang::LangBase;
 use engine::consts::{HEIGHT, WIDTH};
-use engine::palette::Palette;
 use engine::ui::{Element, Font};
 use std::cell::Cell;
 
@@ -171,20 +170,6 @@ impl JumpRunner {
             self.snow
                 .update(&mut viewport, mask, delta_x, delta_y, wind, draw);
             frame.viewport = viewport.into();
-        }
-    }
-
-    pub(crate) fn apply_palette(&self, palette: &mut Palette) {
-        if let Ok(terrain) = self.session.terrain() {
-            terrain.apply_hill_palette(palette);
-        }
-        let is_dq = self.session.phase() == Some(JumpPhase::Disqualified);
-        if is_dq {
-            palette.set(253, [54, 10, 10]);
-            palette.set(254, [47, 0, 0]);
-        } else {
-            palette.set(253, [10, 54, 10]);
-            palette.set(254, [0, 47, 0]);
         }
     }
 }

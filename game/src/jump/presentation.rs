@@ -44,6 +44,8 @@ pub fn elements(frame: &JumpRenderFrame, ctx: &JumpPresentationContext<'_>) -> V
         h: HEIGHT,
     })];
 
+    let start_light_recolor = palette::start_light_recolor(frame.phase == JumpPhase::Disqualified);
+
     match frame.phase {
         JumpPhase::Info => info_elements(&mut els, frame, ctx),
         JumpPhase::Result => result_elements(&mut els, frame, ctx),
@@ -69,10 +71,11 @@ pub fn elements(frame: &JumpRenderFrame, ctx: &JumpPresentationContext<'_>) -> V
     if frame.phase == JumpPhase::OnBar
         && (frame.frame_counter < 350 || (frame.frame_counter % 40) > 19)
     {
-        els.push(Element::sprite(
+        els.push(Element::sprite_remapped(
             sprites::Sprite::StartLight as u16,
             jumper_x + 60,
             jumper_y - 10,
+            start_light_recolor,
         ));
     }
 
@@ -287,10 +290,11 @@ fn landing_elements(
 fn dq_elements(els: &mut Vec<Element>, frame: &JumpRenderFrame, ctx: &JumpPresentationContext<'_>) {
     let jumper_x = frame.x - frame.sx;
     let jumper_y = frame.y - frame.sy;
-    els.push(Element::sprite(
+    els.push(Element::sprite_remapped(
         sprites::Sprite::StartLight as u16,
         jumper_x + 60,
         jumper_y - 10,
+        palette::start_light_recolor(true),
     ));
     els.push(Element::sprite(
         sprites::Sprite::JumperInfoBox as u16,

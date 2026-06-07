@@ -14,7 +14,6 @@ use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::lang::LangBase;
 use engine::consts::{HEIGHT, WIDTH};
-use engine::palette::Palette;
 use engine::sprite::SpriteColorRecolor;
 use engine::ui::{Blinker, Element, Event, ImageRegion, Key, View};
 use std::cell::{Cell, RefCell};
@@ -245,10 +244,11 @@ impl View<RouteTarget> for ReplayView {
                 FONT_DEFAULT,
                 true,
             ));
-            els.push(Element::sprite(
+            els.push(Element::sprite_remapped(
                 sprites::Sprite::ReplayModeIcon as u16,
                 150,
                 30,
+                palette::replay_speed_recolor(self.playback.mode()),
             ));
             els.push(Element::text(
                 format!(
@@ -367,29 +367,6 @@ impl View<RouteTarget> for ReplayView {
                 None
             }
             Event::Keyboard(_) => None,
-        }
-    }
-
-    fn apply_palette(&self, palette: &mut Palette) {
-        if let Ok(terrain) = &self.terrain {
-            terrain.apply_hill_palette(palette);
-        }
-        highlight_active_speed(palette, self.playback.mode());
-    }
-}
-
-fn highlight_active_speed(palette: &mut Palette, mode: PlaybackMode) {
-    let col: u8 = match mode {
-        PlaybackMode::Forward => 250,
-        PlaybackMode::Rewind => 253,
-        PlaybackMode::SpeedChange => 251,
-        _ => 249,
-    };
-    for i in 249..=253 {
-        if i == col {
-            palette.set(i as usize, [10, 63, 20]);
-        } else {
-            palette.set(i as usize, [0, 0, 0]);
         }
     }
 }

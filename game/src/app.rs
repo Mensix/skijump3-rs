@@ -34,7 +34,6 @@ pub struct Game {
     router: Router<RouteTarget>,
     sprites: Vec<SpriteData>,
     sprite_atlas: Option<Atlas>,
-    base_palette: Palette,
     main_background: TextureId,
     element_render_context: ElementRenderContext,
 }
@@ -101,7 +100,6 @@ impl Game {
             router,
             sprites,
             sprite_atlas,
-            base_palette,
             main_background,
             element_render_context: ElementRenderContext::new(),
         })
@@ -158,13 +156,6 @@ impl Game {
 
     fn render_frame(&mut self) -> Result<(), String> {
         self.router.current_view_mut().update();
-
-        let palette = {
-            let mut p = self.base_palette.clone();
-            self.router.apply_palette(&mut p);
-            p
-        };
-        self.renderer.set_palette(palette);
 
         let elements = self.router.current_view().elements();
         let background = match self.router.current_view().gpu_background() {
