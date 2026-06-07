@@ -250,11 +250,10 @@ impl Renderer {
         Ok(())
     }
 
-    /// Convert a region of indexed pixels directly to RGBA and draw via the
-    /// reusable scratch texture.  Clips to screen bounds.  Source indices
-    /// outside the source rect or past the source buffer produce transparent
-    /// pixels.  Index `0` is also transparent.
-    pub fn draw_indexed_region_pixels(
+    /// Draw a region of pre-computed RGBA pixels via the reusable scratch
+    /// texture.  Clips to screen bounds.  Source pixels are 4 bytes per pixel
+    /// (ABGR8888 order to match SDL2).
+    pub fn draw_rgba_region_pixels(
         &mut self,
         pixels: &[u8],
         src_w: u32,
@@ -267,7 +266,7 @@ impl Renderer {
         h: u32,
     ) -> Result<(), String> {
         self.scratch_rgba.clear();
-        let Some((vis_left, vis_top, vis_w, vis_h)) = indexed::indexed_region_to_rgba(
+        let Some((vis_left, vis_top, vis_w, vis_h)) = indexed::rgba_region_to_rgba(
             pixels,
             src_w,
             src_h,
@@ -277,7 +276,6 @@ impl Renderer {
             dst_y,
             w,
             h,
-            &self.palette,
             &mut self.scratch_rgba,
         ) else {
             return Ok(());

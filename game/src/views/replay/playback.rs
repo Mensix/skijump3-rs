@@ -161,23 +161,22 @@ impl View<RouteTarget> for ReplayView {
         let (sx, sy) = frame.scroll;
         let replay_frame = frame.replay_frame;
 
-        let mut viewport = terrain
-            .viewport_pixels(sx, sy, WIDTH, HEIGHT)
-            .as_ref()
-            .to_vec();
+        let (viewport_rgba, viewport_mask) = terrain.viewport_rgba_and_mask(sx, sy, WIDTH, HEIGHT);
+        let mut viewport_rgba = viewport_rgba;
         if !session.trace().meta.intro {
             let previous = *self.snow_camera.borrow();
             *self.snow_camera.borrow_mut() = (sx, sy);
             let draw = self.snow_advance.replace(false);
             self.snow.borrow_mut().update(
-                &mut viewport,
+                &mut viewport_rgba,
+                &viewport_mask,
                 previous.0 - sx,
                 previous.1 - sy,
                 i32::from(replay_frame.wind),
                 draw,
             );
         }
-        let viewport: Rc<[u8]> = viewport.into();
+        let viewport: Rc<[u8]> = viewport_rgba.into();
         let mut els = vec![Element::image_region(ImageRegion {
             pixels: Rc::clone(&viewport),
             src_w: WIDTH,

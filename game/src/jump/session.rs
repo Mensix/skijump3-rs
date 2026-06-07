@@ -294,12 +294,14 @@ impl JumpSession {
                 (Err(err), _) => return Err(err.clone()),
                 _ => return Err("jump state not available".to_string()),
             };
-            let viewport = terrain.viewport_pixels(state.sx, state.sy, width, height);
+            let (viewport, snow_mask) =
+                terrain.viewport_rgba_and_mask(state.sx, state.sy, width, height);
             let (body_x, body_y) = state.body_position();
             let (body_anim, ski_anim) = state.anims(terrain);
             let current_pos = (state.x, state.y);
             let frame = JumpRenderFrame {
-                viewport,
+                viewport: viewport.into(),
+                snow_mask: snow_mask.into(),
                 phase: state.phase,
                 x: state.x,
                 y: state.y,

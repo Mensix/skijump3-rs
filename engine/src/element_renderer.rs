@@ -389,10 +389,10 @@ impl ElementWorker<'_> {
             }
             Element::Image(pixels, w, h) => {
                 self.renderer
-                    .draw_indexed_region_pixels(pixels, *w, *h, 0, 0, 0, 0, *w, *h)?;
+                    .draw_rgba_region_pixels(pixels, *w, *h, 0, 0, 0, 0, *w, *h)?;
             }
             Element::ImageRegion(region) => {
-                self.renderer.draw_indexed_region_pixels(
+                self.renderer.draw_rgba_region_pixels(
                     &region.pixels,
                     region.src_w,
                     region.src_h,

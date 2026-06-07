@@ -6,10 +6,28 @@ use std::rc::Rc;
 
 pub const HILL_PROFILE_LEN: usize = 1300;
 
+fn indexed_to_rgba(pixels: &[u8], palette: &Palette) -> Vec<u8> {
+    let mut rgba = Vec::with_capacity(pixels.len() * 4);
+    for &idx in pixels {
+        if idx == 0 {
+            rgba.extend_from_slice(&[0, 0, 0, 0]);
+        } else {
+            let [r6, g6, b6] = palette.color(idx as usize);
+            rgba.push((u32::from(r6) * 255 / 63) as u8);
+            rgba.push((u32::from(g6) * 255 / 63) as u8);
+            rgba.push((u32::from(b6) * 255 / 63) as u8);
+            rgba.push(255);
+        }
+    }
+    rgba
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HillTerrain {
     front_pixels: Rc<[u8]>,
     back_pixels: Rc<[u8]>,
+    front_rgba: Rc<[u8]>,
+    back_rgba: Rc<[u8]>,
     front_palette: Palette,
     back_palette: Palette,
     pub width: u16,
@@ -33,6 +51,7 @@ impl HillTerrain {
         let mut back = PcxParser::parse(&back_data)?;
         if info.back_mirror != 0 {
             Self::mirror_pixels(&mut back.pixels, back.width as usize, back.height as usize);
+            Self::mirror_rgba(&mut back.rgba_pixels, back.width as usize);
         }
         Ok(Self::from_pcxs(front, back, info.kr, info.pk()))
     }
@@ -47,9 +66,12 @@ impl HillTerrain {
         let tip_x = Self::tip_x(&profile_y, width);
         let mut front_pixels = pixels.clone();
         Self::draw_distance_markers(&mut front_pixels, width, &profile_y, tip_x, kr, pk);
+        let front_rgba = indexed_to_rgba(&front_pixels, &pcx.palette);
         Self {
             front_pixels: front_pixels.into(),
             back_pixels: pixels.into(),
+            front_rgba: front_rgba.into(),
+            back_rgba: pcx.rgba_pixels.into(),
             front_palette: pcx.palette.clone(),
             back_palette: pcx.palette,
             width: pcx.width,
@@ -71,10 +93,13 @@ impl HillTerrain {
         let profile_y = Self::profile_y(&line_lengths, width, height);
         let tip_x = Self::tip_x(&profile_y, width);
         Self::draw_distance_markers(&mut pixels, width, &profile_y, tip_x, kr, pk);
+        let front_rgba = indexed_to_rgba(&pixels, &front.palette);
 
         Self {
             front_pixels: pixels.into(),
             back_pixels: back.pixels.into(),
+            front_rgba: front_rgba.into(),
+            back_rgba: back.rgba_pixels.into(),
             front_palette: front.palette,
             back_palette: back.palette,
             width: front.width,
@@ -149,6 +174,99 @@ impl HillTerrain {
             let row = &mut pixels[y * width..(y + 1) * width];
             row.reverse();
         }
+    }
+
+    fn mirror_rgba(rgba: &mut [u8], width: usize) {
+        for chunk in rgba.chunks_exact_mut(width * 4) {
+            for x in 0..width / 2 {
+                let left = x * 4;
+                let right = (width - 1 - x) * 4;
+                chunk.swap(left, right);
+                chunk.swap(left + 1, right + 1);
+                chunk.swap(left + 2, right + 2);
+                chunk.swap(left + 3, right + 3);
+            }
+        }
+    }
+
+    /// Produce both RGBA viewport pixels and an indexed mask (for snow
+    /// position checking) in a single pass.  RGBA output is
+    /// `w * h * 4` bytes; mask output is `w * h` bytes.
+    pub fn viewport_rgba_and_mask(
+        &self,
+        scroll_x: i32,
+        scroll_y: i32,
+        w: u32,
+        h: u32,
+    ) -> (Vec<u8>, Vec<u8>) {
+        let wu = w as usize;
+        let hu = h as usize;
+        let mut rgba = vec![0u8; wu * hu * 4];
+        let mut mask = vec![0u8; wu * hu];
+        let width_u = self.width as usize;
+        let back_w = self.back_width as usize;
+
+        for dy in 0..h as i32 {
+            let front_y = scroll_y + dy;
+            let back_y = scroll_y / 2 + dy;
+            let row_base = dy as usize * wu;
+            for dx in 0..w as i32 {
+                let front_x = scroll_x + dx;
+                let back_x = scroll_x / 2 + dx;
+                let is_front = if front_x >= 0
+                    && front_y >= 0
+                    && (front_x as usize) < width_u
+                    && (front_y as usize) < self.height as usize
+                {
+                    (front_x as usize)
+                        < self
+                            .line_lengths
+                            .get(front_y as usize)
+                            .copied()
+                            .unwrap_or_default()
+                } else {
+                    false
+                };
+                let out_idx = row_base + dx as usize;
+                let (pixel, src_rgba, src_w, src_x, src_y) = if is_front {
+                    let sy = front_y as usize;
+                    let sx = front_x as usize;
+                    let src_idx = sy * width_u + sx;
+                    (
+                        self.front_pixels.get(src_idx).copied().unwrap_or(0),
+                        &self.front_rgba,
+                        width_u,
+                        sx,
+                        sy,
+                    )
+                } else {
+                    if back_x < 0 || back_y < 0 {
+                        mask[out_idx] = 0;
+                        continue; // RGBA stays zero
+                    }
+                    let sx = back_x as usize;
+                    let sy = back_y as usize;
+                    if sx < back_w && sy < self.back_height as usize {
+                        let src_idx = sy * back_w + sx;
+                        (
+                            self.back_pixels.get(src_idx).copied().unwrap_or(0),
+                            &self.back_rgba,
+                            back_w,
+                            sx,
+                            sy,
+                        )
+                    } else {
+                        mask[out_idx] = 0;
+                        continue;
+                    }
+                };
+                mask[out_idx] = pixel;
+                let rgba_src_offset = (src_y * src_w + src_x) * 4;
+                let rgba_dst = &mut rgba[out_idx * 4..out_idx * 4 + 4];
+                rgba_dst.copy_from_slice(&src_rgba[rgba_src_offset..rgba_src_offset + 4]);
+            }
+        }
+        (rgba, mask)
     }
 
     #[must_use]

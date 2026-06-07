@@ -4,6 +4,9 @@ use std::rc::Rc;
 #[derive(Debug, Clone)]
 pub struct JumpRenderFrame {
     pub(crate) viewport: Rc<[u8]>,
+    /// Indexed-pixel mask for snow position checking (`WIDTH * HEIGHT` bytes).
+    /// Generated alongside the RGBA `viewport` by `HillTerrain::viewport_rgba_and_mask()`.
+    pub(crate) snow_mask: Rc<[u8]>,
     pub(crate) phase: JumpPhase,
     pub(crate) x: i32,
     pub(crate) y: i32,

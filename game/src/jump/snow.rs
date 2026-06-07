@@ -6,6 +6,23 @@ const SINE_LENGTH: usize = 512;
 const BG_MIN: u8 = 64;
 const BG_MAX: u8 = 215;
 
+const fn scale_6bit(v: u8) -> u8 {
+    (v as u32 * 255 / 63) as u8
+}
+
+/// Pre-computed RGBA values for snow palette indices 232-235 (from the
+/// standard UI palette).  Each entry is `[R, G, B, A]`.
+const SNOW_RGBA: [[u8; 4]; 4] = [
+    [scale_6bit(56), scale_6bit(13), scale_6bit(13), 255], // 232
+    [scale_6bit(13), scale_6bit(53), scale_6bit(13), 255], // 233
+    [scale_6bit(23), scale_6bit(23), scale_6bit(63), 255], // 234
+    [scale_6bit(63), scale_6bit(23), scale_6bit(23), 255], // 235
+];
+
+fn snow_index_to_rgba(idx: u8) -> &'static [u8; 4] {
+    &SNOW_RGBA[(idx.wrapping_sub(232).min(3)) as usize]
+}
+
 #[derive(Debug, Clone)]
 struct Snowflake {
     x: i64,
@@ -129,8 +146,21 @@ impl SnowSystem {
         (low as u16) | ((high as u16) << 8)
     }
 
-    pub fn update(&mut self, buffer: &mut [u8], delta_x: i32, delta_y: i32, wind: i32, draw: bool) {
+    /// Draw snowflakes onto a viewport.
+    ///
+    /// * `rgba_buffer` — the RGBA viewport pixels (`WIDTH * HEIGHT * 4` bytes)
+    /// * `mask` — indexed-pixel mask for position checking (`WIDTH * HEIGHT` bytes)
+    pub fn update(
+        &mut self,
+        rgba_buffer: &mut [u8],
+        mask: &[u8],
+        delta_x: i32,
+        delta_y: i32,
+        wind: i32,
+        draw: bool,
+    ) {
         let max = self.max.min(SNOW_MAX - 1);
+        let pixel_count = (WIDTH as usize) * (HEIGHT as usize);
         for flake in self.flakes.iter_mut().take(max + 1) {
             if draw {
                 flake.x += self.sine[flake.sin_pos] + i64::from(delta_x) * 512 + i64::from(wind);
@@ -142,19 +172,32 @@ impl SnowSystem {
             let y = ((flake.y as i32 as u32) >> 10) as u16;
             let offset = x.wrapping_add(y.wrapping_mul(WIDTH as u16)) as usize;
             if offset < 63_679
-                && offset + (WIDTH as usize) + 1 < buffer.len()
-                && buffer[offset] >= BG_MIN
-                && buffer[offset + 1] >= BG_MIN
-                && buffer[offset] < BG_MAX
-                && buffer[offset + 1] < BG_MAX
+                && offset + (WIDTH as usize) + 1 < pixel_count
+                && mask[offset] >= BG_MIN
+                && mask[offset + 1] >= BG_MIN
+                && mask[offset] < BG_MAX
+                && mask[offset + 1] < BG_MAX
             {
-                if flake.style == 1 && offset + 1 < buffer.len() {
-                    buffer[offset] = flake.c1 as u8;
-                    buffer[offset + 1] = (flake.c1 >> 8) as u8;
-                    buffer[offset + (WIDTH as usize)] = flake.c2 as u8;
-                    buffer[offset + (WIDTH as usize) + 1] = (flake.c2 >> 8) as u8;
+                let rgba_off = offset * 4;
+                if flake.style == 1 {
+                    let c1_low = flake.c1 as u8;
+                    let c1_high = (flake.c1 >> 8) as u8;
+                    let c2_low = flake.c2 as u8;
+                    let c2_high = (flake.c2 >> 8) as u8;
+                    let rgba_next_row = rgba_off + (WIDTH as usize) * 4;
+                    if rgba_next_row + 7 < rgba_buffer.len() {
+                        rgba_buffer[rgba_off..rgba_off + 4]
+                            .copy_from_slice(snow_index_to_rgba(c1_low));
+                        rgba_buffer[rgba_off + 4..rgba_off + 8]
+                            .copy_from_slice(snow_index_to_rgba(c1_high));
+                        rgba_buffer[rgba_next_row..rgba_next_row + 4]
+                            .copy_from_slice(snow_index_to_rgba(c2_low));
+                        rgba_buffer[rgba_next_row + 4..rgba_next_row + 8]
+                            .copy_from_slice(snow_index_to_rgba(c2_high));
+                    }
                 } else {
-                    buffer[offset] = flake.c1 as u8;
+                    rgba_buffer[rgba_off..rgba_off + 4]
+                        .copy_from_slice(snow_index_to_rgba(flake.c1 as u8));
                 }
             }
         }
@@ -183,16 +226,26 @@ mod tests {
         }
     }
 
+    fn make_buffer_and_mask() -> (Vec<u8>, Vec<u8>) {
+        let pixel_count = (WIDTH * HEIGHT) as usize;
+        let rgba = vec![0u8; pixel_count * 4];
+        let mask = vec![BG_MIN; pixel_count];
+        (rgba, mask)
+    }
+
     #[test]
     fn update_uses_pascal_wrapped_offset_for_offscreen_flakes() {
         let mut snow = SnowSystem::new();
         snow.flakes = vec![flake_at(0, 205_i64 << 10, 233)];
         snow.max = 0;
 
-        let mut buffer = vec![BG_MIN; (WIDTH * HEIGHT) as usize];
-        snow.update(&mut buffer, 0, 0, 0, false);
+        let (mut rgba, mask) = make_buffer_and_mask();
+        snow.update(&mut rgba, &mask, 0, 0, 0, false);
 
-        assert_eq!(buffer[64], 233);
+        // Snow index 233 → SNOW_RGBA[1] = [scale(13), scale(53), scale(13), 255]
+        let expected_rgba = &SNOW_RGBA[1];
+        let pixel_start = 64 * 4;
+        assert_eq!(&rgba[pixel_start..pixel_start + 4], expected_rgba);
     }
 
     #[test]
@@ -204,10 +257,14 @@ mod tests {
         ];
         snow.max = 0;
 
-        let mut buffer = vec![BG_MIN; (WIDTH * HEIGHT) as usize];
-        snow.update(&mut buffer, 0, 0, 0, false);
+        let (mut rgba, mask) = make_buffer_and_mask();
+        snow.update(&mut rgba, &mask, 0, 0, 0, false);
 
-        assert_eq!(buffer[10 + 10 * WIDTH as usize], 233);
-        assert_eq!(buffer[20 + 10 * WIDTH as usize], BG_MIN);
+        let expected_233 = &SNOW_RGBA[1]; // 233-232 = 1
+        let pixel0 = (10 + 10 * WIDTH as usize) * 4;
+        assert_eq!(&rgba[pixel0..pixel0 + 4], expected_233);
+
+        let pixel1 = (20 + 10 * WIDTH as usize) * 4;
+        assert_eq!(&rgba[pixel1..pixel1 + 4], &[0, 0, 0, 0]);
     }
 }
