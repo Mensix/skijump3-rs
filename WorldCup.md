@@ -177,7 +177,7 @@ DrawAnim(5, 122, 62)
 
 ```
 Starts at MainMenu → item 1 → JumpMenu
-Background: MainLayout (MAIN.PCX or fallback)
+Background: MainLayout
 fillbox(1, 94, 116, 106, BG_LIST=8)
 Header: lstr(18) at (11, 80), FONT_HEADER=246
 7 menu items at y = 86 + temp*12 (temp=1..7), x=11
