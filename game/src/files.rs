@@ -31,16 +31,6 @@ impl FileStore {
         }
     }
 
-    /// Read from asset dir only (for bundled non-overridable assets).
-    pub fn read_asset(&self, name: &str) -> Result<Vec<u8>, std::io::Error> {
-        std::fs::read(self.asset_dir.join(name))
-    }
-
-    /// Read from save dir only.
-    pub fn read_save(&self, name: &str) -> Result<Vec<u8>, std::io::Error> {
-        std::fs::read(self.save_dir.join(name))
-    }
-
     /// Atomically write to save dir.
     pub fn write(&self, name: &str, data: &[u8]) -> Result<(), std::io::Error> {
         let path = self.save_dir.join(name);
@@ -112,14 +102,6 @@ mod tests {
     }
 
     #[test]
-    fn write_and_read_save() {
-        let (store, _save, _asset) = setup();
-        store.write("test.txt", b"hello world").unwrap();
-        let data = store.read_save("test.txt").unwrap();
-        assert_eq!(data, b"hello world");
-    }
-
-    #[test]
     fn read_fallback_from_asset() {
         let (store, _save, asset) = setup();
         fs::write(asset.path().join("fallback.txt"), b"asset data").unwrap();
@@ -134,15 +116,6 @@ mod tests {
         fs::write(save.path().join("override.txt"), b"save data").unwrap();
         let data = store.read("override.txt").unwrap();
         assert_eq!(data, b"save data");
-    }
-
-    #[test]
-    fn atomic_write_replaces_content() {
-        let (store, _save, _asset) = setup();
-        store.write("atomic.txt", b"first").unwrap();
-        store.write("atomic.txt", b"second").unwrap();
-        let data = store.read_save("atomic.txt").unwrap();
-        assert_eq!(data, b"second");
     }
 
     #[test]

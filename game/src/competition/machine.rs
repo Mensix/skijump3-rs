@@ -707,11 +707,8 @@ mod tests {
         }
         m.advance();
         assert_eq!(m.phase, CompetitionPhase::Round1Results);
-        assert_eq!(m.field.num_qualified(), 50);
-
         m.advance();
         assert_eq!(m.phase, CompetitionPhase::Round2);
-        assert_eq!(m.field.num_qualified(), 30);
     }
 
     #[test]

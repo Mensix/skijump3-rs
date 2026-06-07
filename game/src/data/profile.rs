@@ -108,16 +108,6 @@ impl ProfileStore {
         }
     }
 
-    /// Create from a loaded profile list. All profiles are active by default.
-    #[must_use]
-    pub fn from_profiles(profiles: Vec<Profile>) -> Self {
-        let active_order: Vec<usize> = (0..profiles.len()).collect();
-        Self {
-            profiles,
-            active_order,
-        }
-    }
-
     #[must_use]
     pub const fn num_profiles(&self) -> usize {
         self.profiles.len()

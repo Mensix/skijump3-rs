@@ -91,21 +91,6 @@ impl CompetitionField {
         }
     }
 
-    /// Number of non-injured participants.
-    #[must_use]
-    pub fn num_active(&self) -> usize {
-        self.participants.iter().filter(|p| p.injury == 0).count()
-    }
-
-    /// How many have `QualificationStatus` that lets them jump the current round.
-    #[must_use]
-    pub fn num_qualified(&self) -> usize {
-        self.participants
-            .iter()
-            .filter(|p| p.qual.can_jump())
-            .count()
-    }
-
     /// Build an ordered start list for the given phase.
     ///
     /// - **Qualification**: reverse `master_order`, only non-injured,

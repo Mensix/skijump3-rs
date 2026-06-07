@@ -4,19 +4,6 @@ use engine::ui::Font;
 const RIGHT_EDGE: i32 = 316;
 
 #[must_use]
-pub fn trim_ascii(bytes: &[u8]) -> &[u8] {
-    let start = bytes
-        .iter()
-        .position(|&b| b != b' ' && b != b'\r')
-        .unwrap_or(bytes.len());
-    let end = bytes
-        .iter()
-        .rposition(|&b| b != b' ' && b != b'\r')
-        .map_or(0, |p| p + 1);
-    &bytes[start..end]
-}
-
-#[must_use]
 pub fn shorten_name(s: &str, font: &Font, max_width: i32) -> String {
     if max_width <= 0 {
         return String::new();

@@ -205,53 +205,6 @@ impl HillTerrain {
     }
 
     #[must_use]
-    pub fn viewport_pixels(&self, scroll_x: i32, scroll_y: i32, w: u32, h: u32) -> Rc<[u8]> {
-        let mut out = vec![0; w as usize * h as usize];
-        for dy in 0..h as i32 {
-            let front_y = scroll_y + dy;
-            let back_y = scroll_y / 2 + dy;
-            for dx in 0..w as i32 {
-                let front_x = scroll_x + dx;
-                let back_x = scroll_x / 2 + dx;
-                let pixel = if self.is_front_pixel(front_x, front_y) {
-                    self.front_pixel(front_x, front_y)
-                } else {
-                    self.back_pixel(back_x, back_y)
-                };
-                out[dy as usize * w as usize + dx as usize] = pixel;
-            }
-        }
-        out.into()
-    }
-
-    fn is_front_pixel(&self, x: i32, y: i32) -> bool {
-        if x < 0 || y < 0 || x >= i32::from(self.width) || y >= i32::from(self.height) {
-            return false;
-        }
-        (x as usize)
-            < self
-                .line_lengths
-                .get(y as usize)
-                .copied()
-                .unwrap_or_default()
-    }
-
-    fn front_pixel(&self, x: i32, y: i32) -> u8 {
-        let idx = y as usize * self.width as usize + x as usize;
-        self.front_pixels.get(idx).copied().unwrap_or(0)
-    }
-
-    fn back_pixel(&self, x: i32, y: i32) -> u8 {
-        if x < 0 || y < 0 {
-            return 0;
-        }
-        let sx = x as usize;
-        let sy = y as usize;
-        let idx = sy * self.back_width as usize + sx;
-        self.back_pixels.get(idx).copied().unwrap_or(0)
-    }
-
-    #[must_use]
     pub fn height_at(&self, x: i32) -> i32 {
         if x > 0 {
             self.profile_y.get(x as usize).copied().unwrap_or(0)
@@ -285,20 +238,6 @@ mod tests {
     fn test_files() -> crate::files::FileStore {
         let assets = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets");
         crate::files::FileStore::new(assets, std::path::PathBuf::from("."))
-    }
-
-    #[test]
-    fn viewport_pixels_produces_full_non_zero() {
-        let terrain = HillTerrain::load(&test_files(), 0).expect("HILL0");
-        let vp = terrain.viewport_pixels(0, 0, 320, 200);
-        assert_eq!(vp.len(), 320 * 200);
-        let non_zero = vp.iter().filter(|&&p| p != 0).count();
-        assert!(non_zero > 0, "expected some non-zero terrain pixels");
-        // Back layer provides complete coverage (sky fills all remaining space)
-        assert!(
-            non_zero >= 64000 * 9 / 10,
-            "expected >= 90% non-zero pixels"
-        );
     }
 
     #[test]
