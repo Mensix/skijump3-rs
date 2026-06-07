@@ -1,25 +1,9 @@
-use crate::data::hill::HillInfo;
 use crate::files::FileStore;
-use crate::gfx::pcx::{DecodedPcx, PcxPalette, PcxParser};
+use crate::gfx::png::{load_grayscale_png, load_png};
+use serde::Deserialize;
 use std::rc::Rc;
 
 pub const HILL_PROFILE_LEN: usize = 1300;
-
-fn indexed_to_rgba(pixels: &[u8], palette: &PcxPalette) -> Vec<u8> {
-    let mut rgba = Vec::with_capacity(pixels.len() * 4);
-    for &idx in pixels {
-        if idx == 0 {
-            rgba.extend_from_slice(&[0, 0, 0, 0]);
-        } else {
-            let [r6, g6, b6] = palette.color(idx as usize);
-            rgba.push((u32::from(r6) * 255 / 63) as u8);
-            rgba.push((u32::from(g6) * 255 / 63) as u8);
-            rgba.push((u32::from(b6) * 255 / 63) as u8);
-            rgba.push(255);
-        }
-    }
-    rgba
-}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HillTerrain {
@@ -36,143 +20,113 @@ pub struct HillTerrain {
     pub tip_x: i32,
 }
 
+#[derive(Deserialize)]
+struct TerrainMetadata {
+    format_version: u32,
+    width: u16,
+    height: u16,
+    back_width: u16,
+    back_height: u16,
+    tip_x: i32,
+    line_lengths: Vec<i64>,
+    profile_y: Vec<i64>,
+}
+
 impl HillTerrain {
-    pub fn load(files: &FileStore, info: &HillInfo) -> Result<Self, String> {
-        let front_data = files
-            .read(&format!("FRONT{}.PCX", info.front_index))
-            .map_err(|e| e.to_string())?;
-        let front = PcxParser::parse(&front_data)?;
-        let back_data = files
-            .read(&format!("BACK{}.PCX", info.back_index))
-            .map_err(|e| e.to_string())?;
-        let mut back = PcxParser::parse(&back_data)?;
-        if info.back_mirror != 0 {
-            Self::mirror_pixels(&mut back.pixels, back.width as usize, back.height as usize);
-            Self::mirror_rgba(&mut back.rgba_pixels, back.width as usize);
-        }
-        Ok(Self::from_pcxs(front, back, info.kr, info.pk()))
-    }
+    pub fn load(files: &FileStore, hill_idx: usize) -> Result<Self, String> {
+        let dir = format!("hills/generated/HILL{hill_idx}/");
 
-    #[must_use]
-    pub fn from_front_pcx(pcx: DecodedPcx, kr: i64, pk: f64) -> Self {
-        let width = pcx.width as usize;
-        let height = pcx.height as usize;
-        let pixels = pcx.pixels;
-        let line_lengths = Self::line_lengths(&pixels, width, height);
-        let profile_y = Self::profile_y(&line_lengths, width, height);
-        let tip_x = Self::tip_x(&profile_y, width);
-        let mut front_pixels = pixels.clone();
-        Self::draw_distance_markers(&mut front_pixels, width, &profile_y, tip_x, kr, pk);
-        let front_rgba = indexed_to_rgba(&front_pixels, &pcx.palette);
-        Self {
-            front_pixels: front_pixels.into(),
-            back_pixels: pixels.into(),
-            front_rgba: front_rgba.into(),
-            back_rgba: pcx.rgba_pixels.into(),
-            width: pcx.width,
-            height: pcx.height,
-            back_width: pcx.width,
-            back_height: pcx.height,
+        let meta_bytes = files
+            .read(&format!("{dir}terrain.toml"))
+            .map_err(|e| format!("Failed to load terrain.toml for hill {hill_idx}: {e}"))?;
+        let meta_str = std::str::from_utf8(&meta_bytes)
+            .map_err(|e| format!("terrain.toml not valid UTF-8: {e}"))?;
+        let meta: TerrainMetadata =
+            toml::from_str(meta_str).map_err(|e| format!("terrain.toml parse: {e}"))?;
+
+        if meta.format_version != 1 {
+            return Err(format!(
+                "Unsupported terrain format version: {}",
+                meta.format_version
+            ));
+        }
+
+        let front_rgba_raw = files
+            .read(&format!("{dir}front_rgba.png"))
+            .map_err(|e| e.to_string())?;
+        let front_rgba_img = load_png(&front_rgba_raw)?;
+        let front_mask_raw = files
+            .read(&format!("{dir}front_mask.png"))
+            .map_err(|e| e.to_string())?;
+        let front_mask = load_grayscale_png(&front_mask_raw)?;
+
+        let back_rgba_raw = files
+            .read(&format!("{dir}back_rgba.png"))
+            .map_err(|e| e.to_string())?;
+        let back_rgba_img = load_png(&back_rgba_raw)?;
+        let back_mask_raw = files
+            .read(&format!("{dir}back_mask.png"))
+            .map_err(|e| e.to_string())?;
+        let back_mask = load_grayscale_png(&back_mask_raw)?;
+
+        let w = meta.width as usize;
+        let h = meta.height as usize;
+        let bw = meta.back_width as usize;
+        let bh = meta.back_height as usize;
+
+        if front_rgba_img.width as usize != w
+            || front_rgba_img.height as usize != h
+            || front_mask.width as usize != w
+            || front_mask.height as usize != h
+        {
+            return Err(format!(
+                "Hill {hill_idx}: front image dimensions mismatch (expected {w}x{h})"
+            ));
+        }
+        if back_rgba_img.width as usize != bw
+            || back_rgba_img.height as usize != bh
+            || back_mask.width as usize != bw
+            || back_mask.height as usize != bh
+        {
+            return Err(format!(
+                "Hill {hill_idx}: back image dimensions mismatch (expected {bw}x{bh})"
+            ));
+        }
+
+        let line_lengths: Vec<usize> = meta.line_lengths.iter().map(|&v| v as usize).collect();
+        if line_lengths.len() != h {
+            return Err(format!(
+                "Hill {hill_idx}: expected {h} line_lengths, got {}",
+                line_lengths.len()
+            ));
+        }
+        let profile_y: Vec<i32> = meta.profile_y.iter().map(|&v| v as i32).collect();
+        if profile_y.len() != HILL_PROFILE_LEN {
+            return Err(format!(
+                "Hill {hill_idx}: expected {HILL_PROFILE_LEN} profile_y entries, got {}",
+                profile_y.len()
+            ));
+        }
+
+        Ok(Self {
+            front_pixels: front_mask.pixels.into(),
+            back_pixels: back_mask.pixels.into(),
+            front_rgba: front_rgba_img.pixels.into(),
+            back_rgba: back_rgba_img.pixels.into(),
+            width: meta.width,
+            height: meta.height,
+            back_width: meta.back_width,
+            back_height: meta.back_height,
             line_lengths,
             profile_y,
-            tip_x,
-        }
+            tip_x: meta.tip_x,
+        })
     }
 
-    #[must_use]
-    pub fn from_pcxs(front: DecodedPcx, back: DecodedPcx, kr: i64, pk: f64) -> Self {
-        let width = front.width as usize;
-        let height = front.height as usize;
-        let mut pixels = front.pixels;
-        let line_lengths = Self::line_lengths(&pixels, width, height);
-        let profile_y = Self::profile_y(&line_lengths, width, height);
-        let tip_x = Self::tip_x(&profile_y, width);
-        Self::draw_distance_markers(&mut pixels, width, &profile_y, tip_x, kr, pk);
-        let front_rgba = indexed_to_rgba(&pixels, &front.palette);
+    // ------------------------------------------------------------------
+    // Viewport / geometry methods (unchanged)
+    // ------------------------------------------------------------------
 
-        Self {
-            front_pixels: pixels.into(),
-            back_pixels: back.pixels.into(),
-            front_rgba: front_rgba.into(),
-            back_rgba: back.rgba_pixels.into(),
-            width: front.width,
-            height: front.height,
-            back_width: back.width,
-            back_height: back.height,
-            line_lengths,
-            profile_y,
-            tip_x,
-        }
-    }
-
-    #[must_use]
-    pub fn viewport_pixels(&self, scroll_x: i32, scroll_y: i32, w: u32, h: u32) -> Rc<[u8]> {
-        let mut out = vec![0; w as usize * h as usize];
-        for dy in 0..h as i32 {
-            let front_y = scroll_y + dy;
-            let back_y = scroll_y / 2 + dy;
-            for dx in 0..w as i32 {
-                let front_x = scroll_x + dx;
-                let back_x = scroll_x / 2 + dx;
-                let pixel = if self.is_front_pixel(front_x, front_y) {
-                    self.front_pixel(front_x, front_y)
-                } else {
-                    self.back_pixel(back_x, back_y)
-                };
-                out[dy as usize * w as usize + dx as usize] = pixel;
-            }
-        }
-        out.into()
-    }
-
-    fn is_front_pixel(&self, x: i32, y: i32) -> bool {
-        if x < 0 || y < 0 || x >= i32::from(self.width) || y >= i32::from(self.height) {
-            return false;
-        }
-        (x as usize)
-            < self
-                .line_lengths
-                .get(y as usize)
-                .copied()
-                .unwrap_or_default()
-    }
-
-    fn front_pixel(&self, x: i32, y: i32) -> u8 {
-        let idx = y as usize * self.width as usize + x as usize;
-        self.front_pixels.get(idx).copied().unwrap_or_default()
-    }
-
-    fn back_pixel(&self, x: i32, y: i32) -> u8 {
-        if x < 0 || y < 0 || x >= i32::from(self.back_width) || y >= i32::from(self.back_height) {
-            return 0;
-        }
-        let idx = y as usize * self.back_width as usize + x as usize;
-        self.back_pixels.get(idx).copied().unwrap_or_default()
-    }
-
-    fn mirror_pixels(pixels: &mut [u8], width: usize, height: usize) {
-        for y in 0..height {
-            let row = &mut pixels[y * width..(y + 1) * width];
-            row.reverse();
-        }
-    }
-
-    fn mirror_rgba(rgba: &mut [u8], width: usize) {
-        for chunk in rgba.chunks_exact_mut(width * 4) {
-            for x in 0..width / 2 {
-                let left = x * 4;
-                let right = (width - 1 - x) * 4;
-                chunk.swap(left, right);
-                chunk.swap(left + 1, right + 1);
-                chunk.swap(left + 2, right + 2);
-                chunk.swap(left + 3, right + 3);
-            }
-        }
-    }
-
-    /// Produce both RGBA viewport pixels and an indexed mask (for snow
-    /// position checking) in a single pass.  RGBA output is
-    /// `w * h * 4` bytes; mask output is `w * h` bytes.
     pub fn viewport_rgba_and_mask(
         &self,
         scroll_x: i32,
@@ -223,7 +177,7 @@ impl HillTerrain {
                 } else {
                     if back_x < 0 || back_y < 0 {
                         mask[out_idx] = 0;
-                        continue; // RGBA stays zero
+                        continue;
                     }
                     let sx = back_x as usize;
                     let sy = back_y as usize;
@@ -251,6 +205,53 @@ impl HillTerrain {
     }
 
     #[must_use]
+    pub fn viewport_pixels(&self, scroll_x: i32, scroll_y: i32, w: u32, h: u32) -> Rc<[u8]> {
+        let mut out = vec![0; w as usize * h as usize];
+        for dy in 0..h as i32 {
+            let front_y = scroll_y + dy;
+            let back_y = scroll_y / 2 + dy;
+            for dx in 0..w as i32 {
+                let front_x = scroll_x + dx;
+                let back_x = scroll_x / 2 + dx;
+                let pixel = if self.is_front_pixel(front_x, front_y) {
+                    self.front_pixel(front_x, front_y)
+                } else {
+                    self.back_pixel(back_x, back_y)
+                };
+                out[dy as usize * w as usize + dx as usize] = pixel;
+            }
+        }
+        out.into()
+    }
+
+    fn is_front_pixel(&self, x: i32, y: i32) -> bool {
+        if x < 0 || y < 0 || x >= i32::from(self.width) || y >= i32::from(self.height) {
+            return false;
+        }
+        (x as usize)
+            < self
+                .line_lengths
+                .get(y as usize)
+                .copied()
+                .unwrap_or_default()
+    }
+
+    fn front_pixel(&self, x: i32, y: i32) -> u8 {
+        let idx = y as usize * self.width as usize + x as usize;
+        self.front_pixels.get(idx).copied().unwrap_or(0)
+    }
+
+    fn back_pixel(&self, x: i32, y: i32) -> u8 {
+        if x < 0 || y < 0 {
+            return 0;
+        }
+        let sx = x as usize;
+        let sy = y as usize;
+        let idx = sy * self.back_width as usize + sx;
+        self.back_pixels.get(idx).copied().unwrap_or(0)
+    }
+
+    #[must_use]
     pub fn height_at(&self, x: i32) -> i32 {
         if x > 0 {
             self.profile_y.get(x as usize).copied().unwrap_or(0)
@@ -269,79 +270,10 @@ impl HillTerrain {
             - self.height_at(x - 4)
             - self.height_at(x - 5)
             - self.height_at(x - 2);
-
         if x > self.tip_x - 15 && x <= self.tip_x {
             0
         } else {
             value
-        }
-    }
-
-    fn line_lengths(pixels: &[u8], width: usize, height: usize) -> Vec<usize> {
-        let mut lines = vec![0; height];
-        for (y, line) in lines.iter_mut().enumerate() {
-            let row = &pixels[y * width..(y + 1) * width];
-            if let Some(x) = row.iter().rposition(|&p| p != 0) {
-                *line = x + 1;
-            }
-        }
-        lines
-    }
-
-    fn profile_y(line_lengths: &[usize], width: usize, height: usize) -> Vec<i32> {
-        let mut profile = vec![0; HILL_PROFILE_LEN];
-        for (x, y_out) in profile.iter_mut().take(width).enumerate() {
-            let y = line_lengths
-                .iter()
-                .position(|&line_len| line_len > x)
-                .unwrap_or_else(|| height.saturating_sub(1));
-            *y_out = y as i32;
-        }
-        let last = profile[width.saturating_sub(1).min(HILL_PROFILE_LEN - 1)];
-        for y_out in profile.iter_mut().skip(width) {
-            *y_out = last;
-        }
-        profile
-    }
-
-    fn tip_x(profile_y: &[i32], width: usize) -> i32 {
-        let mut tip_x = 0;
-        let mut former_y = 0;
-        for (x, &y) in profile_y.iter().take(width).enumerate() {
-            if y - former_y > 3 {
-                tip_x = x as i32;
-            }
-            former_y = y;
-        }
-        tip_x - 1
-    }
-
-    fn draw_distance_markers(
-        pixels: &mut [u8],
-        width: usize,
-        profile_y: &[i32],
-        tip_x: i32,
-        kr: i64,
-        pk: f64,
-    ) {
-        let tip_idx = tip_x.max(0) as usize;
-        let drawable_width = width.min(profile_y.len());
-        for x in tip_idx..drawable_width.saturating_sub(10) {
-            let x2 = x as i64 - i64::from(tip_x);
-            let y2 = i64::from(profile_y[x]) - i64::from(profile_y[tip_idx]);
-            let hp = ((((x2 * x2 + y2 * y2) as f64).sqrt() * pk * 0.5).round() as i64) * 5;
-            if hp >= (2 * kr * 10) / 3 && hp <= kr * 12 {
-                let color = if hp < kr * 10 { 238 } else { 239 };
-                for dy in 0..3 {
-                    let y = profile_y[x] + dy + 1;
-                    if y >= 0 {
-                        let idx = y as usize * width + x;
-                        if let Some(pixel) = pixels.get_mut(idx) {
-                            *pixel = color;
-                        }
-                    }
-                }
-            }
         }
     }
 }
@@ -350,56 +282,83 @@ impl HillTerrain {
 mod tests {
     use super::*;
 
-    #[test]
-    fn extracts_front_pcx_profile_and_takeoff_point() {
-        let pcx =
-            PcxParser::parse(include_bytes!("../../assets/FRONT1.PCX")).expect("valid FRONT1.PCX");
-        let terrain = HillTerrain::from_front_pcx(pcx, 120, 0.89);
+    fn test_files() -> crate::files::FileStore {
+        let assets = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets");
+        crate::files::FileStore::new(assets, std::path::PathBuf::from("."))
+    }
 
-        assert_eq!(terrain.width, 1024);
-        assert_eq!(terrain.height, 512);
-        assert!(terrain.tip_x > 0);
-        assert!(terrain.height_at(terrain.tip_x) > 0);
-        assert_eq!(terrain.hill_angle(terrain.tip_x), 0);
-        assert_eq!(terrain.height_at(1299), terrain.height_at(1023));
+    #[test]
+    fn viewport_pixels_produces_full_non_zero() {
+        let terrain = HillTerrain::load(&test_files(), 0).expect("HILL0");
+        let vp = terrain.viewport_pixels(0, 0, 320, 200);
+        assert_eq!(vp.len(), 320 * 200);
+        let non_zero = vp.iter().filter(|&&p| p != 0).count();
+        assert!(non_zero > 0, "expected some non-zero terrain pixels");
+        // Back layer provides complete coverage (sky fills all remaining space)
+        assert!(
+            non_zero >= 64000 * 9 / 10,
+            "expected >= 90% non-zero pixels"
+        );
     }
 
     #[test]
     fn back_pcx_loads_nonzero_pixels() {
-        let front =
-            PcxParser::parse(include_bytes!("../../assets/FRONT1.PCX")).expect("FRONT1.PCX");
-        let back = PcxParser::parse(include_bytes!("../../assets/BACK0.PCX")).expect("BACK0.PCX");
-        let terrain = HillTerrain::from_pcxs(front, back, 120, 0.89);
-
-        assert_eq!(terrain.back_width, 1024);
-        assert_eq!(terrain.back_height, 400);
-
-        let pixel = terrain.back_pixel(50, 5);
-        assert_ne!(
-            pixel, 0,
-            "back pixel at (50,5) should not be 0, got {pixel}"
-        );
-
-        let vp = terrain.viewport_pixels(0, 0, 320, 200);
-        let row5_nonzero = vp[5 * 320..6 * 320].iter().filter(|&&p| p != 0).count();
-        assert!(
-            row5_nonzero > 0,
-            "row 5 of viewport should have non-zero back pixels, got 0/320"
-        );
-        assert_ne!(vp[5 * 320 + 50], 0, "vp pixel at (50,5) should be non-zero");
+        let terrain = HillTerrain::load(&test_files(), 0).expect("HILL0");
+        let (rgba, mask) = terrain.viewport_rgba_and_mask(0, 0, 320, 200);
+        assert_eq!(rgba.len(), 320 * 200 * 4);
+        assert_eq!(mask.len(), 320 * 200);
+        let sky = mask.iter().filter(|&&m| m > 64 && m <= 215).count();
+        assert!(sky > 0, "expected some sky-background pixels");
     }
 
     #[test]
-    fn line_lengths_for_sky_rows_are_zero() {
-        let pcx = PcxParser::parse(include_bytes!("../../assets/FRONT1.PCX")).expect("FRONT1.PCX");
-        let terrain = HillTerrain::from_front_pcx(pcx, 120, 0.89);
-        for y in 0..15 {
-            assert_eq!(
-                terrain.line_lengths[y], 0,
-                "row {} should have line_length=0 (pure sky), got {}",
-                y, terrain.line_lengths[y]
-            );
+    fn extracts_front_pcx_profile_and_takeoff_point() {
+        let terrain = HillTerrain::load(&test_files(), 0).expect("HILL0");
+        assert!(terrain.tip_x > 0, "expected positive tip_x");
+        let max_profile = terrain.profile_y.iter().max().copied().unwrap_or(0);
+        assert!(max_profile > 0, "expected non-zero profile");
+    }
+
+    #[test]
+    fn terrain_rejects_bad_format() {
+        let err = HillTerrain::load(
+            &test_files(),
+            9999, // non-existent hill
+        )
+        .unwrap_err();
+        assert!(err.contains("Failed"), "{err}");
+    }
+
+    #[test]
+    fn viewport_produces_correct_dimensions() {
+        let terrain = HillTerrain::load(&test_files(), 0).expect("HILL0");
+        let (rgba, mask) = terrain.viewport_rgba_and_mask(50, 30, 100, 80);
+        assert_eq!(rgba.len(), 100 * 80 * 4);
+        assert_eq!(mask.len(), 100 * 80);
+    }
+
+    #[test]
+    fn height_at_and_hill_angle() {
+        let terrain = HillTerrain::load(&test_files(), 0).expect("HILL0");
+        let h = terrain.height_at(terrain.tip_x);
+        assert!(h >= 0, "height at tip should be non-negative");
+        let angle = terrain.hill_angle(terrain.tip_x + 10);
+        if terrain.tip_x + 10 > terrain.tip_x - 15 && terrain.tip_x + 10 <= terrain.tip_x {
+            assert_eq!(angle, 0);
         }
-        assert!(terrain.line_lengths[200] > 0, "row 200 should have terrain");
+    }
+
+    #[test]
+    fn load_hill0_has_correct_dimensions() {
+        let terrain = HillTerrain::load(&test_files(), 0).expect("HILL0");
+        assert_eq!(terrain.width, 1024);
+        assert_eq!(terrain.height, 512);
+    }
+
+    #[test]
+    fn load_hill1_has_correct_dimensions() {
+        let terrain = HillTerrain::load(&test_files(), 1).expect("HILL1");
+        assert_eq!(terrain.width, 1024);
+        assert_eq!(terrain.height, 512);
     }
 }

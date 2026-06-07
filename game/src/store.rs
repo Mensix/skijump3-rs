@@ -55,17 +55,13 @@ impl Resources {
     }
 
     /// Load (or retrieve cached) terrain for a given hill index.
-    /// Parses FRONT/BACK PCX on first access, reuses `Rc<HillTerrain>` thereafter.
+    /// Loads pre-converted hill data from generated assets.
     pub(crate) fn terrain(&self, hill_idx: usize) -> Result<Rc<HillTerrain>, String> {
         let mut cache = self.terrain_cache.borrow_mut();
         if let Some(terrain) = cache.get(&hill_idx) {
             return Ok(terrain.clone());
         }
-        let info = self
-            .hills
-            .hill(hill_idx)
-            .ok_or_else(|| format!("Hill {hill_idx} not found"))?;
-        let terrain = HillTerrain::load(&self.files, info)?;
+        let terrain = HillTerrain::load(&self.files, hill_idx)?;
         let terrain = Rc::new(terrain);
         cache.insert(hill_idx, terrain.clone());
         Ok(terrain)

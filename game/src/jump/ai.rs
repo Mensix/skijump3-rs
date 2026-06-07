@@ -117,9 +117,18 @@ impl ComputerInputProvider {
 mod tests {
     use super::*;
     use crate::data::hill_profile::HillTerrain;
-    use crate::gfx::pcx::PcxParser;
+    use crate::files::FileStore;
     use crate::jump::types::FlightWind;
     use crate::jump::JumpState;
+
+    fn test_files() -> FileStore {
+        let assets = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets");
+        FileStore::new(assets, std::path::PathBuf::from("."))
+    }
+
+    fn hill_loader(idx: usize) -> HillTerrain {
+        HillTerrain::load(&test_files(), idx).expect("hill")
+    }
 
     fn snapshot(phase: JumpPhase) -> JumpSnapshot {
         JumpSnapshot {
@@ -194,8 +203,7 @@ mod tests {
 
     #[test]
     fn computer_simulation_gets_past_table_fall_distance() {
-        let front = PcxParser::parse(include_bytes!("../../assets/FRONT1.PCX")).expect("FRONT1");
-        let terrain = HillTerrain::from_front_pcx(front, 120, 0.89);
+        let terrain = hill_loader(0);
         let mut state = JumpState::new(&terrain, 148.0, 0.89, 120, 0.3217, 15);
         let mut provider = ComputerInputProvider::new(1);
         let mut rng = Random::new(1);
@@ -226,8 +234,7 @@ mod tests {
 
     #[test]
     fn silent_computer_jump_starts_like_pascal_non_view_path() {
-        let front = PcxParser::parse(include_bytes!("../../assets/FRONT2.PCX")).expect("FRONT2");
-        let terrain = HillTerrain::from_front_pcx(front, 90, 0.84);
+        let terrain = hill_loader(1);
         let mut state = JumpState::new(&terrain, 131.0, 0.84, 90, 0.3222, 15);
 
         state.prepare_silent_computer_jump(&terrain);
@@ -240,8 +247,7 @@ mod tests {
 
     #[test]
     fn silent_computer_jump_keeps_pascal_maxspeed_on_first_tick() {
-        let front = PcxParser::parse(include_bytes!("../../assets/FRONT2.PCX")).expect("FRONT2");
-        let terrain = HillTerrain::from_front_pcx(front, 90, 0.84);
+        let terrain = hill_loader(1);
         let mut state = JumpState::new(&terrain, 131.0, 0.84, 90, 0.3222, 15);
         let mut rng = Random::new(1);
         let wind = FlightWind {
@@ -263,8 +269,7 @@ mod tests {
     fn silent_lahti_k90_computer_distance_stays_plausible() {
         use crate::jump::wind::Wind;
 
-        let front = PcxParser::parse(include_bytes!("../../assets/FRONT2.PCX")).expect("FRONT2");
-        let terrain = HillTerrain::from_front_pcx(front, 90, 0.84);
+        let terrain = hill_loader(1);
         let mut state = JumpState::new(&terrain, 131.0, 0.84, 90, 0.3222, 15);
         state.prepare_silent_computer_jump(&terrain);
         let mut provider = ComputerInputProvider::new(0);
@@ -299,8 +304,7 @@ mod tests {
 
     #[test]
     fn silent_computer_skips_landing_phase() {
-        let front = PcxParser::parse(include_bytes!("../../assets/FRONT2.PCX")).expect("FRONT2");
-        let terrain = HillTerrain::from_front_pcx(front, 90, 0.84);
+        let terrain = hill_loader(1);
         let mut state = JumpState::new(&terrain, 131.0, 0.84, 90, 0.3222, 15);
         let mut rng = Random::new(1);
         let wind = FlightWind {

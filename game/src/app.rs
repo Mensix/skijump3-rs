@@ -6,7 +6,7 @@ use crate::content::ContentStore;
 use crate::data::records::RecordStore;
 use crate::files::FileStore;
 use crate::gfx::palette::apply_standard_ui_palette;
-use crate::gfx::pcx::{PcxPalette, PcxParser};
+use crate::gfx::pcx::PcxPalette;
 use crate::gfx::png::load_png;
 use crate::route::RouteTarget;
 use crate::save::{SaveManager, SaveRef};
@@ -17,10 +17,10 @@ use engine::input::Input;
 use engine::sprite::SpriteData;
 use engine::ui::{BackgroundMode, Font, Router};
 use engine::video::{Renderer, TextureId};
+use serde::Deserialize;
 use std::rc::Rc;
 
 const MAIN_PNG: &str = "MAIN.png";
-const MAIN_PCX: &str = "MAIN.PCX";
 const CONTENT_MANIFEST: &str = "content.toml";
 const HISCORES_TOML: &str = "hiscores.toml";
 
@@ -147,12 +147,29 @@ impl Game {
     fn load_assets(
         files: &FileStore,
     ) -> Result<(PcxPalette, Vec<SpriteData>, ContentStore), String> {
-        let pcx_data = files.read(MAIN_PCX).map_err(|e| e.to_string())?;
-        let decoded = PcxParser::parse(&pcx_data)?;
+        let palette_toml = files.read("palette.toml").map_err(|e| e.to_string())?;
+
+        #[derive(Deserialize)]
+        struct PaletteToml {
+            format_version: u32,
+            data: Vec<u8>,
+        }
+
+        let palette_str = std::str::from_utf8(&palette_toml)
+            .map_err(|e| format!("palette.toml not valid UTF-8: {e}"))?;
+        let pt: PaletteToml =
+            toml::from_str(palette_str).map_err(|e| format!("palette.toml: {e}"))?;
+        if pt.format_version != 1 {
+            return Err(format!(
+                "Unsupported palette version: {}",
+                pt.format_version
+            ));
+        }
+        let palette = PcxPalette::from_6bit_bytes(&pt.data)?;
         let content = ContentStore::load(files, CONTENT_MANIFEST)?;
         let sprites = content.sprites.clone();
 
-        Ok((decoded.palette, sprites, content))
+        Ok((palette, sprites, content))
     }
 
     pub fn run(&mut self) -> Result<(), String> {
