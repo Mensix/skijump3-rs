@@ -33,8 +33,7 @@ impl MainMenuView {
             MenuItem::with_y(0, 26, 12),
         ];
         let selection = store
-            .selected_main_menu
-            .get()
+            .selected_main_menu()
             .min(items.len().saturating_sub(1));
         let mut menu = Menu::new(
             11,

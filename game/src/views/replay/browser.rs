@@ -95,7 +95,7 @@ impl View<RouteTarget> for ReplayBrowserView {
     fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {
         match event {
             Event::Keyboard(Key::Escape) => {
-                self.store.selected_main_menu.set(5);
+                self.store.set_selected_main_menu(5);
                 Some(RouteTarget::Back)
             }
             Event::Keyboard(Key::Right | Key::Down | Key::Char(' ' | '+')) => {
@@ -108,7 +108,7 @@ impl View<RouteTarget> for ReplayBrowserView {
             }
             Event::Keyboard(Key::Enter) => {
                 let trace = self.selected_entry()?.trace.clone()?;
-                self.store.replay_selection.select(trace);
+                self.store.select_replay(trace);
                 Some(RouteTarget::ReplayPlayback)
             }
             Event::Keyboard(_) => None,

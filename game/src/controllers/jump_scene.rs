@@ -18,19 +18,19 @@ impl JumpScene {
     /// Set up wind and first-event state for a new competition event.
     /// Pascal: Tuuli.Alusta(windplace) once per event before any jumpers.
     pub fn setup_event(store: &StoreRef) {
-        store.jump_runtime.setup_event();
+        store.setup_jump_event();
     }
 
     /// Create a snow system, optionally sampling snow count and wind
     /// on the very first event (Pascal-faithful one-time init).
     fn prepare_snow(store: &StoreRef) -> SnowSystem {
         let mut snow = SnowSystem::new();
-        if store.jump_runtime.consume_first_event() {
-            let mut rng = store.jump_runtime.rng.borrow_mut();
-            let mut wind = store.jump_runtime.wind.borrow_mut();
-            let snow_count = calculate_snow_count(&mut rng);
-            snow.set_count(snow_count, &mut rng);
-            wind.sample(&mut rng);
+        if store.consume_first_jump_event() {
+            store.with_jump_rng_wind_mut(|rng, wind| {
+                let snow_count = calculate_snow_count(rng);
+                snow.set_count(snow_count, rng);
+                wind.sample(rng);
+            });
         }
         snow
     }
@@ -110,8 +110,7 @@ impl JumpScene {
         let hill_idx = self.runner.borrow().hill_idx();
         let record_distance = self
             .store
-            .records
-            .borrow()
+            .records()
             .hill_record(hill_idx)
             .map_or(0, |r| r.len as i32);
         self.runner
@@ -160,28 +159,28 @@ impl JumpScene {
             .hills
             .hill(hill_idx)
             .expect("hill must exist");
-        let mut rng = self.store.jump_runtime.rng.borrow_mut();
-        let mut wind = self.store.jump_runtime.wind.borrow_mut();
-        sim::simulate_computer(&participant, &terrain, hill, &mut rng, &mut wind)
+        self.store.with_jump_rng_wind_mut(|rng, wind| {
+            sim::simulate_computer(&participant, &terrain, hill, rng, wind)
+        })
     }
 
     pub fn elements(&self) -> Vec<Element> {
-        let wind = self.store.jump_runtime.wind.borrow();
-        let records = self.store.records.borrow();
-        self.runner.borrow_mut().elements(JumpRunnerRenderEnv {
-            font: &self.resources.font,
-            langbase: &self.resources.langbase,
-            hills: &self.resources.hills,
-            records: &records,
-            wind: &wind,
+        let records = self.store.records();
+        self.store.with_jump_wind(|wind| {
+            self.runner.borrow_mut().elements(JumpRunnerRenderEnv {
+                font: &self.resources.font,
+                langbase: &self.resources.langbase,
+                hills: &self.resources.hills,
+                records: &records,
+                wind,
+            })
         })
     }
 
     /// Advance physics, AI, and wind by one frame for the visible runner.
     pub fn update(&self) {
-        let mut rng = self.store.jump_runtime.rng.borrow_mut();
-        let mut wind = self.store.jump_runtime.wind.borrow_mut();
-        self.runner.borrow_mut().update(&mut rng, &mut wind);
+        self.store
+            .with_jump_rng_wind_mut(|rng, wind| self.runner.borrow_mut().update(rng, wind));
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -198,8 +197,7 @@ impl JumpScene {
         let hill = resources.hills.hill(hill_idx).cloned();
         let terrain = resources.terrain(hill_idx).map(|t| (*t).clone());
         let record_distance = store
-            .records
-            .borrow()
+            .records()
             .hill_record(hill_idx)
             .map_or(0, |r| r.len as i32);
         let snow_count = snow.count();

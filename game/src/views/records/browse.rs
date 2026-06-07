@@ -134,7 +134,7 @@ impl HallOfFameView {
             FONT_NEW,
         ));
 
-        let records = self.store.records.borrow();
+        let records = self.store.records();
         for idx in start..start + entries {
             yy += 8;
             let Some(hi) = records.top(idx) else {
@@ -188,7 +188,7 @@ impl HallOfFameView {
             FONT_DEFAULT,
         ));
 
-        let records = self.store.records.borrow();
+        let records = self.store.records();
         for idx in 1..=6 {
             yy += 18;
             table.push(Cell::left(
@@ -316,7 +316,7 @@ impl HillRecordsView {
             FONT_DEFAULT,
         ));
 
-        let records = self.store.records.borrow();
+        let records = self.store.records();
         let mut ahi_sum = 0i64;
         for aa in 0..loop_count {
             let idx = aa + start;

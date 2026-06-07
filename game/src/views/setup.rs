@@ -633,7 +633,7 @@ impl View<RouteTarget> for SetupView {
                         let place = if pos < 8 { pos + 1 } else { pos + 3 };
                         self.save_manager()
                             .update_config(|cfg| cfg.windplace = place as i32);
-                        self.store.jump_runtime.set_wind_place(place as u8);
+                        self.store.set_wind_place(place as u8);
                         self.modal.set(None);
                     }
                     Event::Keyboard(Key::Escape) => {

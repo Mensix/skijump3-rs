@@ -98,9 +98,7 @@ impl Game {
 
         let profiles = save_manager.load_players();
         let store: StoreRef = Rc::new(Store::with_profiles(records, profiles));
-        store
-            .jump_runtime
-            .set_wind_place(save_manager.config.borrow().windplace as u8);
+        store.set_wind_place(save_manager.config.borrow().windplace as u8);
         let router = create_router(resources, store, start_route, save_manager);
 
         let sprite_atlas =

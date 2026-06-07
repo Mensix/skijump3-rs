@@ -107,7 +107,7 @@ impl ProfilesView {
     }
 
     pub(super) fn entries(&self) -> usize {
-        let store = self.store.profiles.borrow();
+        let store = self.store.profiles();
         let np = store.num_profiles();
         if store.has_slot() {
             np + 1
@@ -117,7 +117,7 @@ impl ProfilesView {
     }
 
     pub(super) fn unique_default_profile(&self) -> Profile {
-        let store = self.store.profiles.borrow();
+        let store = self.store.profiles();
         let mut profile = Profile::default();
         let mut counter = 2;
         while store.profiles.iter().any(|p| p.name == profile.name) {
@@ -140,8 +140,7 @@ impl ProfilesView {
             | Mode::TextInput { profile, .. }
             | Mode::ColorSelect { profile, .. }
             | Mode::ReplaceSelect { profile, .. } => Some(profile),
-            _ => (self.selected < self.store.profiles.borrow().num_profiles())
-                .then_some(self.selected),
+            _ => (self.selected < self.store.profiles().num_profiles()).then_some(self.selected),
         }
     }
 }
@@ -283,7 +282,7 @@ impl View<RouteTarget> for ProfilesView {
                 if let Some(action) = selector.handle_event(&event) {
                     pending = Some(match action {
                         ValueSelectorAction::Commit(value) => {
-                            let mut store = self.store.profiles.borrow_mut();
+                            let mut store = self.store.profiles_mut();
                             match field {
                                 ColorField::Suit => store.profiles[*profile].suit_color = value,
                                 ColorField::Ski => store.profiles[*profile].ski_color = value,
@@ -299,7 +298,7 @@ impl View<RouteTarget> for ProfilesView {
                 if let Some(action) = selector.handle_event(&event) {
                     match action {
                         ValueSelectorAction::Commit(value) => {
-                            self.store.profiles.borrow_mut().profiles[*profile].replace = value;
+                            self.store.profiles_mut().profiles[*profile].replace = value;
                             pending = Some(Pending::ReplaceCommit(*profile));
                         }
                         ValueSelectorAction::Cancel => {

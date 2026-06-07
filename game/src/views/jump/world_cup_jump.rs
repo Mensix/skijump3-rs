@@ -65,13 +65,12 @@ impl WorldCupJumpView {
         let outcome = outcome.unwrap();
         if !self
             .store
-            .competition
-            .try_with(Competition::is_human_current)
+            .try_with_competition(Competition::is_human_current)
             .unwrap_or(false)
         {
             return;
         }
-        self.store.competition.try_with_mut(|c| {
+        self.store.try_with_competition_mut(|c| {
             if outcome.fall_type == FallType::Crash {
                 c.injure_current(3);
             }
@@ -102,8 +101,7 @@ impl WorldCupJumpView {
 
     fn results_page(&self) -> Vec<Element> {
         self.store
-            .competition
-            .try_with(|c| {
+            .try_with_competition(|c| {
                 match self.ui_state.current_screen() {
                     ResultScreen::KoPairs(show_results) => {
                         let show_cursor = self.blinker.visible(10, 10);
@@ -136,7 +134,7 @@ impl WorldCupJumpView {
     }
 
     fn drive_competition(&self) {
-        let command = self.store.competition.try_with_mut(|c| {
+        let command = self.store.try_with_competition_mut(|c| {
             let mut simulate_computer =
                 |participant: JumpParticipant, hill_idx: usize| -> JumpOutcome {
                     self.scene.simulate_hidden(participant, hill_idx)
@@ -182,10 +180,10 @@ impl WorldCupJumpView {
         if self.profiles_saved.replace(true) {
             return;
         }
-        self.store.competition.try_with(|c| {
+        self.store.try_with_competition(|c| {
             let style = c.style();
             let overall = c.overall_standings();
-            let mut profiles = self.store.profiles.borrow_mut();
+            let mut profiles = self.store.profiles_mut();
 
             for p in &overall {
                 let Some(pidx) = p.profile_idx else {
@@ -227,11 +225,11 @@ impl WorldCupJumpView {
         if let Err(e) = self
             .resources
             .save_manager
-            .save_players(&self.store.profiles.borrow())
+            .save_players(&self.store.profiles())
         {
             eprintln!("Warning: failed to save players: {e}");
         }
-        if let Ok(records) = self.store.records.try_borrow() {
+        if let Some(records) = self.store.try_records() {
             if let Err(e) = self.resources.save_manager.save_records(&records) {
                 eprintln!("Warning: failed to save records: {e}");
             }
@@ -246,7 +244,7 @@ impl WorldCupJumpView {
             return None;
         }
         let own_id = self.scene.participant_id();
-        self.store.competition.try_with(|c| {
+        self.store.try_with_competition(|c| {
             let standings = c.event_standings();
             let own_before = standings
                 .iter()
@@ -264,11 +262,10 @@ impl WorldCupJumpView {
     }
 
     fn select_default_result_screen(&self) {
-        if let Some(phase) = self.store.competition.try_with(Competition::phase) {
+        if let Some(phase) = self.store.try_with_competition(Competition::phase) {
             let is_4h = self
                 .store
-                .competition
-                .try_with(Competition::is_four_hills_event)
+                .try_with_competition(Competition::is_four_hills_event)
                 .unwrap_or(false);
             self.ui_state.select_default_screen(is_4h, phase);
         }
@@ -301,8 +298,7 @@ impl View<RouteTarget> for WorldCupJumpView {
                 // Round 2 cycling info, or the keymap for the first human's first event.
                 let hide = self
                     .store
-                    .competition
-                    .try_with(|c| {
+                    .try_with_competition(|c| {
                         let cycling =
                             c.phase().needs_event_results() && c.style() != CupStyle::CustomCup;
                         let keymap_active = self.ui_state.is_first_human_onbar()
@@ -371,8 +367,7 @@ impl WorldCupJumpView {
             return true;
         }
         self.store
-            .competition
-            .try_with(|c| {
+            .try_with_competition(|c| {
                 c.phase().is_result_phase()
                     || c.phase().needs_event_results() && c.current_jumper().is_none()
             })
@@ -385,8 +380,7 @@ impl WorldCupJumpView {
                 let total = match self.ui_state.current_screen() {
                     ResultScreen::Stats => self
                         .store
-                        .competition
-                        .try_with(|c| {
+                        .try_with_competition(|c| {
                             c.overall_standings()
                                 .iter()
                                 .filter(|p| !p.is_computer)
@@ -398,8 +392,7 @@ impl WorldCupJumpView {
                     ResultScreen::List if self.ui_state.is_compact() => 1,
                     ResultScreen::List => self
                         .store
-                        .competition
-                        .try_with(competition_results::total_pages)
+                        .try_with_competition(competition_results::total_pages)
                         .unwrap_or(0),
                 };
                 if self.ui_state.next_page(total) {
@@ -408,7 +401,7 @@ impl WorldCupJumpView {
                 // Pascal WaitForKey(0): any key on the last entry exits the list
                 self.blinker.reset();
                 self.ui_state.dismiss_results();
-                self.store.competition.try_with_mut(Competition::advance);
+                self.store.try_with_competition_mut(Competition::advance);
                 self.drive_competition();
                 None
             }
@@ -423,8 +416,7 @@ impl WorldCupJumpView {
             Event::Keyboard(Key::Char('k' | 'K')) => {
                 let ko = self
                     .store
-                    .competition
-                    .try_with(|c| {
+                    .try_with_competition(|c| {
                         c.is_four_hills_event()
                             && matches!(
                                 c.phase(),
@@ -436,8 +428,7 @@ impl WorldCupJumpView {
                 if ko {
                     let round1 = self
                         .store
-                        .competition
-                        .try_with(|c| c.phase() == CompetitionPhase::Round1Results)
+                        .try_with_competition(|c| c.phase() == CompetitionPhase::Round1Results)
                         .unwrap_or(false);
                     self.ui_state.toggle_ko_pairs(round1);
                 }
@@ -450,8 +441,7 @@ impl WorldCupJumpView {
             Event::Keyboard(Key::Escape | Key::Enter) => {
                 let is_season_complete = self
                     .store
-                    .competition
-                    .try_with(|c| c.phase() == CompetitionPhase::SeasonComplete)
+                    .try_with_competition(|c| c.phase() == CompetitionPhase::SeasonComplete)
                     .unwrap_or(false);
                 if is_season_complete {
                     self.save_competition_results();
@@ -459,7 +449,7 @@ impl WorldCupJumpView {
                 }
                 self.blinker.reset();
                 self.ui_state.dismiss_results();
-                self.store.competition.try_with_mut(Competition::advance);
+                self.store.try_with_competition_mut(Competition::advance);
                 self.drive_competition();
                 None
             }

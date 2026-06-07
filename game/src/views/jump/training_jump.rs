@@ -16,9 +16,9 @@ pub struct TrainingJumpView {
 
 impl TrainingJumpView {
     pub fn new(resources: ResourcesRef, store: StoreRef) -> Self {
-        let hill_idx = store.practice.hill.get();
+        let hill_idx = store.practice_hill();
         let participant = JumpParticipant::trainee();
-        let start_gate = store.practice.start_gate.get();
+        let start_gate = store.practice_start_gate();
         JumpScene::setup_event(&store);
         let scene = JumpScene::new(
             ResourcesRef::clone(&resources),
@@ -48,7 +48,7 @@ impl TrainingJumpView {
             JumpInputAction::None => None,
             JumpInputAction::RouteBack => Some(RouteTarget::Back),
             JumpInputAction::ResetWind => {
-                self.store.jump_runtime.reset_practice_wind();
+                self.store.reset_practice_wind();
                 None
             }
             JumpInputAction::ResetJump => {
@@ -56,12 +56,12 @@ impl TrainingJumpView {
                 let _ = self.scene.borrow().replay_trace();
                 self.scene
                     .borrow_mut()
-                    .reset_state(self.store.practice.start_gate.get());
+                    .reset_state(self.store.practice_start_gate());
                 None
             }
             JumpInputAction::PersistStartGate(start_gate) => {
-                self.store.practice.start_gate.set(start_gate);
-                self.store.start_gate.set(start_gate);
+                self.store.set_practice_start_gate(start_gate);
+                self.store.set_start_gate(start_gate);
                 None
             }
             JumpInputAction::SaveReplay => {
@@ -84,7 +84,7 @@ impl TrainingJumpView {
             .hill(self.scene.borrow().hill_idx())
             .map(|h| format!("{} K{}", h.name, h.kr))
             .unwrap_or_default();
-        let pb = self.store.profiles.borrow();
+        let pb = self.store.profiles();
         let author_name = pb
             .active_order
             .first()

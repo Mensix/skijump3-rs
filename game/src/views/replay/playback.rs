@@ -37,17 +37,14 @@ pub struct ReplayView {
 impl ReplayView {
     #[allow(clippy::needless_pass_by_value)]
     pub fn new(resources: ResourcesRef, store: StoreRef) -> Self {
-        let trace = store.replay_selection.clone_selected();
+        let trace = store.clone_selected_replay();
         let terrain = trace.as_ref().map_or_else(
             || Err("Replay hill not found".to_string()),
             |trace| HillTerrain::load(&resources.files, trace.meta.hill_idx),
         );
         let mut snow = SnowSystem::new();
         if let Some(trace) = &trace {
-            snow.set_count(
-                trace.meta.snow_count,
-                &mut store.jump_runtime.rng.borrow_mut(),
-            );
+            store.with_jump_rng_wind_mut(|rng, _| snow.set_count(trace.meta.snow_count, rng));
         }
         Self {
             resources,

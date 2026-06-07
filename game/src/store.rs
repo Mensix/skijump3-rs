@@ -12,7 +12,7 @@ use crate::rng::Random;
 use crate::save::SaveRef;
 use crate::text::lang::LangBase;
 use engine::ui::Font;
-use std::cell::{Cell, RefCell};
+use std::cell::{Cell, Ref, RefCell, RefMut};
 use std::collections::HashMap;
 use std::rc::Rc;
 
@@ -77,8 +77,8 @@ pub type ResourcesRef = Rc<Resources>;
 /// Grouped to keep related global mutation together.
 #[derive(Debug, Clone)]
 pub struct JumpRuntime {
-    pub(crate) rng: RefCell<Random>,
-    pub(crate) wind: RefCell<Wind>,
+    rng: RefCell<Random>,
+    wind: RefCell<Wind>,
     wind_place: Cell<u8>,
     first_event: Cell<bool>,
 }
@@ -123,6 +123,17 @@ impl JumpRuntime {
     pub fn wind_place(&self) -> u8 {
         self.wind_place.get()
     }
+
+    pub fn with_rng_wind_mut<R>(&self, f: impl FnOnce(&mut Random, &mut Wind) -> R) -> R {
+        let mut rng = self.rng.borrow_mut();
+        let mut wind = self.wind.borrow_mut();
+        f(&mut rng, &mut wind)
+    }
+
+    pub fn with_wind<R>(&self, f: impl FnOnce(&Wind) -> R) -> R {
+        let wind = self.wind.borrow();
+        f(&wind)
+    }
 }
 
 impl Default for JumpRuntime {
@@ -134,8 +145,8 @@ impl Default for JumpRuntime {
 /// Practice-mode hill and start gate settings.
 #[derive(Debug, Clone)]
 pub struct PracticeSettings {
-    pub hill: Cell<usize>,
-    pub start_gate: Cell<i32>,
+    hill: Cell<usize>,
+    start_gate: Cell<i32>,
 }
 
 impl PracticeSettings {
@@ -145,6 +156,24 @@ impl PracticeSettings {
             hill: Cell::new(0),
             start_gate: Cell::new(DEFAULT_START_GATE),
         }
+    }
+
+    #[must_use]
+    pub fn hill(&self) -> usize {
+        self.hill.get()
+    }
+
+    pub fn set_hill(&self, hill: usize) {
+        self.hill.set(hill);
+    }
+
+    #[must_use]
+    pub fn start_gate(&self) -> i32 {
+        self.start_gate.get()
+    }
+
+    pub fn set_start_gate(&self, start_gate: i32) {
+        self.start_gate.set(start_gate);
     }
 }
 
@@ -242,15 +271,15 @@ impl Default for CompetitionSlot {
 
 #[derive(Debug, Clone)]
 pub struct Store {
-    pub jump_runtime: JumpRuntime,
-    pub practice: PracticeSettings,
-    pub replay_selection: ReplaySelection,
-    pub competition: CompetitionSlot,
-    pub profiles: RefCell<ProfileStore>,
-    pub records: RefCell<RecordStore>,
-    pub selected_hill: Cell<usize>,
-    pub start_gate: Cell<i32>,
-    pub selected_main_menu: Cell<usize>,
+    jump_runtime: JumpRuntime,
+    practice: PracticeSettings,
+    replay_selection: ReplaySelection,
+    competition: CompetitionSlot,
+    profiles: RefCell<ProfileStore>,
+    records: RefCell<RecordStore>,
+    selected_hill: Cell<usize>,
+    start_gate: Cell<i32>,
+    selected_main_menu: Cell<usize>,
 }
 
 impl Default for Store {
@@ -288,6 +317,134 @@ impl Store {
             start_gate: Cell::new(DEFAULT_START_GATE),
             selected_main_menu: Cell::new(0),
         }
+    }
+
+    pub fn start_competition(&self, comp: Competition) {
+        self.competition.start(comp);
+    }
+
+    pub fn with_competition<R>(&self, f: impl FnOnce(&Competition) -> R) -> R {
+        self.competition.with(f)
+    }
+
+    pub fn with_competition_mut<R>(&self, f: impl FnOnce(&mut Competition) -> R) -> R {
+        self.competition.with_mut(f)
+    }
+
+    pub fn try_with_competition<R>(&self, f: impl FnOnce(&Competition) -> R) -> Option<R> {
+        self.competition.try_with(f)
+    }
+
+    pub fn try_with_competition_mut<R>(&self, f: impl FnOnce(&mut Competition) -> R) -> Option<R> {
+        self.competition.try_with_mut(f)
+    }
+
+    #[must_use]
+    pub fn has_competition(&self) -> bool {
+        self.competition.is_some()
+    }
+
+    pub fn profiles(&self) -> Ref<'_, ProfileStore> {
+        self.profiles.borrow()
+    }
+
+    pub fn profiles_mut(&self) -> RefMut<'_, ProfileStore> {
+        self.profiles.borrow_mut()
+    }
+
+    pub fn records(&self) -> Ref<'_, RecordStore> {
+        self.records.borrow()
+    }
+
+    pub fn records_mut(&self) -> RefMut<'_, RecordStore> {
+        self.records.borrow_mut()
+    }
+
+    pub fn try_records(&self) -> Option<Ref<'_, RecordStore>> {
+        self.records.try_borrow().ok()
+    }
+
+    #[must_use]
+    pub fn practice_hill(&self) -> usize {
+        self.practice.hill()
+    }
+
+    pub fn set_practice_hill(&self, hill: usize) {
+        self.practice.set_hill(hill);
+    }
+
+    #[must_use]
+    pub fn practice_start_gate(&self) -> i32 {
+        self.practice.start_gate()
+    }
+
+    pub fn set_practice_start_gate(&self, start_gate: i32) {
+        self.practice.set_start_gate(start_gate);
+    }
+
+    #[must_use]
+    pub fn selected_hill(&self) -> usize {
+        self.selected_hill.get()
+    }
+
+    pub fn set_selected_hill(&self, hill: usize) {
+        self.selected_hill.set(hill);
+    }
+
+    #[must_use]
+    pub fn start_gate(&self) -> i32 {
+        self.start_gate.get()
+    }
+
+    pub fn set_start_gate(&self, start_gate: i32) {
+        self.start_gate.set(start_gate);
+    }
+
+    #[must_use]
+    pub fn selected_main_menu(&self) -> usize {
+        self.selected_main_menu.get()
+    }
+
+    pub fn set_selected_main_menu(&self, selected: usize) {
+        self.selected_main_menu.set(selected);
+    }
+
+    pub fn setup_jump_event(&self) {
+        self.jump_runtime.setup_event();
+    }
+
+    #[must_use]
+    pub fn consume_first_jump_event(&self) -> bool {
+        self.jump_runtime.consume_first_event()
+    }
+
+    pub fn reset_practice_wind(&self) {
+        self.jump_runtime.reset_practice_wind();
+    }
+
+    pub fn set_wind_place(&self, val: u8) {
+        self.jump_runtime.set_wind_place(val);
+    }
+
+    #[must_use]
+    pub fn wind_place(&self) -> u8 {
+        self.jump_runtime.wind_place()
+    }
+
+    pub fn with_jump_rng_wind_mut<R>(&self, f: impl FnOnce(&mut Random, &mut Wind) -> R) -> R {
+        self.jump_runtime.with_rng_wind_mut(f)
+    }
+
+    pub fn with_jump_wind<R>(&self, f: impl FnOnce(&Wind) -> R) -> R {
+        self.jump_runtime.with_wind(f)
+    }
+
+    pub fn select_replay(&self, trace: ReplayTrace) {
+        self.replay_selection.select(trace);
+    }
+
+    pub fn clone_selected_replay(&self) -> Option<ReplayTrace> {
+        self.replay_selection.clone_selected()
     }
 }
 

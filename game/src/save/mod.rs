@@ -98,31 +98,23 @@ impl SaveManager {
     }
 
     fn save_bytes(&self, filename: &str, data: &[u8]) -> Result<(), SaveError> {
-        self.files
-            .write(filename, data)
-            .map_err(SaveError::Io)?;
+        self.files.write(filename, data).map_err(SaveError::Io)?;
         Ok(())
     }
 
     fn save_config(&self) -> Result<(), SaveError> {
         let config = self.config.borrow();
-        let data = config
-            .to_toml_bytes()
-            .map_err(SaveError::Serialization)?;
+        let data = config.to_toml_bytes().map_err(SaveError::Serialization)?;
         self.save_bytes("config.toml", &data)
     }
 
     pub fn save_players(&self, store: &ProfileStore) -> Result<(), SaveError> {
-        let data = store
-            .to_toml_bytes()
-            .map_err(SaveError::Serialization)?;
+        let data = store.to_toml_bytes().map_err(SaveError::Serialization)?;
         self.save_bytes("players.toml", &data)
     }
 
     pub fn save_records(&self, store: &RecordStore) -> Result<(), SaveError> {
-        let data = store
-            .to_toml_bytes()
-            .map_err(SaveError::Serialization)?;
+        let data = store.to_toml_bytes().map_err(SaveError::Serialization)?;
         self.save_bytes("hiscores.toml", &data)
     }
 

@@ -44,7 +44,7 @@ impl MainLayout {
     #[must_use]
     pub fn jumpers(&self) -> Vec<Element> {
         let mut els = Vec::new();
-        let pb = self.store.profiles.borrow();
+        let pb = self.store.profiles();
         for (i, &profile_idx) in pb.active_order.iter().enumerate() {
             if profile_idx >= pb.profiles.len() {
                 continue;

@@ -24,7 +24,7 @@ pub(super) fn draw_screen_base(view: &ProfilesView, els: &mut Vec<Element>) {
 }
 
 pub(super) fn draw_list(view: &ProfilesView, els: &mut Vec<Element>) {
-    let store = view.store.profiles.borrow();
+    let store = view.store.profiles();
     let np = store.num_profiles();
 
     for (i, profile) in store.profiles.iter().enumerate() {
@@ -73,7 +73,7 @@ pub(super) fn draw_list(view: &ProfilesView, els: &mut Vec<Element>) {
 }
 
 pub(super) fn draw_help(view: &ProfilesView, els: &mut Vec<Element>, profile: Option<usize>) {
-    let store = view.store.profiles.borrow();
+    let store = view.store.profiles();
     if store.num_profiles() >= 16 {
         return;
     }
@@ -201,7 +201,7 @@ pub(super) fn draw_profile(
 ) {
     draw_empty_edit(els);
 
-    let store = view.store.profiles.borrow();
+    let store = view.store.profiles();
     let Some(profile) = store.profiles.get(profile_index) else {
         return;
     };

@@ -107,7 +107,7 @@ impl View<RouteTarget> for CustomCupSetupView {
                 if self.selected.is_empty() {
                     return None;
                 }
-                let profiles = self.store.profiles.borrow();
+                let profiles = self.store.profiles();
                 let comp = build_custom_competition(
                     &profiles,
                     self.resources.player_names(),
@@ -115,7 +115,7 @@ impl View<RouteTarget> for CustomCupSetupView {
                     0,
                 );
                 drop(profiles);
-                self.store.competition.start(comp);
+                self.store.start_competition(comp);
                 Some(RouteTarget::CompetitionJump)
             }
             Event::Keyboard(Key::Left) => {

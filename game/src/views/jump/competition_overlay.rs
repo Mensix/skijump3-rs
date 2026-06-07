@@ -34,7 +34,7 @@ pub struct WcStandingEntry {
 impl OverlayData {
     /// Collect all data the overlay needs from the competition store.
     pub fn collect(store: &StoreRef) -> Option<Self> {
-        store.competition.try_with(|c| {
+        store.try_with_competition(|c| {
             let event_standings = c.event_standings();
             let event_top5 = event_standings
                 .iter()
@@ -219,8 +219,7 @@ impl CompetitionOverlay {
 
         let (phase, rank, quali_wc) = self
             .store
-            .competition
-            .try_with(|c| {
+            .try_with_competition(|c| {
                 let phase = c.phase();
                 let rank = if round2_with_r1 {
                     participant.round1_rank
@@ -382,7 +381,7 @@ impl CompetitionOverlay {
             FONT_GOLD,
             true,
         ));
-        let records = self.store.records.borrow();
+        let records = self.store.records();
         if let Some(r) = records.hill_record(hill_idx) {
             if r.len > 0 {
                 els.push(Element::text(r.name.clone(), 308, 29, FONT_GOLD, true));
