@@ -1,6 +1,7 @@
 use crate::competition::field::{CompetitionField, SortBy};
 use crate::competition::scoring;
 use crate::competition::types::{CompetitionPhase, CupStyle, Participant, QualificationStatus};
+use crate::jump::types::{FallType, JumpOutcome};
 
 const QUALIFICATION_SPOTS: usize = 50;
 const ROUND2_SPOTS: usize = 30;
@@ -273,6 +274,15 @@ impl Competition {
                 }
             }
         }
+    }
+
+    /// Apply a complete jump outcome from the jump simulation domain.
+    /// Wraps injury domain logic (crash → 3-round injury) and recording.
+    pub fn apply_jump_outcome(&mut self, outcome: JumpOutcome) {
+        if outcome.fall_type == FallType::Crash {
+            self.injure_current(3);
+        }
+        self.record_jump(outcome.score, outcome.distance);
     }
 
     /// Store a jump result for the current participant and advance

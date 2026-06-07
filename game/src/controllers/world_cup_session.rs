@@ -3,13 +3,30 @@ use std::cell::Cell;
 use crate::competition::machine::Competition;
 use crate::competition::scoring::wc_points_for_rank;
 use crate::competition::types::{CompetitionPhase, CupStyle};
-use crate::controllers::competition_ui::{CompetitionUiState, RenderMode};
 use crate::controllers::jump_scene::JumpScene;
 use crate::controllers::world_cup_flow::{self, WorldCupCommand};
-use crate::jump::types::{FallType, JumpOutcome};
+use crate::jump::types::JumpOutcome;
 use crate::jump::JumpParticipant;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::format::format_tenths;
+
+/// Commands the view layer should execute after the controller
+/// advances competition state. Keeps the controller free of
+/// `CompetitionUiState` dependency.
+#[derive(Debug)]
+pub(crate) enum WorldCupUiCommand {
+    /// Prepare the jump scene for the next human jumper.
+    HumanJump {
+        participant: JumpParticipant,
+        hill_idx: usize,
+        phase: CompetitionPhase,
+        is_new_event: bool,
+    },
+    /// Display the results/standings screen.
+    ShowResults,
+    /// Season batch is complete — persist results.
+    Done,
+}
 
 #[derive(Debug)]
 pub(crate) struct WorldCupSessionController {
@@ -29,34 +46,32 @@ impl WorldCupSessionController {
         }
     }
 
-    pub(crate) fn record_finished_human_jump(
-        &self,
-        scene: &JumpScene,
-        ui_state: &CompetitionUiState,
-    ) {
+    /// Record a human jump outcome into the competition, applying
+    /// domain rules (crash → injury). Returns `true` if outcome was
+    /// actually recorded (caller should then mark it as such in UI).
+    pub(crate) fn record_finished_human_jump(&self, scene: &JumpScene) -> bool {
         let outcome = scene.outcome();
-        if outcome.is_none() || !ui_state.is_result_acknowledged() || ui_state.is_outcome_recorded()
-        {
-            return;
-        }
-        let outcome = outcome.unwrap();
+        let outcome = match outcome {
+            Some(o) => o,
+            None => return false,
+        };
         if !self
             .store
             .try_with_competition(Competition::is_human_current)
             .unwrap_or(false)
         {
-            return;
+            return false;
         }
         self.store.try_with_competition_mut(|c| {
-            if outcome.fall_type == FallType::Crash {
-                c.injure_current(3);
-            }
-            c.record_jump(outcome.score, outcome.distance);
+            c.apply_jump_outcome(outcome);
         });
-        ui_state.mark_outcome_recorded();
+        true
     }
 
-    pub(crate) fn drive_competition(&self, scene: &JumpScene, ui_state: &CompetitionUiState) {
+    /// Drive the competition state machine forward.
+    /// Returns a command the view should apply, or `None` if no
+    /// competition is running.
+    pub(crate) fn drive_competition(&self, scene: &JumpScene) -> Option<WorldCupUiCommand> {
         let command = self.store.try_with_competition_mut(|c| {
             let mut simulate_computer =
                 |participant: JumpParticipant, hill_idx: usize| -> JumpOutcome {
@@ -65,39 +80,30 @@ impl WorldCupSessionController {
             world_cup_flow::drive(c, &self.last_event, &mut simulate_computer)
         });
 
-        let Some(command) = command else {
-            ui_state.enter_done();
-            return;
-        };
+        let command = command?;
 
-        match command {
+        Some(match command {
             WorldCupCommand::HumanJump {
                 participant,
                 hill_idx,
                 phase,
                 is_new_event,
-            } => {
-                if is_new_event {
-                    JumpScene::setup_event(&self.store);
-                }
-                let phase_label = Self::phase_label(&self.resources, phase);
-                self.handle_human_jump(scene, ui_state, participant, hill_idx, phase_label);
-                ui_state.enter_jump();
-            }
-            WorldCupCommand::ShowResults => {
-                // Only initialize result UI on first entry, otherwise paging/toggles reset.
-                if ui_state.render_mode() != RenderMode::Results {
-                    self.select_default_result_screen(ui_state);
-                    ui_state.enter_results();
-                }
-            }
+            } => WorldCupUiCommand::HumanJump {
+                participant,
+                hill_idx,
+                phase,
+                is_new_event,
+            },
+            WorldCupCommand::ShowResults => WorldCupUiCommand::ShowResults,
             WorldCupCommand::Done => {
                 self.save_competition_results();
-                ui_state.enter_done();
+                WorldCupUiCommand::Done
             }
-        }
+        })
     }
 
+    /// Persist competition results (profiles and records) to disk.
+    /// Called on Done or SeasonComplete. Idempotent — runs once.
     pub(crate) fn save_competition_results(&self) {
         if self.profiles_saved.replace(true) {
             return;
@@ -157,51 +163,8 @@ impl WorldCupSessionController {
             }
         }
     }
-
-    fn handle_human_jump(
-        &self,
-        scene: &JumpScene,
-        ui_state: &CompetitionUiState,
-        participant: JumpParticipant,
-        hill_idx: usize,
-        phase_label: String,
-    ) {
-        let needs_rebuild = scene.participant_id() != participant.id
-            || scene.hill_idx() != hill_idx
-            || ui_state.is_outcome_recorded()
-            || (scene.outcome().is_some() && ui_state.is_result_acknowledged());
-        if needs_rebuild {
-            ui_state.reset_acknowledged();
-            ui_state.reset_outcome_recorded();
-            scene.rebuild_for_competition(hill_idx, 15, participant, phase_label);
-        } else {
-            scene.set_phase_label(phase_label);
-        }
-    }
-
-    fn select_default_result_screen(&self, ui_state: &CompetitionUiState) {
-        if let Some(phase) = self.store.try_with_competition(Competition::phase) {
-            let is_4h = self
-                .store
-                .try_with_competition(Competition::is_four_hills_event)
-                .unwrap_or(false);
-            ui_state.select_default_screen(is_4h, phase);
-        }
-    }
-
-    fn phase_label(resources: &ResourcesRef, phase: CompetitionPhase) -> String {
-        match phase {
-            CompetitionPhase::Training(n) => format!("{} {}", resources.langbase.lstr(52), n),
-            CompetitionPhase::Qualification => resources.langbase.lstr(53).to_string(),
-            CompetitionPhase::Round1 => resources.langbase.lstr(54).to_string(),
-            CompetitionPhase::Round2 => resources.langbase.lstr(55).to_string(),
-            _ => resources.langbase.lstr(51).to_string(),
-        }
-    }
 }
 
-/// Pascal: `txt(mcpisteet[who])+' ('+str1+')'` where str1 is `sija[who]+'.'`
-/// for the final event. Same applies to best4 result with `txtp` for tenths.
 fn format_wc_best_result(points: i32, rank: usize) -> String {
     format!("{points} ({rank}.)")
 }

@@ -3,7 +3,7 @@ use crate::competition::types::{CompetitionPhase, CupStyle};
 use crate::controllers::competition_ui::{CompetitionUiState, RenderMode, ResultScreen};
 use crate::controllers::jump_input::{JumpInputAction, JumpInputController};
 use crate::controllers::jump_scene::JumpScene;
-use crate::controllers::world_cup_session::WorldCupSessionController;
+use crate::controllers::world_cup_session::{WorldCupSessionController, WorldCupUiCommand};
 use crate::gfx::palette::{BLACK, FONT_GREET};
 use crate::jump::types::JumpPhase;
 use crate::jump::JumpParticipant;
@@ -46,6 +46,63 @@ impl WorldCupJumpView {
             ),
             blinker: Blinker::new(),
             controller: WorldCupSessionController::new(resources, store),
+        }
+    }
+
+    fn apply_command(&self, command: WorldCupUiCommand) {
+        match command {
+            WorldCupUiCommand::HumanJump {
+                participant,
+                hill_idx,
+                phase,
+                is_new_event,
+            } => {
+                if is_new_event {
+                    JumpScene::setup_event(&self.store);
+                }
+                let phase_label = phase_label(&self.resources, phase);
+                self.handle_human_jump(participant, hill_idx, phase_label);
+                self.ui_state.enter_jump();
+            }
+            WorldCupUiCommand::ShowResults => {
+                if self.ui_state.render_mode() != RenderMode::Results {
+                    self.select_default_result_screen();
+                    self.ui_state.enter_results();
+                }
+            }
+            WorldCupUiCommand::Done => {
+                self.ui_state.enter_done();
+            }
+        }
+    }
+
+    fn handle_human_jump(
+        &self,
+        participant: JumpParticipant,
+        hill_idx: usize,
+        phase_label: String,
+    ) {
+        let needs_rebuild = self.scene.participant_id() != participant.id
+            || self.scene.hill_idx() != hill_idx
+            || self.ui_state.is_outcome_recorded()
+            || (self.scene.outcome().is_some() && self.ui_state.is_result_acknowledged());
+        if needs_rebuild {
+            self.ui_state.reset_acknowledged();
+            self.ui_state.reset_outcome_recorded();
+            self.scene
+                .rebuild_for_competition(hill_idx, 15, participant, phase_label);
+        } else {
+            self.scene.set_phase_label(phase_label);
+        }
+    }
+
+    fn select_default_result_screen(&self) {
+        if let Some(phase) = self.store.try_with_competition(Competition::phase) {
+            let is_4h = self
+                .store
+                .try_with_competition(Competition::is_four_hills_event)
+                .unwrap_or(false);
+            self.ui_state.select_default_screen(is_4h, phase);
         }
     }
 
@@ -111,10 +168,19 @@ impl WorldCupJumpView {
 
 impl View<RouteTarget> for WorldCupJumpView {
     fn update(&mut self) {
-        self.controller
-            .record_finished_human_jump(&self.scene, &self.ui_state);
-        self.controller
-            .drive_competition(&self.scene, &self.ui_state);
+        // Record acknowledged human jump outcome if not yet recorded
+        if self.ui_state.is_result_acknowledged()
+            && !self.ui_state.is_outcome_recorded()
+            && self.controller.record_finished_human_jump(&self.scene)
+        {
+            self.ui_state.mark_outcome_recorded();
+        }
+
+        // Drive competition and dispatch any resulting command
+        if let Some(command) = self.controller.drive_competition(&self.scene) {
+            self.apply_command(command);
+        }
+
         if self.ui_state.render_mode() == RenderMode::Jump {
             self.scene.update();
         }
@@ -231,8 +297,9 @@ impl WorldCupJumpView {
                 self.blinker.reset();
                 self.ui_state.dismiss_results();
                 self.store.try_with_competition_mut(Competition::advance);
-                self.controller
-                    .drive_competition(&self.scene, &self.ui_state);
+                if let Some(command) = self.controller.drive_competition(&self.scene) {
+                    self.apply_command(command);
+                }
                 None
             }
             Event::Keyboard(Key::Char('c' | 'C')) => {
@@ -280,11 +347,22 @@ impl WorldCupJumpView {
                 self.blinker.reset();
                 self.ui_state.dismiss_results();
                 self.store.try_with_competition_mut(Competition::advance);
-                self.controller
-                    .drive_competition(&self.scene, &self.ui_state);
+                if let Some(command) = self.controller.drive_competition(&self.scene) {
+                    self.apply_command(command);
+                }
                 None
             }
             _ => None,
         }
+    }
+}
+
+fn phase_label(resources: &ResourcesRef, phase: CompetitionPhase) -> String {
+    match phase {
+        CompetitionPhase::Training(n) => format!("{} {}", resources.langbase.lstr(52), n),
+        CompetitionPhase::Qualification => resources.langbase.lstr(53).to_string(),
+        CompetitionPhase::Round1 => resources.langbase.lstr(54).to_string(),
+        CompetitionPhase::Round2 => resources.langbase.lstr(55).to_string(),
+        _ => resources.langbase.lstr(51).to_string(),
     }
 }
