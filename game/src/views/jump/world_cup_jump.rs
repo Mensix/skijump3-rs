@@ -1,31 +1,27 @@
 use crate::competition::machine::Competition;
-use crate::competition::scoring::wc_points_for_rank;
 use crate::competition::types::{CompetitionPhase, CupStyle};
 use crate::controllers::competition_ui::{CompetitionUiState, RenderMode, ResultScreen};
 use crate::controllers::jump_input::{JumpInputAction, JumpInputController};
 use crate::controllers::jump_scene::JumpScene;
-use crate::controllers::world_cup_flow::{self, WorldCupCommand};
+use crate::controllers::world_cup_session::WorldCupSessionController;
 use crate::gfx::palette::{BLACK, FONT_GREET};
-use crate::jump::types::{FallType, JumpOutcome, JumpPhase};
+use crate::jump::types::JumpPhase;
 use crate::jump::JumpParticipant;
 use crate::jump::JumpPolicy;
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
-use crate::text::format::format_tenths;
 use crate::views::jump::competition_overlay::CompetitionOverlay;
 use crate::views::jump::results as competition_results;
 use engine::ui::{Blinker, Element, Event, Key, View};
-use std::cell::Cell;
 
 pub struct WorldCupJumpView {
     resources: ResourcesRef,
     store: StoreRef,
     scene: JumpScene,
-    last_event: Cell<usize>,
     ui_state: CompetitionUiState,
     overlay: CompetitionOverlay,
     blinker: Blinker,
-    profiles_saved: Cell<bool>,
+    controller: WorldCupSessionController,
 }
 
 impl WorldCupJumpView {
@@ -43,59 +39,13 @@ impl WorldCupJumpView {
             resources: ResourcesRef::clone(&resources),
             store: StoreRef::clone(&store),
             scene,
-            last_event: Cell::new(0),
             ui_state: CompetitionUiState::new(),
             overlay: CompetitionOverlay::new(
                 ResourcesRef::clone(&resources),
                 StoreRef::clone(&store),
             ),
             blinker: Blinker::new(),
-            profiles_saved: Cell::new(false),
-        }
-    }
-
-    fn record_finished_human_jump(&self) {
-        let outcome = self.scene.outcome();
-        if outcome.is_none()
-            || !self.ui_state.is_result_acknowledged()
-            || self.ui_state.is_outcome_recorded()
-        {
-            return;
-        }
-        let outcome = outcome.unwrap();
-        if !self
-            .store
-            .try_with_competition(Competition::is_human_current)
-            .unwrap_or(false)
-        {
-            return;
-        }
-        self.store.try_with_competition_mut(|c| {
-            if outcome.fall_type == FallType::Crash {
-                c.injure_current(3);
-            }
-            c.record_jump(outcome.score, outcome.distance);
-        });
-        self.ui_state.mark_outcome_recorded();
-    }
-
-    fn handle_human_jump(
-        &self,
-        participant: JumpParticipant,
-        hill_idx: usize,
-        phase_label: String,
-    ) {
-        let needs_rebuild = self.scene.participant_id() != participant.id
-            || self.scene.hill_idx() != hill_idx
-            || self.ui_state.is_outcome_recorded()
-            || (self.scene.outcome().is_some() && self.ui_state.is_result_acknowledged());
-        if needs_rebuild {
-            self.ui_state.reset_acknowledged();
-            self.ui_state.reset_outcome_recorded();
-            self.scene
-                .rebuild_for_competition(hill_idx, 15, participant, phase_label);
-        } else {
-            self.scene.set_phase_label(phase_label);
+            controller: WorldCupSessionController::new(resources, store),
         }
     }
 
@@ -133,109 +83,6 @@ impl WorldCupJumpView {
             .unwrap_or_else(|| vec![Element::fillbox(0, 0, 320, 200, BLACK)])
     }
 
-    fn drive_competition(&self) {
-        let command = self.store.try_with_competition_mut(|c| {
-            let mut simulate_computer =
-                |participant: JumpParticipant, hill_idx: usize| -> JumpOutcome {
-                    self.scene.simulate_hidden(participant, hill_idx)
-                };
-            world_cup_flow::drive(c, &self.last_event, &mut simulate_computer)
-        });
-
-        let Some(command) = command else {
-            self.ui_state.enter_done();
-            return;
-        };
-
-        match command {
-            WorldCupCommand::HumanJump {
-                participant,
-                hill_idx,
-                phase,
-                is_new_event,
-            } => {
-                if is_new_event {
-                    JumpScene::setup_event(&self.store);
-                }
-                let phase_label = Self::phase_label(&self.resources, phase);
-                self.handle_human_jump(participant, hill_idx, phase_label);
-                self.ui_state.enter_jump();
-            }
-            WorldCupCommand::ShowResults => {
-                // Only initialize result UI on first entry — not every
-                // frame, otherwise paging/toggles are instantly reset.
-                if self.ui_state.render_mode() != RenderMode::Results {
-                    self.select_default_result_screen();
-                    self.ui_state.enter_results();
-                }
-            }
-            WorldCupCommand::Done => {
-                self.save_competition_results();
-                self.ui_state.enter_done();
-            }
-        }
-    }
-
-    fn save_competition_results(&self) {
-        if self.profiles_saved.replace(true) {
-            return;
-        }
-        self.store.try_with_competition(|c| {
-            let style = c.style();
-            let overall = c.overall_standings();
-            let mut profiles = self.store.profiles_mut();
-
-            for p in &overall {
-                let Some(pidx) = p.profile_idx else {
-                    continue;
-                };
-                let Some(profile) = profiles.profiles.get_mut(pidx) else {
-                    continue;
-                };
-
-                match style {
-                    CupStyle::WorldCup => {
-                        profile.world_cups += 1;
-                        let my_points = p.points.unwrap_or(0);
-                        let event_rank = event_rank_by_points(c, my_points);
-                        let pts = wc_points_for_rank(event_rank);
-                        if pts >= profile.bestpoints as i32 {
-                            profile.bestpoints = pts as usize;
-                            profile.best_result = format_wc_best_result(pts, event_rank);
-                        }
-                        if p.four_hills_points > 0
-                            && p.four_hills_points >= profile.best4points as i32
-                        {
-                            profile.best4points = p.four_hills_points as usize;
-                            profile.best_4h_result =
-                                format_four_hills_best_result(p.four_hills_points, p.rank);
-                        }
-                    }
-                    CupStyle::FourHills => {
-                        if p.four_hills_points >= profile.best4points as i32 {
-                            profile.best4points = p.four_hills_points as usize;
-                            profile.best_4h_result =
-                                format_four_hills_best_result(p.four_hills_points, p.rank);
-                        }
-                    }
-                    CupStyle::CustomCup | CupStyle::TeamCup => {}
-                }
-            }
-        });
-        if let Err(e) = self
-            .resources
-            .save_manager
-            .save_players(&self.store.profiles())
-        {
-            eprintln!("Warning: failed to save players: {e}");
-        }
-        if let Some(records) = self.store.try_records() {
-            if let Err(e) = self.resources.save_manager.save_records(&records) {
-                eprintln!("Warning: failed to save records: {e}");
-            }
-        }
-    }
-
     /// Pascal: rank calculation — counts participants with points <= jumper's total.
     /// Shows `($X.)` at (255,45), left of the score at (308,45).
     fn rank_element(&self) -> Option<Element> {
@@ -260,32 +107,14 @@ impl WorldCupJumpView {
             Element::right_text(format!("(${rank}.)"), 255, 45, FONT_GREET)
         })
     }
-
-    fn select_default_result_screen(&self) {
-        if let Some(phase) = self.store.try_with_competition(Competition::phase) {
-            let is_4h = self
-                .store
-                .try_with_competition(Competition::is_four_hills_event)
-                .unwrap_or(false);
-            self.ui_state.select_default_screen(is_4h, phase);
-        }
-    }
-
-    fn phase_label(resources: &ResourcesRef, phase: CompetitionPhase) -> String {
-        match phase {
-            CompetitionPhase::Training(n) => format!("{} {}", resources.langbase.lstr(52), n),
-            CompetitionPhase::Qualification => resources.langbase.lstr(53).to_string(),
-            CompetitionPhase::Round1 => resources.langbase.lstr(54).to_string(),
-            CompetitionPhase::Round2 => resources.langbase.lstr(55).to_string(),
-            _ => resources.langbase.lstr(51).to_string(),
-        }
-    }
 }
 
 impl View<RouteTarget> for WorldCupJumpView {
     fn update(&mut self) {
-        self.record_finished_human_jump();
-        self.drive_competition();
+        self.controller
+            .record_finished_human_jump(&self.scene, &self.ui_state);
+        self.controller
+            .drive_competition(&self.scene, &self.ui_state);
         if self.ui_state.render_mode() == RenderMode::Jump {
             self.scene.update();
         }
@@ -402,7 +231,8 @@ impl WorldCupJumpView {
                 self.blinker.reset();
                 self.ui_state.dismiss_results();
                 self.store.try_with_competition_mut(Competition::advance);
-                self.drive_competition();
+                self.controller
+                    .drive_competition(&self.scene, &self.ui_state);
                 None
             }
             Event::Keyboard(Key::Char('c' | 'C')) => {
@@ -444,35 +274,17 @@ impl WorldCupJumpView {
                     .try_with_competition(|c| c.phase() == CompetitionPhase::SeasonComplete)
                     .unwrap_or(false);
                 if is_season_complete {
-                    self.save_competition_results();
+                    self.controller.save_competition_results();
                     return Some(RouteTarget::Back);
                 }
                 self.blinker.reset();
                 self.ui_state.dismiss_results();
                 self.store.try_with_competition_mut(Competition::advance);
-                self.drive_competition();
+                self.controller
+                    .drive_competition(&self.scene, &self.ui_state);
                 None
             }
             _ => None,
         }
     }
-}
-
-/// Pascal: `txt(mcpisteet[who])+' ('+str1+')'` where str1 is `sija[who]+'.'`
-/// for the final event. Same applies to best4 result with `txtp` for tenths.
-fn format_wc_best_result(points: i32, rank: usize) -> String {
-    format!("{points} ({rank}.)")
-}
-
-fn format_four_hills_best_result(points_tenths: i32, rank: usize) -> String {
-    format!("{} ({}.)", format_tenths(points_tenths), rank)
-}
-
-/// Tie-aware event rank: 1 + count of participants with strictly higher points.
-fn event_rank_by_points(competition: &Competition, points: i32) -> usize {
-    1 + competition
-        .event_standings()
-        .iter()
-        .filter(|p| p.points.unwrap_or(i32::MIN) > points)
-        .count()
 }
