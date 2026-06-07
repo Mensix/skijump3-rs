@@ -147,6 +147,7 @@ pub(crate) fn load_sprites(
 
             all_sprites.push(SpriteData {
                 data: decoded,
+                rgba_data: Vec::new(),
                 width: s.width,
                 height: s.height,
                 center_x: s.center_x,

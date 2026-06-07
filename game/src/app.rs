@@ -6,7 +6,7 @@ use crate::content::ContentStore;
 use crate::data::records::RecordStore;
 use crate::files::FileStore;
 use crate::gfx::palette::apply_standard_ui_palette;
-use crate::gfx::pcx::PcxParser;
+use crate::gfx::pcx::{PcxPalette, PcxParser};
 use crate::gfx::png::load_png;
 use crate::route::RouteTarget;
 use crate::save::{SaveManager, SaveRef};
@@ -14,7 +14,6 @@ use crate::store::{Resources, ResourcesRef, Store, StoreRef};
 use engine::atlas::Atlas;
 use engine::element_renderer::ElementRenderContext;
 use engine::input::Input;
-use engine::palette::Palette;
 use engine::sprite::SpriteData;
 use engine::ui::{BackgroundMode, Font, Router};
 use engine::video::{Renderer, TextureId};
@@ -38,6 +37,28 @@ pub struct Game {
     element_render_context: ElementRenderContext,
 }
 
+fn palette_to_rgba(pixel: u8, palette: &PcxPalette) -> [u8; 4] {
+    if pixel == 0 {
+        [0, 0, 0, 0]
+    } else {
+        let [r6, g6, b6] = palette.color(pixel as usize);
+        [
+            (u32::from(r6) * 255 / 63) as u8,
+            (u32::from(g6) * 255 / 63) as u8,
+            (u32::from(b6) * 255 / 63) as u8,
+            255,
+        ]
+    }
+}
+
+fn precompute_sprite_rgba(sprite: &mut SpriteData, palette: &PcxPalette) {
+    sprite.rgba_data = sprite
+        .data
+        .iter()
+        .flat_map(|&p| palette_to_rgba(p, palette))
+        .collect();
+}
+
 impl Game {
     pub fn new() -> Result<Self, String> {
         let (sdl, mut renderer, input) = Self::init_sdl()?;
@@ -46,15 +67,16 @@ impl Game {
         let asset_dir = std::path::PathBuf::from("game/assets");
         let files = Rc::new(FileStore::new(asset_dir, save_dir));
 
-        let (pcx_palette, sprites, content_store) = Self::load_assets(&files)?;
+        let (mut pcx_palette, mut sprites, content_store) = Self::load_assets(&files)?;
         let main_background = Self::load_background_texture(&files, &mut renderer)?;
         let langbase = Rc::new(content_store.langbase);
 
         let font = Font::from_sprites(&sprites);
 
-        let mut base_palette = pcx_palette;
-        apply_standard_ui_palette(&mut base_palette);
-        renderer.set_palette(base_palette.clone());
+        apply_standard_ui_palette(&mut pcx_palette);
+        for sprite in &mut sprites {
+            precompute_sprite_rgba(sprite, &pcx_palette);
+        }
 
         let save_manager: SaveRef =
             Rc::new(SaveManager::new(Rc::clone(&files), Rc::clone(&langbase)));
@@ -122,7 +144,9 @@ impl Game {
     }
 
     #[allow(clippy::type_complexity)]
-    fn load_assets(files: &FileStore) -> Result<(Palette, Vec<SpriteData>, ContentStore), String> {
+    fn load_assets(
+        files: &FileStore,
+    ) -> Result<(PcxPalette, Vec<SpriteData>, ContentStore), String> {
         let pcx_data = files.read(MAIN_PCX).map_err(|e| e.to_string())?;
         let decoded = PcxParser::parse(&pcx_data)?;
         let content = ContentStore::load(files, CONTENT_MANIFEST)?;

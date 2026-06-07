@@ -1,41 +1,15 @@
-use crate::bitmap::IndexedBitmap;
+use crate::bitmap::{IndexedBitmap, RgbaBitmap};
 use crate::color::Rgba;
 use crate::consts::{HEIGHT, WIDTH};
 
 #[derive(Debug, Clone)]
 pub struct SpriteData {
     pub data: Vec<u8>,
+    pub rgba_data: Vec<u8>,
     pub width: u16,
     pub height: u16,
     pub center_x: i8,
     pub center_y: i8,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct SpriteColorRemap {
-    pairs: Vec<(u8, u8)>,
-}
-
-impl SpriteColorRemap {
-    #[must_use]
-    pub fn new(pairs: Vec<(u8, u8)>) -> Self {
-        Self { pairs }
-    }
-
-    #[must_use]
-    pub fn pairs(&self) -> &[(u8, u8)] {
-        &self.pairs
-    }
-
-    #[must_use]
-    pub fn map(&self, pixel: u8) -> u8 {
-        for &(from, to) in &self.pairs {
-            if pixel == from {
-                return to;
-            }
-        }
-        pixel
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -66,30 +40,9 @@ impl SpriteData {
     /// non-zero visible pixels.
     #[must_use]
     pub fn render_bitmap(&self, dst_x: i32, dst_y: i32) -> Option<IndexedBitmap> {
-        self.render_bitmap_impl(dst_x, dst_y, None)
-    }
-
-    /// Render sprite with colour remapping to a minimal indexed bitmap.
-    #[must_use]
-    pub fn render_bitmap_with_remap(
-        &self,
-        dst_x: i32,
-        dst_y: i32,
-        remap: &SpriteColorRemap,
-    ) -> Option<IndexedBitmap> {
-        self.render_bitmap_impl(dst_x, dst_y, Some(remap))
-    }
-
-    fn render_bitmap_impl(
-        &self,
-        dst_x: i32,
-        dst_y: i32,
-        remap: Option<&SpriteColorRemap>,
-    ) -> Option<IndexedBitmap> {
         let start_x = dst_x - i32::from(self.center_x);
         let start_y = dst_y - i32::from(self.center_y);
 
-        // Visible bounding box clipped to screen
         let vis_left = start_x.max(0);
         let vis_top = start_y.max(0);
         let vis_right = (start_x + i32::from(self.width)).min(WIDTH as i32);
@@ -122,15 +75,10 @@ impl SpriteData {
                 if pixel == 0 {
                     continue;
                 }
-                let final_pixel = if let Some(r) = remap {
-                    r.map(pixel)
-                } else {
-                    pixel
-                };
-                has_opaque_pixel |= final_pixel != 0;
+                has_opaque_pixel = true;
                 let dx = (screen_x - vis_left) as u32;
                 let dy = (screen_y - vis_top) as u32;
-                pixels[(dy * vis_w + dx) as usize] = final_pixel;
+                pixels[(dy * vis_w + dx) as usize] = pixel;
             }
         }
 
@@ -148,6 +96,99 @@ impl SpriteData {
     }
 }
 
+// ---------------------------------------------------------------------------
+// RGBA rendering methods (palette-independent; uses precomputed rgba_data)
+// ---------------------------------------------------------------------------
+
+impl SpriteData {
+    /// Render sprite to a minimal RGBA bitmap, clipping to screen bounds.
+    /// Returns `None` when the sprite is fully off-screen or has no
+    /// non-zero visible pixels.
+    #[must_use]
+    pub fn render_rgba_bitmap(&self, dst_x: i32, dst_y: i32) -> Option<RgbaBitmap> {
+        let start_x = dst_x - i32::from(self.center_x);
+        let start_y = dst_y - i32::from(self.center_y);
+
+        let vis_left = start_x.max(0);
+        let vis_top = start_y.max(0);
+        let vis_right = (start_x + i32::from(self.width)).min(WIDTH as i32);
+        let vis_bottom = (start_y + i32::from(self.height)).min(HEIGHT as i32);
+        let vis_w = (vis_right - vis_left).max(0) as u32;
+        let vis_h = (vis_bottom - vis_top).max(0) as u32;
+
+        if vis_w == 0 || vis_h == 0 {
+            return None;
+        }
+
+        let mut pixels = vec![0u8; (vis_w * vis_h * 4) as usize];
+        let mut has_opaque = false;
+
+        for src_y in 0..i32::from(self.height) {
+            let screen_y = start_y + src_y;
+            if screen_y < vis_top || screen_y >= vis_bottom {
+                continue;
+            }
+            for src_x in 0..i32::from(self.width) {
+                let screen_x = start_x + src_x;
+                if screen_x < vis_left || screen_x >= vis_right {
+                    continue;
+                }
+                let src_idx = (src_y as usize * self.width as usize + src_x as usize) * 4;
+                if src_idx + 4 > self.rgba_data.len() {
+                    continue;
+                }
+                let pixel_val = self.data[src_idx / 4];
+                if pixel_val == 0 {
+                    continue;
+                }
+                has_opaque = true;
+                let dx = (screen_x - vis_left) as u32;
+                let dy = (screen_y - vis_top) as u32;
+                let dst_off = (dy * vis_w + dx) as usize * 4;
+                pixels[dst_off..dst_off + 4].copy_from_slice(&self.rgba_data[src_idx..src_idx + 4]);
+            }
+        }
+
+        if !has_opaque {
+            return None;
+        }
+
+        Some(RgbaBitmap {
+            pixels,
+            x: vis_left,
+            y: vis_top,
+            width: vis_w,
+            height: vis_h,
+        })
+    }
+
+    /// Render the full sprite to an RGBA buffer with colour recolor.
+    /// Source index 0 → transparent; recolored indices → explicit RGBA;
+    /// all others → precomputed rgba_data.
+    pub fn render_recolored_rgba(&self, recolor: &SpriteColorRecolor, out: &mut Vec<u8>) {
+        let count = self.width as usize * self.height as usize;
+        out.clear();
+        out.reserve(count * 4);
+        for (i, &pixel) in self.data.iter().enumerate().take(count) {
+            if pixel == 0 {
+                out.extend_from_slice(&[0, 0, 0, 0]);
+            } else if let Some(rgba) = recolor.get(pixel) {
+                out.push(rgba.r);
+                out.push(rgba.g);
+                out.push(rgba.b);
+                out.push(rgba.a);
+            } else {
+                let src_off = i * 4;
+                if src_off + 4 <= self.rgba_data.len() {
+                    out.extend_from_slice(&self.rgba_data[src_off..src_off + 4]);
+                } else {
+                    out.extend_from_slice(&[0, 0, 0, 0]);
+                }
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -161,6 +202,7 @@ mod tests {
     fn render_bitmap_basic() {
         let sprite = SpriteData {
             data: vec![1, 2, 3, 4],
+            rgba_data: Vec::new(),
             width: 2,
             height: 2,
             center_x: 0,
@@ -178,6 +220,7 @@ mod tests {
     fn render_bitmap_skips_transparent() {
         let sprite = SpriteData {
             data: vec![0, 2, 3, 0],
+            rgba_data: Vec::new(),
             width: 2,
             height: 2,
             center_x: 0,
@@ -193,40 +236,10 @@ mod tests {
     }
 
     #[test]
-    fn render_bitmap_remap() {
-        let sprite = SpriteData {
-            data: vec![0, 10, 10, 0],
-            width: 2,
-            height: 2,
-            center_x: 0,
-            center_y: 0,
-        };
-        let remap = SpriteColorRemap::new(vec![(10, 20)]);
-        let bm = sprite.render_bitmap_with_remap(0, 0, &remap).unwrap();
-        assert_eq!(bm.pixels[0], 0, "transparent remained");
-        assert_eq!(bm.pixels[1], 20, "index 10 remapped to 20");
-        assert_eq!(bm.pixels[2], 20, "index 10 remapped to 20");
-        assert_eq!(bm.pixels[3], 0, "transparent remained");
-    }
-
-    #[test]
-    fn render_bitmap_remap_unknown_preserved() {
-        let sprite = SpriteData {
-            data: vec![50],
-            width: 1,
-            height: 1,
-            center_x: 0,
-            center_y: 0,
-        };
-        let remap = SpriteColorRemap::new(vec![(10, 20)]);
-        let bm = sprite.render_bitmap_with_remap(0, 0, &remap).unwrap();
-        assert_eq!(bm.pixels[0], 50, "unmapped index preserved");
-    }
-
-    #[test]
     fn render_bitmap_clips_right_edge() {
         let sprite = SpriteData {
             data: vec![1, 2],
+            rgba_data: Vec::new(),
             width: 2,
             height: 1,
             center_x: 0,
@@ -243,6 +256,7 @@ mod tests {
     fn render_bitmap_clips_bottom_edge() {
         let sprite = SpriteData {
             data: vec![1, 2, 3, 4],
+            rgba_data: Vec::new(),
             width: 2,
             height: 2,
             center_x: 0,
@@ -259,6 +273,7 @@ mod tests {
     fn render_bitmap_clips_left_negative() {
         let sprite = SpriteData {
             data: vec![1, 2, 3, 4],
+            rgba_data: Vec::new(),
             width: 2,
             height: 2,
             center_x: 0,
@@ -276,6 +291,7 @@ mod tests {
     fn render_bitmap_clips_top_negative() {
         let sprite = SpriteData {
             data: vec![1, 2, 3, 4],
+            rgba_data: Vec::new(),
             width: 2,
             height: 2,
             center_x: 0,
@@ -292,6 +308,7 @@ mod tests {
     fn render_bitmap_fully_offscreen_right_returns_none() {
         let sprite = SpriteData {
             data: vec![1],
+            rgba_data: Vec::new(),
             width: 1,
             height: 1,
             center_x: 0,
@@ -304,6 +321,7 @@ mod tests {
     fn render_bitmap_center_offset() {
         let sprite = SpriteData {
             data: vec![1, 2, 3, 4],
+            rgba_data: Vec::new(),
             width: 2,
             height: 2,
             center_x: 1,
@@ -323,6 +341,7 @@ mod tests {
     fn render_bitmap_all_transparent_returns_none() {
         let sprite = SpriteData {
             data: vec![0, 0, 0, 0],
+            rgba_data: Vec::new(),
             width: 2,
             height: 2,
             center_x: 0,
@@ -335,6 +354,7 @@ mod tests {
     fn render_bitmap_preserves_original_values_no_remap() {
         let sprite = SpriteData {
             data: vec![5, 10, 15, 20],
+            rgba_data: Vec::new(),
             width: 2,
             height: 2,
             center_x: 0,
@@ -348,6 +368,7 @@ mod tests {
     fn render_bitmap_partially_offscreen_left() {
         let sprite = SpriteData {
             data: vec![1, 2, 3, 4],
+            rgba_data: Vec::new(),
             width: 3,
             height: 1,
             center_x: 0,

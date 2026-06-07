@@ -383,6 +383,7 @@ mod tests {
         let mut sprites = Vec::with_capacity(FONT_GLYPH_COUNT);
         sprites.resize_with(FONT_GLYPH_COUNT, || SpriteData {
             data: vec![],
+            rgba_data: Vec::new(),
             width: 0,
             height: 0,
             center_x: 0,
@@ -390,6 +391,7 @@ mod tests {
         });
         sprites[0] = SpriteData {
             data: vec![1; 15], // 3×5 block
+            rgba_data: Vec::new(),
             width: 3,
             height: 5,
             center_x: 0,
@@ -406,6 +408,7 @@ mod tests {
                 2,
                 2, // row 3
             ],
+            rgba_data: Vec::new(),
             width: 2,
             height: 4,
             center_x: 0,

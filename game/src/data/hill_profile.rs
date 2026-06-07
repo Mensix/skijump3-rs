@@ -1,12 +1,11 @@
 use crate::data::hill::HillInfo;
 use crate::files::FileStore;
-use crate::gfx::pcx::{DecodedPcx, PcxParser};
-use engine::palette::Palette;
+use crate::gfx::pcx::{DecodedPcx, PcxPalette, PcxParser};
 use std::rc::Rc;
 
 pub const HILL_PROFILE_LEN: usize = 1300;
 
-fn indexed_to_rgba(pixels: &[u8], palette: &Palette) -> Vec<u8> {
+fn indexed_to_rgba(pixels: &[u8], palette: &PcxPalette) -> Vec<u8> {
     let mut rgba = Vec::with_capacity(pixels.len() * 4);
     for &idx in pixels {
         if idx == 0 {
@@ -28,8 +27,6 @@ pub struct HillTerrain {
     back_pixels: Rc<[u8]>,
     front_rgba: Rc<[u8]>,
     back_rgba: Rc<[u8]>,
-    front_palette: Palette,
-    back_palette: Palette,
     pub width: u16,
     pub height: u16,
     back_width: u16,
@@ -72,8 +69,6 @@ impl HillTerrain {
             back_pixels: pixels.into(),
             front_rgba: front_rgba.into(),
             back_rgba: pcx.rgba_pixels.into(),
-            front_palette: pcx.palette.clone(),
-            back_palette: pcx.palette,
             width: pcx.width,
             height: pcx.height,
             back_width: pcx.width,
@@ -100,8 +95,6 @@ impl HillTerrain {
             back_pixels: back.pixels.into(),
             front_rgba: front_rgba.into(),
             back_rgba: back.rgba_pixels.into(),
-            front_palette: front.palette,
-            back_palette: back.palette,
             width: front.width,
             height: front.height,
             back_width: back.width,
@@ -109,18 +102,6 @@ impl HillTerrain {
             line_lengths,
             profile_y,
             tip_x,
-        }
-    }
-
-    pub fn apply_hill_palette(&self, palette: &mut Palette) {
-        // FRONT images use low indices for terrain; BACK images use 65..213 for sky.
-        // Pascal loads both PCXs into one indexed buffer, so we compose the two palettes here
-        // while preserving standard UI colors in 216..255.
-        for i in 0..=64 {
-            palette.set(i, self.front_palette.color(i));
-        }
-        for i in 65..=215 {
-            palette.set(i, self.back_palette.color(i));
         }
     }
 

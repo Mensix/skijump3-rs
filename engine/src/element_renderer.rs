@@ -6,7 +6,6 @@ use crate::color::Rgba;
 use crate::consts::PATTERN_SPRITE;
 use crate::sprite::{SpriteColorRecolor, SpriteData};
 use crate::ui::{Element, Font};
-use crate::video::indexed::recolored_sprite_to_rgba;
 use crate::video::{Renderer, TextureId};
 
 struct DitherRect {
@@ -305,13 +304,17 @@ impl ElementWorker<'_> {
                 }
                 if !drew {
                     if let Some(sprite) = self.sprites.get(*idx as usize) {
-                        if let Some(bitmap) = sprite.render_bitmap(*x, *y) {
-                            self.renderer.draw_indexed_overlay_pixels(
+                        if let Some(bitmap) = sprite.render_rgba_bitmap(*x, *y) {
+                            self.renderer.draw_rgba_region_pixels(
                                 &bitmap.pixels,
                                 bitmap.width,
                                 bitmap.height,
+                                0,
+                                0,
                                 bitmap.x,
                                 bitmap.y,
+                                bitmap.width,
+                                bitmap.height,
                             )?;
                         }
                     }
@@ -341,15 +344,7 @@ impl ElementWorker<'_> {
                             )?;
                         }
                         Entry::Vacant(v) => {
-                            self.remapped_rgba_scratch.clear();
-                            recolored_sprite_to_rgba(
-                                &sprite.data,
-                                sprite.width,
-                                sprite.height,
-                                self.renderer.palette(),
-                                recolor,
-                                self.remapped_rgba_scratch,
-                            );
+                            sprite.render_recolored_rgba(recolor, self.remapped_rgba_scratch);
 
                             // Only create a texture when at least one opaque
                             // pixel exists (saves a GPU upload for invisible

@@ -1,8 +1,8 @@
 use engine::color::Rgba;
-use engine::palette::Palette;
 use engine::sprite::SpriteColorRecolor;
 
 use crate::components::replay_playback::PlaybackMode;
+use crate::gfx::pcx::PcxPalette;
 
 pub const UI_PALETTE_BASE: usize = 216;
 
@@ -78,8 +78,7 @@ pub const FILL_DIM: Rgba = Rgba::from_rgb6(20, 20, 20); // 244/245
 pub const BLACK: Rgba = Rgba::rgb(0, 0, 0);
 
 /// Fill palette slots 216..=255 with the standard UI palette colours.
-/// Bridge function — only used by the legacy palette mutation path.
-pub fn apply_standard_ui_palette(palette: &mut Palette) {
+pub fn apply_standard_ui_palette(palette: &mut PcxPalette) {
     for (i, &rgb) in STANDARD_UI_PALETTE.iter().enumerate() {
         palette.set(UI_PALETTE_BASE + i, rgb);
     }
