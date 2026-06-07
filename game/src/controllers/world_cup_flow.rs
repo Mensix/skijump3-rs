@@ -2,7 +2,6 @@ use crate::competition::machine::{Competition, StepDecision};
 use crate::competition::types::{CompetitionPhase, Participant};
 use crate::jump::config::JumpParticipant;
 use crate::jump::policy::JumperControl;
-use crate::jump::types::FallType;
 use crate::jump::types::JumpOutcome;
 use std::cell::Cell;
 
@@ -85,11 +84,7 @@ pub(crate) fn drive(
 
                 let participant = participant_to_jump(competition.participant(idx));
                 let outcome = simulate_computer(participant, hill_idx);
-                if outcome.fall_type == FallType::Crash {
-                    competition.injure_current(3);
-                }
-
-                competition.record_jump(outcome.score, outcome.distance);
+                competition.apply_jump_outcome(outcome);
                 competition.advance();
 
                 if competition.is_over() {
