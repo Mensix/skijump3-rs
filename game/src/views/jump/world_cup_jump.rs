@@ -1,6 +1,6 @@
 use crate::competition::machine::Competition;
 use crate::competition::types::{CompetitionPhase, CupStyle};
-use crate::controllers::competition_ui::{CompetitionUiState, RenderMode, ResultScreen};
+use crate::controllers::competition_ui_state::{CompetitionUiState, RenderMode, ResultScreen};
 use crate::controllers::jump_input::{JumpInputAction, JumpInputController};
 use crate::controllers::jump_scene::JumpScene;
 use crate::controllers::world_cup_session::{WorldCupSessionController, WorldCupUiCommand};
