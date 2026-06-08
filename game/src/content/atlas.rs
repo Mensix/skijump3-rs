@@ -52,7 +52,7 @@ pub(crate) fn load_sprite_atlas(
     let png_data = files
         .read(&image_path)
         .map_err(|e| format!("Failed to read atlas image {image_path}: {e}"))?;
-    let img = load_png(&png_data)?;
+    let img = load_png(&png_data).map_err(|e| e.to_string())?;
     let texture_id = renderer.create_rgba_texture(&img.pixels, img.width, img.height)?;
 
     let mut regions: Vec<AtlasRegion> = Vec::with_capacity(manifest.sprites.len());

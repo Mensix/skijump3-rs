@@ -54,20 +54,20 @@ impl HillTerrain {
         let front_rgba_raw = files
             .read(&format!("{dir}front_rgba.png"))
             .map_err(|e| e.to_string())?;
-        let front_rgba_img = load_png(&front_rgba_raw)?;
+        let front_rgba_img = load_png(&front_rgba_raw).map_err(|e| e.to_string())?;
         let front_mask_raw = files
             .read(&format!("{dir}front_mask.png"))
             .map_err(|e| e.to_string())?;
-        let front_mask = load_grayscale_png(&front_mask_raw)?;
+        let front_mask = load_grayscale_png(&front_mask_raw).map_err(|e| e.to_string())?;
 
         let back_rgba_raw = files
             .read(&format!("{dir}back_rgba.png"))
             .map_err(|e| e.to_string())?;
-        let back_rgba_img = load_png(&back_rgba_raw)?;
+        let back_rgba_img = load_png(&back_rgba_raw).map_err(|e| e.to_string())?;
         let back_mask_raw = files
             .read(&format!("{dir}back_mask.png"))
             .map_err(|e| e.to_string())?;
-        let back_mask = load_grayscale_png(&back_mask_raw)?;
+        let back_mask = load_grayscale_png(&back_mask_raw).map_err(|e| e.to_string())?;
 
         let w = meta.width as usize;
         let h = meta.height as usize;

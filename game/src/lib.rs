@@ -4,6 +4,7 @@ pub mod components;
 pub mod content;
 pub mod controllers;
 pub mod data;
+pub(crate) mod error;
 pub mod files;
 pub mod gfx;
 pub mod jump;

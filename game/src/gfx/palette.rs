@@ -2,6 +2,7 @@ use engine::color::Rgba;
 use engine::sprite::SpriteColorRecolor;
 
 use crate::components::replay_playback::PlaybackMode;
+use crate::error::AssetError;
 
 /// A 256-entry 6-bit RGB palette, used for sprite RGBA precomputation.
 /// Each channel stores a 6-bit value (0-63).
@@ -12,9 +13,12 @@ pub struct Rgb6Palette {
 
 impl Rgb6Palette {
     /// Create from 768 bytes of pre-computed 6-bit RGB values.
-    pub fn from_6bit_bytes(bytes: &[u8]) -> Result<Self, String> {
+    pub fn from_6bit_bytes(bytes: &[u8]) -> Result<Self, AssetError> {
         if bytes.len() != 768 {
-            return Err(format!("Palette: expected 768 bytes, got {}", bytes.len()));
+            return Err(AssetError::Custom(format!(
+                "Palette: expected 768 bytes, got {}",
+                bytes.len()
+            )));
         }
         let mut data = [0u8; 768];
         data.copy_from_slice(bytes);

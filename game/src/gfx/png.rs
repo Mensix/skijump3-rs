@@ -1,11 +1,13 @@
+use crate::error::AssetError;
+
 pub struct RgbaImage {
     pub pixels: Vec<u8>,
     pub width: u32,
     pub height: u32,
 }
 
-pub fn load_png(data: &[u8]) -> Result<RgbaImage, String> {
-    let img = image::load_from_memory(data).map_err(|e| e.to_string())?;
+pub fn load_png(data: &[u8]) -> Result<RgbaImage, AssetError> {
+    let img = image::load_from_memory(data)?;
     let rgba = img.to_rgba8();
     let (width, height) = rgba.dimensions();
     Ok(RgbaImage {
@@ -23,8 +25,8 @@ pub struct GrayscaleImage {
 }
 
 /// Decode a PNG as 8-bit grayscale.
-pub fn load_grayscale_png(data: &[u8]) -> Result<GrayscaleImage, String> {
-    let img = image::load_from_memory(data).map_err(|e| e.to_string())?;
+pub fn load_grayscale_png(data: &[u8]) -> Result<GrayscaleImage, AssetError> {
+    let img = image::load_from_memory(data)?;
     let luma = img.to_luma8();
     let (width, height) = luma.dimensions();
     Ok(GrayscaleImage {

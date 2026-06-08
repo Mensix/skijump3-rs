@@ -135,7 +135,7 @@ impl Game {
         renderer: &mut Renderer,
     ) -> Result<TextureId, String> {
         let png_data = files.read(MAIN_PNG).map_err(|e| e.to_string())?;
-        let img = load_png(&png_data)?;
+        let img = load_png(&png_data).map_err(|e| e.to_string())?;
         renderer.create_rgba_texture(&img.pixels, img.width, img.height)
     }
 
@@ -161,7 +161,7 @@ impl Game {
                 pt.format_version
             ));
         }
-        let palette = Rgb6Palette::from_6bit_bytes(&pt.data)?;
+        let palette = Rgb6Palette::from_6bit_bytes(&pt.data).map_err(|e| e.to_string())?;
         let content = ContentStore::load(files, CONTENT_MANIFEST)?;
         let sprites = content.sprites.clone();
 
