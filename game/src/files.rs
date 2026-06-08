@@ -66,18 +66,17 @@ impl FileStore {
     }
 
     fn list_by_ext_in(&self, dir: &Path, ext: &str) -> Result<Vec<String>, std::io::Error> {
-        let dot_ext = format!(".{ext}");
         let mut result = Vec::new();
         for entry in std::fs::read_dir(dir)? {
             let entry = entry?;
-            if entry.file_type()?.is_file() {
-                if let Some(name) = entry.file_name().to_str() {
-                    if name.len() > dot_ext.len()
-                        && name[name.len() - dot_ext.len()..].eq_ignore_ascii_case(&dot_ext)
-                    {
-                        result.push(name.to_string());
-                    }
-                }
+            if entry.file_type()?.is_file()
+                && entry
+                    .path()
+                    .extension()
+                    .and_then(|e| e.to_str())
+                    .is_some_and(|e| e.eq_ignore_ascii_case(ext))
+            {
+                result.push(entry.file_name().to_string_lossy().into_owned());
             }
         }
         result.sort();

@@ -62,7 +62,7 @@ pub struct SaveReplayDialog {
 fn sanitize_filename(name: &str) -> String {
     name.chars()
         .map(|c| {
-            if c.is_alphanumeric() || c == '-' || c == '_' {
+            if c.is_ascii_alphanumeric() || c == '-' || c == '_' {
                 c
             } else {
                 '_'

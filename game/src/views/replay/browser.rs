@@ -8,6 +8,7 @@ use crate::gfx::palette::{
 use crate::jump::replay::ReplayTrace;
 use crate::route::RouteTarget;
 use crate::store::{Resources, ResourcesRef, StoreRef};
+use std::path::Path;
 use engine::ui::{Component, Element, Event, Key, View};
 
 #[derive(Debug, Clone)]
@@ -236,13 +237,11 @@ fn load_replays(files: &FileStore) -> Vec<ReplayEntry> {
     names
         .into_iter()
         .map(|filename| {
-            let stem = if filename.len() > 4
-                && filename.as_bytes()[filename.len() - 4..].eq_ignore_ascii_case(b".SJR")
-            {
-                filename[..filename.len() - 4].to_string()
-            } else {
-                filename.clone()
-            };
+            let stem = Path::new(&filename)
+                .file_stem()
+                .and_then(|s| s.to_str())
+                .unwrap_or(&filename)
+                .to_string();
             let intro = stem.eq_ignore_ascii_case("INTRO");
             match files
                 .read(&filename)
