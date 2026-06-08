@@ -57,15 +57,6 @@ impl Rgb6Palette {
             255,
         ]
     }
-
-    #[must_use]
-    pub fn rgba_table(&self) -> [[u8; 4]; 256] {
-        let mut table = [[0u8; 4]; 256];
-        for (idx, rgba) in table.iter_mut().enumerate() {
-            *rgba = self.rgba_bytes(idx as u8);
-        }
-        table
-    }
 }
 
 #[derive(Deserialize)]
