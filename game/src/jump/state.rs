@@ -662,7 +662,7 @@ impl JumpState {
                 detached_ski,
                 self.landing_style,
             )
-        } else if self.phase == JumpPhase::Landing {
+        } else if self.phase == JumpPhase::Landing || self.phase == JumpPhase::Result {
             post_landing_body_anim(
                 self.landing_counter,
                 self.start_anim,
@@ -676,7 +676,7 @@ impl JumpState {
     }
 
     pub(crate) fn body_position(&self) -> (i32, i32) {
-        if self.phase == JumpPhase::Landing {
+        if self.phase == JumpPhase::Landing || self.phase == JumpPhase::Result {
             (
                 math::round(self.detached_travel + self.qx),
                 math::round(self.detached_vertical_pos),
