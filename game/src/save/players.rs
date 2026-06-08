@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::data::profile::{ProfileStore, MAX_ACTIVE_PROFILES, MAX_PROFILES};
+use crate::save::SaveError;
 
 /// TOML wrapper to version the file — mirrors save/config.rs pattern.
 #[derive(Debug, Deserialize, Serialize)]
@@ -11,57 +12,58 @@ struct ProfilesFile {
 }
 
 impl ProfileStore {
-    pub fn from_toml_bytes(data: &[u8]) -> Result<Self, String> {
-        let text =
-            std::str::from_utf8(data).map_err(|e| format!("Invalid UTF-8 in players: {e}"))?;
+    pub fn from_toml_bytes(data: &[u8]) -> Result<Self, SaveError> {
+        let text = std::str::from_utf8(data).map_err(SaveError::Utf8)?;
         let file: ProfilesFile =
-            toml::from_str(text).map_err(|e| format!("Failed to parse players: {e}"))?;
+            toml::from_str(text).map_err(|e| SaveError::Serialization(e.to_string()))?;
         if file.format_version != 1 {
-            return Err(format!(
+            return Err(SaveError::Serialization(format!(
                 "Unsupported players format_version: {}",
                 file.format_version
-            ));
+            )));
         }
 
         let store = &file.store;
 
         if store.profiles.is_empty() {
-            return Err("players.toml has no profiles".to_string());
+            return Err(SaveError::Serialization(
+                "players.toml has no profiles".to_string(),
+            ));
         }
         if store.profiles.len() > MAX_PROFILES {
-            return Err(format!(
+            return Err(SaveError::Serialization(format!(
                 "players.toml has {} profiles (max {MAX_PROFILES})",
                 store.profiles.len()
-            ));
+            )));
         }
         if store.active_order.len() > MAX_ACTIVE_PROFILES {
-            return Err(format!(
+            return Err(SaveError::Serialization(format!(
                 "players.toml has {} active profiles (max {MAX_ACTIVE_PROFILES})",
                 store.active_order.len()
-            ));
+            )));
         }
         for (i, &idx) in store.active_order.iter().enumerate() {
             if idx >= store.profiles.len() {
-                return Err(format!(
+                return Err(SaveError::Serialization(format!(
                     "active_order[{i}] = {idx} out of range (profiles: {n})",
                     i = i,
                     idx = idx,
                     n = store.profiles.len()
-                ));
+                )));
             }
         }
 
         Ok(file.store)
     }
 
-    pub fn to_toml_bytes(&self) -> Result<Vec<u8>, String> {
+    pub fn to_toml_bytes(&self) -> Result<Vec<u8>, SaveError> {
         let file = ProfilesFile {
             format_version: 1,
             store: self.clone(),
         };
         toml::to_string(&file)
             .map(std::string::String::into_bytes)
-            .map_err(|e| format!("Failed to serialize players: {e}"))
+            .map_err(|e| SaveError::Serialization(e.to_string()))
     }
 }
 
@@ -106,13 +108,12 @@ koth_level = 0
         let bytes = b"format_version = 1\nactive_order = []\n";
         let result = ProfileStore::from_toml_bytes(bytes);
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("no profiles"));
+        assert!(result.unwrap_err().to_string().contains("no profiles"));
     }
 
     #[test]
     fn rejects_too_many_profiles() {
         let mut toml = one_profile_toml();
-        // Pad to exceed MAX_PROFILES by repeating the same profile
         for _ in 0..21 {
             toml.extend_from_slice(
                 b"\n[[profiles]]\nname = \"P\"\nreal_name = \"\"\nsuit_color = 0\nski_color = 0\nreplace = 0\ncoach_style = 1\nskip_quali = 0\ntotal_jumps = 0\nworld_cups = 0\nlegs_won = 0\nworld_cups_won = 0\nbest_result = \"-\"\nbest_4h_result = \"-\"\nbest_wc_jump = 0\nbestwchill = 0\nbest_jump = 0\nbesthill_idx = 0\nbesthillfile = \"\"\nbestpoints = 0\nbest4points = 0\nkoth_level = 0\n",
@@ -120,7 +121,7 @@ koth_level = 0
         }
         let result = ProfileStore::from_toml_bytes(&toml);
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("20"));
+        assert!(result.unwrap_err().to_string().contains("20"));
     }
 
     #[test]
@@ -129,7 +130,7 @@ koth_level = 0
         let text = text.replace("active_order = [0]", "active_order = [99]");
         let result = ProfileStore::from_toml_bytes(text.as_bytes());
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("out of range"));
+        assert!(result.unwrap_err().to_string().contains("out of range"));
     }
 
     #[test]
@@ -208,7 +209,7 @@ koth_level = 0
         let text = text.replace("format_version = 1", "format_version = 99");
         let result = ProfileStore::from_toml_bytes(text.as_bytes());
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("format_version"));
+        assert!(result.unwrap_err().to_string().contains("format_version"));
     }
 
     #[test]

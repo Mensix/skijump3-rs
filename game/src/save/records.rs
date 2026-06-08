@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::data::records::RecordStore;
+use crate::save::SaveError;
 
 /// TOML wrapper — mirrors save/config.rs and save/players.rs pattern.
 #[derive(Debug, Deserialize, Serialize)]
@@ -11,44 +12,43 @@ struct RecordsFile {
 }
 
 impl RecordStore {
-    pub fn from_toml_bytes(data: &[u8]) -> Result<Self, String> {
-        let text =
-            std::str::from_utf8(data).map_err(|e| format!("Invalid UTF-8 in hiscores: {e}"))?;
+    pub fn from_toml_bytes(data: &[u8]) -> Result<Self, SaveError> {
+        let text = std::str::from_utf8(data).map_err(SaveError::Utf8)?;
         let file: RecordsFile =
-            toml::from_str(text).map_err(|e| format!("Failed to parse hiscores: {e}"))?;
+            toml::from_str(text).map_err(|e| SaveError::Serialization(e.to_string()))?;
         if file.format_version != 1 {
-            return Err(format!(
+            return Err(SaveError::Serialization(format!(
                 "Unsupported hiscores format_version: {}",
                 file.format_version
-            ));
+            )));
         }
 
         let store = &file.store;
 
         if store.top.len() > 41 {
-            return Err(format!(
+            return Err(SaveError::Serialization(format!(
                 "hiscores.toml has {} top records (max 41)",
                 store.top.len()
-            ));
+            )));
         }
         if store.hill_records.len() > 20 {
-            return Err(format!(
+            return Err(SaveError::Serialization(format!(
                 "hiscores.toml has {} hill records (max 20)",
                 store.hill_records.len()
-            ));
+            )));
         }
 
         Ok(file.store)
     }
 
-    pub fn to_toml_bytes(&self) -> Result<Vec<u8>, String> {
+    pub fn to_toml_bytes(&self) -> Result<Vec<u8>, SaveError> {
         let file = RecordsFile {
             format_version: 1,
             store: self.clone(),
         };
         toml::to_string(&file)
             .map(std::string::String::into_bytes)
-            .map_err(|e| format!("Failed to serialize hiscores: {e}"))
+            .map_err(|e| SaveError::Serialization(e.to_string()))
     }
 }
 
@@ -97,7 +97,7 @@ time = ""
 "#;
         let result = RecordStore::from_toml_bytes(bad);
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("format_version"));
+        assert!(result.unwrap_err().to_string().contains("format_version"));
     }
 
     #[test]
@@ -110,7 +110,7 @@ time = ""
         let result = RecordStore::from_toml_bytes(toml.as_bytes());
         let err = result.unwrap_err();
         assert!(
-            err.contains("top records"),
+            err.to_string().contains("top records"),
             "expected 'top records' in error, got: {err}"
         );
     }
@@ -125,7 +125,7 @@ time = ""
         let result = RecordStore::from_toml_bytes(toml.as_bytes());
         let err = result.unwrap_err();
         assert!(
-            err.contains("hill records"),
+            err.to_string().contains("hill records"),
             "expected 'hill records' in error, got: {err}"
         );
     }

@@ -18,6 +18,7 @@ pub type SaveRef = Rc<SaveManager>;
 #[derive(Debug)]
 pub enum SaveError {
     Io(std::io::Error),
+    Utf8(std::str::Utf8Error),
     Serialization(String),
 }
 
@@ -25,6 +26,7 @@ impl fmt::Display for SaveError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Io(e) => write!(f, "I/O error: {e}"),
+            Self::Utf8(e) => write!(f, "Invalid UTF-8: {e}"),
             Self::Serialization(msg) => write!(f, "serialization error: {msg}"),
         }
     }
@@ -34,6 +36,7 @@ impl std::error::Error for SaveError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             Self::Io(e) => Some(e),
+            Self::Utf8(e) => Some(e),
             Self::Serialization(_) => None,
         }
     }
@@ -104,17 +107,17 @@ impl SaveManager {
 
     fn save_config(&self) -> Result<(), SaveError> {
         let config = self.config.borrow();
-        let data = config.to_toml_bytes().map_err(SaveError::Serialization)?;
+        let data = config.to_toml_bytes()?;
         self.save_bytes("config.toml", &data)
     }
 
     pub fn save_players(&self, store: &ProfileStore) -> Result<(), SaveError> {
-        let data = store.to_toml_bytes().map_err(SaveError::Serialization)?;
+        let data = store.to_toml_bytes()?;
         self.save_bytes("players.toml", &data)
     }
 
     pub fn save_records(&self, store: &RecordStore) -> Result<(), SaveError> {
-        let data = store.to_toml_bytes().map_err(SaveError::Serialization)?;
+        let data = store.to_toml_bytes()?;
         self.save_bytes("hiscores.toml", &data)
     }
 

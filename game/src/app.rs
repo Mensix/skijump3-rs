@@ -86,7 +86,7 @@ impl Game {
         };
 
         let records_data = files.read(HISCORES_TOML).map_err(|e| e.to_string())?;
-        let records = RecordStore::from_toml_bytes(&records_data)?;
+        let records = RecordStore::from_toml_bytes(&records_data).map_err(|e| e.to_string())?;
         let resources: ResourcesRef = Rc::new(Resources::new(
             font.clone(),
             Rc::clone(&langbase),

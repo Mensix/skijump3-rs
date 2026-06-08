@@ -288,12 +288,12 @@ impl JumpSession {
         wind: FlightWind,
         width: u32,
         height: u32,
-    ) -> Result<JumpRenderFrame, String> {
+    ) -> Result<JumpRenderFrame, AssetError> {
         let (frame, current_pos, body_anim, ski_anim) = {
             let (terrain, state) = match (&self.terrain, &mut self.state) {
                 (Ok(terrain), Some(state)) => (terrain, state),
-                (Err(err), _) => return Err(err.to_string()),
-                _ => return Err("jump state not available".to_string()),
+                (Err(err), _) => return Err(err.clone()),
+                _ => return Err(AssetError::Custom("jump state not available".to_string())),
             };
             let (viewport, snow_mask) =
                 terrain.viewport_rgba_and_mask(state.sx, state.sy, width, height);

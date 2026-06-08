@@ -47,6 +47,7 @@ impl NameCatalog {
         self.namesets.len()
     }
 
+    #[allow(dead_code)]
     pub(crate) fn is_empty(&self) -> bool {
         self.namesets.is_empty()
     }

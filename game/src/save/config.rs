@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::save::SaveError;
+
 /// TOML wrapper to version the file.
 #[derive(Debug, Deserialize, Serialize)]
 struct ConfigFile {
@@ -88,28 +90,27 @@ impl Default for Config {
 }
 
 impl Config {
-    pub fn from_toml_bytes(data: &[u8]) -> Result<Self, String> {
-        let text =
-            std::str::from_utf8(data).map_err(|e| format!("Invalid UTF-8 in config: {e}"))?;
+    pub fn from_toml_bytes(data: &[u8]) -> Result<Self, SaveError> {
+        let text = std::str::from_utf8(data).map_err(SaveError::Utf8)?;
         let file: ConfigFile =
-            toml::from_str(text).map_err(|e| format!("Failed to parse config: {e}"))?;
+            toml::from_str(text).map_err(|e| SaveError::Serialization(e.to_string()))?;
         if file.format_version != 1 {
-            return Err(format!(
+            return Err(SaveError::Serialization(format!(
                 "Unsupported config format_version: {}",
                 file.format_version
-            ));
+            )));
         }
         Ok(file.config)
     }
 
-    pub fn to_toml_bytes(&self) -> Result<Vec<u8>, String> {
+    pub fn to_toml_bytes(&self) -> Result<Vec<u8>, SaveError> {
         let file = ConfigFile {
             format_version: 1,
             config: self.clone(),
         };
         toml::to_string(&file)
             .map(std::string::String::into_bytes)
-            .map_err(|e| format!("Failed to serialize config: {e}"))
+            .map_err(|e| SaveError::Serialization(e.to_string()))
     }
 }
 
@@ -163,7 +164,7 @@ mod tests {
         let bytes = b"format_version = 99\nreg = 0\n";
         let result = Config::from_toml_bytes(bytes);
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("format_version"));
+        assert!(result.unwrap_err().to_string().contains("format_version"));
     }
 
     #[test]
