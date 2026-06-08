@@ -18,10 +18,11 @@ struct DitherRect {
 
 // Dither-eligible fill colours (precomputed from STANDARD_UI_PALETTE entries
 // for old palette indices 243, 244, 245).
-const DITHER_FILL_COLORS: [Rgba; 3] = [
+const DITHER_FILL_COLORS: [Rgba; 4] = [
     Rgba::from_rgb6(18, 13, 34),
     Rgba::from_rgb6(34, 13, 18),
     Rgba::from_rgb6(20, 20, 20),
+    Rgba::from_rgb6(0, 24, 24),
 ];
 
 fn is_fill_area_dither_color(color: Rgba) -> bool {

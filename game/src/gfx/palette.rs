@@ -86,6 +86,7 @@ pub const BG_ORDER: Rgba = BG_LEFT;
 pub const BG_RIGHT_BRIGHT: Rgba = Rgba::from_rgb6(43, 16, 23);
 
 // Additional fill/text colours from old palette indices
+pub const BG_KOTH: Rgba = Rgba::from_rgb6(0, 24, 24); // menu tint col=4 on idx 243
 pub const FILL_BORDER: Rgba = Rgba::from_rgb6(23, 16, 43); // 248
 pub const FILL_HIGHLIGHT: Rgba = Rgba::from_rgb6(52, 47, 0); // 251
 pub const FILL_TURQUOISE: Rgba = Rgba::from_rgb6(0, 47, 52); // 252
