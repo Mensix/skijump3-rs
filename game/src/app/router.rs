@@ -85,7 +85,7 @@ pub fn create_router(
             (
                 RouteTarget::CustomCupSetup,
                 rs(&resources, &store, |r, s| {
-                    Box::new(CustomCupSetupView::new(s, r))
+                    Box::new(CustomCupSetupView::new(r, s))
                 }),
             ),
             (RouteTarget::Replays, {

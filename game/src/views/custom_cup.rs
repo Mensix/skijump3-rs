@@ -9,19 +9,19 @@ use engine::ui::{Element, Event, Key, View};
 const MAX_HILLS: usize = 40;
 
 pub struct CustomCupSetupView {
-    store: StoreRef,
     resources: ResourcesRef,
+    store: StoreRef,
     selected: Vec<usize>,
     preview: usize,
     all_hill_count: usize,
 }
 
 impl CustomCupSetupView {
-    pub fn new(store: StoreRef, resources: ResourcesRef) -> Self {
+    pub fn new(resources: ResourcesRef, store: StoreRef) -> Self {
         let count = resources.hills.len();
         Self {
-            store,
             resources,
+            store,
             selected: vec![0],
             preview: 0,
             all_hill_count: count,
