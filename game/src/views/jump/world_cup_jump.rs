@@ -172,8 +172,10 @@ impl View<RouteTarget> for WorldCupJumpView {
         }
 
         // Drive competition and dispatch any resulting command
-        if let Some(command) = self.controller.drive_competition(&self.scene) {
-            self.apply_command(command);
+        match self.controller.drive_competition(&self.scene) {
+            Ok(Some(command)) => self.apply_command(command),
+            Ok(None) => {}
+            Err(e) => self.ui_state.enter_error(e.to_string()),
         }
 
         if self.ui_state.render_mode() == RenderMode::Jump {
@@ -216,10 +218,26 @@ impl View<RouteTarget> for WorldCupJumpView {
             }
             RenderMode::Results => self.results_page(),
             RenderMode::Done => vec![],
+            RenderMode::Error => {
+                let msg = self.ui_state.error_message();
+                vec![
+                    Element::fillbox(0, 0, 320, 200, BLACK),
+                    Element::text(&msg, 10, 10, FONT_GREET, false),
+                    Element::text("Press any key to return", 10, 180, FONT_GREET, false),
+                ]
+            }
         }
     }
 
     fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {
+        // Error screen: any key navigates back to main menu
+        if self.ui_state.render_mode() == RenderMode::Error {
+            if matches!(event, Event::Keyboard(_)) {
+                return Some(RouteTarget::Back);
+            }
+            return None;
+        }
+
         if self.is_result_display_state() {
             return self.handle_result_event(event);
         }
@@ -292,8 +310,10 @@ impl WorldCupJumpView {
                 self.blinker.reset();
                 self.ui_state.dismiss_results();
                 self.store.try_with_competition_mut(Competition::advance);
-                if let Some(command) = self.controller.drive_competition(&self.scene) {
-                    self.apply_command(command);
+                match self.controller.drive_competition(&self.scene) {
+                    Ok(Some(command)) => self.apply_command(command),
+                    Ok(None) => {}
+                    Err(e) => self.ui_state.enter_error(e.to_string()),
                 }
                 None
             }
@@ -342,8 +362,10 @@ impl WorldCupJumpView {
                 self.blinker.reset();
                 self.ui_state.dismiss_results();
                 self.store.try_with_competition_mut(Competition::advance);
-                if let Some(command) = self.controller.drive_competition(&self.scene) {
-                    self.apply_command(command);
+                match self.controller.drive_competition(&self.scene) {
+                    Ok(Some(command)) => self.apply_command(command),
+                    Ok(None) => {}
+                    Err(e) => self.ui_state.enter_error(e.to_string()),
                 }
                 None
             }

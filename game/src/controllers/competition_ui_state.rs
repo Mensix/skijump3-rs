@@ -1,11 +1,12 @@
 use crate::competition::types::CompetitionPhase;
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RenderMode {
     Jump,
     Results,
     Done,
+    Error,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -29,6 +30,7 @@ pub struct CompetitionUiState {
     result_acknowledged: Cell<bool>,
     outcome_recorded: Cell<bool>,
     first_human_onbar: Cell<bool>,
+    error_message: RefCell<String>,
 }
 
 impl CompetitionUiState {
@@ -41,7 +43,20 @@ impl CompetitionUiState {
             result_acknowledged: Cell::new(false),
             outcome_recorded: Cell::new(false),
             first_human_onbar: Cell::new(true),
+            error_message: RefCell::new(String::new()),
         }
+    }
+
+    /// Show a full-screen error message. The user can dismiss it
+    /// with any key (routing back to main menu).
+    pub fn enter_error(&self, msg: String) {
+        self.render_mode.set(RenderMode::Error);
+        *self.error_message.borrow_mut() = msg;
+    }
+
+    #[must_use]
+    pub fn error_message(&self) -> String {
+        self.error_message.borrow().clone()
     }
 
     // ── Getters ─────────────────────────────────────────────────

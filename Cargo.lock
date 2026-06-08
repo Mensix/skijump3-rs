@@ -344,6 +344,7 @@ dependencies = [
  "sdl2",
  "serde",
  "tempfile",
+ "thiserror",
  "toml",
 ]
 

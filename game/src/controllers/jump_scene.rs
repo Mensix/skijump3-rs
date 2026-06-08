@@ -8,6 +8,15 @@ use crate::store::{ResourcesRef, StoreRef};
 use engine::ui::Element;
 use std::cell::RefCell;
 
+#[derive(Debug, thiserror::Error)]
+pub enum JumpSceneError {
+    #[error("hill {0} does not exist in catalog")]
+    MissingHill(usize),
+
+    #[error("failed to load terrain for hill {hill_idx}: {msg}")]
+    Terrain { hill_idx: usize, msg: String },
+}
+
 pub struct JumpScene {
     runner: RefCell<JumpRunner>,
     resources: ResourcesRef,
@@ -149,19 +158,24 @@ impl JumpScene {
     /// Simulate a computer jump invisibly using the lightweight path:
     /// no `JumpRunner`, `JumpSession`, `SnowSystem`, or `ReplayRecorder` overhead.
     /// Terrain is cached in `Resources` after loading from generated assets.
-    pub fn simulate_hidden(&self, participant: JumpParticipant, hill_idx: usize) -> JumpOutcome {
+    /// Returns an error if the hill catalog or terrain is unavailable.
+    pub fn simulate_hidden(
+        &self,
+        participant: JumpParticipant,
+        hill_idx: usize,
+    ) -> Result<JumpOutcome, JumpSceneError> {
         let terrain = self
             .resources
             .terrain(hill_idx)
-            .expect("terrain must be loadable");
+            .map_err(|msg| JumpSceneError::Terrain { hill_idx, msg })?;
         let hill = self
             .resources
             .hills
             .hill(hill_idx)
-            .expect("hill must exist");
-        self.store.with_jump_rng_wind_mut(|rng, wind| {
+            .ok_or(JumpSceneError::MissingHill(hill_idx))?;
+        Ok(self.store.with_jump_rng_wind_mut(|rng, wind| {
             sim::simulate_computer(&participant, &terrain, hill, rng, wind)
-        })
+        }))
     }
 
     pub fn elements(&self) -> Vec<Element> {

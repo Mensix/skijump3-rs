@@ -4,11 +4,18 @@ use crate::competition::machine::Competition;
 use crate::competition::scoring::wc_points_for_rank;
 use crate::competition::types::{CompetitionPhase, CupStyle};
 use crate::controllers::jump_scene::JumpScene;
+use crate::controllers::jump_scene::JumpSceneError;
 use crate::controllers::world_cup_flow::{self, WorldCupCommand};
 use crate::jump::types::JumpOutcome;
 use crate::jump::JumpParticipant;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::format::format_tenths;
+
+#[derive(Debug, thiserror::Error)]
+pub(crate) enum WorldCupSessionError {
+    #[error("AI simulation failed: {0}")]
+    JumpScene(#[from] JumpSceneError),
+}
 
 /// Describes what the view needs to set up for the next human jump.
 #[derive(Debug, Clone)]
@@ -71,19 +78,27 @@ impl WorldCupSessionController {
 
     /// Drive the competition state machine forward.
     /// Returns a command the view should apply, or `None` if no
-    /// competition is running.
-    pub(crate) fn drive_competition(&self, scene: &JumpScene) -> Option<WorldCupUiCommand> {
+    /// competition is running. Returns `Err` if AI simulation fails
+    /// (e.g. missing terrain/hill).
+    pub(crate) fn drive_competition(
+        &self,
+        scene: &JumpScene,
+    ) -> Result<Option<WorldCupUiCommand>, WorldCupSessionError> {
         let command = self.store.try_with_competition_mut(|c| {
-            let mut simulate_computer =
-                |participant: JumpParticipant, hill_idx: usize| -> JumpOutcome {
-                    scene.simulate_hidden(participant, hill_idx)
-                };
+            let mut simulate_computer = |participant: JumpParticipant,
+                                         hill_idx: usize|
+             -> Result<JumpOutcome, JumpSceneError> {
+                scene.simulate_hidden(participant, hill_idx)
+            };
             world_cup_flow::drive(c, &self.last_event, &mut simulate_computer)
         });
 
-        let command = command?;
+        let command = match command {
+            Some(cmd) => cmd?,
+            None => return Ok(None),
+        };
 
-        Some(match command {
+        Ok(Some(match command {
             WorldCupCommand::HumanJump {
                 participant,
                 hill_idx,
@@ -100,7 +115,7 @@ impl WorldCupSessionController {
                 self.save_competition_results();
                 WorldCupUiCommand::Done
             }
-        })
+        }))
     }
 
     /// Persist competition results (profiles and records) to disk.

@@ -48,15 +48,17 @@ fn check_event_change(current_event: usize, last_event: &Cell<usize>) -> bool {
 
 /// Advance competition state until the next user-visible moment.
 /// Pure with respect to store/resources — takes `&mut Competition` directly.
-pub(crate) fn drive(
+/// The `simulate_computer` closure may return an error; if it does, `drive`
+/// propagates it immediately.
+pub(crate) fn drive<E>(
     competition: &mut Competition,
     last_event: &Cell<usize>,
-    simulate_computer: &mut dyn FnMut(JumpParticipant, usize) -> JumpOutcome,
-) -> WorldCupCommand {
+    simulate_computer: &mut dyn FnMut(JumpParticipant, usize) -> Result<JumpOutcome, E>,
+) -> Result<WorldCupCommand, E> {
     loop {
         match competition.decide_next() {
-            StepDecision::Done => return WorldCupCommand::Done,
-            StepDecision::ShowResults => return WorldCupCommand::ShowResults,
+            StepDecision::Done => return Ok(WorldCupCommand::Done),
+            StepDecision::ShowResults => return Ok(WorldCupCommand::ShowResults),
             StepDecision::AdvancePhase => {
                 competition.advance();
                 continue;
@@ -74,21 +76,21 @@ pub(crate) fn drive(
 
                 if is_human && !is_training {
                     let participant = participant_to_jump(competition.participant(idx));
-                    return WorldCupCommand::HumanJump {
+                    return Ok(WorldCupCommand::HumanJump {
                         participant,
                         hill_idx,
                         phase: competition.phase(),
                         is_new_event: check_event_change(competition.current_event, last_event),
-                    };
+                    });
                 }
 
                 let participant = participant_to_jump(competition.participant(idx));
-                let outcome = simulate_computer(participant, hill_idx);
+                let outcome = simulate_computer(participant, hill_idx)?;
                 competition.apply_jump_outcome(outcome);
                 competition.advance();
 
                 if competition.is_over() {
-                    return WorldCupCommand::Done;
+                    return Ok(WorldCupCommand::Done);
                 }
             }
         }
@@ -155,11 +157,11 @@ mod tests {
         assert_eq!(c.field.get(jumper_before).points, None);
 
         let last_event = Cell::new(0);
-        let mut simulate = |_: JumpParticipant, _: usize| -> JumpOutcome {
+        let mut simulate = |_: JumpParticipant, _: usize| -> Result<JumpOutcome, &'static str> {
             panic!("should not be called for human");
         };
 
-        match drive(&mut c, &last_event, &mut simulate) {
+        match drive(&mut c, &last_event, &mut simulate).unwrap() {
             WorldCupCommand::HumanJump {
                 participant,
                 hill_idx,
@@ -189,19 +191,19 @@ mod tests {
         c.advance();
 
         let last_event = Cell::new(0);
-        let mut simulate = |_: JumpParticipant, _: usize| -> JumpOutcome {
+        let mut simulate = |_: JumpParticipant, _: usize| -> Result<JumpOutcome, &'static str> {
             panic!("should not be called");
         };
 
         let jumper = c.current_jumper().unwrap();
-        let _ = drive(&mut c, &last_event, &mut simulate);
+        let _ = drive(&mut c, &last_event, &mut simulate).unwrap();
         assert_eq!(
             c.field.get(jumper).points,
             None,
             "points unchanged after first HumanJump"
         );
 
-        let _ = drive(&mut c, &last_event, &mut simulate);
+        let _ = drive(&mut c, &last_event, &mut simulate).unwrap();
         assert_eq!(
             c.field.get(jumper).points,
             None,
@@ -215,7 +217,7 @@ mod tests {
         c.advance();
 
         let last_event = Cell::new(0);
-        let mut simulate = |_: JumpParticipant, _: usize| -> JumpOutcome {
+        let mut simulate = |_: JumpParticipant, _: usize| -> Result<JumpOutcome, &'static str> {
             panic!("should not be called");
         };
 
@@ -226,7 +228,7 @@ mod tests {
 
         // Drive should now skip simulated computers until the next
         // visible state (HumanJump for next human, or ShowResults)
-        let result = drive(&mut c, &last_event, &mut simulate);
+        let result = drive(&mut c, &last_event, &mut simulate).unwrap();
         match result {
             WorldCupCommand::HumanJump { .. }
             | WorldCupCommand::ShowResults
