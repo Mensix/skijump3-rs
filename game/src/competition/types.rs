@@ -10,19 +10,6 @@ pub(crate) struct CompetitionJumpOutcome {
     pub(crate) fall_type: FallType,
 }
 
-impl CompetitionJumpOutcome {
-    /// Convenience constructor for non-crash jumps (tests and default outcomes).
-    #[must_use]
-    #[allow(dead_code)]
-    pub(crate) fn ok(score: i32, distance: i32) -> Self {
-        Self {
-            score,
-            distance,
-            fall_type: FallType::None,
-        }
-    }
-}
-
 /// Identifies the scoring/ruleset for a competition series.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CupStyle {

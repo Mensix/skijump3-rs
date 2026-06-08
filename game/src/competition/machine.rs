@@ -591,7 +591,11 @@ mod tests {
             while machine.current_jumper().is_some() {
                 let pts = 150 + (machine.start_pos as i32 % 100);
                 let len = 80 + (machine.start_pos as i32 % 50);
-                machine.record_jump(CompetitionJumpOutcome::ok(pts, len));
+                machine.record_jump(CompetitionJumpOutcome {
+                    score: pts,
+                    distance: len,
+                    fall_type: FallType::None,
+                });
             }
         }
     }
@@ -640,7 +644,11 @@ mod tests {
                 continue;
             }
             while let Some(idx) = m.current_jumper() {
-                m.record_jump(CompetitionJumpOutcome::ok(200 - idx as i32, 90));
+                m.record_jump(CompetitionJumpOutcome {
+                    score: 200 - idx as i32,
+                    distance: 90,
+                    fall_type: FallType::None,
+                });
             }
         }
 
@@ -678,7 +686,11 @@ mod tests {
                     CompetitionPhase::Round1 => 200 - total_r1 as i32,
                     _ => 150,
                 };
-                m.record_jump(CompetitionJumpOutcome::ok(score, 90));
+                m.record_jump(CompetitionJumpOutcome {
+                    score: score,
+                    distance: 90,
+                    fall_type: FallType::None,
+                });
             }
         }
 
@@ -691,7 +703,11 @@ mod tests {
         let mut m = make_season(1);
         m.advance();
         while m.current_jumper().is_some() {
-            m.record_jump(CompetitionJumpOutcome::ok(100, 80));
+            m.record_jump(CompetitionJumpOutcome {
+                score: 100,
+                distance: 80,
+                fall_type: FallType::None,
+            });
         }
 
         m.advance();
@@ -703,7 +719,11 @@ mod tests {
 
         while m.current_jumper().is_some() {
             let score = 200 - m.start_pos as i32;
-            m.record_jump(CompetitionJumpOutcome::ok(score, 90));
+            m.record_jump(CompetitionJumpOutcome {
+                score: score,
+                distance: 90,
+                fall_type: FallType::None,
+            });
         }
         m.advance();
         assert_eq!(m.phase, CompetitionPhase::Round1Results);
@@ -716,14 +736,22 @@ mod tests {
         let mut m = make_season(1);
         m.advance();
         while m.current_jumper().is_some() {
-            m.record_jump(CompetitionJumpOutcome::ok(100, 80));
+            m.record_jump(CompetitionJumpOutcome {
+                score: 100,
+                distance: 80,
+                fall_type: FallType::None,
+            });
         }
         assert_eq!(m.decide_next(), StepDecision::AdvancePhase);
         m.advance();
 
         m.advance();
         while m.current_jumper().is_some() {
-            m.record_jump(CompetitionJumpOutcome::ok(200 - m.start_pos as i32, 90));
+            m.record_jump(CompetitionJumpOutcome {
+                score: 200 - m.start_pos as i32,
+                distance: 90,
+                fall_type: FallType::None,
+            });
         }
         assert_eq!(m.phase, CompetitionPhase::Round1);
         assert_eq!(m.decide_next(), StepDecision::AdvancePhase);
@@ -732,7 +760,11 @@ mod tests {
 
         m.advance();
         while m.current_jumper().is_some() {
-            m.record_jump(CompetitionJumpOutcome::ok(200 - m.start_pos as i32, 90));
+            m.record_jump(CompetitionJumpOutcome {
+                score: 200 - m.start_pos as i32,
+                distance: 90,
+                fall_type: FallType::None,
+            });
         }
         assert_eq!(m.phase, CompetitionPhase::Round2);
         assert_eq!(m.decide_next(), StepDecision::AdvancePhase);
@@ -751,7 +783,11 @@ mod tests {
                 continue;
             }
             while c.current_jumper().is_some() {
-                c.record_jump(CompetitionJumpOutcome::ok(150, 90));
+                c.record_jump(CompetitionJumpOutcome {
+                    score: 150,
+                    distance: 90,
+                    fall_type: FallType::None,
+                });
             }
         }
 
@@ -790,17 +826,29 @@ mod tests {
         // Run event 1 so setup for event 2 marks PreQualified
         c.advance(); // Setup -> Qualification
         while c.current_jumper().is_some() {
-            c.record_jump(CompetitionJumpOutcome::ok(150, 90));
+            c.record_jump(CompetitionJumpOutcome {
+                score: 150,
+                distance: 90,
+                fall_type: FallType::None,
+            });
         }
         c.advance(); // -> QualificationResults
         c.advance(); // -> Round1
         while c.current_jumper().is_some() {
-            c.record_jump(CompetitionJumpOutcome::ok(150, 90));
+            c.record_jump(CompetitionJumpOutcome {
+                score: 150,
+                distance: 90,
+                fall_type: FallType::None,
+            });
         }
         c.advance(); // -> Round1Results
         c.advance(); // -> Round2
         while c.current_jumper().is_some() {
-            c.record_jump(CompetitionJumpOutcome::ok(150, 90));
+            c.record_jump(CompetitionJumpOutcome {
+                score: 150,
+                distance: 90,
+                fall_type: FallType::None,
+            });
         }
         c.advance(); // -> Round2Results
         c.advance(); // -> WC standings
@@ -816,7 +864,11 @@ mod tests {
                 assert_eq!(c.decide_next(), StepDecision::Skip);
                 return;
             }
-            c.record_jump(CompetitionJumpOutcome::ok(0, 0));
+            c.record_jump(CompetitionJumpOutcome {
+                score: 0,
+                distance: 0,
+                fall_type: FallType::None,
+            });
         }
         panic!("human never reached current jumper in qualification");
     }
@@ -842,7 +894,11 @@ mod tests {
                 "AI should get Jump, got {:?}",
                 c.decide_next()
             );
-            c.record_jump(CompetitionJumpOutcome::ok(0, 0));
+            c.record_jump(CompetitionJumpOutcome {
+                score: 0,
+                distance: 0,
+                fall_type: FallType::None,
+            });
         }
     }
 
@@ -858,12 +914,20 @@ mod tests {
 
         c.advance(); // -> Qualification
         while c.current_jumper().is_some() {
-            c.record_jump(CompetitionJumpOutcome::ok(0, 90));
+            c.record_jump(CompetitionJumpOutcome {
+                score: 0,
+                distance: 90,
+                fall_type: FallType::None,
+            });
         }
         c.advance(); // -> QualificationResults
         c.advance(); // -> Round1
         while c.current_jumper().is_some() {
-            c.record_jump(CompetitionJumpOutcome::ok(0, 90));
+            c.record_jump(CompetitionJumpOutcome {
+                score: 0,
+                distance: 90,
+                fall_type: FallType::None,
+            });
         }
         c.advance(); // -> Round1Results (event_order sorted, rank set)
         c.advance(); // -> Round2 (cut_to_round2 freezes round1_rank)

@@ -9,8 +9,6 @@ const NUM_STR: usize = 599;
 #[derive(Debug, Deserialize)]
 struct LanguageManifest {
     format_version: u32,
-    #[allow(dead_code)]
-    default: String,
     languages: Vec<LanguageEntry>,
 }
 

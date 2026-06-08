@@ -10,20 +10,8 @@ pub struct NameCatalog {
 
 #[derive(Debug, Clone)]
 pub(crate) struct NameSet {
-    #[allow(dead_code)]
-    pub(crate) id: String,
     pub(crate) title: String,
     pub(crate) names: Vec<String>,
-    #[allow(dead_code)]
-    pub(crate) teams: Vec<NameTeam>,
-}
-
-#[derive(Debug, Clone)]
-pub(crate) struct NameTeam {
-    #[allow(dead_code)]
-    pub(crate) name: String,
-    #[allow(dead_code)]
-    pub(crate) members: Vec<usize>,
 }
 
 impl NameCatalog {
@@ -46,11 +34,6 @@ impl NameCatalog {
     pub(crate) fn len(&self) -> usize {
         self.namesets.len()
     }
-
-    #[allow(dead_code)]
-    pub(crate) fn is_empty(&self) -> bool {
-        self.namesets.is_empty()
-    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -72,13 +55,6 @@ struct NameSetToml {
     name: String,
     title: String,
     names: Vec<String>,
-    teams: Option<Vec<NameTeamToml>>,
-}
-
-#[derive(Debug, Deserialize)]
-struct NameTeamToml {
-    name: String,
-    members: Vec<usize>,
 }
 
 pub(crate) fn load_namesets(
@@ -153,21 +129,9 @@ pub(crate) fn load_namesets(
             )));
         }
 
-        let teams = ns
-            .teams
-            .unwrap_or_default()
-            .into_iter()
-            .map(|t| NameTeam {
-                name: t.name,
-                members: t.members,
-            })
-            .collect();
-
         namesets.push(NameSet {
-            id: ns.id,
             title: ns.title,
             names: ns.names,
-            teams,
         });
     }
 
@@ -424,7 +388,7 @@ names = ["{}"]
             std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets"),
         );
         let catalog = load_namesets(&store, "namesets/manifest.toml").unwrap();
-        assert!(!catalog.is_empty());
+        assert!(catalog.len() > 0);
         let names = catalog.names_for_config(0);
         assert!(!names.is_empty());
         assert!(names.len() > 50);

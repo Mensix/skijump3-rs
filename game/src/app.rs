@@ -24,8 +24,7 @@ const CONTENT_MANIFEST: &str = "content.toml";
 const HISCORES_TOML: &str = "hiscores.toml";
 
 pub struct Game {
-    #[allow(dead_code)]
-    sdl: sdl2::Sdl,
+    _sdl: sdl2::Sdl,
     renderer: Renderer,
     input: Input,
     font: Font,
@@ -111,7 +110,7 @@ impl Game {
             };
 
         Ok(Self {
-            sdl,
+            _sdl: sdl,
             renderer,
             input,
             font,

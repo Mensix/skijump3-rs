@@ -114,6 +114,7 @@ mod tests {
     use super::*;
     use crate::competition::types::CompetitionJumpOutcome;
     use crate::data::profile::{Profile, ProfileStore};
+    use crate::jump::types::FallType;
 
     #[test]
     fn builds_75_participants() {
@@ -178,7 +179,11 @@ mod tests {
         let mut last = None;
         while let Some(idx) = comp.current_jumper() {
             last = Some(idx);
-            comp.record_jump(CompetitionJumpOutcome::ok(0, 0));
+            comp.record_jump(CompetitionJumpOutcome {
+                score: 0,
+                distance: 0,
+                fall_type: FallType::None,
+            });
         }
         assert_eq!(last, Some(0));
         assert_eq!(comp.field.get(0).name, "ROAR");
