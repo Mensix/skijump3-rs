@@ -22,7 +22,7 @@ const DITHER_FILL_COLORS: [Rgba; 4] = [
     Rgba::from_rgb6(18, 13, 34),
     Rgba::from_rgb6(34, 13, 18),
     Rgba::from_rgb6(20, 20, 20),
-    Rgba::from_rgb6(0, 24, 24),
+    Rgba::from_rgb6(0, 25, 0),
 ];
 
 fn is_fill_area_dither_color(color: Rgba) -> bool {
