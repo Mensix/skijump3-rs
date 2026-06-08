@@ -1,29 +1,35 @@
 use crate::gfx::palette::{BG_LEFT, BG_RIGHT, BLACK, FILL_DIM, FONT_HELP};
 use crate::gfx::sprites;
+use engine::color::Rgba;
 use engine::ui::Element;
 
 #[must_use]
 pub fn new_screen(style: u8) -> Vec<Element> {
+    new_screen_with_bg(style, BG_LEFT)
+}
+
+#[must_use]
+pub fn new_screen_with_bg(style: u8, bg: Rgba) -> Vec<Element> {
     let mut els = vec![Element::fillbox(0, 0, 320, 200, BLACK)];
 
     match style {
         1 => {
             els.push(Element::fillbox(0, 0, 320, 19, FILL_DIM));
-            els.push(Element::fillbox(0, 20, 320, 180, BG_LEFT));
+            els.push(Element::fillbox(0, 20, 320, 180, bg));
         }
         2 => {
             els.push(Element::fillbox(0, 0, 11, 200, FILL_DIM));
-            els.push(Element::fillbox(12, 0, 296, 200, BG_LEFT));
+            els.push(Element::fillbox(12, 0, 296, 200, bg));
             els.push(Element::fillbox(309, 0, 11, 200, FILL_DIM));
         }
         4 => {
             els.push(Element::fillbox(0, 0, 320, 19, FILL_DIM));
-            els.push(Element::fillbox(0, 20, 320, 99, BG_LEFT));
+            els.push(Element::fillbox(0, 20, 320, 99, bg));
             els.push(Element::fillbox(0, 120, 320, 19, FILL_DIM));
-            els.push(Element::fillbox(0, 140, 320, 60, BG_LEFT));
+            els.push(Element::fillbox(0, 140, 320, 60, bg));
         }
         5 => {
-            els.push(Element::fillbox(0, 0, 320, 200, BG_LEFT));
+            els.push(Element::fillbox(0, 0, 320, 200, bg));
         }
         _ => {}
     }

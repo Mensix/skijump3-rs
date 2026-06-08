@@ -1,7 +1,6 @@
 mod router;
 
 use crate::app::router::create_router;
-use crate::content::atlas;
 use crate::content::ContentStore;
 use crate::data::records::RecordStore;
 use crate::files::FileStore;
@@ -10,13 +9,11 @@ use crate::gfx::png::load_png;
 use crate::route::RouteTarget;
 use crate::save::{SaveManager, SaveRef};
 use crate::store::{Resources, ResourcesRef, Store, StoreRef};
-use engine::atlas::Atlas;
 use engine::element_renderer::ElementRenderContext;
 use engine::input::Input;
 use engine::sprite::SpriteData;
 use engine::ui::{BackgroundMode, Font, Router};
 use engine::video::{Renderer, TextureId};
-use serde::Deserialize;
 use std::rc::Rc;
 
 const MAIN_PNG: &str = "MAIN.png";
@@ -30,30 +27,15 @@ pub struct Game {
     font: Font,
     router: Router<RouteTarget>,
     sprites: Vec<SpriteData>,
-    sprite_atlas: Option<Atlas>,
     main_background: TextureId,
     element_render_context: ElementRenderContext,
-}
-
-fn palette_to_rgba(pixel: u8, palette: &Rgb6Palette) -> [u8; 4] {
-    if pixel == 0 {
-        [0, 0, 0, 0]
-    } else {
-        let [r6, g6, b6] = palette.color(pixel as usize);
-        [
-            (u32::from(r6) * 255 / 63) as u8,
-            (u32::from(g6) * 255 / 63) as u8,
-            (u32::from(b6) * 255 / 63) as u8,
-            255,
-        ]
-    }
 }
 
 fn precompute_sprite_rgba(sprite: &mut SpriteData, palette: &Rgb6Palette) {
     sprite.rgba_data = sprite
         .data
         .iter()
-        .flat_map(|&p| palette_to_rgba(p, palette))
+        .flat_map(|&p| palette.rgba_bytes(p))
         .collect();
 }
 
@@ -100,15 +82,6 @@ impl Game {
         store.set_wind_place(save_manager.config.borrow().windplace as u8);
         let router = create_router(resources, store, start_route, save_manager);
 
-        let sprite_atlas =
-            match atlas::load_sprite_atlas(&files, &mut renderer, "sprites/original_atlas.toml") {
-                Ok(a) => Some(a),
-                Err(e) => {
-                    eprintln!("Warning: failed to load sprite atlas: {e}");
-                    None
-                }
-            };
-
         Ok(Self {
             _sdl: sdl,
             renderer,
@@ -116,7 +89,6 @@ impl Game {
             font,
             router,
             sprites,
-            sprite_atlas,
             main_background,
             element_render_context: ElementRenderContext::new(),
         })
@@ -143,24 +115,8 @@ impl Game {
         files: &FileStore,
     ) -> Result<(Rgb6Palette, Vec<SpriteData>, ContentStore), String> {
         let palette_toml = files.read("palette.toml").map_err(|e| e.to_string())?;
-
-        #[derive(Deserialize)]
-        struct PaletteToml {
-            format_version: u32,
-            data: Vec<u8>,
-        }
-
-        let palette_str = std::str::from_utf8(&palette_toml)
-            .map_err(|e| format!("palette.toml not valid UTF-8: {e}"))?;
-        let pt: PaletteToml =
-            toml::from_str(palette_str).map_err(|e| format!("palette.toml: {e}"))?;
-        if pt.format_version != 1 {
-            return Err(format!(
-                "Unsupported palette version: {}",
-                pt.format_version
-            ));
-        }
-        let palette = Rgb6Palette::from_6bit_bytes(&pt.data).map_err(|e| e.to_string())?;
+        let palette = Rgb6Palette::from_toml_bytes("palette.toml", &palette_toml)
+            .map_err(|e| e.to_string())?;
         let content = ContentStore::load(files, CONTENT_MANIFEST).map_err(|e| e.to_string())?;
         let sprites = content.sprites.clone();
 
@@ -203,7 +159,6 @@ impl Game {
             &mut self.renderer,
             &self.font,
             &self.sprites,
-            self.sprite_atlas.as_ref(),
             &elements,
             background,
         )?;

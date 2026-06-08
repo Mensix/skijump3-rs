@@ -630,8 +630,8 @@ impl JumpState {
         if self.y >= 100 && self.y < 412 {
             self.sy += self.y - fy;
         }
-        self.sx = self.sx.min(704);
-        self.sy = self.sy.min(312);
+        self.sx = self.sx.clamp(0, 704);
+        self.sy = self.sy.clamp(0, 312);
     }
 
     fn distance(&self) -> i32 {

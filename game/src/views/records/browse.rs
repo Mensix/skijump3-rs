@@ -1,6 +1,6 @@
-use crate::components::screen::{new_screen, page_hints};
+use crate::components::screen::{new_screen, new_screen_with_bg, page_hints};
 use crate::data::records::{HillRecord, Hiscore};
-use crate::gfx::palette::{FONT_DEFAULT, FONT_GREET, FONT_HELP, FONT_NEW};
+use crate::gfx::palette::{BG_KOTH, FONT_DEFAULT, FONT_GREET, FONT_HELP, FONT_NEW};
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::format::{format_tenths_i64, ordinal_dot};
@@ -228,9 +228,13 @@ impl HallOfFameView {
 
 impl View<RouteTarget> for HallOfFameView {
     fn elements(&self) -> Vec<Element> {
-        let mut els = match self.page {
-            1 => new_screen(4),
-            _ => new_screen(1),
+        let mut els = if self.page >= 2 {
+            new_screen_with_bg(1, BG_KOTH)
+        } else {
+            match self.page {
+                1 => new_screen(4),
+                _ => new_screen(1),
+            }
         };
 
         match self.page {

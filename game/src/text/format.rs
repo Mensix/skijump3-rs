@@ -63,5 +63,4 @@ mod tests {
         assert_eq!(format_tenths_i64(-15), "-1.5");
         assert_eq!(format_tenths_i64(0), "0.0");
     }
-
 }

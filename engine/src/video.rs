@@ -1,10 +1,9 @@
-use sdl2::pixels::PixelFormatEnum;
+use sdl2::pixels::{Color, PixelFormatEnum};
 use sdl2::rect::Rect;
 use sdl2::render::{BlendMode, Texture};
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
-use crate::atlas::AtlasRegion;
 use crate::color::Rgba;
 use crate::consts::{HEIGHT, TARGET_FPS, WIDTH};
 
@@ -130,6 +129,7 @@ impl Renderer {
 
     /// Start a new GPU frame. Clears the canvas.
     pub fn begin_frame(&mut self) {
+        self.canvas.set_draw_color(Color::RGBA(0, 0, 0, 255));
         self.canvas.clear();
     }
 
@@ -193,27 +193,6 @@ impl Renderer {
             Rect::new(vis_left, vis_top, vis_w, vis_h),
         )?;
         Ok(())
-    }
-
-    /// Draw a region from an RGBA atlas texture at (`x`, `y`) with center
-    /// offset applied.  Clipping is handled by SDL2.
-    pub fn draw_atlas_region(
-        &mut self,
-        texture_id: TextureId,
-        region: &AtlasRegion,
-        x: i32,
-        y: i32,
-    ) -> Result<(), String> {
-        let dst_x = x - i32::from(region.center_x);
-        let dst_y = y - i32::from(region.center_y);
-        let src = Rect::new(
-            region.x as i32,
-            region.y as i32,
-            region.width,
-            region.height,
-        );
-        let dst = Rect::new(dst_x, dst_y, region.width, region.height);
-        self.draw_texture(texture_id, Some(src), Some(dst))
     }
 
     // RGBA primitives -------------------------------------------------------

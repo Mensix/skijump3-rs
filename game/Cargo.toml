@@ -11,7 +11,7 @@ engine = { path = "../engine" }
 sdl2 = { workspace = true }
 serde = { version = "1", features = ["derive"] }
 toml = "0.8"
-image = "0.25"
+image = { version = "0.25", default-features = false, features = ["png"] }
 thiserror = "2"
 
 [dev-dependencies]

@@ -1,3 +1,4 @@
+use crate::gfx::palette;
 use crate::rng::Random;
 use engine::consts::{HEIGHT, WIDTH};
 
@@ -6,21 +7,8 @@ const SINE_LENGTH: usize = 512;
 const BG_MIN: u8 = 64;
 const BG_MAX: u8 = 215;
 
-const fn scale_6bit(v: u8) -> u8 {
-    (v as u32 * 255 / 63) as u8
-}
-
-/// Pre-computed RGBA values for snow palette indices 232-235 (from the
-/// standard UI palette).  Each entry is `[R, G, B, A]`.
-const SNOW_RGBA: [[u8; 4]; 4] = [
-    [scale_6bit(56), scale_6bit(13), scale_6bit(13), 255], // 232
-    [scale_6bit(13), scale_6bit(53), scale_6bit(13), 255], // 233
-    [scale_6bit(23), scale_6bit(23), scale_6bit(63), 255], // 234
-    [scale_6bit(63), scale_6bit(23), scale_6bit(23), 255], // 235
-];
-
-fn snow_index_to_rgba(idx: u8) -> &'static [u8; 4] {
-    &SNOW_RGBA[(idx.wrapping_sub(232).min(3)) as usize]
+fn snow_index_to_rgba(idx: u8) -> [u8; 4] {
+    palette::standard_ui_rgba_bytes(idx).unwrap_or([255, 255, 255, 255])
 }
 
 #[derive(Debug, Clone)]
@@ -187,17 +175,17 @@ impl SnowSystem {
                     let rgba_next_row = rgba_off + (WIDTH as usize) * 4;
                     if rgba_next_row + 7 < rgba_buffer.len() {
                         rgba_buffer[rgba_off..rgba_off + 4]
-                            .copy_from_slice(snow_index_to_rgba(c1_low));
+                            .copy_from_slice(&snow_index_to_rgba(c1_low));
                         rgba_buffer[rgba_off + 4..rgba_off + 8]
-                            .copy_from_slice(snow_index_to_rgba(c1_high));
+                            .copy_from_slice(&snow_index_to_rgba(c1_high));
                         rgba_buffer[rgba_next_row..rgba_next_row + 4]
-                            .copy_from_slice(snow_index_to_rgba(c2_low));
+                            .copy_from_slice(&snow_index_to_rgba(c2_low));
                         rgba_buffer[rgba_next_row + 4..rgba_next_row + 8]
-                            .copy_from_slice(snow_index_to_rgba(c2_high));
+                            .copy_from_slice(&snow_index_to_rgba(c2_high));
                     }
                 } else {
                     rgba_buffer[rgba_off..rgba_off + 4]
-                        .copy_from_slice(snow_index_to_rgba(flake.c1 as u8));
+                        .copy_from_slice(&snow_index_to_rgba(flake.c1 as u8));
                 }
             }
         }
@@ -242,10 +230,10 @@ mod tests {
         let (mut rgba, mask) = make_buffer_and_mask();
         snow.update(&mut rgba, &mask, 0, 0, 0, false);
 
-        // Snow index 233 → SNOW_RGBA[1] = [scale(13), scale(53), scale(13), 255]
-        let expected_rgba = &SNOW_RGBA[1];
+        // Snow index 233 maps through the standard UI RGBA colors to gray.
+        let expected_rgba = palette::standard_ui_rgba_bytes(233).unwrap();
         let pixel_start = 64 * 4;
-        assert_eq!(&rgba[pixel_start..pixel_start + 4], expected_rgba);
+        assert_eq!(&rgba[pixel_start..pixel_start + 4], &expected_rgba);
     }
 
     #[test]
@@ -260,9 +248,9 @@ mod tests {
         let (mut rgba, mask) = make_buffer_and_mask();
         snow.update(&mut rgba, &mask, 0, 0, 0, false);
 
-        let expected_233 = &SNOW_RGBA[1]; // 233-232 = 1
+        let expected_233 = palette::standard_ui_rgba_bytes(233).unwrap();
         let pixel0 = (10 + 10 * WIDTH as usize) * 4;
-        assert_eq!(&rgba[pixel0..pixel0 + 4], expected_233);
+        assert_eq!(&rgba[pixel0..pixel0 + 4], &expected_233);
 
         let pixel1 = (20 + 10 * WIDTH as usize) * 4;
         assert_eq!(&rgba[pixel1..pixel1 + 4], &[0, 0, 0, 0]);

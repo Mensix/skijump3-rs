@@ -1,4 +1,3 @@
-pub mod atlas;
 pub mod bitmap;
 pub mod color;
 pub mod consts;

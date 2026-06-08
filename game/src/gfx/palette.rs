@@ -1,5 +1,6 @@
 use engine::color::Rgba;
 use engine::sprite::SpriteColorRecolor;
+use serde::Deserialize;
 
 use crate::error::AssetError;
 use crate::views::replay::PlaybackMode;
@@ -12,6 +13,18 @@ pub struct Rgb6Palette {
 }
 
 impl Rgb6Palette {
+    /// Create from a TOML asset containing `format_version = 1` and 768 6-bit RGB bytes.
+    pub fn from_toml_bytes(path: impl Into<String>, bytes: &[u8]) -> Result<Self, AssetError> {
+        let path = path.into();
+        let text = std::str::from_utf8(bytes).map_err(|e| AssetError::utf8(path.clone(), e))?;
+        let toml: PaletteToml =
+            toml::from_str(text).map_err(|e| AssetError::toml(path.clone(), e))?;
+        if toml.format_version != 1 {
+            return Err(AssetError::format_version(path, 1, toml.format_version));
+        }
+        Self::from_6bit_bytes(&toml.data)
+    }
+
     /// Create from 768 bytes of pre-computed 6-bit RGB values.
     pub fn from_6bit_bytes(bytes: &[u8]) -> Result<Self, AssetError> {
         if bytes.len() != 768 {
@@ -30,10 +43,39 @@ impl Rgb6Palette {
         let off = idx * 3;
         [self.data[off], self.data[off + 1], self.data[off + 2]]
     }
+
+    #[must_use]
+    pub fn rgba_bytes(&self, idx: u8) -> [u8; 4] {
+        if idx == 0 {
+            return [0, 0, 0, 0];
+        }
+        let [r6, g6, b6] = self.color(idx as usize);
+        [
+            (u32::from(r6) * 255 / 63) as u8,
+            (u32::from(g6) * 255 / 63) as u8,
+            (u32::from(b6) * 255 / 63) as u8,
+            255,
+        ]
+    }
+
+    #[must_use]
+    pub fn rgba_table(&self) -> [[u8; 4]; 256] {
+        let mut table = [[0u8; 4]; 256];
+        for (idx, rgba) in table.iter_mut().enumerate() {
+            *rgba = self.rgba_bytes(idx as u8);
+        }
+        table
+    }
+}
+
+#[derive(Deserialize)]
+struct PaletteToml {
+    format_version: u32,
+    data: Vec<u8>,
 }
 
 // ---------------------------------------------------------------------------
-// RGBA UI color constants (migrated from palette-index legacy)
+// RGBA UI color constants.
 // ---------------------------------------------------------------------------
 
 pub const FONT_DEFAULT: Rgba = Rgba::from_rgb6(63, 63, 63);
@@ -46,13 +88,14 @@ pub const FONT_BACK: Rgba = FONT_DEFAULT;
 pub const FONT_HELP: Rgba = Rgba::from_rgb6(44, 44, 44);
 pub const BG_ERASE: Rgba = Rgba::from_rgb6(5, 8, 20);
 pub const BG_LIST: Rgba = BG_ERASE;
-pub const BG_LEFT: Rgba = Rgba::from_rgb6(34, 13, 18);
-pub const BG_RIGHT: Rgba = Rgba::from_rgb6(20, 20, 20);
+pub const BG_LEFT: Rgba = Rgba::from_rgb6(18, 13, 34); // 243
+pub const BG_RIGHT: Rgba = Rgba::from_rgb6(34, 13, 18); // 244
 pub const BG_ORDER: Rgba = BG_LEFT;
 
 pub const BG_RIGHT_BRIGHT: Rgba = Rgba::from_rgb6(43, 16, 23);
 
 // Additional fill/text colours from old palette indices
+pub const BG_KOTH: Rgba = Rgba::from_rgb6(0, 24, 24); // menu tint col=4 on idx 243
 pub const FILL_BORDER: Rgba = Rgba::from_rgb6(23, 16, 43); // 248
 pub const FILL_HIGHLIGHT: Rgba = Rgba::from_rgb6(52, 47, 0); // 251
 pub const FILL_TURQUOISE: Rgba = Rgba::from_rgb6(0, 47, 52); // 252
@@ -63,6 +106,64 @@ pub const BLACK: Rgba = Rgba::rgb(0, 0, 0);
 pub const JUMPER_SUIT_SOURCE_SHADE_1: u8 = 216;
 pub const JUMPER_SUIT_SOURCE_SHADE_3: u8 = 218;
 pub const JUMPER_SKI_SOURCE: u8 = 231;
+
+const STANDARD_UI_COLOR_BASE: u8 = 216;
+
+const STANDARD_UI_COLORS_RGB6: [[u8; 3]; 40] = [
+    [53, 17, 53],
+    [63, 0, 0],
+    [43, 12, 43],
+    [63, 0, 0],
+    [49, 45, 0],
+    [34, 31, 0],
+    [63, 0, 0],
+    [56, 54, 54],
+    [63, 63, 21],
+    [54, 52, 10],
+    [42, 42, 42],
+    [42, 20, 10],
+    [21, 21, 21],
+    [57, 45, 38],
+    [63, 0, 0],
+    [63, 63, 32],
+    [40, 40, 41],
+    [48, 48, 49],
+    [55, 55, 56],
+    [63, 63, 63],
+    [56, 13, 13],
+    [13, 53, 13],
+    [23, 23, 63],
+    [63, 23, 23],
+    [63, 63, 63],
+    [44, 44, 44],
+    [0, 0, 0],
+    [18, 13, 34],
+    [34, 13, 18],
+    [20, 20, 20],
+    [63, 57, 9],
+    [9, 57, 63],
+    [23, 16, 43],
+    [43, 16, 23],
+    [26, 26, 26],
+    [52, 47, 0],
+    [0, 47, 52],
+    [51, 51, 51],
+    [38, 38, 38],
+    [63, 63, 63],
+];
+
+#[must_use]
+pub fn standard_ui_color(index: u8) -> Option<Rgba> {
+    let offset = index.checked_sub(STANDARD_UI_COLOR_BASE)? as usize;
+    let rgb = STANDARD_UI_COLORS_RGB6.get(offset)?;
+    Some(Rgba::from_rgb6(rgb[0], rgb[1], rgb[2]))
+}
+
+#[must_use]
+pub fn standard_ui_rgba_bytes(index: u8) -> Option<[u8; 4]> {
+    let rgba = standard_ui_color(index)?;
+    Some([rgba.r, rgba.g, rgba.b, rgba.a])
+}
 
 const SUIT_COLORS: [[u8; 4]; 8] = [
     [0, 53, 17, 53],
@@ -168,5 +269,12 @@ mod tests {
     fn from_6bit_bytes_rejects_wrong_size() {
         assert!(Rgb6Palette::from_6bit_bytes(&[0; 767]).is_err());
         assert!(Rgb6Palette::from_6bit_bytes(&[0; 769]).is_err());
+    }
+
+    #[test]
+    fn ui_background_colors_match_standard_ui_colors() {
+        assert_eq!(BG_LEFT, Rgba::from_rgb6(18, 13, 34));
+        assert_eq!(BG_RIGHT, Rgba::from_rgb6(34, 13, 18));
+        assert_eq!(FILL_DIM, Rgba::from_rgb6(20, 20, 20));
     }
 }

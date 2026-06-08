@@ -1,7 +1,6 @@
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 
-use crate::atlas::Atlas;
 use crate::color::Rgba;
 use crate::consts::PATTERN_SPRITE;
 use crate::sprite::{SpriteColorRecolor, SpriteData};
@@ -20,8 +19,8 @@ struct DitherRect {
 // Dither-eligible fill colours (precomputed from STANDARD_UI_PALETTE entries
 // for old palette indices 243, 244, 245).
 const DITHER_FILL_COLORS: [Rgba; 3] = [
+    Rgba::from_rgb6(18, 13, 34),
     Rgba::from_rgb6(34, 13, 18),
-    Rgba::from_rgb6(20, 20, 20),
     Rgba::from_rgb6(20, 20, 20),
 ];
 
@@ -104,7 +103,6 @@ impl ElementRenderContext {
         renderer: &mut Renderer,
         font: &Font,
         sprites: &[SpriteData],
-        sprite_atlas: Option<&Atlas>,
         elements: &[Element],
         background: Option<TextureId>,
     ) -> Result<(), String> {
@@ -113,7 +111,6 @@ impl ElementRenderContext {
             renderer,
             font,
             sprites,
-            sprite_atlas,
             pending_dither_rects: &mut self.pending_dither_rects,
             remapped_sprite_cache: &mut self.remapped_sprite_cache,
             remapped_rgba_scratch: &mut self.remapped_rgba_scratch,
@@ -132,7 +129,6 @@ struct ElementWorker<'a> {
     renderer: &'a mut Renderer,
     font: &'a Font,
     sprites: &'a [SpriteData],
-    sprite_atlas: Option<&'a Atlas>,
     pending_dither_rects: &'a mut Vec<DitherRect>,
     remapped_sprite_cache: &'a mut HashMap<RemappedSpriteCacheKey, RemappedSpriteCacheEntry>,
     remapped_rgba_scratch: &'a mut Vec<u8>,
@@ -294,29 +290,19 @@ impl ElementWorker<'_> {
                 }
             }
             Element::Sprite(idx, x, y) => {
-                let mut drew = false;
-                if let Some(atlas) = self.sprite_atlas {
-                    if let Some(region) = atlas.region(*idx as usize) {
-                        self.renderer
-                            .draw_atlas_region(atlas.texture_id, region, *x, *y)?;
-                        drew = true;
-                    }
-                }
-                if !drew {
-                    if let Some(sprite) = self.sprites.get(*idx as usize) {
-                        if let Some(bitmap) = sprite.render_rgba_bitmap(*x, *y) {
-                            self.renderer.draw_rgba_region_pixels(
-                                &bitmap.pixels,
-                                bitmap.width,
-                                bitmap.height,
-                                0,
-                                0,
-                                bitmap.x,
-                                bitmap.y,
-                                bitmap.width,
-                                bitmap.height,
-                            )?;
-                        }
+                if let Some(sprite) = self.sprites.get(*idx as usize) {
+                    if let Some(bitmap) = sprite.render_rgba_bitmap(*x, *y) {
+                        self.renderer.draw_rgba_region_pixels(
+                            &bitmap.pixels,
+                            bitmap.width,
+                            bitmap.height,
+                            0,
+                            0,
+                            bitmap.x,
+                            bitmap.y,
+                            bitmap.width,
+                            bitmap.height,
+                        )?;
                     }
                 }
             }
@@ -514,5 +500,4 @@ mod tests {
     fn is_fill_area_dither_color_black_not_eligible() {
         assert!(!is_fill_area_dither_color(Rgba::rgb(0, 0, 0)));
     }
-
 }

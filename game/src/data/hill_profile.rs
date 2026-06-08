@@ -1,6 +1,7 @@
 use crate::error::AssetError;
 use crate::files::FileStore;
-use crate::gfx::png::{load_grayscale_png, load_png};
+use crate::gfx::palette::Rgb6Palette;
+use crate::gfx::png::load_grayscale_png;
 use serde::Deserialize;
 use std::rc::Rc;
 
@@ -10,8 +11,7 @@ pub const HILL_PROFILE_LEN: usize = 1300;
 pub struct HillTerrain {
     front_pixels: Rc<[u8]>,
     back_pixels: Rc<[u8]>,
-    front_rgba: Rc<[u8]>,
-    back_rgba: Rc<[u8]>,
+    palette_rgba: [[u8; 4]; 256],
     pub width: u16,
     pub height: u16,
     back_width: u16,
@@ -58,45 +58,33 @@ impl HillTerrain {
             ));
         }
 
-        let front_rgba_raw = files
-            .read(&format!("{dir}front_rgba.png"))
-            .map_err(|e| AssetError::io(format!("{dir}front_rgba.png"), e))?;
-        let front_rgba_img = load_png(&front_rgba_raw)?;
         let front_mask_raw = files
             .read(&format!("{dir}front_mask.png"))
             .map_err(|e| AssetError::io(format!("{dir}front_mask.png"), e))?;
         let front_mask = load_grayscale_png(&front_mask_raw)?;
 
-        let back_rgba_raw = files
-            .read(&format!("{dir}back_rgba.png"))
-            .map_err(|e| AssetError::io(format!("{dir}back_rgba.png"), e))?;
-        let back_rgba_img = load_png(&back_rgba_raw)?;
         let back_mask_raw = files
             .read(&format!("{dir}back_mask.png"))
             .map_err(|e| AssetError::io(format!("{dir}back_mask.png"), e))?;
         let back_mask = load_grayscale_png(&back_mask_raw)?;
+        let palette_raw = files
+            .read("palette.toml")
+            .map_err(|e| AssetError::io("palette.toml", e))?;
+        let palette = Rgb6Palette::from_toml_bytes("palette.toml", &palette_raw)?;
 
         let w = meta.width as usize;
         let h = meta.height as usize;
         let bw = meta.back_width as usize;
         let bh = meta.back_height as usize;
 
-        if front_rgba_img.width as usize != w
-            || front_rgba_img.height as usize != h
-            || front_mask.width as usize != w
-            || front_mask.height as usize != h
-        {
+        if front_mask.width as usize != w || front_mask.height as usize != h {
             return Err(AssetError::Custom(format!(
-                "Hill {hill_idx}: front image dimensions mismatch (expected {w}x{h})"
+                "Hill {hill_idx}: front mask dimensions mismatch (expected {w}x{h})"
             )));
         }
-        if back_rgba_img.width as usize != bw
-            || back_rgba_img.height as usize != bh
-            || back_mask.width as usize != bw
-            || back_mask.height as usize != bh
-        {
+        if back_mask.width as usize != bw || back_mask.height as usize != bh {
             return Err(AssetError::Custom(format!(
-                "Hill {hill_idx}: back image dimensions mismatch (expected {bw}x{bh})"
+                "Hill {hill_idx}: back mask dimensions mismatch (expected {bw}x{bh})"
             )));
         }
 
@@ -115,11 +103,13 @@ impl HillTerrain {
             )));
         }
 
+        let front_mask_pixels = front_mask.pixels;
+        let back_mask_pixels = back_mask.pixels;
+
         Ok(Self {
-            front_pixels: front_mask.pixels.into(),
-            back_pixels: back_mask.pixels.into(),
-            front_rgba: front_rgba_img.pixels.into(),
-            back_rgba: back_rgba_img.pixels.into(),
+            front_pixels: front_mask_pixels.into(),
+            back_pixels: back_mask_pixels.into(),
+            palette_rgba: palette.rgba_table(),
             width: meta.width,
             height: meta.height,
             back_width: meta.back_width,
@@ -144,6 +134,9 @@ impl HillTerrain {
         let wu = w as usize;
         let hu = h as usize;
         let mut rgba = vec![0u8; wu * hu * 4];
+        for px in rgba.chunks_exact_mut(4) {
+            px[3] = 255;
+        }
         let mut mask = vec![0u8; wu * hu];
         let width_u = self.width as usize;
         let back_w = self.back_width as usize;
@@ -155,7 +148,23 @@ impl HillTerrain {
             for dx in 0..w as i32 {
                 let front_x = scroll_x + dx;
                 let back_x = scroll_x / 2 + dx;
-                let is_front = if front_x >= 0
+                let out_idx = row_base + dx as usize;
+
+                if back_x >= 0 && back_y >= 0 {
+                    let sx = back_x as usize;
+                    let sy = back_y as usize;
+                    if sx < back_w && sy < self.back_height as usize {
+                        let src_idx = sy * back_w + sx;
+                        let pixel = self.back_pixels.get(src_idx).copied().unwrap_or(0);
+                        if pixel != 0 {
+                            mask[out_idx] = pixel;
+                            let rgba_dst = &mut rgba[out_idx * 4..out_idx * 4 + 4];
+                            rgba_dst.copy_from_slice(&self.palette_rgba[pixel as usize]);
+                        }
+                    }
+                }
+
+                let front_in_line = if front_x >= 0
                     && front_y >= 0
                     && (front_x as usize) < width_u
                     && (front_y as usize) < self.height as usize
@@ -169,43 +178,18 @@ impl HillTerrain {
                 } else {
                     false
                 };
-                let out_idx = row_base + dx as usize;
-                let (pixel, src_rgba, src_w, src_x, src_y) = if is_front {
+
+                if front_in_line {
                     let sy = front_y as usize;
                     let sx = front_x as usize;
                     let src_idx = sy * width_u + sx;
-                    (
-                        self.front_pixels.get(src_idx).copied().unwrap_or(0),
-                        &self.front_rgba,
-                        width_u,
-                        sx,
-                        sy,
-                    )
-                } else {
-                    if back_x < 0 || back_y < 0 {
-                        mask[out_idx] = 0;
-                        continue;
+                    let pixel = self.front_pixels.get(src_idx).copied().unwrap_or(0);
+                    if pixel != 0 {
+                        mask[out_idx] = pixel;
+                        let rgba_dst = &mut rgba[out_idx * 4..out_idx * 4 + 4];
+                        rgba_dst.copy_from_slice(&self.palette_rgba[pixel as usize]);
                     }
-                    let sx = back_x as usize;
-                    let sy = back_y as usize;
-                    if sx < back_w && sy < self.back_height as usize {
-                        let src_idx = sy * back_w + sx;
-                        (
-                            self.back_pixels.get(src_idx).copied().unwrap_or(0),
-                            &self.back_rgba,
-                            back_w,
-                            sx,
-                            sy,
-                        )
-                    } else {
-                        mask[out_idx] = 0;
-                        continue;
-                    }
-                };
-                mask[out_idx] = pixel;
-                let rgba_src_offset = (src_y * src_w + src_x) * 4;
-                let rgba_dst = &mut rgba[out_idx * 4..out_idx * 4 + 4];
-                rgba_dst.copy_from_slice(&src_rgba[rgba_src_offset..rgba_src_offset + 4]);
+                }
             }
         }
         (rgba, mask)
@@ -304,5 +288,14 @@ mod tests {
         let terrain = HillTerrain::load(&test_files(), 1).expect("HILL1");
         assert_eq!(terrain.width, 1024);
         assert_eq!(terrain.height, 512);
+    }
+
+    #[test]
+    fn planica_renders_high_mask_pixels_from_palette() {
+        let terrain = HillTerrain::load(&test_files(), 18).expect("HILL18");
+        let (rgba, mask) = terrain.viewport_rgba_and_mask(704, 312, 320, 200);
+        let pos = mask.iter().position(|&p| p == 239).expect("index 239 fill");
+
+        assert_eq!(&rgba[pos * 4..pos * 4 + 4], &[255, 93, 93, 255]);
     }
 }
