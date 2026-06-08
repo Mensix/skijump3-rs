@@ -4,12 +4,24 @@ pub(crate) mod languages;
 mod manifest;
 pub(crate) mod names;
 pub(crate) mod sprites;
+#[cfg(test)]
+pub(crate) mod test_support;
 
 use crate::data::hill::HillCatalog;
 use crate::error::AssetError;
 use crate::files::FileStore;
 use crate::text::lang::LangBase;
 use engine::sprite::SpriteData;
+
+/// Read a TOML file and deserialize.
+pub(crate) fn read_toml<T>(files: &FileStore, path: &str) -> Result<T, AssetError>
+where
+    T: serde::de::DeserializeOwned,
+{
+    let data = files.read(path).map_err(|e| AssetError::io(path, e))?;
+    let text = std::str::from_utf8(&data).map_err(|e| AssetError::utf8(path, e))?;
+    toml::from_str(text).map_err(|e| AssetError::toml(path, e))
+}
 
 #[derive(Debug)]
 pub struct ContentStore {
@@ -74,24 +86,8 @@ impl ContentStore {
 
 #[cfg(test)]
 mod tests {
+    use super::test_support::*;
     use super::*;
-    use crate::files::FileStore;
-    use std::fs;
-    use tempfile::tempdir;
-
-    pub(crate) fn make_files() -> (FileStore, tempfile::TempDir) {
-        let dir = tempdir().unwrap();
-        let store = FileStore::new(dir.path().to_path_buf(), dir.path().to_path_buf());
-        (store, dir)
-    }
-
-    pub(crate) fn write(dir: &tempfile::TempDir, path: &str, content: &str) {
-        let full = dir.path().join(path);
-        if let Some(parent) = full.parent() {
-            fs::create_dir_all(parent).unwrap();
-        }
-        fs::write(full, content).unwrap();
-    }
 
     fn write_sprites(dir: &tempfile::TempDir) {
         write(

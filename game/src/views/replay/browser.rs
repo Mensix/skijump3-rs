@@ -8,8 +8,8 @@ use crate::gfx::palette::{
 use crate::jump::replay::ReplayTrace;
 use crate::route::RouteTarget;
 use crate::store::{Resources, ResourcesRef, StoreRef};
-use std::path::Path;
 use engine::ui::{Component, Element, Event, Key, View};
+use std::path::Path;
 
 #[derive(Debug, Clone)]
 struct ReplayEntry {

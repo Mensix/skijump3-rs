@@ -1,3 +1,4 @@
+use crate::components::page_nav::cycle_index;
 use crate::route::RouteTarget;
 use engine::ui::{Event, Key};
 
@@ -96,11 +97,11 @@ fn handle_language_picker(view: &mut SetupView, event: Event, sel: usize) -> Opt
     let langs = &view.langbase().languages;
     match event {
         Event::Keyboard(Key::Up) => {
-            let new_sel = if sel == 0 { langs.len() - 1 } else { sel - 1 };
+            let new_sel = cycle_index(sel, langs.len(), -1);
             view.modal.set(Some(SetupModal::LanguagePicker(new_sel)));
         }
         Event::Keyboard(Key::Down) => {
-            let new_sel = if sel >= langs.len() - 1 { 0 } else { sel + 1 };
+            let new_sel = cycle_index(sel, langs.len(), 1);
             view.modal.set(Some(SetupModal::LanguagePicker(new_sel)));
         }
         Event::Keyboard(Key::Enter | Key::Char(' ')) => {
@@ -122,13 +123,11 @@ fn handle_screen_event(view: &mut SetupView, event: Event) -> Option<RouteTarget
     match event {
         Event::Keyboard(Key::Up) => {
             let sel = view.menu.selected();
-            view.menu
-                .set_selected(if sel == 0 { entries } else { sel - 1 });
+            view.menu.set_selected(cycle_index(sel, entries + 1, -1));
         }
         Event::Keyboard(Key::Down) => {
             let sel = view.menu.selected();
-            view.menu
-                .set_selected(if sel >= entries { 0 } else { sel + 1 });
+            view.menu.set_selected(cycle_index(sel, entries + 1, 1));
         }
         Event::Keyboard(Key::Escape) => {
             if screen == 0 {

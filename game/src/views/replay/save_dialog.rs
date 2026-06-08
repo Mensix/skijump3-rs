@@ -1,3 +1,4 @@
+use crate::components::page_nav::cycle_index;
 use crate::components::screen;
 use crate::gfx::palette::{BG_LEFT, BLACK, FONT_DEFAULT, FONT_GOLD};
 use crate::jump::replay::ReplayTrace;
@@ -307,22 +308,14 @@ impl Component for SaveReplayDialog {
                     self.state = SaveDialogState::Inactive;
                     Some(SaveAction::Consumed)
                 }
-                Event::Keyboard(Key::Up) if selected > 0 => {
-                    let next = if selected == 4 { 3 } else { selected - 1 };
-                    self.state = SaveDialogState::Browse { selected: next };
-                    Some(SaveAction::Consumed)
-                }
                 Event::Keyboard(Key::Up) => {
-                    self.state = SaveDialogState::Browse { selected: 4 };
-                    Some(SaveAction::Consumed)
-                }
-                Event::Keyboard(Key::Down) if selected < 4 => {
-                    let next = if selected == 3 { 4 } else { selected + 1 };
+                    let next = cycle_index(selected, 5, -1);
                     self.state = SaveDialogState::Browse { selected: next };
                     Some(SaveAction::Consumed)
                 }
                 Event::Keyboard(Key::Down) => {
-                    self.state = SaveDialogState::Browse { selected: 0 };
+                    let next = cycle_index(selected, 5, 1);
+                    self.state = SaveDialogState::Browse { selected: next };
                     Some(SaveAction::Consumed)
                 }
                 Event::Keyboard(Key::Enter | Key::Char(' ')) => Some(self.activate_item(selected)),

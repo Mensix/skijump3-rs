@@ -364,7 +364,7 @@ impl View<RouteTarget> for ReplayView {
 }
 
 fn format_distance(distance: i32) -> String {
-    format!("{:.1}", f64::from(distance) / 10.0)
+    crate::text::format::format_tenths(distance)
 }
 
 fn replay_time(frame_index: usize, flight_start: usize, flight_stop: usize) -> String {

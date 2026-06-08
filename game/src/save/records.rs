@@ -13,9 +13,7 @@ struct RecordsFile {
 
 impl RecordStore {
     pub fn from_toml_bytes(data: &[u8]) -> Result<Self, SaveError> {
-        let text = std::str::from_utf8(data).map_err(SaveError::Utf8)?;
-        let file: RecordsFile =
-            toml::from_str(text).map_err(|e| SaveError::Serialization(e.to_string()))?;
+        let file: RecordsFile = crate::save::parse_toml(data)?;
         if file.format_version != 1 {
             return Err(SaveError::Serialization(format!(
                 "Unsupported hiscores format_version: {}",

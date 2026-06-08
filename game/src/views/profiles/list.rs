@@ -1,4 +1,5 @@
 use crate::components::confirm_dialog::{ConfirmAction, ConfirmDialog};
+use crate::components::page_nav::cycle_index;
 use crate::components::text_input::{TextInput, TextInputAction};
 use crate::components::value_selector::{ValueSelector, ValueSelectorAction};
 use crate::data::profile::Profile;
@@ -217,16 +218,12 @@ impl View<RouteTarget> for ProfilesView {
             return match event {
                 Event::Keyboard(Key::Up) => {
                     let total = self.entries() + 1;
-                    self.selected = if self.selected == 0 {
-                        total - 1
-                    } else {
-                        self.selected - 1
-                    };
+                    self.selected = cycle_index(self.selected, total, -1);
                     None
                 }
                 Event::Keyboard(Key::Down) => {
                     let total = self.entries() + 1;
-                    self.selected = (self.selected + 1) % total;
+                    self.selected = cycle_index(self.selected, total, 1);
                     None
                 }
                 Event::Keyboard(Key::Enter | Key::Char(' ')) => handle_list_enter(self),

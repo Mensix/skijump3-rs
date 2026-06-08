@@ -29,12 +29,7 @@ pub(crate) fn load_languages(
     files: &FileStore,
     manifest_path: &str,
 ) -> Result<LangBase, AssetError> {
-    let data = files
-        .read(manifest_path)
-        .map_err(|e| AssetError::io(manifest_path, e))?;
-    let text = std::str::from_utf8(&data).map_err(|e| AssetError::utf8(manifest_path, e))?;
-    let manifest: LanguageManifest =
-        toml::from_str(text).map_err(|e| AssetError::toml(manifest_path, e))?;
+    let manifest: LanguageManifest = super::read_toml(files, manifest_path)?;
 
     if manifest.format_version != 1 {
         return Err(AssetError::format_version(
@@ -58,12 +53,7 @@ pub(crate) fn load_languages(
 
     for entry in &manifest.languages {
         let full_path = format!("{base_dir}{}", entry.file);
-        let data = files
-            .read(&full_path)
-            .map_err(|e| AssetError::io(&full_path, e))?;
-        let text = std::str::from_utf8(&data).map_err(|e| AssetError::utf8(&full_path, e))?;
-        let lang_toml: LanguageToml =
-            toml::from_str(text).map_err(|e| AssetError::toml(&full_path, e))?;
+        let lang_toml: LanguageToml = super::read_toml(files, &full_path)?;
 
         if lang_toml.id != entry.id {
             return Err(AssetError::Custom(format!(
@@ -124,24 +114,9 @@ pub(crate) fn load_languages(
 
 #[cfg(test)]
 mod tests {
+    use super::super::test_support::*;
     use super::*;
     use crate::files::FileStore;
-    use std::fs;
-    use tempfile::tempdir;
-
-    fn make_files() -> (FileStore, tempfile::TempDir) {
-        let dir = tempdir().unwrap();
-        let store = FileStore::new(dir.path().to_path_buf(), dir.path().to_path_buf());
-        (store, dir)
-    }
-
-    fn write(dir: &tempfile::TempDir, path: &str, content: &str) {
-        let full = dir.path().join(path);
-        if let Some(parent) = full.parent() {
-            fs::create_dir_all(parent).unwrap();
-        }
-        fs::write(full, content).unwrap();
-    }
 
     fn write_minimal_language(dir: &tempfile::TempDir, file: &str, id: &str, strings: &str) {
         write(

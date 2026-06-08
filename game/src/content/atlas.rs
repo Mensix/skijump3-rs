@@ -29,12 +29,7 @@ pub(crate) fn load_sprite_atlas(
     renderer: &mut Renderer,
     manifest_path: &str,
 ) -> Result<Atlas, AssetError> {
-    let data = files
-        .read(manifest_path)
-        .map_err(|e| AssetError::io(manifest_path, e))?;
-    let text = std::str::from_utf8(&data).map_err(|e| AssetError::utf8(manifest_path, e))?;
-    let manifest: AtlasManifest =
-        toml::from_str(text).map_err(|e| AssetError::toml(manifest_path, e))?;
+    let manifest: AtlasManifest = super::read_toml(files, manifest_path)?;
 
     if manifest.format_version != 2 {
         return Err(AssetError::format_version(

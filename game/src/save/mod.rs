@@ -42,6 +42,15 @@ impl std::error::Error for SaveError {
     }
 }
 
+/// Deserialize a TOML save file from raw bytes.
+pub(crate) fn parse_toml<T>(data: &[u8]) -> Result<T, SaveError>
+where
+    T: serde::de::DeserializeOwned,
+{
+    let text = std::str::from_utf8(data).map_err(SaveError::Utf8)?;
+    toml::from_str(text).map_err(|e| SaveError::Serialization(e.to_string()))
+}
+
 #[derive(Debug)]
 pub struct SaveManager {
     pub config: RefCell<Config>,
