@@ -36,7 +36,6 @@ impl Renderer {
 
         let mut canvas = window
             .into_canvas()
-            .present_vsync()
             .build()
             .map_err(|e| e.to_string())?;
 
