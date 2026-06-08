@@ -1,8 +1,8 @@
 use engine::color::Rgba;
 use engine::sprite::SpriteColorRecolor;
 
-use crate::components::replay_playback::PlaybackMode;
 use crate::error::AssetError;
+use crate::views::replay::PlaybackMode;
 
 /// A 256-entry 6-bit RGB palette, used for sprite RGBA precomputation.
 /// Each channel stores a 6-bit value (0-63).

@@ -1,4 +1,3 @@
-use crate::components::replay_playback::{PlaybackMode, PlaybackSpeed, ReplayPlayback};
 use crate::data::hill::HillInfo;
 use crate::data::hill_profile::HillTerrain;
 use crate::error::AssetError;
@@ -14,6 +13,7 @@ use crate::jump::snow::SnowSystem;
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::lang::LangBase;
+use crate::views::replay::playback_controls::{PlaybackMode, PlaybackSpeed, ReplayPlayback};
 use engine::consts::{HEIGHT, WIDTH};
 use engine::sprite::SpriteColorRecolor;
 use engine::ui::{Blinker, Element, Event, ImageRegion, Key, View};
