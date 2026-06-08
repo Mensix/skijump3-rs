@@ -1,3 +1,4 @@
+use crate::error::AssetError;
 use crate::files::FileStore;
 use crate::gfx::png::{load_grayscale_png, load_png};
 use serde::Deserialize;
@@ -33,41 +34,47 @@ struct TerrainMetadata {
 }
 
 impl HillTerrain {
-    pub fn load(files: &FileStore, hill_idx: usize) -> Result<Self, String> {
+    pub fn load(files: &FileStore, hill_idx: usize) -> Result<Self, AssetError> {
         let dir = format!("hills/generated/HILL{hill_idx}/");
 
-        let meta_bytes = files
-            .read(&format!("{dir}terrain.toml"))
-            .map_err(|e| format!("Failed to load terrain.toml for hill {hill_idx}: {e}"))?;
-        let meta_str = std::str::from_utf8(&meta_bytes)
-            .map_err(|e| format!("terrain.toml not valid UTF-8: {e}"))?;
-        let meta: TerrainMetadata =
-            toml::from_str(meta_str).map_err(|e| format!("terrain.toml parse: {e}"))?;
+        let meta_bytes = files.read(&format!("{dir}terrain.toml")).map_err(|e| {
+            let path = format!("{dir}terrain.toml");
+            AssetError::io(path, e)
+        })?;
+        let meta_str = std::str::from_utf8(&meta_bytes).map_err(|e| {
+            let path = format!("{dir}terrain.toml");
+            AssetError::utf8(path, e)
+        })?;
+        let meta: TerrainMetadata = toml::from_str(meta_str).map_err(|e| {
+            let path = format!("{dir}terrain.toml");
+            AssetError::toml(path, e)
+        })?;
 
         if meta.format_version != 1 {
-            return Err(format!(
-                "Unsupported terrain format version: {}",
-                meta.format_version
+            return Err(AssetError::format_version(
+                format!("{dir}terrain.toml"),
+                1,
+                meta.format_version,
             ));
         }
 
         let front_rgba_raw = files
             .read(&format!("{dir}front_rgba.png"))
-            .map_err(|e| e.to_string())?;
-        let front_rgba_img = load_png(&front_rgba_raw).map_err(|e| e.to_string())?;
+            .map_err(|e| AssetError::io(format!("{dir}front_rgba.png"), e))?;
+        let front_rgba_img = load_png(&front_rgba_raw)?;
         let front_mask_raw = files
             .read(&format!("{dir}front_mask.png"))
-            .map_err(|e| e.to_string())?;
-        let front_mask = load_grayscale_png(&front_mask_raw).map_err(|e| e.to_string())?;
+            .map_err(|e| AssetError::io(format!("{dir}front_mask.png"), e))?;
+        let front_mask = load_grayscale_png(&front_mask_raw)?;
 
         let back_rgba_raw = files
             .read(&format!("{dir}back_rgba.png"))
-            .map_err(|e| e.to_string())?;
-        let back_rgba_img = load_png(&back_rgba_raw).map_err(|e| e.to_string())?;
+            .map_err(|e| AssetError::io(format!("{dir}back_rgba.png"), e))?;
+        let back_rgba_img = load_png(&back_rgba_raw)?;
         let back_mask_raw = files
             .read(&format!("{dir}back_mask.png"))
-            .map_err(|e| e.to_string())?;
-        let back_mask = load_grayscale_png(&back_mask_raw).map_err(|e| e.to_string())?;
+            .map_err(|e| AssetError::io(format!("{dir}back_mask.png"), e))?;
+        let back_mask = load_grayscale_png(&back_mask_raw)?;
 
         let w = meta.width as usize;
         let h = meta.height as usize;
@@ -79,33 +86,33 @@ impl HillTerrain {
             || front_mask.width as usize != w
             || front_mask.height as usize != h
         {
-            return Err(format!(
+            return Err(AssetError::Custom(format!(
                 "Hill {hill_idx}: front image dimensions mismatch (expected {w}x{h})"
-            ));
+            )));
         }
         if back_rgba_img.width as usize != bw
             || back_rgba_img.height as usize != bh
             || back_mask.width as usize != bw
             || back_mask.height as usize != bh
         {
-            return Err(format!(
+            return Err(AssetError::Custom(format!(
                 "Hill {hill_idx}: back image dimensions mismatch (expected {bw}x{bh})"
-            ));
+            )));
         }
 
         let line_lengths: Vec<usize> = meta.line_lengths.iter().map(|&v| v as usize).collect();
         if line_lengths.len() != h {
-            return Err(format!(
+            return Err(AssetError::Custom(format!(
                 "Hill {hill_idx}: expected {h} line_lengths, got {}",
                 line_lengths.len()
-            ));
+            )));
         }
         let profile_y: Vec<i32> = meta.profile_y.iter().map(|&v| v as i32).collect();
         if profile_y.len() != HILL_PROFILE_LEN {
-            return Err(format!(
+            return Err(AssetError::Custom(format!(
                 "Hill {hill_idx}: expected {HILL_PROFILE_LEN} profile_y entries, got {}",
                 profile_y.len()
-            ));
+            )));
         }
 
         Ok(Self {
@@ -260,11 +267,9 @@ mod tests {
 
     #[test]
     fn terrain_rejects_bad_format() {
-        let err = HillTerrain::load(
-            &test_files(),
-            9999, // non-existent hill
-        )
-        .unwrap_err();
+        let err = HillTerrain::load(&test_files(), 9999)
+            .unwrap_err()
+            .to_string();
         assert!(err.contains("Failed"), "{err}");
     }
 

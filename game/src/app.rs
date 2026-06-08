@@ -162,7 +162,7 @@ impl Game {
             ));
         }
         let palette = Rgb6Palette::from_6bit_bytes(&pt.data).map_err(|e| e.to_string())?;
-        let content = ContentStore::load(files, CONTENT_MANIFEST)?;
+        let content = ContentStore::load(files, CONTENT_MANIFEST).map_err(|e| e.to_string())?;
         let sprites = content.sprites.clone();
 
         Ok((palette, sprites, content))

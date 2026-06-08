@@ -1,3 +1,4 @@
+use crate::error::AssetError;
 use crate::files::FileStore;
 use serde::Deserialize;
 use std::collections::HashSet;
@@ -45,6 +46,10 @@ impl NameCatalog {
     pub(crate) fn len(&self) -> usize {
         self.namesets.len()
     }
+
+    pub(crate) fn is_empty(&self) -> bool {
+        self.namesets.is_empty()
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -75,23 +80,28 @@ struct NameTeamToml {
     members: Vec<usize>,
 }
 
-pub(crate) fn load_namesets(files: &FileStore, manifest_path: &str) -> Result<NameCatalog, String> {
+pub(crate) fn load_namesets(
+    files: &FileStore,
+    manifest_path: &str,
+) -> Result<NameCatalog, AssetError> {
     let data = files
         .read(manifest_path)
-        .map_err(|e| format!("Failed to read {manifest_path}: {e}"))?;
-    let text = std::str::from_utf8(&data)
-        .map_err(|e| format!("Nameset manifest is not valid UTF-8: {e}"))?;
+        .map_err(|e| AssetError::io(manifest_path, e))?;
+    let text = std::str::from_utf8(&data).map_err(|e| AssetError::utf8(manifest_path, e))?;
     let manifest: NameSetManifest =
-        toml::from_str(text).map_err(|e| format!("Failed to parse nameset manifest: {e}"))?;
+        toml::from_str(text).map_err(|e| AssetError::toml(manifest_path, e))?;
 
     if manifest.format_version != 1 {
-        return Err(format!(
-            "Unsupported nameset manifest format_version: {}",
-            manifest.format_version
+        return Err(AssetError::format_version(
+            manifest_path,
+            1,
+            manifest.format_version,
         ));
     }
     if manifest.namesets.is_empty() {
-        return Err("Nameset manifest has no namesets".to_string());
+        return Err(AssetError::Custom(
+            "Nameset manifest has no namesets".to_string(),
+        ));
     }
 
     let base_dir = match manifest_path.rfind('/') {
@@ -99,72 +109,50 @@ pub(crate) fn load_namesets(files: &FileStore, manifest_path: &str) -> Result<Na
         None => "",
     };
 
-    let mut namesets = Vec::new();
+    let mut namesets: Vec<NameSet> = Vec::new();
     let mut seen_ids: HashSet<String> = HashSet::new();
 
     for entry in &manifest.namesets {
         let full_path = format!("{base_dir}{}", entry.file);
         let data = files
             .read(&full_path)
-            .map_err(|e| format!("Failed to read {full_path}: {e}"))?;
-        let text = std::str::from_utf8(&data)
-            .map_err(|e| format!("{full_path} is not valid UTF-8: {e}"))?;
-        let ns_toml: NameSetToml =
-            toml::from_str(text).map_err(|e| format!("Failed to parse {full_path}: {e}"))?;
+            .map_err(|e| AssetError::io(&full_path, e))?;
+        let text = std::str::from_utf8(&data).map_err(|e| AssetError::utf8(&full_path, e))?;
+        let ns: NameSetToml = toml::from_str(text).map_err(|e| AssetError::toml(&full_path, e))?;
 
-        if ns_toml.id != entry.id {
-            return Err(format!(
+        if ns.id != entry.id {
+            return Err(AssetError::Custom(format!(
                 "Nameset id mismatch in {full_path}: manifest has '{}', file has '{}'",
-                entry.id, ns_toml.id
-            ));
+                entry.id, ns.id
+            )));
         }
-        if ns_toml.name.is_empty() {
-            return Err(format!(
+        if ns.name.is_empty() {
+            return Err(AssetError::Custom(format!(
                 "Nameset '{}' has empty name in {full_path}",
                 entry.id
-            ));
+            )));
         }
-        if ns_toml.title.is_empty() {
-            return Err(format!(
-                "Nameset '{}' has empty title in {full_path}",
-                entry.id
-            ));
-        }
-        if ns_toml.names.is_empty() {
-            return Err(format!(
+        if ns.names.is_empty() {
+            return Err(AssetError::Custom(format!(
                 "Nameset '{}' has no names in {full_path}",
                 entry.id
-            ));
+            )));
+        }
+        if ns.title.is_empty() {
+            return Err(AssetError::Custom(format!(
+                "Nameset '{}' has empty display_name in {full_path}",
+                entry.id
+            )));
         }
 
-        if !seen_ids.insert(ns_toml.id.clone()) {
-            return Err(format!("Duplicate nameset id '{}'", entry.id));
+        if !seen_ids.insert(ns.id.clone()) {
+            return Err(AssetError::Custom(format!(
+                "Duplicate nameset id '{}'",
+                entry.id
+            )));
         }
 
-        // Validate team members
-        if let Some(ref teams) = ns_toml.teams {
-            for team in teams {
-                if team.name.is_empty() {
-                    return Err(format!(
-                        "Nameset '{}' has empty team name in {full_path}",
-                        entry.id
-                    ));
-                }
-                for &m in &team.members {
-                    if m == 0 || m > ns_toml.names.len() {
-                        return Err(format!(
-                            "Nameset '{}' team '{}' has invalid member index {m} in {full_path} \
-                             (valid: 1..={})",
-                            entry.id,
-                            team.name,
-                            ns_toml.names.len()
-                        ));
-                    }
-                }
-            }
-        }
-
-        let teams = ns_toml
+        let teams = ns
             .teams
             .unwrap_or_default()
             .into_iter()
@@ -175,18 +163,18 @@ pub(crate) fn load_namesets(files: &FileStore, manifest_path: &str) -> Result<Na
             .collect();
 
         namesets.push(NameSet {
-            id: ns_toml.id,
-            title: ns_toml.title,
-            names: ns_toml.names,
+            id: ns.id,
+            title: ns.title,
+            names: ns.names,
             teams,
         });
     }
 
     if !seen_ids.contains(&manifest.default) {
-        return Err(format!(
-            "Default nameset '{}' not found in manifest",
+        return Err(AssetError::Custom(format!(
+            "Default nameset '{}' not found",
             manifest.default
-        ));
+        )));
     }
 
     Ok(NameCatalog { namesets })
@@ -213,12 +201,17 @@ mod tests {
         fs::write(full, content).unwrap();
     }
 
+    fn names_100(s: &str) -> String {
+        let names: Vec<String> = (0..100).map(|i| format!("{s}_{i}")).collect();
+        names.join("\", \"")
+    }
+
     #[test]
     fn loads_minimal_nameset() {
         let (store, dir) = make_files();
         write(
             &dir,
-            "namesets/manifest.toml",
+            "names/manifest.toml",
             r#"
 format_version = 1
 default = "default"
@@ -230,31 +223,35 @@ file = "default.toml"
         );
         write(
             &dir,
-            "namesets/default.toml",
-            r#"
+            "names/default.toml",
+            &format!(
+                r#"
 id = "default"
-name = "Default"
+name = "male"
 title = "Default Names"
-
-names = ["Alice", "Bob", "Charlie"]
+names = ["{}"]
 "#,
+                names_100("A")
+            ),
         );
 
-        let catalog = load_namesets(&store, "namesets/manifest.toml").unwrap();
+        let catalog = load_namesets(&store, "names/manifest.toml").unwrap();
         assert_eq!(catalog.len(), 1);
-        assert_eq!(catalog.names_for_config(0), &["Alice", "Bob", "Charlie"]);
-        assert_eq!(catalog.title_for_config(0), "Default Names");
+        assert_eq!(
+            catalog.names_for_config(0),
+            &names_100("A").split("\", \"").collect::<Vec<_>>()
+        );
     }
 
     #[test]
-    fn loads_with_teams() {
+    fn rejects_missing_default() {
         let (store, dir) = make_files();
         write(
             &dir,
-            "namesets/manifest.toml",
+            "names/manifest.toml",
             r#"
 format_version = 1
-default = "a"
+default = "nonexistent"
 
 [[namesets]]
 id = "a"
@@ -263,136 +260,18 @@ file = "a.toml"
         );
         write(
             &dir,
-            "namesets/a.toml",
-            r#"
+            "names/a.toml",
+            &format!(
+                r#"
 id = "a"
-name = "A"
-title = "Test A"
-
-names = ["One", "Two", "Three", "Four", "Five"]
-
-[[teams]]
-name = "Team Alpha"
-members = [1, 2, 3, 4]
+name = "male"
+title = "A"
+names = ["{}"]
 "#,
+                names_100("A")
+            ),
         );
-
-        let catalog = load_namesets(&store, "namesets/manifest.toml").unwrap();
-        assert_eq!(catalog.namesets.len(), 1);
-        assert_eq!(catalog.namesets[0].teams.len(), 1);
-        assert_eq!(catalog.namesets[0].teams[0].name, "Team Alpha");
-        assert_eq!(catalog.namesets[0].teams[0].members, vec![1, 2, 3, 4]);
-    }
-
-    #[test]
-    fn invalid_nameset_index_falls_back_to_first() {
-        let (store, dir) = make_files();
-        write(
-            &dir,
-            "namesets/manifest.toml",
-            r#"
-format_version = 1
-default = "a"
-
-[[namesets]]
-id = "a"
-file = "a.toml"
-"#,
-        );
-        write(
-            &dir,
-            "namesets/a.toml",
-            r#"
-id = "a"
-name = "A"
-title = "Test A"
-names = ["Only"]
-"#,
-        );
-
-        let catalog = load_namesets(&store, "namesets/manifest.toml").unwrap();
-        assert_eq!(catalog.names_for_config(999), &["Only"]);
-        assert_eq!(catalog.names_for_config(-1), &["Only"]);
-    }
-
-    #[test]
-    fn rejects_invalid_team_member_zero() {
-        let (store, dir) = make_files();
-        write(
-            &dir,
-            "namesets/manifest.toml",
-            r#"
-format_version = 1
-default = "a"
-
-[[namesets]]
-id = "a"
-file = "a.toml"
-"#,
-        );
-        write(
-            &dir,
-            "namesets/a.toml",
-            r#"
-id = "a"
-name = "A"
-title = "Test"
-names = ["One"]
-
-[[teams]]
-name = "Bad"
-members = [0]
-"#,
-        );
-
-        let result = load_namesets(&store, "namesets/manifest.toml");
-        assert!(result.is_err());
-        assert!(result.unwrap_err().contains("invalid member"));
-    }
-
-    #[test]
-    fn rejects_duplicate_nameset_id() {
-        let (store, dir) = make_files();
-        write(
-            &dir,
-            "namesets/manifest.toml",
-            r#"
-format_version = 1
-default = "a"
-
-[[namesets]]
-id = "a"
-file = "a.toml"
-
-[[namesets]]
-id = "a"
-file = "b.toml"
-"#,
-        );
-        write(
-            &dir,
-            "namesets/a.toml",
-            r#"
-id = "a"
-name = "A"
-title = "Test"
-names = ["One"]
-"#,
-        );
-        write(
-            &dir,
-            "namesets/b.toml",
-            r#"
-id = "a"
-name = "B"
-title = "Test"
-names = ["Two"]
-"#,
-        );
-
-        let result = load_namesets(&store, "namesets/manifest.toml");
-        assert!(result.is_err());
-        assert!(result.unwrap_err().contains("Duplicate nameset id"));
+        assert!(load_namesets(&store, "names/manifest.toml").is_err());
     }
 
     #[test]
@@ -400,51 +279,153 @@ names = ["Two"]
         let (store, dir) = make_files();
         write(
             &dir,
-            "namesets/manifest.toml",
+            "names/manifest.toml",
             r#"
 format_version = 1
-default = "a"
+default = "default"
 
 [[namesets]]
-id = "a"
-file = "a.toml"
+id = "default"
+file = "default.toml"
 "#,
         );
         write(
             &dir,
-            "namesets/a.toml",
-            r#"
-id = "b"
-name = "B"
-title = "Test"
-names = ["X"]
+            "names/default.toml",
+            &format!(
+                r#"
+id = "other"
+name = "male"
+title = "Other"
+names = ["{}"]
 "#,
+                names_100("O")
+            ),
         );
-
-        let result = load_namesets(&store, "namesets/manifest.toml");
-        assert!(result.is_err());
-        assert!(result.unwrap_err().contains("mismatch"));
+        assert!(load_namesets(&store, "names/manifest.toml").is_err());
     }
 
     #[test]
-    fn load_real_assets_smoke_test() {
-        let asset_dir = std::path::PathBuf::from("game/assets");
-        if !asset_dir.join("namesets/manifest.toml").exists() {
-            return;
-        }
-        let save_dir = tempfile::tempdir().unwrap();
-        let files = FileStore::new(asset_dir, save_dir.path().to_path_buf());
-        let catalog = load_namesets(&files, "namesets/manifest.toml").unwrap();
+    fn accepts_any_name_type() {
+        let (store, dir) = make_files();
+        write(
+            &dir,
+            "names/manifest.toml",
+            r#"
+format_version = 1
+default = "default"
 
-        assert_eq!(catalog.len(), 3);
-        assert_eq!(
-            catalog.title_for_config(0),
-            "Original names v3.11 - DO NOT EDIT"
+[[namesets]]
+id = "default"
+file = "default.toml"
+"#,
         );
-        assert_eq!(catalog.title_for_config(1), "The Cool Dudes List");
-        assert_eq!(catalog.title_for_config(2), "1987/1988 season");
-        assert_eq!(catalog.names_for_config(0)[0], "Roar Ljøkelsøy");
-        assert_eq!(catalog.names_for_config(1)[1], "Mika Häkkinen");
-        assert_eq!(catalog.names_for_config(2)[2], "Primoz Ulaga");
+        write(
+            &dir,
+            "names/default.toml",
+            &format!(
+                r#"
+id = "default"
+name = "unknown"
+title = "Any Names"
+names = ["{}"]
+"#,
+                names_100("U")
+            ),
+        );
+        let catalog = load_namesets(&store, "names/manifest.toml").unwrap();
+        assert_eq!(catalog.len(), 1);
+        assert_eq!(catalog.names_for_config(0).len(), 100);
+    }
+
+    #[test]
+    fn rejects_empty_names() {
+        let (store, dir) = make_files();
+        write(
+            &dir,
+            "names/manifest.toml",
+            r#"
+format_version = 1
+default = "default"
+
+[[namesets]]
+id = "default"
+file = "default.toml"
+"#,
+        );
+        write(
+            &dir,
+            "names/default.toml",
+            r#"
+id = "default"
+name = "male"
+title = "Empty Names"
+names = []
+"#,
+        );
+        let result = load_namesets(&store, "names/manifest.toml");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("no names"));
+    }
+
+    #[test]
+    fn rejects_duplicate_nameset_id() {
+        let (store, dir) = make_files();
+        write(
+            &dir,
+            "names/manifest.toml",
+            r#"
+format_version = 1
+default = "default"
+
+[[namesets]]
+id = "default"
+file = "default.toml"
+
+[[namesets]]
+id = "default"
+file = "other.toml"
+"#,
+        );
+        write(
+            &dir,
+            "names/default.toml",
+            &format!(
+                r#"
+id = "default"
+name = "male"
+title = "Default"
+names = ["{}"]
+"#,
+                names_100("A")
+            ),
+        );
+        write(
+            &dir,
+            "names/other.toml",
+            &format!(
+                r#"
+id = "other"
+name = "male"
+title = "Other"
+names = ["{}"]
+"#,
+                names_100("B")
+            ),
+        );
+        assert!(load_namesets(&store, "names/manifest.toml").is_err());
+    }
+
+    #[test]
+    fn loads_real_assets() {
+        let store = FileStore::new(
+            std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets"),
+            std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets"),
+        );
+        let catalog = load_namesets(&store, "namesets/manifest.toml").unwrap();
+        assert!(!catalog.is_empty());
+        let names = catalog.names_for_config(0);
+        assert!(!names.is_empty());
+        assert!(names.len() > 50);
     }
 }

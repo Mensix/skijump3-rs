@@ -4,6 +4,7 @@ use crate::data::hill::HillCatalog;
 use crate::data::hill_profile::HillTerrain;
 use crate::data::profile::ProfileStore;
 use crate::data::records::RecordStore;
+use crate::error::AssetError;
 use crate::files::FileStore;
 use crate::jump::replay::ReplayTrace;
 use crate::jump::types::DEFAULT_START_GATE;
@@ -56,10 +57,10 @@ impl Resources {
 
     /// Load (or retrieve cached) terrain for a given hill index.
     /// Loads pre-converted hill data from generated assets.
-    pub(crate) fn terrain(&self, hill_idx: usize) -> Result<Rc<HillTerrain>, String> {
+    pub(crate) fn terrain(&self, hill_idx: usize) -> Result<Rc<HillTerrain>, AssetError> {
         self.hills
             .hill(hill_idx)
-            .ok_or_else(|| format!("Hill {hill_idx} not found"))?;
+            .ok_or_else(|| AssetError::Custom(format!("Hill {hill_idx} not found")))?;
         let mut cache = self.terrain_cache.borrow_mut();
         if let Some(terrain) = cache.get(&hill_idx) {
             return Ok(terrain.clone());

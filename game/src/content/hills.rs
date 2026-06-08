@@ -1,4 +1,5 @@
 use crate::data::hill::{HillCatalog, HillInfo};
+use crate::error::AssetError;
 use crate::files::FileStore;
 use serde::Deserialize;
 use std::collections::HashSet;
@@ -40,23 +41,28 @@ struct HillToml {
     profile_checksum: i64,
 }
 
-pub(crate) fn load_hills(files: &FileStore, manifest_path: &str) -> Result<HillCatalog, String> {
+pub(crate) fn load_hills(
+    files: &FileStore,
+    manifest_path: &str,
+) -> Result<HillCatalog, AssetError> {
     let data = files
         .read(manifest_path)
-        .map_err(|e| format!("Failed to read {manifest_path}: {e}"))?;
-    let text = std::str::from_utf8(&data)
-        .map_err(|e| format!("Hills manifest is not valid UTF-8: {e}"))?;
+        .map_err(|e| AssetError::io(manifest_path, e))?;
+    let text = std::str::from_utf8(&data).map_err(|e| AssetError::utf8(manifest_path, e))?;
     let manifest: HillsManifest =
-        toml::from_str(text).map_err(|e| format!("Failed to parse hills manifest: {e}"))?;
+        toml::from_str(text).map_err(|e| AssetError::toml(manifest_path, e))?;
 
     if manifest.format_version != 1 {
-        return Err(format!(
-            "Unsupported hills manifest format_version: {}",
-            manifest.format_version
+        return Err(AssetError::format_version(
+            manifest_path,
+            1,
+            manifest.format_version,
         ));
     }
     if manifest.catalogs.is_empty() {
-        return Err("Hills manifest has no catalogs".to_string());
+        return Err(AssetError::Custom(
+            "Hills manifest has no catalogs".to_string(),
+        ));
     }
 
     let base_dir = match manifest_path.rfind('/') {
@@ -72,78 +78,86 @@ pub(crate) fn load_hills(files: &FileStore, manifest_path: &str) -> Result<HillC
         let full_path = format!("{base_dir}{}", entry.file);
         let data = files
             .read(&full_path)
-            .map_err(|e| format!("Failed to read {full_path}: {e}"))?;
-        let text = std::str::from_utf8(&data)
-            .map_err(|e| format!("{full_path} is not valid UTF-8: {e}"))?;
+            .map_err(|e| AssetError::io(&full_path, e))?;
+        let text = std::str::from_utf8(&data).map_err(|e| AssetError::utf8(&full_path, e))?;
         let cat: HillCatalogToml =
-            toml::from_str(text).map_err(|e| format!("Failed to parse {full_path}: {e}"))?;
+            toml::from_str(text).map_err(|e| AssetError::toml(&full_path, e))?;
 
         if cat.id != entry.id {
-            return Err(format!(
+            return Err(AssetError::Custom(format!(
                 "Hill catalog id mismatch in {full_path}: manifest has '{}', file has '{}'",
                 entry.id, cat.id
-            ));
+            )));
         }
         if cat.name.is_empty() {
-            return Err(format!(
+            return Err(AssetError::Custom(format!(
                 "Hill catalog '{}' has empty name in {full_path}",
                 entry.id
-            ));
+            )));
         }
         if cat.hills.is_empty() {
-            return Err(format!(
+            return Err(AssetError::Custom(format!(
                 "Hill catalog '{}' has no hills in {full_path}",
                 entry.id
-            ));
+            )));
         }
 
         if !seen_catalog_ids.insert(cat.id.clone()) {
-            return Err(format!("Duplicate hill catalog id '{}'", entry.id));
+            return Err(AssetError::Custom(format!(
+                "Duplicate hill catalog id '{}'",
+                entry.id
+            )));
         }
 
         for h in &cat.hills {
             if h.name.is_empty() {
-                return Err(format!("Hill '{}' in {full_path} has empty name", h.id));
+                return Err(AssetError::Custom(format!(
+                    "Hill '{}' in {full_path} has empty name",
+                    h.id
+                )));
             }
             if h.front_index.is_empty() {
-                return Err(format!(
+                return Err(AssetError::Custom(format!(
                     "Hill '{}' in {full_path} has empty front_index",
                     h.id
-                ));
+                )));
             }
             if h.back_index.is_empty() {
-                return Err(format!(
+                return Err(AssetError::Custom(format!(
                     "Hill '{}' in {full_path} has empty back_index",
                     h.id
-                ));
+                )));
             }
             if h.author.is_empty() {
-                return Err(format!("Hill '{}' in {full_path} has empty author", h.id));
+                return Err(AssetError::Custom(format!(
+                    "Hill '{}' in {full_path} has empty author",
+                    h.id
+                )));
             }
             if h.kr <= 0 {
-                return Err(format!(
+                return Err(AssetError::Custom(format!(
                     "Hill '{}' in {full_path} has non-positive kr ({})",
                     h.id, h.kr
-                ));
+                )));
             }
             if h.pk_hundred <= 0 {
-                return Err(format!(
+                return Err(AssetError::Custom(format!(
                     "Hill '{}' in {full_path} has non-positive pk_hundred ({})",
                     h.id, h.pk_hundred
-                ));
+                )));
             }
             if h.pl_save_ten_thousand <= 0 {
-                return Err(format!(
+                return Err(AssetError::Custom(format!(
                     "Hill '{}' in {full_path} has non-positive pl_save_ten_thousand ({})",
                     h.id, h.pl_save_ten_thousand
-                ));
+                )));
             }
 
             if !seen_hill_ids.insert(format!("{}:{}", cat.id, h.id)) {
-                return Err(format!(
+                return Err(AssetError::Custom(format!(
                     "Duplicate hill id '{}' in catalog '{}'",
                     h.id, cat.id
-                ));
+                )));
             }
 
             all_hills.push(HillInfo {
@@ -164,10 +178,10 @@ pub(crate) fn load_hills(files: &FileStore, manifest_path: &str) -> Result<HillC
     }
 
     if !seen_catalog_ids.contains(&manifest.default) {
-        return Err(format!(
+        return Err(AssetError::Custom(format!(
             "Default hill catalog '{}' not found in manifest",
             manifest.default
-        ));
+        )));
     }
 
     Ok(HillCatalog::new(all_hills))

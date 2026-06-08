@@ -1,5 +1,6 @@
 use crate::data::hill::HillInfo;
 use crate::data::hill_profile::HillTerrain;
+use crate::error::AssetError;
 use crate::jump::policy::{JumpPolicy, JumperControl};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -41,7 +42,7 @@ impl JumpParticipant {
 pub struct JumpConfig {
     pub(crate) hill_idx: usize,
     pub(crate) hill: Option<HillInfo>,
-    pub(crate) terrain: Result<HillTerrain, String>,
+    pub(crate) terrain: Result<HillTerrain, AssetError>,
     pub(crate) start_gate: i32,
     pub(crate) snow_count: u16,
     pub(crate) participant: JumpParticipant,

@@ -118,7 +118,7 @@ impl JumpRunner {
 
     pub(crate) fn elements(&mut self, env: JumpRunnerRenderEnv<'_>) -> Vec<Element> {
         match self.session.terrain() {
-            Err(err) => unavailable_elements(err),
+            Err(err) => unavailable_elements(&err.to_string()),
             Ok(_) if self.session.state().is_some() => self.elements_for_loaded_session(env),
             _ => unavailable_elements("jump state not available"),
         }

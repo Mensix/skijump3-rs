@@ -1,5 +1,6 @@
 use crate::data::hill::HillInfo;
 use crate::data::hill_profile::HillTerrain;
+use crate::error::AssetError;
 use crate::jump::config::{JumpConfig, JumpParticipant};
 use crate::jump::frame::JumpRenderFrame;
 use crate::jump::math;
@@ -34,7 +35,7 @@ fn find_hill_record_marker(
 
 #[derive(Debug)]
 pub struct JumpSession {
-    terrain: Result<HillTerrain, String>,
+    terrain: Result<HillTerrain, AssetError>,
     state: Option<JumpState>,
     replay_prev_pos: Option<(i32, i32)>,
     replay: ReplayRecorder,
@@ -136,7 +137,7 @@ impl JumpSession {
         }
     }
 
-    pub(crate) const fn terrain(&self) -> &Result<HillTerrain, String> {
+    pub(crate) const fn terrain(&self) -> &Result<HillTerrain, AssetError> {
         &self.terrain
     }
 
@@ -291,7 +292,7 @@ impl JumpSession {
         let (frame, current_pos, body_anim, ski_anim) = {
             let (terrain, state) = match (&self.terrain, &mut self.state) {
                 (Ok(terrain), Some(state)) => (terrain, state),
-                (Err(err), _) => return Err(err.clone()),
+                (Err(err), _) => return Err(err.to_string()),
                 _ => return Err("jump state not available".to_string()),
             };
             let (viewport, snow_mask) =

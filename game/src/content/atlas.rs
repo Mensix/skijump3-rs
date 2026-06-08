@@ -2,6 +2,7 @@ use engine::atlas::{Atlas, AtlasRegion};
 use engine::video::Renderer;
 use serde::Deserialize;
 
+use crate::error::AssetError;
 use crate::files::FileStore;
 use crate::gfx::png::load_png;
 
@@ -27,19 +28,19 @@ pub(crate) fn load_sprite_atlas(
     files: &FileStore,
     renderer: &mut Renderer,
     manifest_path: &str,
-) -> Result<Atlas, String> {
+) -> Result<Atlas, AssetError> {
     let data = files
         .read(manifest_path)
-        .map_err(|e| format!("Failed to read atlas manifest {manifest_path}: {e}"))?;
-    let text = std::str::from_utf8(&data)
-        .map_err(|_| format!("Atlas manifest {manifest_path} is not valid UTF-8"))?;
-    let manifest: AtlasManifest = toml::from_str(text)
-        .map_err(|e| format!("Failed to parse atlas manifest {manifest_path}: {e}"))?;
+        .map_err(|e| AssetError::io(manifest_path, e))?;
+    let text = std::str::from_utf8(&data).map_err(|e| AssetError::utf8(manifest_path, e))?;
+    let manifest: AtlasManifest =
+        toml::from_str(text).map_err(|e| AssetError::toml(manifest_path, e))?;
 
     if manifest.format_version != 2 {
-        return Err(format!(
-            "Unsupported atlas manifest format_version {} in {manifest_path}",
-            manifest.format_version
+        return Err(AssetError::format_version(
+            manifest_path,
+            2,
+            manifest.format_version,
         ));
     }
 
@@ -51,19 +52,21 @@ pub(crate) fn load_sprite_atlas(
 
     let png_data = files
         .read(&image_path)
-        .map_err(|e| format!("Failed to read atlas image {image_path}: {e}"))?;
-    let img = load_png(&png_data).map_err(|e| e.to_string())?;
-    let texture_id = renderer.create_rgba_texture(&img.pixels, img.width, img.height)?;
+        .map_err(|e| AssetError::io(&image_path, e))?;
+    let img = load_png(&png_data)?;
+    let texture_id = renderer
+        .create_rgba_texture(&img.pixels, img.width, img.height)
+        .map_err(|e| AssetError::Custom(format!("Failed to create texture: {e}")))?;
 
     let mut regions: Vec<AtlasRegion> = Vec::with_capacity(manifest.sprites.len());
 
     for entry in &manifest.sprites {
         let expected_index = regions.len();
         if entry.index != expected_index {
-            return Err(format!(
+            return Err(AssetError::Custom(format!(
                 "Atlas sprite index mismatch in {manifest_path}: expected {expected_index}, got {}",
                 entry.index
-            ));
+            )));
         }
         regions.push(AtlasRegion {
             x: entry.x,

@@ -1,6 +1,7 @@
 use crate::components::replay_playback::{PlaybackMode, PlaybackSpeed, ReplayPlayback};
 use crate::data::hill::HillInfo;
 use crate::data::hill_profile::HillTerrain;
+use crate::error::AssetError;
 use crate::gfx::palette::{
     self, BG_LEFT, BLACK, FILL_BORDER, FONT_DEFAULT, FONT_GOLD, FONT_GREET, FONT_HELP,
     JUMPER_SKI_SOURCE, JUMPER_SUIT_SOURCE_SHADE_1, JUMPER_SUIT_SOURCE_SHADE_3,
@@ -23,7 +24,7 @@ use std::rc::Rc;
 pub struct ReplayView {
     resources: ResourcesRef,
     session: RefCell<Option<ReplaySession>>,
-    terrain: Result<HillTerrain, String>,
+    terrain: Result<HillTerrain, AssetError>,
     snow: RefCell<SnowSystem>,
     snow_camera: RefCell<(i32, i32)>,
     snow_advance: Cell<bool>,
@@ -38,8 +39,8 @@ impl ReplayView {
     #[allow(clippy::needless_pass_by_value)]
     pub fn new(resources: ResourcesRef, store: StoreRef) -> Self {
         let trace = store.clone_selected_replay();
-        let terrain = trace.as_ref().map_or_else(
-            || Err("Replay hill not found".to_string()),
+        let terrain: Result<HillTerrain, AssetError> = trace.as_ref().map_or_else(
+            || Err(AssetError::Custom("Replay hill not found".to_string())),
             |trace| HillTerrain::load(&resources.files, trace.meta.hill_idx),
         );
         let mut snow = SnowSystem::new();

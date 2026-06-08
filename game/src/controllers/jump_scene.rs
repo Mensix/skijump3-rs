@@ -1,3 +1,4 @@
+use crate::error::AssetError;
 use crate::jump::config::JumpConfig;
 use crate::jump::replay::ReplayTrace;
 use crate::jump::sim;
@@ -14,7 +15,7 @@ pub enum JumpSceneError {
     MissingHill(usize),
 
     #[error("failed to load terrain for hill {hill_idx}: {msg}")]
-    Terrain { hill_idx: usize, msg: String },
+    Terrain { hill_idx: usize, msg: AssetError },
 }
 
 pub struct JumpScene {
