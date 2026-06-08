@@ -26,7 +26,7 @@ pub struct WorldCupJumpView {
 
 impl WorldCupJumpView {
     pub(crate) fn new(resources: ResourcesRef, store: StoreRef) -> Self {
-        JumpScene::setup_event(&store);
+        store.setup_jump_event();
         let scene = JumpScene::new(
             ResourcesRef::clone(&resources),
             StoreRef::clone(&store),
@@ -53,7 +53,7 @@ impl WorldCupJumpView {
         match command {
             WorldCupUiCommand::HumanJump(req) => {
                 if req.is_new_event {
-                    JumpScene::setup_event(&self.store);
+                    self.store.setup_jump_event();
                 }
                 let phase_label = phase_label(&self.resources, req.phase);
                 self.handle_human_jump(req.participant, req.hill_idx, phase_label);

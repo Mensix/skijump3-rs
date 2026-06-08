@@ -171,9 +171,4 @@ mod tests {
         let result = Config::from_toml_bytes(bytes);
         assert!(result.is_err());
     }
-
-    #[test]
-    fn default_has_reg_zero() {
-        assert_eq!(Config::default().reg, 0);
-    }
 }

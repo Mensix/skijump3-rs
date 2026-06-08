@@ -25,12 +25,6 @@ pub struct JumpScene {
 }
 
 impl JumpScene {
-    /// Set up wind and first-event state for a new competition event.
-    /// Pascal: Tuuli.Alusta(windplace) once per event before any jumpers.
-    pub fn setup_event(store: &StoreRef) {
-        store.setup_jump_event();
-    }
-
     /// Create a snow system, optionally sampling snow count and wind
     /// on the very first event (Pascal-faithful one-time init).
     fn prepare_snow(store: &StoreRef) -> SnowSystem {

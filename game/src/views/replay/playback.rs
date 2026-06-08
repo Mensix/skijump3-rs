@@ -106,10 +106,6 @@ impl ReplayView {
             None
         }
     }
-
-    fn advance(&self, session: &mut ReplaySession) -> bool {
-        self.playback.advance(session)
-    }
 }
 
 impl View<RouteTarget> for ReplayView {
@@ -123,7 +119,7 @@ impl View<RouteTarget> for ReplayView {
             if self.active_intro_box.borrow().is_none() && self.intro_boxes.borrow().is_empty() {
                 session.auto_step_forward();
             }
-        } else if self.advance(session) {
+        } else if self.playback.advance(session) {
             self.snow_advance.set(true);
         }
     }
