@@ -36,6 +36,7 @@ impl Renderer {
 
         let mut canvas = window
             .into_canvas()
+            .present_vsync()
             .build()
             .map_err(|e| e.to_string())?;
 
@@ -116,10 +117,16 @@ impl Renderer {
     }
 
     pub fn wait_frame(&mut self) {
-        let elapsed = self.last_tick.elapsed();
         let frame_time = Duration::from_secs_f64(1.0 / f64::from(TARGET_FPS));
+        let elapsed = self.last_tick.elapsed();
         if elapsed < frame_time {
-            std::thread::sleep(frame_time.checked_sub(elapsed).unwrap());
+            let remaining = frame_time - elapsed;
+            if remaining > Duration::from_millis(2) {
+                std::thread::sleep(remaining - Duration::from_millis(2));
+            }
+            while self.last_tick.elapsed() < frame_time {
+                std::hint::spin_loop();
+            }
         }
         self.last_tick = Instant::now();
     }
