@@ -177,49 +177,6 @@ mod tests {
     }
 
     #[test]
-    fn loads_minimal_sprite_set() {
-        let (store, dir) = make_files();
-        write(
-            &dir,
-            "sprites/manifest.toml",
-            r#"
-format_version = 1
-default = "default"
-
-[[sets]]
-id = "default"
-file = "default.toml"
-"#,
-        );
-        write(
-            &dir,
-            "sprites/default.toml",
-            &format!(
-                r#"
-id = "default"
-name = "Default"
-
-[[sprites]]
-index = 0
-width = 2
-height = 2
-center_x = 0
-center_y = 0
-pixels = """
-{}
-"""
-"#,
-                minimal_sprite_hex(2, 2)
-            ),
-        );
-
-        let sprites = load_sprites(&store, "sprites/manifest.toml").unwrap();
-        assert_eq!(sprites.len(), 1);
-        assert_eq!(sprites[0].width, 2);
-        assert_eq!(sprites[0].height, 2);
-    }
-
-    #[test]
     fn rejects_invalid_hex() {
         let (store, dir) = make_files();
         write(

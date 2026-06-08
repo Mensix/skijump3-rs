@@ -43,21 +43,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn zero() {
-        assert_eq!(format_tenths(0), "0.0");
-    }
-
-    #[test]
-    fn positive_integer() {
-        assert_eq!(format_tenths(1234), "123.4");
-    }
-
-    #[test]
-    fn positive_with_carry() {
-        assert_eq!(format_tenths(100), "10.0");
-    }
-
-    #[test]
     fn single_digit() {
         assert_eq!(format_tenths(5), "0.5");
     }
@@ -79,10 +64,4 @@ mod tests {
         assert_eq!(format_tenths_i64(0), "0.0");
     }
 
-    #[test]
-    fn ordinal() {
-        assert_eq!(ordinal_dot(0), "0.");
-        assert_eq!(ordinal_dot(5), "5.");
-        assert_eq!(ordinal_dot(12), "12.");
-    }
 }

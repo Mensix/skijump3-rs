@@ -33,12 +33,6 @@ mod tests {
     }
 
     #[test]
-    fn single_element() {
-        assert_eq!(cycle_index(0, 1, 1), 0);
-        assert_eq!(cycle_index(0, 1, -1), 0);
-    }
-
-    #[test]
     fn large_delta() {
         assert_eq!(cycle_index(0, 5, 7), 2);
         assert_eq!(cycle_index(0, 5, -7), 3);

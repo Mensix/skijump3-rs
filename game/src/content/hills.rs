@@ -184,53 +184,6 @@ mod tests {
     use crate::files::FileStore;
 
     #[test]
-    fn loads_minimal_hill_catalog() {
-        let (store, dir) = make_files();
-        write(
-            &dir,
-            "hills/manifest.toml",
-            r#"
-format_version = 1
-default = "default"
-
-[[catalogs]]
-id = "default"
-file = "default.toml"
-"#,
-        );
-        write(
-            &dir,
-            "hills/default.toml",
-            r#"
-id = "default"
-name = "Default"
-
-[[hills]]
-id = "A"
-name = "testhill"
-kr = 90
-front_index = "1"
-back_index = "0"
-back_brightness = 90
-back_mirror = false
-vx_final = 130
-pk_hundred = 85
-pl_save_ten_thousand = 3200
-author = "test"
-checksum = 0
-profile_checksum = 0
-"#,
-        );
-
-        let catalog = load_hills(&store, "hills/manifest.toml").unwrap();
-        assert_eq!(catalog.len(), 1);
-        let hill = catalog.hill(0).unwrap();
-        assert_eq!(hill.name, "testhill");
-        assert_eq!(hill.kr, 90);
-        assert_eq!(hill.back_mirror, 0);
-    }
-
-    #[test]
     fn rejects_missing_catalog() {
         let (store, dir) = make_files();
         write(

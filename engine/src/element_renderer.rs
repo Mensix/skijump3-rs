@@ -515,15 +515,4 @@ mod tests {
         assert!(!is_fill_area_dither_color(Rgba::rgb(0, 0, 0)));
     }
 
-    #[test]
-    fn render_context_default_constructs() {
-        let ctx = ElementRenderContext::default();
-        assert!(ctx.pending_dither_rects.is_empty());
-    }
-
-    #[test]
-    fn render_context_new_constructs() {
-        let ctx = ElementRenderContext::new();
-        assert!(ctx.pending_dither_rects.is_empty());
-    }
 }

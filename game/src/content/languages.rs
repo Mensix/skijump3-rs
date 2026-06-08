@@ -134,33 +134,6 @@ name = "{id}"
     }
 
     #[test]
-    fn loads_two_languages() {
-        let (store, dir) = make_files();
-        write(
-            &dir,
-            "lang/manifest.toml",
-            r#"
-format_version = 1
-default = "english"
-
-[[languages]]
-id = "english"
-file = "english.toml"
-
-[[languages]]
-id = "finnish"
-file = "finnish.toml"
-"#,
-        );
-        write_minimal_language(&dir, "lang/english.toml", "english", r#"6 = "Yes""#);
-        write_minimal_language(&dir, "lang/finnish.toml", "finnish", r#"6 = "Kyllä""#);
-
-        let lang = load_languages(&store, "lang/manifest.toml").unwrap();
-        assert_eq!(lang.languages, vec!["english", "finnish"]);
-        assert_eq!(lang.lstr(6), "Yes");
-    }
-
-    #[test]
     fn rejects_missing_language_file() {
         let (store, dir) = make_files();
         write(

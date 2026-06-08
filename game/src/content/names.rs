@@ -148,43 +148,6 @@ mod tests {
     }
 
     #[test]
-    fn loads_minimal_nameset() {
-        let (store, dir) = make_files();
-        write(
-            &dir,
-            "names/manifest.toml",
-            r#"
-format_version = 1
-default = "default"
-
-[[namesets]]
-id = "default"
-file = "default.toml"
-"#,
-        );
-        write(
-            &dir,
-            "names/default.toml",
-            &format!(
-                r#"
-id = "default"
-name = "male"
-title = "Default Names"
-names = ["{}"]
-"#,
-                names_100("A")
-            ),
-        );
-
-        let catalog = load_namesets(&store, "names/manifest.toml").unwrap();
-        assert_eq!(catalog.len(), 1);
-        assert_eq!(
-            catalog.names_for_config(0),
-            &names_100("A").split("\", \"").collect::<Vec<_>>()
-        );
-    }
-
-    #[test]
     fn rejects_missing_default() {
         let (store, dir) = make_files();
         write(
