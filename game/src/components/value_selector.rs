@@ -94,10 +94,6 @@ impl ValueSelector {
         self.value
     }
 
-    pub fn set_display(&mut self, text: &str) {
-        self.display = text.to_string();
-    }
-
     pub fn set_right_text(&mut self, text: &str) {
         self.right_text = Some(text.to_string());
     }

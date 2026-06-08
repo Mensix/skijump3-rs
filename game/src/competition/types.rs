@@ -16,7 +16,6 @@ pub enum CupStyle {
     WorldCup,
     CustomCup,
     FourHills,
-    TeamCup,
 }
 
 /// High-level phase of a single competition event.

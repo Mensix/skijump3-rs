@@ -43,11 +43,6 @@ impl HillCatalog {
     }
 
     #[must_use]
-    pub const fn is_empty(&self) -> bool {
-        self.hills.is_empty()
-    }
-
-    #[must_use]
     pub fn hill(&self, idx: usize) -> Option<&HillInfo> {
         self.hills.get(idx)
     }

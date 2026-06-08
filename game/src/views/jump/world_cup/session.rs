@@ -162,7 +162,7 @@ impl WorldCupSessionController {
                                 format_four_hills_best_result(p.four_hills_points, p.rank);
                         }
                     }
-                    CupStyle::CustomCup | CupStyle::TeamCup => {}
+                    CupStyle::CustomCup => {}
                 }
             }
         });

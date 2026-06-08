@@ -45,21 +45,6 @@ impl Random {
         ((i64::from(self.next_u32()) * i64::from(limit)) >> 32) as i32
     }
 
-    pub fn random_i64(&mut self, upper: i64) -> i64 {
-        let low = u64::from(self.next_u32());
-        let high = (u64::from(self.next_u32()) << 32) & i64::MAX as u64;
-        let value = (low | high) as i64;
-        if upper == 0 {
-            0
-        } else {
-            value % upper
-        }
-    }
-
-    pub fn random_f64(&mut self) -> f64 {
-        f64::from(self.next_u32()) * (1.0 / 4_294_967_296.0)
-    }
-
     fn next_u32(&mut self) -> u32 {
         if self.index == MT_N {
             self.update_state();
@@ -141,30 +126,5 @@ mod tests {
         assert_eq!(rng.random_i32(142), 101);
         assert_eq!(rng.random_i32(50), 42);
         assert_eq!(rng.random_i32(2), 1);
-    }
-
-    #[test]
-    fn matches_fpc_random_float_for_seed_one() {
-        let mut rng = Random::new(1);
-        let actual: Vec<f64> = (0..5).map(|_| rng.random_f64()).collect();
-        let expected = [
-            0.417_021_998_437,
-            0.997_184_808_133,
-            0.720_324_489_288,
-            0.932_557_361_200,
-            0.000_114_381_080,
-        ];
-        for (actual, expected) in actual.iter().zip(expected) {
-            assert!((actual - expected).abs() < 0.000_000_000_001);
-        }
-    }
-
-    #[test]
-    fn random_i64_consumes_two_values_like_fpc() {
-        let mut rng = Random::new(0);
-        assert_eq!(rng.random_i32(180), 98);
-        assert_eq!(rng.random_i32(120), 71);
-        assert_eq!(rng.random_i64(142), 101);
-        assert_eq!(rng.random_i32(50), 30);
     }
 }

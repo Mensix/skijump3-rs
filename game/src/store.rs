@@ -121,10 +121,6 @@ impl JumpRuntime {
         self.wind_place.set(val);
     }
 
-    pub fn wind_place(&self) -> u8 {
-        self.wind_place.get()
-    }
-
     pub fn with_rng_wind_mut<R>(&self, f: impl FnOnce(&mut Random, &mut Wind) -> R) -> R {
         let mut rng = self.rng.borrow_mut();
         let mut wind = self.wind.borrow_mut();
@@ -232,22 +228,6 @@ impl CompetitionSlot {
         *self.inner.borrow_mut() = Some(comp);
     }
 
-    pub fn with<R>(&self, f: impl FnOnce(&Competition) -> R) -> R {
-        f(self
-            .inner
-            .borrow()
-            .as_ref()
-            .expect("competition not started"))
-    }
-
-    pub fn with_mut<R>(&self, f: impl FnOnce(&mut Competition) -> R) -> R {
-        f(self
-            .inner
-            .borrow_mut()
-            .as_mut()
-            .expect("competition not started"))
-    }
-
     pub fn try_with<R>(&self, f: impl FnOnce(&Competition) -> R) -> Option<R> {
         self.inner.borrow().as_ref().map(f)
     }
@@ -257,10 +237,6 @@ impl CompetitionSlot {
     /// released when the callback returns.
     pub fn try_with_mut<R>(&self, f: impl FnOnce(&mut Competition) -> R) -> Option<R> {
         self.inner.borrow_mut().as_mut().map(f)
-    }
-
-    pub fn is_some(&self) -> bool {
-        self.inner.borrow().is_some()
     }
 }
 
@@ -324,25 +300,12 @@ impl Store {
         self.competition.start(comp);
     }
 
-    pub fn with_competition<R>(&self, f: impl FnOnce(&Competition) -> R) -> R {
-        self.competition.with(f)
-    }
-
-    pub fn with_competition_mut<R>(&self, f: impl FnOnce(&mut Competition) -> R) -> R {
-        self.competition.with_mut(f)
-    }
-
     pub fn try_with_competition<R>(&self, f: impl FnOnce(&Competition) -> R) -> Option<R> {
         self.competition.try_with(f)
     }
 
     pub fn try_with_competition_mut<R>(&self, f: impl FnOnce(&mut Competition) -> R) -> Option<R> {
         self.competition.try_with_mut(f)
-    }
-
-    #[must_use]
-    pub fn has_competition(&self) -> bool {
-        self.competition.is_some()
     }
 
     pub fn profiles(&self) -> Ref<'_, ProfileStore> {
@@ -355,10 +318,6 @@ impl Store {
 
     pub fn records(&self) -> Ref<'_, RecordStore> {
         self.records.borrow()
-    }
-
-    pub fn records_mut(&self) -> RefMut<'_, RecordStore> {
-        self.records.borrow_mut()
     }
 
     pub fn try_records(&self) -> Option<Ref<'_, RecordStore>> {
@@ -383,18 +342,8 @@ impl Store {
         self.practice.set_start_gate(start_gate);
     }
 
-    #[must_use]
-    pub fn selected_hill(&self) -> usize {
-        self.selected_hill.get()
-    }
-
     pub fn set_selected_hill(&self, hill: usize) {
         self.selected_hill.set(hill);
-    }
-
-    #[must_use]
-    pub fn start_gate(&self) -> i32 {
-        self.start_gate.get()
     }
 
     pub fn set_start_gate(&self, start_gate: i32) {
@@ -425,11 +374,6 @@ impl Store {
 
     pub fn set_wind_place(&self, val: u8) {
         self.jump_runtime.set_wind_place(val);
-    }
-
-    #[must_use]
-    pub fn wind_place(&self) -> u8 {
-        self.jump_runtime.wind_place()
     }
 
     pub fn with_jump_rng_wind_mut<R>(&self, f: impl FnOnce(&mut Random, &mut Wind) -> R) -> R {

@@ -57,7 +57,6 @@ pub(crate) fn drive<E>(
 ) -> Result<WorldCupCommand, E> {
     loop {
         match competition.decide_next() {
-            StepDecision::Done => return Ok(WorldCupCommand::Done),
             StepDecision::ShowResults => return Ok(WorldCupCommand::ShowResults),
             StepDecision::AdvancePhase => {
                 competition.advance();

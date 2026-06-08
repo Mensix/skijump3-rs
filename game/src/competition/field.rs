@@ -39,11 +39,6 @@ impl CompetitionField {
     }
 
     #[must_use]
-    pub const fn is_empty(&self) -> bool {
-        self.participants.is_empty()
-    }
-
-    #[must_use]
     pub fn get(&self, idx: usize) -> &Participant {
         &self.participants[idx]
     }

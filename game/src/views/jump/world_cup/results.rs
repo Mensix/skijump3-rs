@@ -259,7 +259,6 @@ pub fn render_header(competition: &Competition, resources: &ResourcesRef) -> Vec
             CupStyle::WorldCup => 0,
             CupStyle::CustomCup => 1,
             CupStyle::FourHills => 2,
-            CupStyle::TeamCup => 3,
         };
         lang.lstr(offset + cup_idx).to_string()
     };

@@ -13,8 +13,6 @@ const PRE_QUALIFIED_COUNT: usize = 10;
 /// No mutation, no IO — just describes what the caller should do.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StepDecision {
-    /// Season is over.
-    Done,
     /// Show a results/standings screen (then caller must `advance`).
     ShowResults,
     /// Auto-advance through trivial phases (Training, Setup, `EventComplete`).
@@ -148,11 +146,6 @@ impl Competition {
     #[must_use]
     pub fn is_over(&self) -> bool {
         self.phase == CompetitionPhase::SeasonComplete
-    }
-
-    #[must_use]
-    pub const fn phase_progress(&self) -> (usize, usize) {
-        (self.start_pos, self.start_list.len())
     }
 
     /// Number of events in the season.
@@ -552,7 +545,6 @@ impl Competition {
                     }
                 }
             }
-            CupStyle::TeamCup => {}
         }
     }
 }

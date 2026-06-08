@@ -100,10 +100,6 @@ impl Menu {
         self.selection.selected()
     }
 
-    pub fn reset(&mut self) {
-        self.selection.set_selected(0);
-    }
-
     pub fn set_selected(&mut self, idx: usize) {
         self.selection.set_selected(idx);
     }

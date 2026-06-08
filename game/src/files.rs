@@ -83,12 +83,6 @@ impl FileStore {
         result.sort();
         Ok(result)
     }
-
-    /// Save dir path for callers that need it directly.
-    #[must_use]
-    pub fn save_dir(&self) -> &Path {
-        &self.save_dir
-    }
 }
 
 #[cfg(test)]

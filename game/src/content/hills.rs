@@ -397,7 +397,7 @@ profile_checksum = 0
             std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets"),
         );
         let catalog = load_hills(&store, "hills/manifest.toml").unwrap();
-        assert!(!catalog.is_empty());
+        assert!(catalog.hill(0).is_some());
 
         let kuopio = catalog.hill(0).unwrap();
         assert_eq!(kuopio.name, "kuopio");

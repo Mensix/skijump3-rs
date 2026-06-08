@@ -17,7 +17,6 @@ pub struct TextInput {
     bg: Rgba,
     fg: Rgba,
     font: Font,
-    old: String,
     editor: TextEditState,
     blinker: Blinker,
 }
@@ -28,7 +27,7 @@ impl TextInput {
         x: i32,
         y: i32,
         max_width: i32,
-        old: String,
+        initial: String,
         bg: Rgba,
         fg: Rgba,
         font: Font,
@@ -40,14 +39,9 @@ impl TextInput {
             bg,
             fg,
             font,
-            old: old.clone(),
-            editor: TextEditState::new(old, 130),
+            editor: TextEditState::new(initial, 130),
             blinker: Blinker::new(),
         }
-    }
-
-    pub fn old(&self) -> &str {
-        &self.old
     }
 
     fn reset_cursor(&self) {

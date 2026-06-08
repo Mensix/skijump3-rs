@@ -25,11 +25,6 @@ pub struct RecordStore {
 
 impl RecordStore {
     #[must_use]
-    pub const fn new(top: Vec<Hiscore>, hill_records: Vec<HillRecord>) -> Self {
-        Self { top, hill_records }
-    }
-
-    #[must_use]
     pub fn top(&self, idx: usize) -> Option<&Hiscore> {
         self.top.get(idx)
     }
