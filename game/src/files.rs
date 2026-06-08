@@ -34,7 +34,7 @@ impl FileStore {
     /// Atomically write to save dir. Creates `save_dir` if it does not
     /// exist (e.g. after first-launch setup).
     pub fn write(&self, name: &str, data: &[u8]) -> Result<(), std::io::Error> {
-        let _ = std::fs::create_dir_all(&self.save_dir);
+        std::fs::create_dir_all(&self.save_dir)?;
         let path = self.save_dir.join(name);
         let tmp_path = self.save_dir.join(format!(".{name}.tmp"));
         std::fs::write(&tmp_path, data)?;
@@ -147,12 +147,21 @@ mod tests {
     #[test]
     fn write_creates_save_dir_if_missing() {
         let asset = tempfile::tempdir().unwrap();
-        // Point save_dir at a path that does not yet exist
         let missing = asset.path().join("nonexistent_save");
         let store = FileStore::new(asset.path().to_path_buf(), missing.clone());
         assert!(!missing.exists(), "save_dir should not exist yet");
         store.write("new_file.txt", b"hello").unwrap();
         assert!(missing.exists(), "save_dir should have been created");
         assert_eq!(store.read("new_file.txt").unwrap(), b"hello");
+    }
+
+    #[test]
+    fn list_by_ext_all_falls_back_when_save_dir_missing() {
+        let asset = tempfile::tempdir().unwrap();
+        std::fs::write(asset.path().join("hill.SJR"), b"").unwrap();
+        let missing = asset.path().join("no_save_yet");
+        let store = FileStore::new(asset.path().to_path_buf(), missing);
+        let names = store.list_by_ext_all("SJR").unwrap();
+        assert_eq!(names, vec!["hill.SJR"]);
     }
 }
