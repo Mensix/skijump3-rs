@@ -2,7 +2,6 @@ pub mod app;
 pub(crate) mod competition;
 pub(crate) mod components;
 pub(crate) mod content;
-pub(crate) mod controllers;
 pub(crate) mod data;
 pub(crate) mod error;
 pub(crate) mod files;

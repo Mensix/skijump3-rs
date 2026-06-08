@@ -1,5 +1,5 @@
+use super::ui_state::CompetitionUiState;
 use crate::competition::types::{CompetitionPhase, CupStyle, Participant, QualificationStatus};
-use crate::controllers::competition_ui_state::CompetitionUiState;
 use crate::gfx::palette::{FONT_DEFAULT, FONT_GOLD, FONT_GREET, FONT_HELP};
 use crate::gfx::sprites;
 use crate::jump::types::JumpPhase;

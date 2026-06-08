@@ -1,9 +1,9 @@
 use std::cell::Cell;
 
+use super::flow::{self, WorldCupCommand};
 use crate::competition::machine::Competition;
 use crate::competition::scoring::wc_points_for_rank;
 use crate::competition::types::{CompetitionPhase, CupStyle};
-use crate::controllers::world_cup_flow::{self, WorldCupCommand};
 use crate::jump::types::JumpOutcome;
 use crate::jump::JumpParticipant;
 use crate::store::{ResourcesRef, StoreRef};
@@ -90,7 +90,7 @@ impl WorldCupSessionController {
              -> Result<JumpOutcome, JumpSceneError> {
                 scene.simulate_hidden(participant, hill_idx)
             };
-            world_cup_flow::drive(c, &self.last_event, &mut simulate_computer)
+            flow::drive(c, &self.last_event, &mut simulate_computer)
         });
 
         let command = match command {

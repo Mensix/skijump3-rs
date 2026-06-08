@@ -1,15 +1,15 @@
+use super::overlay::CompetitionOverlay;
+use super::results;
+use super::session::{WorldCupSessionController, WorldCupUiCommand};
+use super::ui_state::{CompetitionUiState, RenderMode, ResultScreen};
 use crate::competition::machine::Competition;
 use crate::competition::types::{CompetitionPhase, CupStyle};
-use crate::controllers::competition_ui_state::{CompetitionUiState, RenderMode, ResultScreen};
-use crate::controllers::world_cup_session::{WorldCupSessionController, WorldCupUiCommand};
 use crate::gfx::palette::{BLACK, FONT_GREET};
 use crate::jump::types::JumpPhase;
 use crate::jump::JumpParticipant;
 use crate::jump::JumpPolicy;
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
-use crate::views::jump::competition_overlay::CompetitionOverlay;
-use crate::views::jump::competition_results;
 use crate::views::jump::input::{JumpInputAction, JumpInputController};
 use crate::views::jump::scene::JumpScene;
 use engine::ui::{Blinker, Element, Event, Key, View};
@@ -107,7 +107,7 @@ impl WorldCupJumpView {
                 match self.ui_state.current_screen() {
                     ResultScreen::KoPairs(show_results) => {
                         let show_cursor = self.blinker.visible(10, 10);
-                        return competition_results::render_ko_pairs(
+                        return results::render_ko_pairs(
                             c,
                             &self.resources,
                             show_results,
@@ -115,7 +115,7 @@ impl WorldCupJumpView {
                         );
                     }
                     ResultScreen::Stats => {
-                        return competition_results::render_stats_page(
+                        return results::render_stats_page(
                             c,
                             &self.resources,
                             self.ui_state.current_page(),
@@ -124,12 +124,12 @@ impl WorldCupJumpView {
                     ResultScreen::List => {}
                 }
                 let page_data = if self.ui_state.is_compact() {
-                    competition_results::build_compact_results_page(c)
+                    results::build_compact_results_page(c)
                 } else {
-                    competition_results::build_results_page(c, self.ui_state.current_page())
+                    results::build_results_page(c, self.ui_state.current_page())
                 };
-                let mut els = competition_results::render_results_page(&page_data, &self.resources);
-                els.extend(competition_results::render_header(c, &self.resources));
+                let mut els = results::render_results_page(&page_data, &self.resources);
+                els.extend(results::render_header(c, &self.resources));
                 els
             })
             .unwrap_or_else(|| vec![Element::fillbox(0, 0, 320, 200, BLACK)])
@@ -300,7 +300,7 @@ impl WorldCupJumpView {
                     ResultScreen::List if self.ui_state.is_compact() => 1,
                     ResultScreen::List => self
                         .store
-                        .try_with_competition(competition_results::total_pages)
+                        .try_with_competition(results::total_pages)
                         .unwrap_or(0),
                 };
                 if self.ui_state.next_page(total) {
