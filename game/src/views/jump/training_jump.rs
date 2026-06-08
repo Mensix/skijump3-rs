@@ -1,9 +1,9 @@
 use crate::components::save_replay_dialog::{SaveAction, SaveReplayDialog};
-use crate::controllers::jump_input::{JumpInputAction, JumpInputController};
-use crate::controllers::jump_scene::JumpScene;
 use crate::jump::{JumpParticipant, JumpPolicy};
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
+use crate::views::jump::input::{JumpInputAction, JumpInputController};
+use crate::views::jump::scene::JumpScene;
 use engine::ui::{Component, Element, Event, View};
 use std::cell::RefCell;
 

@@ -3,13 +3,13 @@ use std::cell::Cell;
 use crate::competition::machine::Competition;
 use crate::competition::scoring::wc_points_for_rank;
 use crate::competition::types::{CompetitionPhase, CupStyle};
-use crate::controllers::jump_scene::JumpScene;
-use crate::controllers::jump_scene::JumpSceneError;
 use crate::controllers::world_cup_flow::{self, WorldCupCommand};
 use crate::jump::types::JumpOutcome;
 use crate::jump::JumpParticipant;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::format::format_tenths;
+use crate::views::jump::scene::JumpScene;
+use crate::views::jump::scene::JumpSceneError;
 
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum WorldCupSessionError {

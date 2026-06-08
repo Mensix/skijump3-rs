@@ -1,8 +1,6 @@
 use crate::competition::machine::Competition;
 use crate::competition::types::{CompetitionPhase, CupStyle};
 use crate::controllers::competition_ui_state::{CompetitionUiState, RenderMode, ResultScreen};
-use crate::controllers::jump_input::{JumpInputAction, JumpInputController};
-use crate::controllers::jump_scene::JumpScene;
 use crate::controllers::world_cup_session::{WorldCupSessionController, WorldCupUiCommand};
 use crate::gfx::palette::{BLACK, FONT_GREET};
 use crate::jump::types::JumpPhase;
@@ -12,6 +10,8 @@ use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::views::jump::competition_overlay::CompetitionOverlay;
 use crate::views::jump::competition_results;
+use crate::views::jump::input::{JumpInputAction, JumpInputController};
+use crate::views::jump::scene::JumpScene;
 use engine::ui::{Blinker, Element, Event, Key, View};
 
 pub struct WorldCupJumpView {
