@@ -4,7 +4,7 @@ use crate::app::router::create_router;
 use crate::content::ContentStore;
 use crate::data::records::RecordStore;
 use crate::files::FileStore;
-use crate::gfx::palette::Rgb6Palette;
+use crate::gfx::palette::{FONT_HELP, Rgb6Palette};
 use crate::gfx::png::load_png;
 use crate::route::RouteTarget;
 use crate::save::{SaveManager, SaveRef};
@@ -12,9 +12,10 @@ use crate::store::{Resources, ResourcesRef, Store, StoreRef};
 use engine::element_renderer::ElementRenderContext;
 use engine::input::Input;
 use engine::sprite::SpriteData;
-use engine::ui::{BackgroundMode, Font, Router};
+use engine::ui::{BackgroundMode, Element, Font, Router};
 use engine::video::{Renderer, TextureId};
 use std::rc::Rc;
+use std::time::Instant;
 
 const MAIN_PNG: &str = "MAIN.png";
 const CONTENT_MANIFEST: &str = "content.toml";
@@ -29,6 +30,10 @@ pub struct Game {
     sprites: Vec<SpriteData>,
     main_background: TextureId,
     element_render_context: ElementRenderContext,
+    fps_frame_count: u64,
+    fps_elapsed: f64,
+    fps_display: f64,
+    fps_last: Instant,
 }
 
 fn precompute_sprite_rgba(sprite: &mut SpriteData, palette: &Rgb6Palette) {
@@ -91,6 +96,10 @@ impl Game {
             sprites,
             main_background,
             element_render_context: ElementRenderContext::new(),
+            fps_frame_count: 0,
+            fps_elapsed: 0.0,
+            fps_display: 0.0,
+            fps_last: Instant::now(),
         })
     }
 
@@ -149,7 +158,24 @@ impl Game {
     fn render_frame(&mut self) -> Result<(), String> {
         self.router.current_view_mut().update();
 
-        let elements = self.router.current_view().elements();
+        let mut elements = self.router.current_view().elements();
+
+        self.fps_frame_count += 1;
+        self.fps_elapsed += self.fps_last.elapsed().as_secs_f64();
+        self.fps_last = Instant::now();
+        if self.fps_elapsed >= 0.5 {
+            self.fps_display = self.fps_frame_count as f64 / self.fps_elapsed;
+            self.fps_frame_count = 0;
+            self.fps_elapsed = 0.0;
+        }
+
+        if cfg!(debug_assertions) {
+            elements.push(Element::right_text(
+                format!("{:.0} fps", self.fps_display),
+                319, 192, FONT_HELP,
+            ));
+        }
+
         let background = match self.router.current_view().gpu_background() {
             BackgroundMode::MainPng => Some(self.main_background),
             BackgroundMode::NoneBlack => None,
