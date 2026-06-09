@@ -41,47 +41,56 @@ fn build_teams(
     profiles: &ProfileStore,
     human_team_count: usize,
 ) -> Vec<TeamCupTeam> {
-    let max_teams = teams_def.len().min(NUM_TEAMS);
     let active_profiles = active_profiles(profiles);
     let mut profile_ptr = 0;
-    let mut teams = Vec::with_capacity(max_teams);
+    let mut teams = Vec::with_capacity(NUM_TEAMS);
 
-    for (ti, td) in teams_def.iter().enumerate().take(max_teams) {
-        let is_human = ti < human_team_count;
-        let mut members = Vec::with_capacity(MEMBERS_PER_TEAM);
+    // AI teams occupy the first slots; human teams are at the end (Pascal: jnimet[15], jnimet[14])
+    let ai_count = NUM_TEAMS.saturating_sub(human_team_count);
 
-        for mi in 0..MEMBERS_PER_TEAM {
-            let name_idx = if mi < td.members.len() {
-                td.members[mi]
-            } else {
-                1
-            };
-            let jumper_name = if name_idx > 0 && name_idx <= names.len() {
-                names[name_idx - 1].clone()
-            } else {
-                format!("Jumper {}", ti * MEMBERS_PER_TEAM + mi + 1)
-            };
+    for ti in 0..NUM_TEAMS {
+        let is_human = ti >= ai_count;
+        let td = teams_def.get(ti).or_else(|| teams_def.last());
 
-            let id = ti * MEMBERS_PER_TEAM + mi;
-            let member = if is_human && profile_ptr < active_profiles.len() {
-                let (profile_idx, p) = active_profiles[profile_ptr];
-                profile_ptr += 1;
-                TeamCupMember {
-                    competitor: Competitor::from_profile(id, profile_idx, p, Some(ti)),
-                    jumps: Vec::new(),
+        let name = if is_human {
+            // Will be overwritten by GetTeam; keep a placeholder
+            format!("Team {}", ti + 1)
+        } else if let Some(t) = td {
+            t.name.clone()
+        } else {
+            format!("AI Team {}", ti + 1)
+        };
+
+        let members: Vec<TeamCupMember> = (0..MEMBERS_PER_TEAM)
+            .map(|mi| {
+                let id = ti * MEMBERS_PER_TEAM + mi;
+
+                let name_idx = td.and_then(|t| t.members.get(mi).copied()).unwrap_or(1);
+                let jumper_name = if name_idx > 0 && name_idx <= names.len() {
+                    names[name_idx - 1].clone()
+                } else {
+                    format!("Jumper {}", id + 1)
+                };
+
+                if is_human && profile_ptr < active_profiles.len() {
+                    let (profile_idx, p) = active_profiles[profile_ptr];
+                    profile_ptr += 1;
+                    TeamCupMember {
+                        competitor: Competitor::from_profile(id, profile_idx, p, Some(ti)),
+                        jumps: Vec::new(),
+                    }
+                } else {
+                    TeamCupMember {
+                        competitor: Competitor::computer(id, id, jumper_name, Some(ti)),
+                        jumps: Vec::new(),
+                    }
                 }
-            } else {
-                TeamCupMember {
-                    competitor: Competitor::computer(id, id, jumper_name, Some(ti)),
-                    jumps: Vec::new(),
-                }
-            };
-            members.push(member);
-        }
+            })
+            .collect();
 
         teams.push(TeamCupTeam {
             id: ti,
-            name: td.name.clone(),
+            name,
             members,
             leg_score: 0,
             cup_points: 0,

@@ -15,6 +15,7 @@ use engine::ui::{Blinker, Element, Event, Key, View};
 enum ViewPhase {
     NamingTeam(usize),
     Ready,
+    ShowTeams,
     Jumping,
     Done,
 }
@@ -171,6 +172,73 @@ impl TeamCupJumpView {
         els
     }
 
+    fn showteams_elements(&self) -> Vec<Element> {
+        let mut els = new_screen_with_bg(1, BG_TEAMCUP);
+
+        // Title
+        els.push(Element::text(
+            self.resources.langbase.lstr(111).to_string(),
+            30,
+            6,
+            FONT_DEFAULT,
+            false,
+        ));
+
+        // Team grid: 3 columns, 5 rows
+        let mut x = 5i32;
+        let mut y = 24i32;
+        self.store.try_with_team_cup(|tc| {
+            for &team_idx in tc.team_order.iter().rev() {
+                let team = &tc.teams[team_idx];
+                let is_human = team.is_human_team;
+
+                // Team name in white
+                els.push(Element::text(
+                    nsh(&team.name, 95, &self.resources.font),
+                    x,
+                    y,
+                    FONT_DEFAULT,
+                    false,
+                ));
+
+                // Jumper names: gold if human, gray if AI
+                let jcolor = if is_human { FONT_GOLD } else { FONT_HELP };
+                for (j, member) in team.members.iter().enumerate() {
+                    // Pascal: t2=1..4 → y+1+(t2*6)
+                    els.push(Element::text(
+                        nsh(&member.competitor.name, 90, &self.resources.font),
+                        x + 4,
+                        y + 7 + j as i32 * 6,
+                        jcolor,
+                        false,
+                    ));
+                }
+
+                x += 102;
+                if x > 240 {
+                    x = 5;
+                    y += 35;
+                }
+            }
+        });
+
+        // WaitForKey3 at top right (305,6)
+        els.push(Element::right_text(
+            self.resources.langbase.lstr(15).to_string(),
+            305,
+            6,
+            FONT_DEFAULT,
+        ));
+        // getch(306,6,243): fillbox(304,4,312,14,243)
+        els.push(Element::fillbox(304, 4, 9, 11, BG_TEAMCUP));
+        if self.cursor_visible {
+            // givech: fillbox(306,12,310,12) = 5×1 underscore
+            els.push(Element::fillbox(306, 12, 5, 1, FONT_DEFAULT));
+        }
+
+        els
+    }
+
     fn drive_until_visible(&mut self) {
         let scene = JumpScene::new(
             ResourcesRef::clone(&self.resources),
@@ -231,6 +299,7 @@ impl TeamCupJumpView {
                     .enumerate()
                     .filter(|(_, t)| t.is_human_team)
                     .map(|(i, _)| i)
+                    .rev() // Pascal: GetTeam(0)→jnimet[15], GetTeam(1)→jnimet[14]
                     .collect();
                 if let Some(&team_idx) = human_indices.get(n) {
                     tc.teams[team_idx].name = name.clone();
@@ -254,7 +323,7 @@ impl View<RouteTarget> for TeamCupJumpView {
     fn update(&mut self) {
         self.cursor_visible = self.blinker.visible(10, 10);
 
-        if matches!(self.phase, ViewPhase::NamingTeam(_) | ViewPhase::Ready) {
+        if matches!(self.phase, ViewPhase::NamingTeam(_) | ViewPhase::Ready | ViewPhase::ShowTeams) {
             return;
         }
         if self.phase != ViewPhase::Jumping {
@@ -292,6 +361,9 @@ impl View<RouteTarget> for TeamCupJumpView {
         }
         if self.phase == ViewPhase::Ready {
             return self.ready_elements();
+        }
+        if self.phase == ViewPhase::ShowTeams {
+            return self.showteams_elements();
         }
         if self.phase == ViewPhase::Done {
             return vec![];
@@ -383,6 +455,13 @@ impl View<RouteTarget> for TeamCupJumpView {
 
         if self.phase == ViewPhase::Ready {
             if matches!(event, Event::Keyboard(_)) {
+                self.phase = ViewPhase::ShowTeams;
+            }
+            return None;
+        }
+
+        if self.phase == ViewPhase::ShowTeams {
+            if matches!(event, Event::Keyboard(_)) {
                 self.phase = ViewPhase::Jumping;
                 self.drive_until_visible();
             }
@@ -462,4 +541,24 @@ fn jumper_names_els(els: &mut Vec<Element>, store: &StoreRef, team_n: usize, xx:
     for (j, jname) in jumpers.iter().enumerate() {
         els.push(Element::text(jname.clone(), xx + 13, 56 + j as i32 * 10, FONT_GOLD, false));
     }
+}
+
+/// Pascal `nsh(str, maxpx)`: shorten name to fit `maxpx` pixel width.
+fn nsh(text: &str, max_px: i32, font: &engine::ui::Font) -> String {
+    if font.string_width(text) as i32 <= max_px {
+        return text.to_string();
+    }
+    // Try "I. Lastname" abbreviation
+    if let Some(space) = text.find(' ') {
+        let abbr = format!("{}.{}", &text[..1], &text[space..]);
+        if font.string_width(&abbr) as i32 <= max_px {
+            return abbr;
+        }
+    }
+    // Truncate + "."
+    let mut s: String = text.chars().take(text.len().saturating_sub(3)).collect();
+    while font.string_width(&format!("{}.", s)) as i32 > max_px && !s.is_empty() {
+        s.pop();
+    }
+    format!("{}.", s)
 }
