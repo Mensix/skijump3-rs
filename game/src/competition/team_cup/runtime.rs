@@ -174,6 +174,32 @@ impl TeamCupRuntime {
         .collect()
     }
 
+    pub fn is_human_current(&self) -> bool {
+        if self.current_team_order_pos >= self.team_order.len() {
+            return false;
+        }
+        let team_idx = self.team_order[self.current_team_order_pos];
+        self.teams.get(team_idx).is_some_and(|t| t.is_human_team)
+    }
+
+    pub fn current_jump_context(&self) -> TeamCupJumpContext {
+        let team_idx = if self.current_team_order_pos < self.team_order.len() {
+            self.team_order[self.current_team_order_pos]
+        } else {
+            0
+        };
+        let member = &self.teams[team_idx].members[self.current_jumper_slot];
+        TeamCupJumpContext {
+            leg_idx: self.current_leg,
+            round_idx: self.current_round,
+            team_idx,
+            member_idx: self.current_jumper_slot,
+            team_name: self.teams[team_idx].name.clone(),
+            jumper_name: member.competitor.name.clone(),
+            jumper_in_team: self.current_jumper_slot + 1,
+        }
+    }
+
     pub fn current_hill_idx(&self) -> usize {
         if self.current_leg < self.schedule.len() {
             self.schedule[self.current_leg]

@@ -8,7 +8,7 @@ pub mod setup;
 pub mod welcome;
 
 pub use custom_cup::CustomCupSetupView;
-pub(crate) use jump::WorldCupJumpView;
+pub(crate) use jump::{TeamCupJumpView, WorldCupJumpView};
 pub use jump::{TrainingJumpView, TrainingSetupView};
 pub use menu::{JumpMenuView, MainMenuView};
 pub use profiles::ProfilesView;
