@@ -5,6 +5,7 @@ use crate::competition::types::{CompetitionPhase, Participant, QualificationStat
 pub enum SortBy {
     WcPoints,
     FourHillsPoints,
+    TcPoints,
     EventPoints,
 }
 
@@ -55,6 +56,7 @@ impl CompetitionField {
         match by {
             SortBy::WcPoints => self.participants[idx].wc_points,
             SortBy::FourHillsPoints => self.participants[idx].four_hills_points,
+            SortBy::TcPoints => self.participants[idx].tc_points,
             SortBy::EventPoints => self.participants[idx].points.unwrap_or(i32::MIN),
         }
     }
@@ -69,7 +71,9 @@ impl CompetitionField {
         order.sort_by(|&a, &b| scores[b].cmp(&scores[a]));
 
         let target = match by {
-            SortBy::WcPoints | SortBy::FourHillsPoints => &mut self.master_order,
+            SortBy::WcPoints | SortBy::FourHillsPoints | SortBy::TcPoints => {
+                &mut self.master_order
+            }
             SortBy::EventPoints => &mut self.event_order,
         };
         *target = order.clone();

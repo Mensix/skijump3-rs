@@ -16,6 +16,7 @@ pub enum CupStyle {
     WorldCup,
     CustomCup,
     FourHills,
+    TeamCup,
 }
 
 /// High-level phase of a single competition event.
@@ -30,6 +31,7 @@ pub enum CompetitionPhase {
     Round2,
     Round2Results,
     FourHillsStandings,
+    TeamCupStandings,
     WorldCupStandings,
     EventComplete,
     SeasonComplete,
@@ -52,6 +54,7 @@ impl CompetitionPhase {
                 | Self::Round1Results
                 | Self::Round2Results
                 | Self::FourHillsStandings
+                | Self::TeamCupStandings
                 | Self::WorldCupStandings
                 | Self::SeasonComplete
         )
@@ -129,6 +132,7 @@ pub struct Participant {
     // Season-wide state
     pub wc_points: i32,
     pub four_hills_points: i32,
+    pub tc_points: i32,
     pub injury: u8,
 
     // Per-event state. None = hasn't started (DNS)
@@ -160,6 +164,7 @@ impl Participant {
             profile_idx: None,
             wc_points: 0,
             four_hills_points: 0,
+            tc_points: 0,
             injury: 0,
             points: None,
             rank: 0,

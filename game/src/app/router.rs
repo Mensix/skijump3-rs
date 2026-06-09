@@ -124,6 +124,11 @@ pub fn create_router(
                 RouteTarget::Quit,
                 ls(&layout, &store, |l, s| Box::new(MainMenuView::new(l, s))),
             ),
+            (RouteTarget::TeamCup, {
+                let l = layout.clone();
+                let s = store.clone();
+                Box::new(move || Box::new(MainMenuView::new(l.clone(), s.clone())))
+            }),
             (RouteTarget::Welcome, {
                 let r = resources;
                 let sm = save_manager;

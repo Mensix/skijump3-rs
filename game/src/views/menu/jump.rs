@@ -18,7 +18,7 @@ const JUMP_MENU_ACTIONS: &[Option<RouteTarget>] = &[
     None,                        // 1 - WorldCup (special, builds competition)
     None,                        // 2 - CustomCup (special, builds competition)
     None,                        // 3 - FourHills (special, builds competition)
-    Some(RouteTarget::MainMenu), // 4 - TeamCup (not implemented)
+    Some(RouteTarget::TeamCup),  // 4 - TeamCup
     Some(RouteTarget::MainMenu), // 5 - SeasonComplete (not implemented)
     Some(RouteTarget::Practice), // 6 - Practice
     Some(RouteTarget::MainMenu), // 7 - MainMenu

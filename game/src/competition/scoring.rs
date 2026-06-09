@@ -17,6 +17,18 @@ pub fn wc_points_for_rank(rank: usize) -> i32 {
     }
 }
 
+/// Team Cup points awarded to top 8 teams per leg (1-indexed).
+pub const TEAM_POINTS: [i32; 8] = [400, 350, 300, 250, 200, 150, 100, 50];
+
+#[must_use]
+pub fn team_points_for_rank(rank: usize) -> i32 {
+    if (1..=TEAM_POINTS.len()).contains(&rank) {
+        TEAM_POINTS[rank - 1]
+    } else {
+        0
+    }
+}
+
 /// Add World Cup points to each participant based on their rank in the current event.
 ///
 /// Only ranks 1..=30 receive points. Rank 1 gets 100, rank 2 gets 80, ..., rank 30 gets 1.

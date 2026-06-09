@@ -7,6 +7,7 @@ pub enum RouteTarget {
     Practice,
     Jump,
     CompetitionJump,
+    TeamCup,
     CustomCupSetup,
     Replays,
     ReplayPlayback,

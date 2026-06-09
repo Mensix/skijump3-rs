@@ -4,6 +4,13 @@ use serde::Deserialize;
 use std::collections::HashSet;
 
 #[derive(Debug, Clone)]
+pub struct TeamDef {
+    pub name: String,
+    /// 1-indexed indices into the names list (75 names).
+    pub members: [usize; 4],
+}
+
+#[derive(Debug, Clone)]
 pub struct NameCatalog {
     namesets: Vec<NameSet>,
 }
@@ -12,6 +19,7 @@ pub struct NameCatalog {
 pub(crate) struct NameSet {
     pub(crate) title: String,
     pub(crate) names: Vec<String>,
+    pub(crate) teams: Vec<TeamDef>,
 }
 
 impl NameCatalog {
@@ -34,6 +42,22 @@ impl NameCatalog {
     pub(crate) fn len(&self) -> usize {
         self.namesets.len()
     }
+
+    pub(crate) fn teams_for_config(&self, namenumber: i32) -> &[TeamDef] {
+        if namenumber >= 0 && (namenumber as usize) < self.namesets.len() {
+            &self.namesets[namenumber as usize].teams
+        } else {
+            &self.namesets[0].teams
+        }
+    }
+
+    pub(crate) fn nameset(&self, namenumber: i32) -> Option<&NameSet> {
+        if namenumber >= 0 && (namenumber as usize) < self.namesets.len() {
+            Some(&self.namesets[namenumber as usize])
+        } else {
+            self.namesets.first()
+        }
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -50,11 +74,20 @@ struct NameSetEntry {
 }
 
 #[derive(Debug, Deserialize)]
+struct TeamToml {
+    name: String,
+    #[serde(default)]
+    members: Vec<usize>,
+}
+
+#[derive(Debug, Deserialize)]
 struct NameSetToml {
     id: String,
     name: String,
     title: String,
     names: Vec<String>,
+    #[serde(default)]
+    teams: Vec<TeamToml>,
 }
 
 pub(crate) fn load_namesets(
@@ -113,17 +146,34 @@ pub(crate) fn load_namesets(
             )));
         }
 
-        if !seen_ids.insert(ns.id.clone()) {
-            return Err(AssetError::Custom(format!(
-                "Duplicate nameset id '{}'",
-                entry.id
-            )));
-        }
+            if !seen_ids.insert(ns.id.clone()) {
+                return Err(AssetError::Custom(format!(
+                    "Duplicate nameset id '{}'",
+                    entry.id
+                )));
+            }
 
-        namesets.push(NameSet {
-            title: ns.title,
-            names: ns.names,
-        });
+            let teams: Vec<TeamDef> = ns
+                .teams
+                .iter()
+                .map(|t| TeamDef {
+                    name: t.name.clone(),
+                    members: {
+                        let m = &t.members;
+                        if m.len() < 4 {
+                            [0, 0, 0, 0]
+                        } else {
+                            [m[0], m[1], m[2], m[3]]
+                        }
+                    },
+                })
+                .collect();
+
+            namesets.push(NameSet {
+                title: ns.title,
+                names: ns.names,
+                teams,
+            });
     }
 
     if !seen_ids.contains(&manifest.default) {

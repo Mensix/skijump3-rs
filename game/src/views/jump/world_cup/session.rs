@@ -163,6 +163,7 @@ impl WorldCupSessionController {
                         }
                     }
                     CupStyle::CustomCup => {}
+                    CupStyle::TeamCup => {}
                 }
             }
         });

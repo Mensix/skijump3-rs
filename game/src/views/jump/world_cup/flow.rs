@@ -118,6 +118,7 @@ mod tests {
             skip_quali: 0,
             wc_points: 0,
             four_hills_points: 0,
+            tc_points: 0,
             injury: 0,
             points: None,
             rank: 0,

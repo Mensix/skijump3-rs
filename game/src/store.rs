@@ -209,6 +209,44 @@ impl Default for ReplaySelection {
     }
 }
 
+/// Runtime state for a Team Cup competition session.
+#[derive(Debug, Clone)]
+pub struct TeamCupRuntime {
+    pub hill_order: Vec<usize>,
+    pub leg_number: usize,
+    pub round: usize,
+    pub jumper_idx: usize,
+    pub team_order: Vec<usize>,
+    pub team_lineup: Vec<Vec<usize>>,
+    pub team_names: Vec<String>,
+    pub team_points: Vec<i32>,
+    pub human_teams: usize,
+    pub leg_event_points: Vec<i32>,
+}
+
+impl TeamCupRuntime {
+    pub fn new(
+        team_names: Vec<String>,
+        team_lineup: Vec<Vec<usize>>,
+        hill_order: Vec<usize>,
+        human_teams: usize,
+    ) -> Self {
+        let team_count = team_names.len();
+        Self {
+            hill_order,
+            leg_number: 0,
+            round: 1,
+            jumper_idx: 0,
+            team_order: (0..team_count).collect(),
+            team_lineup,
+            team_names,
+            team_points: vec![0; team_count],
+            human_teams,
+            leg_event_points: vec![0; team_count],
+        }
+    }
+}
+
 /// Wraps `Option<Competition>` with scoped access methods so callers
 /// don't need to choreograph `borrow()` / `drop()` manually.
 #[derive(Debug, Clone)]
@@ -252,6 +290,7 @@ pub struct Store {
     practice: PracticeSettings,
     replay_selection: ReplaySelection,
     competition: CompetitionSlot,
+    team_cup: RefCell<Option<TeamCupRuntime>>,
     profiles: RefCell<ProfileStore>,
     records: RefCell<RecordStore>,
     selected_hill: Cell<usize>,
@@ -273,6 +312,7 @@ impl Store {
             practice: PracticeSettings::new(),
             replay_selection: ReplaySelection::new(),
             competition: CompetitionSlot::new(),
+            team_cup: RefCell::new(None),
             profiles: RefCell::new(ProfileStore::new()),
             records: RefCell::new(records),
             selected_hill: Cell::new(0),
@@ -288,6 +328,7 @@ impl Store {
             practice: PracticeSettings::new(),
             replay_selection: ReplaySelection::new(),
             competition: CompetitionSlot::new(),
+            team_cup: RefCell::new(None),
             profiles: RefCell::new(profiles),
             records: RefCell::new(records),
             selected_hill: Cell::new(0),
@@ -306,6 +347,22 @@ impl Store {
 
     pub fn try_with_competition_mut<R>(&self, f: impl FnOnce(&mut Competition) -> R) -> Option<R> {
         self.competition.try_with_mut(f)
+    }
+
+    pub fn start_team_cup(&self, tc: TeamCupRuntime) {
+        *self.team_cup.borrow_mut() = Some(tc);
+    }
+
+    pub fn try_with_team_cup<R>(&self, f: impl FnOnce(&TeamCupRuntime) -> R) -> Option<R> {
+        self.team_cup.borrow().as_ref().map(f)
+    }
+
+    pub fn try_with_team_cup_mut<R>(&self, f: impl FnOnce(&mut TeamCupRuntime) -> R) -> Option<R> {
+        self.team_cup.borrow_mut().as_mut().map(f)
+    }
+
+    pub fn clear_team_cup(&self) {
+        *self.team_cup.borrow_mut() = None;
     }
 
     pub fn profiles(&self) -> Ref<'_, ProfileStore> {

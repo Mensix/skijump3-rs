@@ -260,6 +260,9 @@ impl Competition {
             CompetitionPhase::WorldCupStandings => {
                 self.enter_phase(CompetitionPhase::EventComplete);
             }
+            CompetitionPhase::TeamCupStandings => {
+                self.enter_phase(CompetitionPhase::EventComplete);
+            }
             CompetitionPhase::EventComplete => {
                 self.current_event += 1;
                 if self.current_event >= self.hill_order.len() {
@@ -544,6 +547,10 @@ impl Competition {
                         self.field.get_mut(idx).four_hills_points += pts;
                     }
                 }
+            }
+            CupStyle::TeamCup => {
+                // Team points awarded per-leg via team_points_for_rank
+                // in the team cup flow (not per-jumper WC points).
             }
         }
     }
