@@ -9,8 +9,12 @@ use crate::competition::runtime::{CompetitionDecision, CompetitionRuntime};
 use crate::jump::types::{JumpOutcome, DEFAULT_START_GATE};
 
 impl TeamCupRuntime {
-    pub fn new(teams: Vec<TeamCupTeam>, schedule: Vec<usize>, human_teams: usize) -> Self {
-        let team_order: Vec<usize> = (0..teams.len()).collect();
+    pub fn new(
+        teams: Vec<TeamCupTeam>,
+        schedule: Vec<usize>,
+        human_teams: usize,
+        team_order: Vec<usize>,
+    ) -> Self {
         Self {
             teams,
             schedule,
@@ -295,7 +299,8 @@ mod tests {
             })
             .collect();
         let schedule = vec![0, 1, 2, 3, 4, 5];
-        TeamCupRuntime::new(teams, schedule, 2)
+        let team_order: Vec<usize> = (0..teams.len()).collect();
+        TeamCupRuntime::new(teams, schedule, 2, team_order)
     }
 
     fn simulate_leg(runtime: &mut TeamCupRuntime, leg_base_score: i32) {

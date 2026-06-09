@@ -71,7 +71,7 @@ impl CompetitionField {
             SortBy::WcPoints | SortBy::FourHillsPoints | SortBy::TcPoints => &mut self.master_order,
             SortBy::EventPoints => &mut self.event_order,
         };
-        *target = order.clone();
+        *target = order;
         for ranked in ranked {
             self.participants[ranked.item].rank = ranked.rank;
         }

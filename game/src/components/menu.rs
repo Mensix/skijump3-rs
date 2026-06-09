@@ -113,6 +113,10 @@ impl Menu {
     pub const fn has_exit(&self) -> bool {
         self.exit_item
     }
+
+    pub fn set_show_box(&mut self, show: bool) {
+        self.show_box = show;
+    }
 }
 
 impl Component for Menu {
