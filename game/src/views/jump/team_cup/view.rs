@@ -3,11 +3,12 @@ use crate::components::screen::new_screen_with_bg;
 use crate::competition::runtime::CompetitionRuntime;
 use crate::competition::team_cup::types::{TeamCupResultsKind, TeamCupStandingsKind};
 use crate::gfx::palette::{BG_TEAMCUP, BLACK, FONT_DEFAULT, FONT_GOLD, FONT_HELP};
-use crate::jump::JumpParticipant;
-use crate::jump::JumpPolicy;
+use crate::jump::{JumpParticipant, JumpPolicy};
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
+use crate::views::jump::competition::flow::handle_human_jump;
 use crate::views::jump::competition::ui_state::{CompetitionUiState, RenderMode};
+use crate::views::jump::input::{JumpInputAction, JumpInputController};
 use crate::views::jump::scene::JumpScene;
 use engine::ui::{Blinker, Element, Event, Key, View};
 
@@ -264,21 +265,20 @@ impl TeamCupJumpView {
         match command {
             TeamCupUiCommand::HumanJump(req) => {
                 let phase_label = if req.context.round_idx == 0 {
-                    self.resources.langbase.lstr(54).to_string() // "Round 1"
+                    self.resources.langbase.lstr(54).to_string()
                 } else {
-                    self.resources.langbase.lstr(55).to_string() // "Round 2"
+                    self.resources.langbase.lstr(55).to_string()
                 };
-                let scene = JumpScene::new(
-                    ResourcesRef::clone(&self.resources),
-                    StoreRef::clone(&self.store),
-                    req.hill_idx,
-                    15,
+                handle_human_jump(
+                    &mut self.scene,
+                    &self.ui_state,
+                    &self.resources,
+                    &self.store,
                     req.participant,
-                    JumpPolicy::competition(),
+                    req.hill_idx,
+                    phase_label,
+                    Some(req.context.team_name.clone()),
                 );
-                scene.set_phase_label(phase_label);
-                scene.set_team_name(req.context.team_name.clone());
-                self.scene = Some(scene);
                 self.ui_state.enter_jump();
             }
             TeamCupUiCommand::ShowResults(_kind) => {
@@ -347,7 +347,9 @@ impl View<RouteTarget> for TeamCupJumpView {
             self.ui_state.mark_outcome_recorded();
         }
 
-        if self.ui_state.render_mode() == RenderMode::Jump {
+        // Drive competition only after human jump outcome is recorded,
+        // not every frame during the jump (avoids recreating the scene).
+        if self.ui_state.is_outcome_recorded() {
             if let Some(ref scene) = self.scene {
                 match self.controller.drive_competition(scene) {
                     Ok(Some(cmd)) => self.apply_command(cmd),
@@ -494,6 +496,17 @@ impl View<RouteTarget> for TeamCupJumpView {
                 self.drive_until_visible();
             }
             return None;
+        }
+
+        // Forward keyboard to jump controls while jump is active
+        if let Some(ref scene) = self.scene {
+            if self.phase == ViewPhase::Jumping {
+                let mut session = scene.session_mut();
+                let action = JumpInputController.handle_event(event, &mut session);
+                if matches!(action, JumpInputAction::RouteBack) {
+                    return Some(RouteTarget::Back);
+                }
+            }
         }
 
         None

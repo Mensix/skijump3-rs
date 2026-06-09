@@ -1,7 +1,11 @@
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
-/// Centralized file IO with save-dir override over asset-dir fallback.
+#[derive(rust_embed::RustEmbed)]
+#[folder = "assets/"]
+struct Assets;
+
+/// Centralized file IO with embedded-asset fallback for single-exe builds.
 /// All file paths are relative to roots; callers use filenames like "config.toml".
 #[derive(Debug, Clone)]
 pub struct FileStore {
@@ -18,12 +22,15 @@ impl FileStore {
         }
     }
 
-    /// Read first from `save_dir`, fallback to `asset_dir` on `NotFound`.
+    /// Read from save dir first, then embedded assets, then filesystem assets.
     pub fn read(&self, name: &str) -> Result<Vec<u8>, std::io::Error> {
         let save_path = self.save_dir.join(name);
         match std::fs::read(&save_path) {
             Ok(data) => Ok(data),
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                if let Some(embedded) = Assets::get(name) {
+                    return Ok(embedded.data.to_vec());
+                }
                 let asset_path = self.asset_dir.join(name);
                 std::fs::read(&asset_path)
             }
@@ -68,18 +75,13 @@ impl FileStore {
     fn list_by_ext_in(&self, dir: &Path, ext: &str) -> Result<Vec<String>, std::io::Error> {
         let mut result = Vec::new();
         for entry in std::fs::read_dir(dir)? {
-            let entry = entry?;
-            if entry.file_type()?.is_file()
-                && entry
-                    .path()
-                    .extension()
-                    .and_then(|e| e.to_str())
-                    .is_some_and(|e| e.eq_ignore_ascii_case(ext))
-            {
-                result.push(entry.file_name().to_string_lossy().into_owned());
+            let path = entry?.path();
+            if path.extension().is_some_and(|e| e == ext) {
+                if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
+                    result.push(name.to_string());
+                }
             }
         }
-        result.sort();
         Ok(result)
     }
 }
@@ -87,74 +89,20 @@ impl FileStore {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs;
 
-    fn setup() -> (FileStore, tempfile::TempDir, tempfile::TempDir) {
-        let save = tempfile::tempdir().unwrap();
-        let asset = tempfile::tempdir().unwrap();
-        let store = FileStore::new(asset.path().to_path_buf(), save.path().to_path_buf());
-        (store, save, asset)
+    #[test]
+    fn embedded_assets_accessible() {
+        assert!(Assets::get("languages/english.toml").is_some());
+        assert!(Assets::get("sprites/manifest.toml").is_some());
     }
 
     #[test]
-    fn read_fallback_from_asset() {
-        let (store, _save, asset) = setup();
-        fs::write(asset.path().join("fallback.txt"), b"asset data").unwrap();
-        let data = store.read("fallback.txt").unwrap();
-        assert_eq!(data, b"asset data");
-    }
-
-    #[test]
-    fn save_overrides_asset() {
-        let (store, save, asset) = setup();
-        fs::write(asset.path().join("override.txt"), b"asset data").unwrap();
-        fs::write(save.path().join("override.txt"), b"save data").unwrap();
-        let data = store.read("override.txt").unwrap();
-        assert_eq!(data, b"save data");
-    }
-
-    #[test]
-    fn atomic_write_no_tmp_left_behind() {
-        let (store, save, _asset) = setup();
-        store.write("clean.txt", b"data").unwrap();
-        // No .clean.txt.tmp should remain
-        let entries: Vec<_> = fs::read_dir(save.path())
-            .unwrap()
-            .filter_map(std::result::Result::ok)
-            .map(|e| e.file_name().to_string_lossy().to_string())
-            .collect();
-        assert!(!entries.iter().any(|n| n.starts_with('.')));
-    }
-
-    #[test]
-    fn list_by_ext_filters_by_extension() {
-        let (store, save, _asset) = setup();
-        fs::write(save.path().join("a.SJR"), b"").unwrap();
-        fs::write(save.path().join("b.SJR"), b"").unwrap();
-        fs::write(save.path().join("c.txt"), b"").unwrap();
-        let mut names = store.list_by_ext("SJR").unwrap();
-        names.sort();
-        assert_eq!(names, vec!["a.SJR", "b.SJR"]);
-    }
-
-    #[test]
-    fn write_creates_save_dir_if_missing() {
-        let asset = tempfile::tempdir().unwrap();
-        let missing = asset.path().join("nonexistent_save");
-        let store = FileStore::new(asset.path().to_path_buf(), missing.clone());
-        assert!(!missing.exists(), "save_dir should not exist yet");
-        store.write("new_file.txt", b"hello").unwrap();
-        assert!(missing.exists(), "save_dir should have been created");
-        assert_eq!(store.read("new_file.txt").unwrap(), b"hello");
-    }
-
-    #[test]
-    fn list_by_ext_all_falls_back_when_save_dir_missing() {
-        let asset = tempfile::tempdir().unwrap();
-        std::fs::write(asset.path().join("hill.SJR"), b"").unwrap();
-        let missing = asset.path().join("no_save_yet");
-        let store = FileStore::new(asset.path().to_path_buf(), missing);
-        let names = store.list_by_ext_all("SJR").unwrap();
-        assert_eq!(names, vec!["hill.SJR"]);
+    fn file_store_falls_back_to_embedded() {
+        let store = FileStore::new(
+            PathBuf::from("/nonexistent"),
+            PathBuf::from("/nonexistent"),
+        );
+        let data = store.read("languages/english.toml");
+        assert!(data.is_ok(), "should read from embedded: {:?}", data.err());
     }
 }

@@ -1,6 +1,10 @@
 use crate::competition::runtime::{CompetitionDecision, CompetitionRuntime};
 use crate::jump::config::JumpParticipant;
+use crate::jump::policy::JumpPolicy;
 use crate::jump::types::JumpOutcome;
+use crate::store::{ResourcesRef, StoreRef};
+use crate::views::jump::competition::ui_state::CompetitionUiState;
+use crate::views::jump::scene::JumpScene;
 
 #[derive(Debug)]
 pub(crate) enum CompetitionFlowCommand<C, R> {
@@ -50,6 +54,49 @@ where
                     return Ok(CompetitionFlowCommand::Done);
                 }
             }
+        }
+    }
+}
+
+/// Shared helper: rebuild or update the jump scene for a human jump.
+/// Prevents recreating the scene every frame (which would reset the jumper).
+pub(crate) fn handle_human_jump(
+    scene: &mut Option<JumpScene>,
+    ui_state: &CompetitionUiState,
+    resources: &ResourcesRef,
+    store: &StoreRef,
+    participant: JumpParticipant,
+    hill_idx: usize,
+    phase_label: String,
+    team_name: Option<String>,
+) {
+    let needs_build = scene.as_ref().is_none_or(|s| {
+        s.participant_id() != participant.id
+            || s.hill_idx() != hill_idx
+            || ui_state.is_outcome_recorded()
+            || (s.outcome().is_some() && ui_state.is_result_acknowledged())
+    });
+
+    if needs_build {
+        ui_state.reset_acknowledged();
+        ui_state.reset_outcome_recorded();
+        let new_scene = JumpScene::new(
+            ResourcesRef::clone(resources),
+            StoreRef::clone(store),
+            hill_idx,
+            15,
+            participant,
+            JumpPolicy::competition(),
+        );
+        new_scene.set_phase_label(phase_label);
+        if let Some(name) = team_name {
+            new_scene.set_team_name(name);
+        }
+        *scene = Some(new_scene);
+    } else if let Some(ref s) = scene {
+        s.set_phase_label(phase_label);
+        if let Some(name) = team_name {
+            s.set_team_name(name);
         }
     }
 }
