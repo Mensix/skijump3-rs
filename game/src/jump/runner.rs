@@ -97,6 +97,10 @@ impl JumpRunner {
         self.config.phase_label = label;
     }
 
+    pub(crate) fn set_team_name(&mut self, name: String) {
+        self.config.team_name = name;
+    }
+
     /// Advance physics, AI, and wind by one frame. Call once per frame
     /// before `elements()` so the rendering stays pure.
     pub(crate) fn update(&mut self, rng: &mut Random, wind: &mut Wind) {
@@ -151,6 +155,7 @@ impl JumpRunner {
                 y: wind_pos.y,
             },
             phase_label: &self.config.phase_label,
+            team_name: &self.config.team_name,
             allow_gate_adjust: self.config.policy.allow_start_gate_adjust,
             hide_info_panel_text: self.hide_info_panel_text.get(),
             suit_color: self.config.participant.suit_color as usize,

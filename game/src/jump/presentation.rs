@@ -1,8 +1,8 @@
 use crate::data::records::HillRecord;
-use crate::gfx::palette::{
-    self, FILL_BORDER, FONT_DEFAULT, FONT_GOLD, FONT_GREET, FONT_HELP, JUMPER_SKI_SOURCE,
-    JUMPER_SUIT_SOURCE_SHADE_1, JUMPER_SUIT_SOURCE_SHADE_3,
-};
+    use crate::gfx::palette::{
+        self, FILL_BORDER, FILL_TURQUOISE, FONT_DEFAULT, FONT_GOLD, FONT_GREET, FONT_HELP,
+        JUMPER_SKI_SOURCE, JUMPER_SUIT_SOURCE_SHADE_1, JUMPER_SUIT_SOURCE_SHADE_3,
+    };
 use crate::gfx::sprites;
 use crate::jump::frame::JumpRenderFrame;
 use crate::jump::types::JumpPhase;
@@ -29,6 +29,7 @@ pub struct JumpPresentationContext<'a> {
     pub(crate) hide_info_panel_text: bool,
     pub(crate) suit_color: usize,
     pub(crate) ski_color: usize,
+    pub(crate) team_name: &'a str,
 }
 
 pub fn elements(frame: &JumpRenderFrame, ctx: &JumpPresentationContext<'_>) -> Vec<Element> {
@@ -171,6 +172,16 @@ fn jumper_info_box_elements(
         FONT_DEFAULT,
         false,
     ));
+    if !ctx.team_name.is_empty() {
+        // Pascal: WriteFont(14+fontlen(lstr(56)),179,jnimet[team])
+        els.push(Element::text(
+            ctx.team_name,
+            14 + label_w,
+            179,
+            FILL_TURQUOISE,
+            false,
+        ));
+    }
     els.push(Element::text(
         ctx.langbase.lstr(59),
         12,

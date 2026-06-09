@@ -263,14 +263,11 @@ impl TeamCupJumpView {
     fn apply_command(&mut self, command: TeamCupUiCommand) {
         match command {
             TeamCupUiCommand::HumanJump(req) => {
-                let leg_label = format!("{}", req.context.leg_idx + 1);
-                let phase_label = format!(
-                    "{} {}  {} {}",
-                    self.resources.langbase.lstr(77), // "Round"
-                    req.context.round_idx + 1,
-                    self.resources.langbase.lstr(78), // "Leg"
-                    leg_label,
-                );
+                let phase_label = if req.context.round_idx == 0 {
+                    self.resources.langbase.lstr(54).to_string() // "Round 1"
+                } else {
+                    self.resources.langbase.lstr(55).to_string() // "Round 2"
+                };
                 let scene = JumpScene::new(
                     ResourcesRef::clone(&self.resources),
                     StoreRef::clone(&self.store),
@@ -280,6 +277,7 @@ impl TeamCupJumpView {
                     JumpPolicy::competition(),
                 );
                 scene.set_phase_label(phase_label);
+                scene.set_team_name(req.context.team_name.clone());
                 self.scene = Some(scene);
                 self.ui_state.enter_jump();
             }

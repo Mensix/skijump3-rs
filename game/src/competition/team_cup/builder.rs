@@ -1,5 +1,5 @@
 use crate::competition::core::competitor::{active_profiles, Competitor};
-use crate::competition::core::schedule::sequential_schedule;
+use crate::competition::core::schedule::{random_unique_schedule, sequential_schedule};
 use crate::competition::team_cup::types::{
     TeamCupMember, TeamCupRuntime, TeamCupTeam, MEMBERS_PER_TEAM, NUM_LEGS, NUM_TEAMS,
 };
@@ -17,7 +17,7 @@ pub fn build_team_cup(
     rng: &mut Random,
 ) -> TeamCupRuntime {
     let teams = build_teams(names, teams_def, profiles, human_team_count);
-    let schedule = build_schedule(hill_count);
+    let schedule = build_schedule(hill_count, rng);
     let team_order = shuffle_team_order(teams.len(), rng);
 
     TeamCupRuntime::new(teams, schedule, human_team_count, team_order)
@@ -101,6 +101,10 @@ fn build_teams(
     teams
 }
 
-fn build_schedule(hill_count: usize) -> Vec<usize> {
-    sequential_schedule(hill_count, NUM_LEGS)
+fn build_schedule(hill_count: usize, rng: &mut Random) -> Vec<usize> {
+    if hill_count > 0 {
+        random_unique_schedule(hill_count, NUM_LEGS, rng)
+    } else {
+        sequential_schedule(hill_count, NUM_LEGS)
+    }
 }

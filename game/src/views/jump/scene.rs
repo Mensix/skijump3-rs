@@ -106,6 +106,10 @@ impl JumpScene {
         self.runner.borrow_mut().set_phase_label(label);
     }
 
+    pub fn set_team_name(&self, name: String) {
+        self.runner.borrow_mut().set_team_name(name);
+    }
+
     pub fn set_hide_info_panel_text(&self, hide: bool) {
         self.runner.borrow().hide_info_panel_text.set(hide);
     }
@@ -221,6 +225,7 @@ impl JumpScene {
                 policy,
                 record_distance,
                 phase_label,
+                team_name: String::new(),
             },
             snow,
         )
