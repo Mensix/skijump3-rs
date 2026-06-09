@@ -1,32 +1,25 @@
+use crate::competition::core::scoring::PointsTable;
 use crate::competition::field::CompetitionField;
 
 /// World Cup points awarded to top 30 finishers (1-indexed: position 1 → 100 pts).
-pub const WC_POINTS: [i32; 30] = [
+pub const WC_POINTS: PointsTable<30> = PointsTable::new([
     100, 80, 60, 50, 45, 40, 36, 32, 29, 26, 24, 22, 20, 18, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7,
     6, 5, 4, 3, 2, 1,
-];
+]);
 
 /// Look up WC points awarded for a given rank (1-indexed).
 /// Rank 1 → 100, rank 30 → 1, out-of-range → 0.
 #[must_use]
 pub fn wc_points_for_rank(rank: usize) -> i32 {
-    if (1..=WC_POINTS.len()).contains(&rank) {
-        WC_POINTS[rank - 1]
-    } else {
-        0
-    }
+    WC_POINTS.points_for_rank(rank)
 }
 
 /// Team Cup points awarded to top 8 teams per leg (1-indexed).
-pub const TEAM_POINTS: [i32; 8] = [400, 350, 300, 250, 200, 150, 100, 50];
+pub const TEAM_POINTS: PointsTable<8> = PointsTable::new([400, 350, 300, 250, 200, 150, 100, 50]);
 
 #[must_use]
 pub fn team_points_for_rank(rank: usize) -> i32 {
-    if (1..=TEAM_POINTS.len()).contains(&rank) {
-        TEAM_POINTS[rank - 1]
-    } else {
-        0
-    }
+    TEAM_POINTS.points_for_rank(rank)
 }
 
 /// Add World Cup points to each participant based on their rank in the current event.
@@ -96,8 +89,9 @@ mod tests {
     #[test]
     fn table_has_30_entries() {
         assert_eq!(WC_POINTS.len(), 30);
-        assert_eq!(WC_POINTS[0], 100);
-        assert_eq!(WC_POINTS[29], 1);
+        let points = WC_POINTS.points();
+        assert_eq!(points[0], 100);
+        assert_eq!(points[29], 1);
     }
 
     #[test]

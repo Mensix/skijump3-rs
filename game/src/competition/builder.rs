@@ -1,6 +1,10 @@
+use crate::competition::core::competitor::{
+    active_profiles, computer_names_without_replacements, Competitor,
+};
+use crate::competition::core::schedule::{fixed_schedule, sequential_schedule};
 use crate::competition::machine::Competition;
 use crate::competition::types::{CupStyle, Participant, QualificationStatus};
-use crate::data::profile::{Profile, ProfileStore};
+use crate::data::profile::ProfileStore;
 
 const TOTAL_SLOTS: usize = 75;
 
@@ -36,19 +40,14 @@ pub fn build_custom_competition(
 
 fn build_hill_order(style: CupStyle, hill_count: usize) -> Vec<usize> {
     match style {
-        CupStyle::FourHills => vec![8, 9, 10, 11],
-        _ => (0..hill_count.min(TOTAL_SLOTS)).collect(),
+        CupStyle::FourHills => fixed_schedule([8, 9, 10, 11]),
+        _ => sequential_schedule(hill_count, TOTAL_SLOTS),
     }
 }
 
 fn build_participants(profiles: &ProfileStore, computer_names: &[String]) -> Vec<Participant> {
     let mut participants = Vec::with_capacity(TOTAL_SLOTS);
-    let active_profiles: Vec<(usize, &Profile)> = profiles
-        .active_order
-        .iter()
-        .copied()
-        .filter_map(|idx| Some((idx, profiles.profiles.get(idx)?)))
-        .collect();
+    let active_profiles = active_profiles(profiles);
     let profile_count = active_profiles.len().min(TOTAL_SLOTS);
     let first_profile_slot = TOTAL_SLOTS - profile_count;
     let computer_names = computer_names_without_replacements(computer_names, &active_profiles);
@@ -57,16 +56,17 @@ fn build_participants(profiles: &ProfileStore, computer_names: &[String]) -> Vec
         if i >= first_profile_slot {
             let list_idx = TOTAL_SLOTS - 1 - i;
             let (profile_idx, p) = &active_profiles[list_idx];
+            let competitor = Competitor::from_profile(i, *profile_idx, p, None);
             participants.push(Participant {
                 id: i,
-                ai_id: 0,
-                profile_idx: Some(*profile_idx),
-                name: p.name.clone(),
-                real_name: p.real_name.clone(),
-                suit_color: p.suit_color as u8,
-                ski_color: p.ski_color as u8,
-                team: None,
-                is_computer: false,
+                ai_id: competitor.ai_id,
+                profile_idx: competitor.profile_idx,
+                name: competitor.name,
+                real_name: competitor.real_name,
+                suit_color: competitor.suit_color,
+                ski_color: competitor.ski_color,
+                team: competitor.team,
+                is_computer: competitor.is_computer,
                 skip_quali: p.skip_quali as u8,
                 wc_points: 0,
                 four_hills_points: 0,
@@ -86,28 +86,12 @@ fn build_participants(profiles: &ProfileStore, computer_names: &[String]) -> Vec
                 .get(i % computer_names.len().max(1))
                 .cloned()
                 .unwrap_or_else(|| format!("Computer {}", i + 1));
-            participants.push(Participant::computer(i, i, name));
+            let competitor = Competitor::computer(i, i, name, None);
+            participants.push(Participant::from_competitor(competitor));
         }
     }
 
     participants
-}
-
-fn computer_names_without_replacements(
-    computer_names: &[String],
-    active_profiles: &[(usize, &Profile)],
-) -> Vec<String> {
-    computer_names
-        .iter()
-        .enumerate()
-        .filter(|(idx, _)| {
-            let replace = idx + 1;
-            !active_profiles
-                .iter()
-                .any(|(_, profile)| profile.replace == replace)
-        })
-        .map(|(_, name)| name.clone())
-        .collect()
 }
 
 #[cfg(test)]

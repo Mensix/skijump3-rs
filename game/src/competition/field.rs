@@ -1,3 +1,4 @@
+use crate::competition::core::ranking::ranked_order;
 use crate::competition::types::{CompetitionPhase, Participant, QualificationStatus};
 
 /// Criterion for sorting the participant list.
@@ -63,30 +64,16 @@ impl CompetitionField {
 
     /// Sort participants by score descending into the appropriate ordering array.
     pub fn sort_field(&mut self, by: SortBy) {
-        let scores: Vec<i32> = (0..self.participants.len())
-            .map(|i| self.score(by, i))
-            .collect();
-
-        let mut order: Vec<usize> = (0..self.participants.len()).collect();
-        order.sort_by(|&a, &b| scores[b].cmp(&scores[a]));
+        let ranked = ranked_order(0..self.participants.len(), |i| self.score(by, i));
+        let order: Vec<usize> = ranked.iter().map(|r| r.item).collect();
 
         let target = match by {
-            SortBy::WcPoints | SortBy::FourHillsPoints | SortBy::TcPoints => {
-                &mut self.master_order
-            }
+            SortBy::WcPoints | SortBy::FourHillsPoints | SortBy::TcPoints => &mut self.master_order,
             SortBy::EventPoints => &mut self.event_order,
         };
         *target = order.clone();
-        self.calculate_ranks_from(&scores, &order);
-    }
-
-    fn calculate_ranks_from(&mut self, scores: &[i32], order: &[usize]) {
-        let mut rank = 1;
-        for i in 0..order.len() {
-            if i > 0 && scores[order[i]] < scores[order[i - 1]] {
-                rank = i + 1;
-            }
-            self.participants[order[i]].rank = rank;
+        for ranked in ranked {
+            self.participants[ranked.item].rank = ranked.rank;
         }
     }
 

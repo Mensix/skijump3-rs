@@ -1,3 +1,4 @@
+use crate::competition::core::competitor::Competitor;
 use crate::jump::types::FallType;
 
 /// A jump result as recorded into the competition. Carries only the fields
@@ -150,18 +151,18 @@ pub struct Participant {
 
 impl Participant {
     #[must_use]
-    pub fn computer(id: usize, ai_id: usize, name: String) -> Self {
+    pub fn from_competitor(competitor: Competitor) -> Self {
         Self {
-            id,
-            ai_id,
-            name,
-            real_name: String::new(),
-            suit_color: 0,
-            ski_color: 0,
-            team: None,
-            is_computer: true,
+            id: competitor.id,
+            ai_id: competitor.ai_id,
+            name: competitor.name,
+            real_name: competitor.real_name,
+            suit_color: competitor.suit_color,
+            ski_color: competitor.ski_color,
+            team: competitor.team,
+            is_computer: competitor.is_computer,
             skip_quali: 0,
-            profile_idx: None,
+            profile_idx: competitor.profile_idx,
             wc_points: 0,
             four_hills_points: 0,
             tc_points: 0,
@@ -175,6 +176,11 @@ impl Participant {
             round2_len: 0,
             qual_len: 0,
         }
+    }
+
+    #[must_use]
+    pub fn computer(id: usize, ai_id: usize, name: String) -> Self {
+        Self::from_competitor(Competitor::computer(id, ai_id, name, None))
     }
 
     #[must_use]

@@ -2,6 +2,7 @@ use std::cell::Cell;
 
 use super::flow::{self, WorldCupCommand};
 use crate::competition::machine::Competition;
+use crate::competition::runtime::{CompetitionRuntime, IndividualJumpContext};
 use crate::competition::scoring::wc_points_for_rank;
 use crate::competition::types::{CompetitionPhase, CupStyle};
 use crate::jump::types::JumpOutcome;
@@ -63,17 +64,23 @@ impl WorldCupSessionController {
             Some(o) => o,
             None => return false,
         };
-        if !self
-            .store
-            .try_with_competition(Competition::is_human_current)
+        self.store
+            .try_with_competition_mut(|c| {
+                if !c.is_human_current() {
+                    return false;
+                }
+                let Some(participant_idx) = c.current_jumper() else {
+                    return false;
+                };
+                let context = IndividualJumpContext {
+                    event_idx: c.current_event,
+                    phase: c.phase(),
+                    participant_idx,
+                };
+                c.record_jump_runtime(&context, outcome);
+                true
+            })
             .unwrap_or(false)
-        {
-            return false;
-        }
-        self.store.try_with_competition_mut(|c| {
-            c.apply_jump_outcome(outcome);
-        });
-        true
     }
 
     /// Drive the competition state machine forward.

@@ -1,3 +1,4 @@
+pub(crate) mod competition;
 pub(crate) mod input;
 pub(crate) mod scene;
 pub mod training_jump;

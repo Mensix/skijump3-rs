@@ -3,6 +3,7 @@ use super::results;
 use super::session::{WorldCupSessionController, WorldCupUiCommand};
 use super::ui_state::{CompetitionUiState, RenderMode, ResultScreen};
 use crate::competition::machine::Competition;
+use crate::competition::runtime::{CompetitionRuntime, IndividualResultsKind};
 use crate::competition::types::{CompetitionPhase, CupStyle};
 use crate::gfx::palette::{BLACK, FONT_GREET};
 use crate::jump::types::JumpPhase;
@@ -309,7 +310,9 @@ impl WorldCupJumpView {
                 // Pascal WaitForKey(0): any key on the last entry exits the list
                 self.blinker.reset();
                 self.ui_state.dismiss_results();
-                self.store.try_with_competition_mut(Competition::advance);
+                self.store.try_with_competition_mut(|c| {
+                    c.advance_results_runtime(IndividualResultsKind::Results);
+                });
                 match self.controller.drive_competition(&self.scene) {
                     Ok(Some(command)) => self.apply_command(command),
                     Ok(None) => {}
@@ -361,7 +364,9 @@ impl WorldCupJumpView {
                 }
                 self.blinker.reset();
                 self.ui_state.dismiss_results();
-                self.store.try_with_competition_mut(Competition::advance);
+                self.store.try_with_competition_mut(|c| {
+                    c.advance_results_runtime(IndividualResultsKind::Results);
+                });
                 match self.controller.drive_competition(&self.scene) {
                     Ok(Some(command)) => self.apply_command(command),
                     Ok(None) => {}

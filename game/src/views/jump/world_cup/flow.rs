@@ -1,8 +1,9 @@
-use crate::competition::machine::{Competition, StepDecision};
-use crate::competition::types::{CompetitionPhase, Participant};
+use crate::competition::machine::Competition;
+use crate::competition::runtime::{IndividualJumpContext, IndividualResultsKind};
+use crate::competition::types::CompetitionPhase;
 use crate::jump::config::JumpParticipant;
-use crate::jump::policy::JumperControl;
 use crate::jump::types::JumpOutcome;
+use crate::views::jump::competition::flow as competition_flow;
 use std::cell::Cell;
 
 #[derive(Debug)]
@@ -15,26 +16,6 @@ pub enum WorldCupCommand {
     },
     ShowResults,
     Done,
-}
-
-/// Convert a competition Participant to a jump-domain `JumpParticipant`.
-/// Lives here (the boundary) so neither `jump` nor `competition` needs
-/// to know about the other.
-pub(crate) fn participant_to_jump(p: &Participant) -> JumpParticipant {
-    JumpParticipant {
-        id: p.id,
-        ai_id: p.ai_id,
-        name: p.name.clone(),
-        real_name: p.real_name.clone(),
-        suit_color: p.suit_color,
-        ski_color: p.ski_color,
-        team: p.team,
-        control: if p.is_computer {
-            JumperControl::Computer
-        } else {
-            JumperControl::Human
-        },
-    }
 }
 
 /// Extract event-change check for testability.
@@ -55,45 +36,27 @@ pub(crate) fn drive<E>(
     last_event: &Cell<usize>,
     simulate_computer: &mut dyn FnMut(JumpParticipant, usize) -> Result<JumpOutcome, E>,
 ) -> Result<WorldCupCommand, E> {
-    loop {
-        match competition.decide_next() {
-            StepDecision::ShowResults => return Ok(WorldCupCommand::ShowResults),
-            StepDecision::AdvancePhase => {
-                competition.advance();
-                continue;
-            }
-            StepDecision::Skip => {
-                competition.skip_current_jumper();
-                continue;
-            }
-            StepDecision::Jump {
-                idx,
-                hill_idx,
-                is_human,
-            } => {
-                let is_training = matches!(competition.phase(), CompetitionPhase::Training(_));
-
-                if is_human && !is_training {
-                    let participant = participant_to_jump(competition.participant(idx));
-                    return Ok(WorldCupCommand::HumanJump {
-                        participant,
-                        hill_idx,
-                        phase: competition.phase(),
-                        is_new_event: check_event_change(competition.current_event, last_event),
-                    });
-                }
-
-                let participant = participant_to_jump(competition.participant(idx));
-                let outcome = simulate_computer(participant, hill_idx)?;
-                competition.apply_jump_outcome(outcome);
-                competition.advance();
-
-                if competition.is_over() {
-                    return Ok(WorldCupCommand::Done);
-                }
-            }
+    let mut mark_new_event = |ctx: &IndividualJumpContext, _runtime_flag: bool| {
+        check_event_change(ctx.event_idx, last_event)
+    };
+    let command = competition_flow::drive(competition, simulate_computer, &mut mark_new_event)?;
+    Ok(match command {
+        competition_flow::CompetitionFlowCommand::HumanJump {
+            participant,
+            hill_idx,
+            context,
+            is_new_event,
+        } => WorldCupCommand::HumanJump {
+            participant,
+            hill_idx,
+            phase: context.phase,
+            is_new_event,
+        },
+        competition_flow::CompetitionFlowCommand::ShowResults(IndividualResultsKind::Results) => {
+            WorldCupCommand::ShowResults
         }
-    }
+        competition_flow::CompetitionFlowCommand::Done => WorldCupCommand::Done,
+    })
 }
 
 #[cfg(test)]

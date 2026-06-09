@@ -1,4 +1,5 @@
 use crate::competition::machine::Competition;
+use crate::competition::team_cup::types::TeamCupRuntime;
 use crate::content::names::NameCatalog;
 use crate::data::hill::HillCatalog;
 use crate::data::hill_profile::HillTerrain;
@@ -206,44 +207,6 @@ impl ReplaySelection {
 impl Default for ReplaySelection {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-/// Runtime state for a Team Cup competition session.
-#[derive(Debug, Clone)]
-pub struct TeamCupRuntime {
-    pub hill_order: Vec<usize>,
-    pub leg_number: usize,
-    pub round: usize,
-    pub jumper_idx: usize,
-    pub team_order: Vec<usize>,
-    pub team_lineup: Vec<Vec<usize>>,
-    pub team_names: Vec<String>,
-    pub team_points: Vec<i32>,
-    pub human_teams: usize,
-    pub leg_event_points: Vec<i32>,
-}
-
-impl TeamCupRuntime {
-    pub fn new(
-        team_names: Vec<String>,
-        team_lineup: Vec<Vec<usize>>,
-        hill_order: Vec<usize>,
-        human_teams: usize,
-    ) -> Self {
-        let team_count = team_names.len();
-        Self {
-            hill_order,
-            leg_number: 0,
-            round: 1,
-            jumper_idx: 0,
-            team_order: (0..team_count).collect(),
-            team_lineup,
-            team_names,
-            team_points: vec![0; team_count],
-            human_teams,
-            leg_event_points: vec![0; team_count],
-        }
     }
 }
 
