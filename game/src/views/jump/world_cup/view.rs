@@ -1,7 +1,7 @@
 use super::overlay::CompetitionOverlay;
 use super::results;
 use super::session::{WorldCupSessionController, WorldCupUiCommand};
-use super::ui_state::{CompetitionUiState, RenderMode, ResultScreen};
+use crate::views::jump::competition::ui_state::{CompetitionUiState, RenderMode, ResultScreen};
 use crate::competition::machine::Competition;
 use crate::competition::runtime::{CompetitionRuntime, IndividualResultsKind};
 use crate::competition::types::{CompetitionPhase, CupStyle};

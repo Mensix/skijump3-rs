@@ -4,7 +4,7 @@ use crate::app::router::create_router;
 use crate::content::ContentStore;
 use crate::data::records::RecordStore;
 use crate::files::FileStore;
-use crate::gfx::palette::{FONT_HELP, Rgb6Palette};
+use crate::gfx::palette::{Rgb6Palette, FONT_HELP};
 use crate::gfx::png::load_png;
 use crate::route::RouteTarget;
 use crate::save::{SaveManager, SaveRef};
@@ -172,7 +172,9 @@ impl Game {
         if cfg!(debug_assertions) {
             elements.push(Element::right_text(
                 format!("{:.0} fps", self.fps_display),
-                319, 192, FONT_HELP,
+                319,
+                192,
+                FONT_HELP,
             ));
         }
 

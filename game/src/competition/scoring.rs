@@ -14,14 +14,6 @@ pub fn wc_points_for_rank(rank: usize) -> i32 {
     WC_POINTS.points_for_rank(rank)
 }
 
-/// Team Cup points awarded to top 8 teams per leg (1-indexed).
-pub const TEAM_POINTS: PointsTable<8> = PointsTable::new([400, 350, 300, 250, 200, 150, 100, 50]);
-
-#[must_use]
-pub fn team_points_for_rank(rank: usize) -> i32 {
-    TEAM_POINTS.points_for_rank(rank)
-}
-
 /// Add World Cup points to each participant based on their rank in the current event.
 ///
 /// Only ranks 1..=30 receive points. Rank 1 gets 100, rank 2 gets 80, ..., rank 30 gets 1.

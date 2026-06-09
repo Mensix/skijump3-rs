@@ -146,34 +146,34 @@ pub(crate) fn load_namesets(
             )));
         }
 
-            if !seen_ids.insert(ns.id.clone()) {
-                return Err(AssetError::Custom(format!(
-                    "Duplicate nameset id '{}'",
-                    entry.id
-                )));
-            }
+        if !seen_ids.insert(ns.id.clone()) {
+            return Err(AssetError::Custom(format!(
+                "Duplicate nameset id '{}'",
+                entry.id
+            )));
+        }
 
-            let teams: Vec<TeamDef> = ns
-                .teams
-                .iter()
-                .map(|t| TeamDef {
-                    name: t.name.clone(),
-                    members: {
-                        let m = &t.members;
-                        if m.len() < 4 {
-                            [0, 0, 0, 0]
-                        } else {
-                            [m[0], m[1], m[2], m[3]]
-                        }
-                    },
-                })
-                .collect();
+        let teams: Vec<TeamDef> = ns
+            .teams
+            .iter()
+            .map(|t| TeamDef {
+                name: t.name.clone(),
+                members: {
+                    let m = &t.members;
+                    if m.len() < 4 {
+                        [0, 0, 0, 0]
+                    } else {
+                        [m[0], m[1], m[2], m[3]]
+                    }
+                },
+            })
+            .collect();
 
-            namesets.push(NameSet {
-                title: ns.title,
-                names: ns.names,
-                teams,
-            });
+        namesets.push(NameSet {
+            title: ns.title,
+            names: ns.names,
+            teams,
+        });
     }
 
     if !seen_ids.contains(&manifest.default) {

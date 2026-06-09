@@ -58,20 +58,6 @@ pub enum TeamCupPhase {
     Complete,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum TeamCupDecision {
-    Jump {
-        participant: JumpParticipant,
-        hill_idx: usize,
-        context: TeamCupJumpContext,
-        is_human: bool,
-        is_new_leg: bool,
-    },
-    ShowLegResults,
-    ShowTeamCupStandings,
-    Done,
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TeamCupResultsKind {
     LegResults,
@@ -93,13 +79,4 @@ pub struct TeamCupJumpContext {
     pub team_name: String,
     pub jumper_name: String,
     pub jumper_in_team: usize,
-}
-
-#[derive(Debug, Clone)]
-pub struct TeamCupTeamStanding {
-    pub rank: usize,
-    pub team_idx: usize,
-    pub name: String,
-    pub leg_score: i32,
-    pub cup_points: i32,
 }

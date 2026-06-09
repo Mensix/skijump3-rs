@@ -29,18 +29,4 @@ pub fn award_leg_points(teams: &mut [TeamCupTeam], leg_idx: usize) {
     }
 }
 
-#[must_use]
-pub fn current_leg_standings(teams: &[TeamCupTeam]) -> Vec<(usize, i32)> {
-    ranked_order(0..teams.len(), |idx| teams[idx].leg_score)
-        .into_iter()
-        .map(|r| (r.item, r.score))
-        .collect()
-}
 
-#[must_use]
-pub fn overall_standings(teams: &[TeamCupTeam]) -> Vec<(usize, i32)> {
-    ranked_order(0..teams.len(), |idx| teams[idx].cup_points)
-        .into_iter()
-        .map(|r| (r.item, r.score))
-        .collect()
-}

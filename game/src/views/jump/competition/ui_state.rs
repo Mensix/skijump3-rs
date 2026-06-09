@@ -16,11 +16,6 @@ pub enum ResultScreen {
     Stats,
 }
 
-/// Consolidated UI state for a competition view.
-///
-/// Replaces the 7 scattered `Cell` fields in `WorldCupJumpView`.
-/// All mutations go through named methods so the lifecycle is
-/// auditable in one place.
 #[derive(Debug, Clone)]
 pub struct CompetitionUiState {
     render_mode: Cell<RenderMode>,
@@ -47,8 +42,6 @@ impl CompetitionUiState {
         }
     }
 
-    /// Show a full-screen error message. The user can dismiss it
-    /// with any key (routing back to main menu).
     pub fn enter_error(&self, msg: String) {
         self.render_mode.set(RenderMode::Error);
         *self.error_message.borrow_mut() = msg;
@@ -59,8 +52,6 @@ impl CompetitionUiState {
         self.error_message.borrow().clone()
     }
 
-    // ── Getters ─────────────────────────────────────────────────
-
     pub fn render_mode(&self) -> RenderMode {
         self.render_mode.get()
     }
@@ -69,39 +60,29 @@ impl CompetitionUiState {
         self.result_acknowledged.get()
     }
 
-    // ── Mode transitions ────────────────────────────────────────
-
-    /// Show human jump scene.
     pub fn enter_jump(&self) {
         self.render_mode.set(RenderMode::Jump);
         self.result_screen.set(ResultScreen::List);
         self.display_page.set(0);
     }
 
-    /// Show results/standings list.
     pub fn enter_results(&self) {
         self.render_mode.set(RenderMode::Results);
         self.display_page.set(0);
     }
 
-    /// Season/batch is done.
     pub fn enter_done(&self) {
         self.render_mode.set(RenderMode::Done);
     }
 
-    // ── Outcome acknowledgment ──────────────────────────────────
-
-    /// Record that the user has seen the outcome (pressed Enter/Escape/DQ key).
     pub fn acknowledge_outcome(&self) {
         self.result_acknowledged.set(true);
     }
 
-    /// Reset the acknowledged flag (for the next jumper).
     pub fn reset_acknowledged(&self) {
         self.result_acknowledged.set(false);
     }
 
-    /// Whether the outcome has already been recorded into the competition store.
     pub fn is_outcome_recorded(&self) -> bool {
         self.outcome_recorded.get()
     }
@@ -110,20 +91,15 @@ impl CompetitionUiState {
         self.outcome_recorded.set(false);
     }
 
-    /// Mark the outcome as recorded (prevents double-recording on scene rebuild).
     pub fn mark_outcome_recorded(&self) {
         self.result_acknowledged.set(false);
         self.outcome_recorded.set(true);
         self.first_human_onbar.set(false);
     }
 
-    // ── Overlay helpers ─────────────────────────────────────────
-
     pub fn is_first_human_onbar(&self) -> bool {
         self.first_human_onbar.get()
     }
-
-    // ── Results paging ──────────────────────────────────────────
 
     pub fn has_page(&self) -> bool {
         self.display_page.get() > 0
@@ -133,7 +109,6 @@ impl CompetitionUiState {
         self.display_page.get()
     }
 
-    /// Advance to next page. Returns true if there was a next page.
     pub fn next_page(&self, last_page: usize) -> bool {
         let page = self.display_page.get();
         if page + 1 < last_page {
@@ -144,7 +119,6 @@ impl CompetitionUiState {
         }
     }
 
-    /// Go to previous page.
     pub fn prev_page(&self) {
         let page = self.display_page.get();
         if page > 0 {
@@ -152,13 +126,10 @@ impl CompetitionUiState {
         }
     }
 
-    /// Reset display state after a results screen is dismissed.
     pub fn dismiss_results(&self) {
         self.display_page.set(0);
         self.result_screen.set(ResultScreen::List);
     }
-
-    // ── Result screen toggles ───────────────────────────────────
 
     pub fn is_compact(&self) -> bool {
         self.compact_list.get()
@@ -185,7 +156,6 @@ impl CompetitionUiState {
         });
     }
 
-    /// Select default screen based on competition style.
     pub fn select_default_screen(&self, is_four_hills: bool, phase: CompetitionPhase) {
         if is_four_hills {
             self.result_screen
