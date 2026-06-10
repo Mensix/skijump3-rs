@@ -356,7 +356,8 @@ impl View<RouteTarget> for TeamCupJumpView {
 
         // Drive competition only after human jump outcome is recorded,
         // not every frame during the jump (avoids recreating the scene).
-        if self.ui_state.is_outcome_recorded() {
+        if self.ui_state.is_outcome_recorded() && self.ui_state.render_mode() != RenderMode::Results
+        {
             if let Some(ref scene) = self.scene {
                 match self.controller.drive_competition(scene) {
                     Ok(Some(cmd)) => self.apply_command(cmd),
