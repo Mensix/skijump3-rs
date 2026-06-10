@@ -8,6 +8,7 @@ use crate::jump::hud;
 use crate::jump::{JumpParticipant, JumpPolicy};
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, Store, StoreRef};
+use crate::text::format::format_decimal;
 use crate::text::layout::shorten_name;
 use crate::views::jump::competition::flow::{handle_human_jump, CompetitionFlowCommand};
 use crate::views::jump::competition::session::CompetitionSession;
@@ -459,7 +460,7 @@ impl View<RouteTarget> for TeamCupJumpView {
 
                     // Points as raw integer (no DOS tenths quirk)
                     els.push(Element::right_text(
-                        entry.primary_score.to_string(),
+                        format_decimal(entry.primary_score),
                         184,
                         y,
                         nc,
