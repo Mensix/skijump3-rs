@@ -3,6 +3,7 @@ use crate::gfx::palette::{FONT_GOLD, FONT_HELP};
 use crate::jump::hud;
 use crate::jump::types::JumpPhase;
 use crate::store::{ResourcesRef, StoreRef};
+use crate::text::format::format_decimal;
 use crate::views::jump::competition::ui_state::CompetitionUiState;
 use engine::ui::Element;
 
@@ -22,7 +23,7 @@ pub struct OverlayData {
 #[derive(Debug, Clone)]
 pub struct EventStandingEntry {
     pub name: String,
-    pub points: i32,
+    pub points: f64,
 }
 
 #[derive(Debug, Clone)]
@@ -41,7 +42,7 @@ impl OverlayData {
                 .take(5)
                 .filter_map(|p| {
                     p.points
-                        .filter(|&pts| pts > 0)
+                        .filter(|&pts| pts > 0.0)
                         .map(|pts| EventStandingEntry {
                             name: p.display_name().to_string(),
                             points: pts,
@@ -221,8 +222,8 @@ impl CompetitionOverlay {
         let r1text = if round2_with_r1 {
             Some(format!(
                 "{} ({}µ)",
-                fmt_tenths(participant.round1_score),
-                fmt_tenths(participant.round1_len)
+                format_decimal(participant.round1_score),
+                format_decimal(participant.round1_len)
             ))
         } else {
             None
@@ -249,7 +250,7 @@ impl CompetitionOverlay {
         let has_event_leader = data
             .event_standings_top5
             .first()
-            .is_some_and(|e| e.points > 0);
+            .is_some_and(|e| e.points > 0.0);
 
         if !has_event_leader {
             if has_wc_leader {
@@ -293,9 +294,9 @@ impl CompetitionOverlay {
         els.push(Element::text(hill_name_k, 308, 9, FONT_GOLD, true));
 
         for (i, entry) in data.event_standings_top5.iter().enumerate() {
-            if entry.points > 0 {
+            if entry.points > 0.0 {
                 els.push(Element::text(
-                    format!("{}  {}", entry.name, fmt_tenths(entry.points)),
+                    format!("{}  {}", entry.name, format_decimal(entry.points)),
                     308,
                     20 + i as i32 * 7,
                     FONT_GOLD,
@@ -306,13 +307,13 @@ impl CompetitionOverlay {
 
         // Gap-to-leader line
         if let Some(ref pel) = data.current_participant {
-            let leader_pts = data.event_standings_top5.first().map_or(0, |e| e.points);
-            let current_pts = pel.points.unwrap_or(0);
+            let leader_pts = data.event_standings_top5.first().map_or(0.0, |e| e.points);
+            let current_pts = pel.points.unwrap_or(0.0);
             let temp = leader_pts - current_pts;
-            if temp > 0 {
+            if temp > 0.0 {
                 let label = self.resources.langbase.lstr(62);
                 els.push(Element::text(
-                    format!("{}: {}", label, fmt_tenths(temp + 1)),
+                    format!("{}: {}", label, format_decimal(temp + 0.1)),
                     308,
                     62,
                     FONT_GOLD,
@@ -354,10 +355,4 @@ impl CompetitionOverlay {
             els.push(Element::text(s, 308, 20 + i as i32 * 7, FONT_GOLD, true));
         }
     }
-}
-
-fn fmt_tenths(val: i32) -> String {
-    let sign = if val < 0 { "-" } else { "" };
-    let abs = val.abs();
-    format!("{}{}.{}", sign, abs / 10, abs % 10)
 }

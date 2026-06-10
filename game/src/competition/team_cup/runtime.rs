@@ -102,7 +102,7 @@ impl TeamCupRuntime {
         }
     }
 
-    pub fn record_jump(&mut self, distance: i32, score: i32, gate: u8) {
+    pub fn record_jump(&mut self, distance: f64, score: f64, gate: u8) {
         let team_idx = self.team_order[self.current_team_order_pos];
         let member = &mut self.teams[team_idx].members[self.current_jumper_slot];
 
@@ -128,7 +128,7 @@ impl TeamCupRuntime {
             }
             TeamCupPhase::TeamCupStandings => {
                 for team in &mut self.teams {
-                    team.leg_score = 0;
+                    team.leg_score = 0.0;
                 }
                 self.current_leg += 1;
                 self.current_round = 0;
@@ -152,7 +152,7 @@ impl TeamCupRuntime {
                 rank: ranked.rank,
                 name: self.teams[team_idx].name.clone(),
                 primary_score: self.teams[team_idx].leg_score,
-                secondary_score: Some(self.teams[team_idx].cup_points),
+                secondary_score: Some(f64::from(self.teams[team_idx].cup_points)),
                 is_human: self.teams[team_idx].is_human_team,
             }
         })
@@ -161,7 +161,7 @@ impl TeamCupRuntime {
 
     pub fn overall_standings(&self) -> Vec<StandingEntry> {
         ranked_order(0..self.teams.len(), |team_idx| {
-            self.teams[team_idx].cup_points
+            f64::from(self.teams[team_idx].cup_points)
         })
         .into_iter()
         .map(|ranked| {
@@ -169,7 +169,7 @@ impl TeamCupRuntime {
             StandingEntry {
                 rank: ranked.rank,
                 name: self.teams[team_idx].name.clone(),
-                primary_score: self.teams[team_idx].cup_points,
+                primary_score: f64::from(self.teams[team_idx].cup_points),
                 secondary_score: None,
                 is_human: self.teams[team_idx].is_human_team,
             }
@@ -289,7 +289,7 @@ mod tests {
             id,
             name: name.to_string(),
             members,
-            leg_score: 0,
+            leg_score: 0.0,
             cup_points: 0,
             is_human_team: is_human,
         }
@@ -308,10 +308,10 @@ mod tests {
         TeamCupRuntime::new(teams, schedule, 2, team_order)
     }
 
-    fn simulate_leg(runtime: &mut TeamCupRuntime, leg_base_score: i32) {
+    fn simulate_leg(runtime: &mut TeamCupRuntime, leg_base_score: f64) {
         for _ in 0..120 {
             match runtime.decide_next() {
-                CompetitionDecision::Jump { .. } => runtime.record_jump(100, leg_base_score, 15),
+                CompetitionDecision::Jump { .. } => runtime.record_jump(100.0, leg_base_score, 15),
                 other => panic!("expected Jump during simulation, got {other:?}"),
             }
         }
@@ -329,7 +329,7 @@ mod tests {
 
     fn simulate_all_jumps(runtime: &mut TeamCupRuntime) {
         for leg in 0..6 {
-            simulate_leg(runtime, 200 + leg as i32);
+            simulate_leg(runtime, f64::from(200 + leg as i32));
         }
         match runtime.decide_next() {
             CompetitionDecision::Done => {}
@@ -382,7 +382,7 @@ mod tests {
                 CompetitionDecision::Jump { context, .. } => {
                     let key = (context.team_idx, context.member_idx, context.round_idx);
                     teams_seen.push(key);
-                    r.record_jump(100, 200, 15);
+                    r.record_jump(100.0, 200.0, 15);
                 }
                 _ => panic!("expected Jump"),
             }
@@ -397,7 +397,7 @@ mod tests {
         let mut r = make_test_runtime();
         for _ in 0..15 {
             match r.decide_next() {
-                CompetitionDecision::Jump { .. } => r.record_jump(100, 200, 15),
+                CompetitionDecision::Jump { .. } => r.record_jump(100.0, 200.0, 15),
                 _ => panic!("expected Jump"),
             }
         }
@@ -418,7 +418,7 @@ mod tests {
         // 15 teams × 4 members × 2 rounds = 120 jumps
         for _ in 0..120 {
             match r.decide_next() {
-                CompetitionDecision::Jump { .. } => r.record_jump(100, 200, 15),
+                CompetitionDecision::Jump { .. } => r.record_jump(100.0, 200.0, 15),
                 other => panic!("expected Jump, got {other:?}"),
             }
         }
@@ -437,7 +437,7 @@ mod tests {
             match r.decide_next() {
                 CompetitionDecision::Jump { context, .. } => {
                     assert_eq!(context.round_idx, 0);
-                    r.record_jump(100, 200, 15);
+                    r.record_jump(100.0, 200.0, 15);
                 }
                 other => panic!("expected Jump, got {other:?}"),
             }
@@ -458,7 +458,7 @@ mod tests {
         let mut r = make_test_runtime();
         for _ in 0..120 {
             match r.decide_next() {
-                CompetitionDecision::Jump { .. } => r.record_jump(100, 200, 15),
+                CompetitionDecision::Jump { .. } => r.record_jump(100.0, 200.0, 15),
                 other => panic!("expected Jump, got {other:?}"),
             }
         }
@@ -478,7 +478,7 @@ mod tests {
         let mut r = make_test_runtime();
         for _ in 0..120 {
             match r.decide_next() {
-                CompetitionDecision::Jump { .. } => r.record_jump(100, 200, 15),
+                CompetitionDecision::Jump { .. } => r.record_jump(100.0, 200.0, 15),
                 other => panic!("expected Jump, got {other:?}"),
             }
         }
@@ -499,7 +499,7 @@ mod tests {
     fn completes_after_6_legs() {
         let mut r = make_test_runtime();
         for leg in 0..6 {
-            simulate_leg(&mut r, 200 + leg);
+            simulate_leg(&mut r, f64::from(200 + leg));
         }
         assert_eq!(r.decide_next(), CompetitionDecision::Done);
     }
@@ -514,7 +514,7 @@ mod tests {
                     let round = context.round_idx;
                     // Each jumper scores 100 + member_idx*10 + round*5
                     let score = 100 + member_idx as i32 * 10 + round as i32 * 5;
-                    r.record_jump(100, score, 15);
+                    r.record_jump(100.0, f64::from(score), 15);
                 }
                 other => panic!("expected Jump, got {other:?}"),
             }
@@ -525,7 +525,7 @@ mod tests {
         // member 2: round0=120, round1=125  = 245
         // member 3: round0=130, round1=135  = 265
         // total = 205+225+245+265 = 940
-        assert_eq!(r.teams[0].leg_score, 940);
+        assert_eq!(r.teams[0].leg_score, 940.0);
     }
 
     #[test]
@@ -536,7 +536,7 @@ mod tests {
             match r.decide_next() {
                 CompetitionDecision::Jump { context, .. } => {
                     let score = context.team_idx as i32 * 10 + 100;
-                    r.record_jump(100, score, 15);
+                    r.record_jump(100.0, f64::from(score), 15);
                 }
                 other => panic!("expected Jump, got {other:?}"),
             }
@@ -562,7 +562,7 @@ mod tests {
                 match r.decide_next() {
                     CompetitionDecision::Jump { context, .. } => {
                         // Team 0 always scores highest
-                        r.record_jump(100, 1000 - context.team_idx as i32 * 50, 15);
+                        r.record_jump(100.0, f64::from(1000 - context.team_idx as i32 * 50), 15);
                     }
                     other => panic!("expected Jump, got {other:?}"),
                 }
@@ -591,7 +591,7 @@ mod tests {
                 CompetitionDecision::Jump { context, .. } => {
                     // Team N scores higher per leg: team 0 = worst, team 14 = best
                     let score = context.team_idx as i32 * 10 + 100;
-                    r.record_jump(100, score, 15);
+                    r.record_jump(100.0, f64::from(score), 15);
                 }
                 other => panic!("expected Jump, got {other:?}"),
             }
@@ -601,7 +601,7 @@ mod tests {
         assert_eq!(standings[0].name, "Team14"); // highest scoring team
         assert_eq!(
             standings[0].primary_score,
-            (14 * 10 + 100) * 8 // 8 jumps per team
+            f64::from((14 * 10 + 100) * 8) // 8 jumps per team
         );
         assert_eq!(standings[14].name, "Team0"); // lowest scoring team
     }
@@ -617,7 +617,7 @@ mod tests {
                     is_human, context, ..
                 } => {
                     assert_eq!(is_human, context.team_idx < 2);
-                    r.record_jump(100, 200, 15);
+                    r.record_jump(100.0, 200.0, 15);
                 }
                 _ => panic!("expected Jump, got Jump?"),
             }
@@ -628,14 +628,14 @@ mod tests {
     fn each_jump_stores_correct_result() {
         let mut r = make_test_runtime();
         match r.decide_next() {
-            CompetitionDecision::Jump { .. } => r.record_jump(120, 250, 14),
+            CompetitionDecision::Jump { .. } => r.record_jump(120.0, 250.0, 14),
             other => panic!("expected Jump, got {other:?}"),
         }
         let team = &r.teams[0];
         let member = &team.members[0];
         assert_eq!(member.jumps.len(), 1);
-        assert_eq!(member.jumps[0].distance, 120);
-        assert_eq!(member.jumps[0].score, 250);
+        assert_eq!(member.jumps[0].distance, 120.0);
+        assert_eq!(member.jumps[0].score, 250.0);
         assert_eq!(member.jumps[0].gate, 14);
         assert_eq!(member.jumps[0].leg, 0);
         assert_eq!(member.jumps[0].round, 0);

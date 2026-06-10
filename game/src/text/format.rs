@@ -1,5 +1,15 @@
 use std::fmt::Write;
 
+#[must_use]
+pub fn tenths_to_decimal(value: i32) -> f64 {
+    f64::from(value) / 10.0
+}
+
+#[must_use]
+pub fn format_decimal(value: f64) -> String {
+    format!("{value:.1}")
+}
+
 /// Format an integer representing tenths as a decimal string.
 /// `1195` → `"119.5"`, `0` → `"0.0"`, `-5` → `"-0.5"`.
 #[must_use]

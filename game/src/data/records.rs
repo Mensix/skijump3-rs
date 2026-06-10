@@ -1,21 +1,21 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct Hiscore {
     pub name: String,
     pub pos: usize,
-    pub score: i64,
+    pub score: f64,
     pub time: String,
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct HillRecord {
     pub name: String,
-    pub len: i64,
+    pub len: f64,
     pub time: String,
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct RecordStore {
     #[serde(default)]
     pub top: Vec<Hiscore>,

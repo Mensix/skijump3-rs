@@ -82,7 +82,7 @@ impl JumpRunner {
         self.session.replay_trace()
     }
 
-    pub(crate) fn reset_state(&mut self, start_gate: i32, record_distance: i32) {
+    pub(crate) fn reset_state(&mut self, start_gate: i32, record_distance: f64) {
         self.config.start_gate = start_gate;
         self.config.record_distance = record_distance;
         if let Some(hill) = &self.config.hill {

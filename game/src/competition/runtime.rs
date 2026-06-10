@@ -126,7 +126,7 @@ impl CompetitionRuntime for Competition {
                 .map(|p| StandingEntry {
                     rank: p.rank,
                     name: p.display_name().to_string(),
-                    primary_score: p.points.unwrap_or(0),
+                    primary_score: p.points.unwrap_or(0.0),
                     secondary_score: None,
                     is_human: !p.is_computer,
                 })
@@ -139,7 +139,7 @@ impl CompetitionRuntime for Competition {
                     name: p.display_name().to_string(),
                     primary_score: match self.style() {
                         CupStyle::FourHills | CupStyle::CustomCup => p.four_hills_points,
-                        CupStyle::WorldCup | CupStyle::TeamCup => p.wc_points,
+                        CupStyle::WorldCup | CupStyle::TeamCup => f64::from(p.wc_points),
                     },
                     secondary_score: None,
                     is_human: !p.is_computer,

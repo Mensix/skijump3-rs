@@ -4,10 +4,10 @@ use crate::jump::types::FallType;
 /// A jump result as recorded into the competition. Carries only the fields
 /// the competition cares about: score, distance, and whether the jumper
 /// crashed (which may cause an injury).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) struct CompetitionJumpOutcome {
-    pub(crate) score: i32,
-    pub(crate) distance: i32,
+    pub(crate) score: f64,
+    pub(crate) distance: f64,
     pub(crate) fall_type: FallType,
 }
 
@@ -132,21 +132,21 @@ pub struct Participant {
 
     // Season-wide state
     pub wc_points: i32,
-    pub four_hills_points: i32,
+    pub four_hills_points: f64,
     pub tc_points: i32,
     pub injury: u8,
 
     // Per-event state. None = hasn't started (DNS)
-    pub points: Option<i32>,
+    pub points: Option<f64>,
     /// Current live rank in the event standings (updated by `sort_field` after each jump).
     pub rank: usize,
     /// Frozen Round 1 rank stored before Round 2 starts (Pascal's `sija` from `luett`).
     pub round1_rank: usize,
     pub qual: QualificationStatus,
-    pub round1_len: i32,
-    pub round1_score: i32,
-    pub round2_len: i32,
-    pub qual_len: i32,
+    pub round1_len: f64,
+    pub round1_score: f64,
+    pub round2_len: f64,
+    pub qual_len: f64,
 }
 
 impl Participant {
@@ -164,17 +164,17 @@ impl Participant {
             skip_quali: 0,
             profile_idx: competitor.profile_idx,
             wc_points: 0,
-            four_hills_points: 0,
+            four_hills_points: 0.0,
             tc_points: 0,
             injury: 0,
             points: None,
             rank: 0,
             round1_rank: 0,
             qual: QualificationStatus::NotQualified,
-            round1_len: 0,
-            round1_score: 0,
-            round2_len: 0,
-            qual_len: 0,
+            round1_len: 0.0,
+            round1_score: 0.0,
+            round2_len: 0.0,
+            qual_len: 0.0,
         }
     }
 
@@ -197,10 +197,10 @@ impl Participant {
         self.rank = 0;
         self.round1_rank = 0;
         self.qual = QualificationStatus::NotQualified;
-        self.round1_len = 0;
-        self.round1_score = 0;
-        self.round2_len = 0;
-        self.qual_len = 0;
+        self.round1_len = 0.0;
+        self.round1_score = 0.0;
+        self.round2_len = 0.0;
+        self.qual_len = 0.0;
     }
 }
 
@@ -231,18 +231,18 @@ mod tests {
     #[test]
     fn reset_event_clears_per_event_state() {
         let mut p = Participant::computer(0, 0, "Test".into());
-        p.points = Some(500);
+        p.points = Some(500.0);
         p.rank = 1;
-        p.round1_len = 120;
-        p.round2_len = 130;
+        p.round1_len = 120.0;
+        p.round2_len = 130.0;
         p.qual = QualificationStatus::Qualified;
 
         p.reset_event();
 
         assert_eq!(p.points, None);
         assert_eq!(p.rank, 0);
-        assert_eq!(p.round1_len, 0);
-        assert_eq!(p.round2_len, 0);
+        assert_eq!(p.round1_len, 0.0);
+        assert_eq!(p.round2_len, 0.0);
         assert_eq!(p.qual, QualificationStatus::NotQualified);
     }
 }

@@ -53,12 +53,12 @@ impl CompetitionField {
         self.participants.iter()
     }
 
-    fn score(&self, by: SortBy, idx: usize) -> i32 {
+    fn score(&self, by: SortBy, idx: usize) -> f64 {
         match by {
-            SortBy::WcPoints => self.participants[idx].wc_points,
+            SortBy::WcPoints => f64::from(self.participants[idx].wc_points),
             SortBy::FourHillsPoints => self.participants[idx].four_hills_points,
-            SortBy::TcPoints => self.participants[idx].tc_points,
-            SortBy::EventPoints => self.participants[idx].points.unwrap_or(i32::MIN),
+            SortBy::TcPoints => f64::from(self.participants[idx].tc_points),
+            SortBy::EventPoints => self.participants[idx].points.unwrap_or(f64::NEG_INFINITY),
         }
     }
 
@@ -213,8 +213,8 @@ mod tests {
     #[test]
     fn event_order_separate_from_master() {
         let mut participants = make_from_wc(&[100, 0]);
-        participants[0].points = Some(10);
-        participants[1].points = Some(999);
+        participants[0].points = Some(10.0);
+        participants[1].points = Some(999.0);
         let mut f = CompetitionField::new(participants);
         f.sort_field(SortBy::WcPoints);
         assert_eq!(f.master_order, vec![0, 1], "master by wc");
@@ -264,7 +264,7 @@ mod tests {
     #[test]
     fn reset_event_zeroes_all() {
         let mut f = CompetitionField::new(make_from_wc(&[0; 2]));
-        f.participants[0].points = Some(500);
+        f.participants[0].points = Some(500.0);
         f.participants[0].qual = QualificationStatus::Qualified;
         f.reset_event();
         assert_eq!(f.participants[0].points, None);

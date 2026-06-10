@@ -151,7 +151,7 @@ impl WorldCupJumpView {
                 .iter()
                 .find(|p| p.id == own_id)
                 .and_then(|p| p.points)
-                .unwrap_or(0);
+                .unwrap_or(0.0);
             let own_total = own_before + outcome.score;
             let rank = standings
                 .iter()

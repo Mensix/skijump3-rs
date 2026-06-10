@@ -120,7 +120,7 @@ impl JumpScene {
             .store
             .records()
             .hill_record(hill_idx)
-            .map_or(0, |r| r.len as i32);
+            .map_or(0.0, |r| r.len);
         self.runner
             .borrow_mut()
             .reset_state(start_gate, record_distance);
@@ -212,7 +212,7 @@ impl JumpScene {
         let record_distance = store
             .records()
             .hill_record(hill_idx)
-            .map_or(0, |r| r.len as i32);
+            .map_or(0.0, |r| r.len);
         let snow_count = snow.count();
         JumpRunner::new(
             JumpConfig {

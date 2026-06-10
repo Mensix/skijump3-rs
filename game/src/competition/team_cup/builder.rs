@@ -92,7 +92,7 @@ fn build_teams(
             id: ti,
             name,
             members,
-            leg_score: 0,
+            leg_score: 0.0,
             cup_points: 0,
             is_human_team: is_human,
         });

@@ -11,7 +11,7 @@ pub fn team_points_for_rank(rank: usize) -> i32 {
 }
 
 #[must_use]
-pub fn calculate_team_leg_score(team: &TeamCupTeam, leg_idx: usize) -> i32 {
+pub fn calculate_team_leg_score(team: &TeamCupTeam, leg_idx: usize) -> f64 {
     team.members
         .iter()
         .flat_map(|m| m.jumps.iter())

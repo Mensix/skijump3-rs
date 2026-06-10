@@ -14,9 +14,9 @@ use crate::rng::Random;
 fn find_hill_record_marker(
     terrain: &HillTerrain,
     pk: f64,
-    record_distance: i32,
+    record_distance: f64,
 ) -> Option<(i32, i32)> {
-    if record_distance <= 0 {
+    if record_distance <= 0.0 {
         return None;
     }
     let tip_x = terrain.tip_x;
@@ -25,7 +25,7 @@ fn find_hill_record_marker(
         let dx = f64::from(x - tip_x);
         let dy = f64::from(terrain.height_at(x) - tip_y);
         let hp = math::round(dx.hypot(dy) * pk * 0.5) * 5;
-        if hp >= record_distance {
+        if f64::from(hp) / 10.0 >= record_distance {
             let ground_y = terrain.height_at(x);
             return Some((x, ground_y - 9));
         }
@@ -44,7 +44,7 @@ pub struct JumpSession {
     participant: JumpParticipant,
     last_phase: Option<JumpPhase>,
     policy: JumpPolicy,
-    record_distance: i32,
+    record_distance: f64,
     record_marker: Option<(i32, i32)>,
 }
 
@@ -165,7 +165,7 @@ impl JumpSession {
         self.policy
     }
 
-    pub(crate) fn reset_state(&mut self, hill: &HillInfo, start_gate: i32, record_distance: i32) {
+    pub(crate) fn reset_state(&mut self, hill: &HillInfo, start_gate: i32, record_distance: f64) {
         self.state = self.terrain.as_ref().ok().map(|terrain| {
             JumpState::new(
                 terrain,

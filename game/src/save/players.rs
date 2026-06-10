@@ -154,7 +154,7 @@ koth_level = 0
         p.besthill_idx = 3;
         p.besthillfile = "TESTHILL".to_string();
         p.bestpoints = 2500;
-        p.best4points = 2400;
+        p.best4points = 2400.0;
         p.koth_level = 5;
 
         let bytes = store.to_toml_bytes().unwrap();
@@ -183,7 +183,7 @@ koth_level = 0
         assert_eq!(pp.besthill_idx, 3);
         assert_eq!(pp.besthillfile, "TESTHILL");
         assert_eq!(pp.bestpoints, 2500);
-        assert_eq!(pp.best4points, 2400);
+        assert_eq!(pp.best4points, 2400.0);
         assert_eq!(pp.koth_level, 5);
     }
 

@@ -221,7 +221,7 @@ mod tests {
             state.tick(&terrain, wind, &mut rng, true);
             if let Some(outcome) = state.outcome() {
                 assert!(
-                    outcome.distance > 700,
+                    outcome.distance > 70.0,
                     "computer jump landed too short: {}",
                     outcome.distance
                 );
@@ -294,7 +294,7 @@ mod tests {
             };
             state.tick(&terrain, sampled, &mut rng, true);
             if let Some(outcome) = state.outcome() {
-                assert_eq!(outcome.distance, 945);
+                assert_eq!(outcome.distance, 94.5);
                 return;
             }
         }

@@ -69,17 +69,17 @@ fn build_participants(profiles: &ProfileStore, computer_names: &[String]) -> Vec
                 is_computer: competitor.is_computer,
                 skip_quali: p.skip_quali as u8,
                 wc_points: 0,
-                four_hills_points: 0,
+                four_hills_points: 0.0,
                 tc_points: 0,
                 injury: 0,
                 points: None,
                 rank: 0,
                 round1_rank: 0,
                 qual: QualificationStatus::NotQualified,
-                round1_len: 0,
-                round1_score: 0,
-                round2_len: 0,
-                qual_len: 0,
+                round1_len: 0.0,
+                round1_score: 0.0,
+                round2_len: 0.0,
+                qual_len: 0.0,
             });
         } else {
             let name = computer_names
@@ -165,8 +165,8 @@ mod tests {
         while let Some(idx) = comp.current_jumper() {
             last = Some(idx);
             comp.record_jump(CompetitionJumpOutcome {
-                score: 0,
-                distance: 0,
+                score: 0.0,
+                distance: 0.0,
                 fall_type: FallType::None,
             });
         }

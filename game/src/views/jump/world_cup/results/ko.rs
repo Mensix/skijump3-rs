@@ -5,7 +5,7 @@ use crate::components::prompt;
 use crate::components::screen::new_screen;
 use crate::gfx::palette::{BG_LEFT, FONT_DEFAULT};
 use crate::store::ResourcesRef;
-use crate::text::format::format_tenths;
+use crate::text::format::format_decimal;
 use engine::ui::Element;
 
 const KO_LEFT_POINTS: i32 = 40;
@@ -107,7 +107,7 @@ fn render_ko_side(
         ));
         if show_results {
             els.push(Element::text(
-                format_tenths(p.points.unwrap_or(0)),
+                format_decimal(p.points.unwrap_or(0.0)),
                 KO_LEFT_POINTS,
                 y,
                 element_color,
@@ -139,7 +139,7 @@ fn render_ko_side(
         ));
         if show_results {
             els.push(Element::text(
-                format_tenths(p.points.unwrap_or(0)),
+                format_decimal(p.points.unwrap_or(0.0)),
                 KO_RIGHT_POINTS,
                 y,
                 element_color,

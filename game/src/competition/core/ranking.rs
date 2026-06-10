@@ -1,14 +1,14 @@
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Ranked<T> {
     pub item: T,
     pub rank: usize,
-    pub score: i32,
+    pub score: f64,
 }
 
 #[must_use]
 pub fn ranked_order<T>(
     items: impl IntoIterator<Item = T>,
-    score: impl Fn(T) -> i32,
+    score: impl Fn(T) -> f64,
 ) -> Vec<Ranked<T>>
 where
     T: Copy,
@@ -21,7 +21,7 @@ where
             score: score(item),
         })
         .collect();
-    ranked.sort_by(|a, b| b.score.cmp(&a.score));
+    ranked.sort_by(|a, b| b.score.total_cmp(&a.score));
 
     let mut rank = 1;
     for i in 0..ranked.len() {

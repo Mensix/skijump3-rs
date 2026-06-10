@@ -4,7 +4,7 @@ use crate::data::records::{HillRecord, Hiscore};
 use crate::gfx::palette::{BG_KOTH, FONT_DEFAULT, FONT_GREET, FONT_HELP, FONT_NEW};
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
-use crate::text::format::{format_tenths_i64, ordinal_dot};
+use crate::text::format::{format_decimal, ordinal_dot};
 use crate::text::layout::{is_computer_name, lstr, shorten_name};
 use engine::ui::{Cell, Table};
 use engine::ui::{Element, Event, View};
@@ -119,9 +119,9 @@ impl HallOfFameView {
         ));
         table.push(Cell::right(ordinal_dot(hi.pos), col[1] + 14, y, name_color));
         let score = if sortby_points {
-            format_tenths_i64(hi.score)
+            format_decimal(hi.score)
         } else {
-            hi.score.to_string()
+            format!("{:.0}", hi.score)
         };
         table.push(Cell::right(score, col[2] + 24, y, name_color));
         table.push(Cell::left(&hi.time, col[3], y, FONT_HELP));
@@ -158,10 +158,10 @@ impl HallOfFameView {
                 table.push(Cell::left(name, col[1], yy, FONT_HELP));
                 continue;
             };
-            if hi.score > 0 {
+            if hi.score > 0.0 {
                 table.push(Cell::left(&hi.time, col[2], yy, FONT_HELP));
                 table.push(Cell::left(
-                    format!("{} X", hi.score),
+                    format!("{:.0} X", hi.score),
                     col[3],
                     yy,
                     FONT_DEFAULT,
@@ -270,7 +270,7 @@ impl HillRecordsView {
         ));
 
         let records = self.store.records();
-        let mut ahi_sum = 0i64;
+        let mut ahi_sum = 0.0;
         for aa in 0..loop_count {
             let idx = aa + start;
             let y = (aa as i32) * 8 + 32;
@@ -306,7 +306,7 @@ impl HillRecordsView {
                 FONT_NEW
             };
             table.push(Cell::right(
-                format_tenths_i64(record.len),
+                format_decimal(record.len),
                 col[2],
                 y,
                 length_color,
@@ -321,10 +321,10 @@ impl HillRecordsView {
         }
 
         if phase == 0 {
-            let total: i64 = (0..self.resources.hills.len().min(PAGE_SIZE))
-                .filter_map(|idx| self.resources.hills.hill(idx).map(|hill| hill.kr * 10))
+            let total: f64 = (0..self.resources.hills.len().min(PAGE_SIZE))
+                .filter_map(|idx| self.resources.hills.hill(idx).map(|hill| hill.kr as f64))
                 .sum();
-            if total > 0 {
+            if total > 0.0 {
                 table.push(Cell::left("A.H.I.", 130, 192, FONT_HELP));
                 table.push(Cell::right(format_ahi(ahi_sum, total), 197, 192, FONT_HELP));
             }
@@ -334,16 +334,16 @@ impl HillRecordsView {
     }
 }
 
-fn ahi_len(record: &HillRecord, hill_kr: i64) -> i64 {
+fn ahi_len(record: &HillRecord, hill_kr: i64) -> f64 {
     if is_computer_name(&record.name) {
-        hill_kr * 10
+        hill_kr as f64
     } else {
         record.len
     }
 }
 
-fn format_ahi(sum: i64, total: i64) -> String {
-    let value = ((sum as f64 / total as f64) * 1000.0).round() as i64;
+fn format_ahi(sum: f64, total: f64) -> String {
+    let value = ((sum / total) * 1000.0).round() as i64;
     let mut out = value.to_string();
     let pos = out.len().saturating_sub(1);
     out.insert(pos, '.');

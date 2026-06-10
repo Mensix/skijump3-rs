@@ -67,11 +67,11 @@ impl FallType {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct JumpOutcome {
-    pub(crate) distance: i32,
-    pub(crate) score: i32,
-    pub(crate) style_points: [i32; 5],
+    pub(crate) distance: f64,
+    pub(crate) score: f64,
+    pub(crate) style_points: [f64; 5],
     pub(crate) landing_style: LandingStyle,
     pub(crate) fall_type: FallType,
     pub(crate) aborted: bool,

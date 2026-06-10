@@ -6,7 +6,7 @@ use crate::gfx::palette::{
     FONT_HELP,
 };
 use crate::store::ResourcesRef;
-use crate::text::format::{format_tenths, ordinal_dot};
+use crate::text::format::{format_decimal, ordinal_dot};
 use engine::color::Rgba;
 use engine::ui::Element;
 
@@ -54,15 +54,15 @@ pub struct ResultsEntry {
     pub(crate) is_own: bool,
     pub(crate) rank: usize,
     pub(crate) name: String,
-    pub(crate) points: i32,
-    pub(crate) distance: i32,
-    pub(crate) distance2: i32,
+    pub(crate) points: f64,
+    pub(crate) distance: f64,
+    pub(crate) distance2: f64,
     pub(crate) qual: QualificationStatus,
     pub(crate) injury: u8,
     pub(crate) use_tenths: bool,
 }
 
-fn use_tenths_for_phase(phase: CompetitionPhase, style: CupStyle) -> bool {
+fn use_decimal_for_phase(phase: CompetitionPhase, style: CupStyle) -> bool {
     matches!(
         phase,
         CompetitionPhase::QualificationResults
@@ -77,20 +77,20 @@ fn competition_results_entry_data(
     phase: CompetitionPhase,
     style: CupStyle,
     p: &Participant,
-) -> (i32, i32, i32) {
+) -> (f64, f64, f64) {
     match phase {
-        CompetitionPhase::QualificationResults => (p.points.unwrap_or(0), p.qual_len, 0),
-        CompetitionPhase::Round1Results => (p.points.unwrap_or(0), p.round1_len, 0),
-        CompetitionPhase::Round2Results => (p.points.unwrap_or(0), p.round1_len, p.round2_len),
-        CompetitionPhase::FourHillsStandings => (p.four_hills_points, 0, 0),
-        CompetitionPhase::WorldCupStandings => (p.wc_points, 0, 0),
+        CompetitionPhase::QualificationResults => (p.points.unwrap_or(0.0), p.qual_len, 0.0),
+        CompetitionPhase::Round1Results => (p.points.unwrap_or(0.0), p.round1_len, 0.0),
+        CompetitionPhase::Round2Results => (p.points.unwrap_or(0.0), p.round1_len, p.round2_len),
+        CompetitionPhase::FourHillsStandings => (p.four_hills_points, 0.0, 0.0),
+        CompetitionPhase::WorldCupStandings => (f64::from(p.wc_points), 0.0, 0.0),
         CompetitionPhase::SeasonComplete
             if matches!(style, CupStyle::FourHills | CupStyle::CustomCup) =>
         {
-            (p.four_hills_points, 0, 0)
+            (p.four_hills_points, 0.0, 0.0)
         }
-        CompetitionPhase::SeasonComplete => (p.wc_points, 0, 0),
-        _ => (p.points.unwrap_or(0), 0, 0),
+        CompetitionPhase::SeasonComplete => (f64::from(p.wc_points), 0.0, 0.0),
+        _ => (p.points.unwrap_or(0.0), 0.0, 0.0),
     }
 }
 
@@ -119,7 +119,7 @@ pub fn build_results_page(competition: &Competition, page: usize) -> ResultsPage
 
     let phase = competition.phase();
     let style = competition.style();
-    let use_tenths = use_tenths_for_phase(phase, style);
+    let use_tenths = use_decimal_for_phase(phase, style);
     let mut items = Vec::with_capacity(end - start);
     for &p in &standings[start..end] {
         let (points, dist, dist2) = competition_results_entry_data(phase, style, p);
@@ -162,7 +162,7 @@ pub fn build_compact_results_page(competition: &Competition) -> ResultsPage {
 
     let phase = competition.phase();
     let style = competition.style();
-    let use_tenths = use_tenths_for_phase(phase, style);
+    let use_tenths = use_decimal_for_phase(phase, style);
     let mut items = Vec::with_capacity(selected.len());
     for p in selected {
         let (points, dist, dist2) = competition_results_entry_data(phase, style, p);
@@ -209,7 +209,7 @@ fn standings_for_phase(competition: &Competition) -> Vec<&Participant> {
         competition
             .overall_standings()
             .into_iter()
-            .filter(|p| p.four_hills_points > 0)
+            .filter(|p| p.four_hills_points > 0.0)
             .collect()
     } else if matches!(
         phase,
@@ -378,13 +378,13 @@ fn render_results_entry(
     ));
 
     let points = if entry.use_tenths {
-        format_tenths(entry.points)
+        format_decimal(entry.points)
     } else {
-        entry.points.to_string()
+        format!("{:.0}", entry.points)
     };
     els.push(Element::right_text(points, points_x, y, col_text));
 
-    if show_extra && entry.distance > 0 {
+    if show_extra && entry.distance > 0.0 {
         els.push(Element::text(
             format_distance(entry.distance, entry.distance2),
             COL_DISTANCE,
@@ -631,31 +631,31 @@ pub fn render_stats_page(
         true,
     ));
     els.push(Element::text(
-        format_tenths(player.points.unwrap_or(0)),
+        format_decimal(player.points.unwrap_or(0.0)),
         140,
         y,
         FONT_DEFAULT,
         true,
     ));
-    if player.round1_len > 0 {
+    if player.round1_len > 0.0 {
         els.push(Element::text(
-            format_tenths(player.points.unwrap_or(0) - player.round2_len),
+            format_decimal(player.points.unwrap_or(0.0) - player.round2_len),
             170,
             y,
             FONT_DEFAULT,
             true,
         ));
         els.push(Element::text(
-            format!("({}µ)", format_tenths(player.round1_len)),
+            format!("({}µ)", format_decimal(player.round1_len)),
             210,
             y,
             FONT_GREET,
             true,
         ));
     }
-    if player.round2_len > 0 {
+    if player.round2_len > 0.0 {
         els.push(Element::text(
-            format!("({}µ)", format_tenths(player.round2_len)),
+            format!("({}µ)", format_decimal(player.round2_len)),
             308,
             y,
             FONT_GREET,
@@ -681,16 +681,16 @@ fn truncate_name(name: &str) -> String {
     name.chars().take(MAX_CHARS).collect()
 }
 
-fn format_distance(value: i32, value2: i32) -> String {
-    let mut length = format_tenths(value);
+fn format_distance(value: f64, value2: f64) -> String {
+    let mut length = format_decimal(value);
     while length.len() < 5 {
         length.insert(0, '$');
     }
-    if value2 == 0 {
+    if value2 == 0.0 {
         return format!("({length}µ)");
     }
 
-    let mut second = format_tenths(value2);
+    let mut second = format_decimal(value2);
     while second.len() < 5 {
         second.insert(0, '$');
     }

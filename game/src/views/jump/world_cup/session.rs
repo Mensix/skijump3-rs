@@ -8,7 +8,7 @@ use crate::competition::types::{CompetitionPhase, CupStyle};
 use crate::jump::types::JumpOutcome;
 use crate::jump::JumpParticipant;
 use crate::store::{ResourcesRef, StoreRef};
-use crate::text::format::format_tenths;
+use crate::text::format::format_decimal;
 use crate::views::jump::competition::persistence;
 use crate::views::jump::scene::JumpScene;
 use crate::views::jump::scene::JumpSceneError;
@@ -148,24 +148,24 @@ impl WorldCupSessionController {
                 match style {
                     CupStyle::WorldCup => {
                         profile.world_cups += 1;
-                        let my_points = p.points.unwrap_or(0);
+                        let my_points = p.points.unwrap_or(0.0);
                         let event_rank = event_rank_by_points(c, my_points);
                         let pts = wc_points_for_rank(event_rank);
                         if pts >= profile.bestpoints as i32 {
                             profile.bestpoints = pts as usize;
                             profile.best_result = format_wc_best_result(pts, event_rank);
                         }
-                        if p.four_hills_points > 0
-                            && p.four_hills_points >= profile.best4points as i32
+                        if p.four_hills_points > 0.0
+                            && p.four_hills_points >= profile.best4points
                         {
-                            profile.best4points = p.four_hills_points as usize;
+                            profile.best4points = p.four_hills_points;
                             profile.best_4h_result =
                                 format_four_hills_best_result(p.four_hills_points, p.rank);
                         }
                     }
                     CupStyle::FourHills => {
-                        if p.four_hills_points >= profile.best4points as i32 {
-                            profile.best4points = p.four_hills_points as usize;
+                        if p.four_hills_points >= profile.best4points {
+                            profile.best4points = p.four_hills_points;
                             profile.best_4h_result =
                                 format_four_hills_best_result(p.four_hills_points, p.rank);
                         }
@@ -187,15 +187,15 @@ fn format_wc_best_result(points: i32, rank: usize) -> String {
     format!("{points} ({rank}.)")
 }
 
-fn format_four_hills_best_result(points_tenths: i32, rank: usize) -> String {
-    format!("{} ({}.)", format_tenths(points_tenths), rank)
+fn format_four_hills_best_result(points: f64, rank: usize) -> String {
+    format!("{} ({}.)", format_decimal(points), rank)
 }
 
 /// Tie-aware event rank: 1 + count of participants with strictly higher points.
-fn event_rank_by_points(competition: &Competition, points: i32) -> usize {
+fn event_rank_by_points(competition: &Competition, points: f64) -> usize {
     1 + competition
         .event_standings()
         .iter()
-        .filter(|p| p.points.unwrap_or(i32::MIN) > points)
+        .filter(|p| p.points.unwrap_or(f64::NEG_INFINITY) > points)
         .count()
 }

@@ -40,10 +40,10 @@ pub(crate) fn push_hill_record_info(
     els.push(Element::right_text(hill_name_k, 308, 9, FONT_GOLD));
     els.push(Element::text(langbase.lstr(65), 308, 19, FONT_GOLD, true));
     if let Some(record) = hill_record {
-        if record.len > 0 {
+        if record.len > 0.0 {
             els.push(Element::right_text(&record.name, 308, 29, FONT_GOLD));
             els.push(Element::text(
-                format!("{:.1}m", record.len as f64 / 10.0),
+                format!("{:.1}m", record.len),
                 308,
                 39,
                 FONT_GOLD,

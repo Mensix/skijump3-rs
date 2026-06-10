@@ -5,7 +5,7 @@ pub const NUM_SKIS: usize = 4;
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Profile {
     pub name: String,
     pub real_name: String,
@@ -42,7 +42,7 @@ pub struct Profile {
 
     // Pascal bestpoints / best4points (word) — points for best result and best 4H result
     pub bestpoints: usize,
-    pub best4points: usize,
+    pub best4points: f64,
 
     // Pascal kothlevel (byte)
     pub koth_level: usize,
@@ -77,7 +77,7 @@ impl Default for Profile {
             besthill_idx: 0,
             besthillfile: String::new(),
             bestpoints: 0,
-            best4points: 0,
+            best4points: 0.0,
             koth_level: 0,
             best_wc_hill_display: String::new(),
             best_hill_display: String::new(),

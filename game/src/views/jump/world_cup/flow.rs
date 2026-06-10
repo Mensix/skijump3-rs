@@ -80,17 +80,17 @@ mod tests {
             is_computer: false,
             skip_quali: 0,
             wc_points: 0,
-            four_hills_points: 0,
+            four_hills_points: 0.0,
             tc_points: 0,
             injury: 0,
             points: None,
             rank: 0,
             round1_rank: 0,
             qual: QualificationStatus::NotQualified,
-            round1_len: 0,
-            round1_score: 0,
-            round2_len: 0,
-            qual_len: 0,
+            round1_len: 0.0,
+            round1_score: 0.0,
+            round2_len: 0.0,
+            qual_len: 0.0,
         }
     }
 
@@ -188,8 +188,8 @@ mod tests {
         // Emulate what record_finished_human_jump + advance does
         // after acknowledgement
         c.record_jump(CompetitionJumpOutcome {
-            score: 100,
-            distance: 900,
+            score: 100.0,
+            distance: 90.0,
             fall_type: FallType::None,
         });
         c.advance();

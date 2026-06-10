@@ -10,6 +10,7 @@ use crate::jump::types::{
     FallType, FlightWind, JumpInput, JumpOutcome, JumpPhase, JumpSnapshot, LandingStyle, SkiSwing,
 };
 use crate::rng::Random;
+use crate::text::format::tenths_to_decimal;
 
 #[derive(Debug, Clone)]
 pub struct JumpState {
@@ -152,17 +153,17 @@ impl JumpState {
     pub(crate) fn outcome(&self) -> Option<JumpOutcome> {
         match self.phase {
             JumpPhase::Result => Some(JumpOutcome {
-                distance: self.distance,
-                score: self.score,
-                style_points: self.style_points,
+                distance: tenths_to_decimal(self.distance),
+                score: tenths_to_decimal(self.score),
+                style_points: self.style_points.map(tenths_to_decimal),
                 landing_style: self.landing_style,
                 fall_type: self.fall_type,
                 aborted: false,
             }),
             JumpPhase::Disqualified => Some(JumpOutcome {
-                distance: 0,
-                score: 0,
-                style_points: [0; 5],
+                distance: 0.0,
+                score: 0.0,
+                style_points: [0.0; 5],
                 landing_style: LandingStyle::Telemark,
                 fall_type: FallType::None,
                 aborted: false,

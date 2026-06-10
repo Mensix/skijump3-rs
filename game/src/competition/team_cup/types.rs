@@ -24,7 +24,7 @@ pub struct TeamCupTeam {
     pub id: usize,
     pub name: String,
     pub members: Vec<TeamCupMember>,
-    pub leg_score: i32,
+    pub leg_score: f64,
     pub cup_points: i32,
     pub is_human_team: bool,
 }
@@ -41,12 +41,12 @@ impl TeamCupMember {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct TeamCupJumpResult {
     pub leg: usize,
     pub round: usize,
-    pub distance: i32,
-    pub score: i32,
+    pub distance: f64,
+    pub score: f64,
     pub gate: u8,
 }
 

@@ -145,10 +145,10 @@ time = ""
         let first = store.top(0).expect("first top record");
         assert!(!first.name.is_empty());
         assert!(first.pos > 0);
-        assert!(first.score > 0);
+        assert!(first.score > 0.0);
 
         let first_hill = store.hill_record(0).expect("first hill record");
         assert!(!first_hill.name.is_empty());
-        assert!(first_hill.len > 0);
+        assert!(first_hill.len > 0.0);
     }
 }
