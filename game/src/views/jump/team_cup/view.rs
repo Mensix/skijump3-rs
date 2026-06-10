@@ -400,68 +400,77 @@ impl View<RouteTarget> for TeamCupJumpView {
                     TeamCupResultsKind::Standings => TeamCupStandingsKind::Overall,
                     TeamCupResultsKind::LegResults => TeamCupStandingsKind::Leg,
                 };
-                let (ctx, standings) = self
+                let (header, standings) = self
                     .store
                     .try_with_team_cup(|tc| {
                         let standings = tc.standings_runtime(standings_kind);
-                        let ctx = (
-                            tc.current_leg,
-                            tc.current_round,
-                            tc.current_jumper_slot,
-                            tc.standings_pending,
-                        );
-                        (ctx, standings)
+                        let leg = tc.current_leg + 1;
+                        let round = tc.current_round + 1;
+                        let jumper = tc.current_jumper_slot + 1;
+                        let header = match self.results_kind {
+                            TeamCupResultsKind::LegResults => format!(
+                                "{} {} {} 6 - R {} - {} {}",
+                                self.resources.langbase.lstr(81),
+                                leg,
+                                self.resources.langbase.lstr(8),
+                                round,
+                                self.resources.langbase.lstr(88),
+                                jumper,
+                            ),
+                            TeamCupResultsKind::Standings => {
+                                let text = self.resources.langbase.lstr(91);
+                                format!("{} {} 6", text, leg)
+                            }
+                        };
+                        (header, standings)
                     })
                     .unwrap_or_default();
-                let (leg, round, jumper_slot, is_intermediate) = ctx;
 
-                let header = match self.results_kind {
-                    TeamCupResultsKind::Standings => {
-                        format!("{} - Leg {}", self.resources.langbase.lstr(72), leg + 1)
-                    }
-                    TeamCupResultsKind::LegResults if is_intermediate => {
-                        format!(
-                            "Leg {}/{} - R {} - Jumper {}",
-                            leg + 1,
-                            6,
-                            round + 1,
-                            jumper_slot + 1,
-                        )
-                    }
-                    TeamCupResultsKind::LegResults => {
-                        format!("Leg {} {}", leg + 1, self.resources.langbase.lstr(72))
-                    }
-                };
-                els.push(Element::text(header, 30, 20, FONT_DEFAULT, false));
+                els.push(Element::text(header, 30, 6, FONT_DEFAULT, false));
 
-                let mut y = 36;
+                let mut last_rank = 0usize;
+                let mut y = 23i32;
                 for (i, entry) in standings.iter().enumerate() {
                     if i >= 15 {
                         break;
                     }
-                    let color = if entry.is_human { FONT_GOLD } else { FONT_HELP };
-                    let s = if let Some(cup_pts) = entry.secondary_score {
-                        format!(
-                            "{}. {}  {} ({})",
-                            entry.rank, entry.name, entry.primary_score, cup_pts
-                        )
-                    } else {
-                        format!("{}. {}  {}", entry.rank, entry.name, entry.primary_score)
-                    };
-                    els.push(Element::text(s, 20, y, color, false));
-                    y += 9;
+                    let is_human = entry.is_human;
+
+                    // Pascal Entry: rank only when different from last
+                    if entry.rank != last_rank && entry.rank > 0 {
+                        let c = if is_human { FONT_GOLD } else { FONT_HELP };
+                        els.push(Element::text(format!("{}.", entry.rank), 24, y, c, true));
+                    }
+                    last_rank = entry.rank;
+
+                    // Name: column 2 = 32, shortened to 122px
+                    let c = if is_human { FONT_GOLD } else { FONT_HELP };
+                    els.push(Element::text(
+                        shorten_name(&entry.name, &self.resources.font, 122),
+                        32,
+                        y,
+                        c,
+                        false,
+                    ));
+
+                    // Points: column 3 = 184
+                    els.push(Element::right_text(
+                        entry.primary_score.to_string(),
+                        184,
+                        y,
+                        c,
+                    ));
+
+                    y += 10;
                 }
 
-                hud::push_wait_for_key(
-                    &mut els,
-                    &self.resources.langbase,
-                    305,
-                    180,
-                    BG_TEAMCUP,
-                    FONT_DEFAULT,
-                    FONT_DEFAULT,
-                    self.cursor_visible,
-                );
+                // Pascal WaitForKey: Done-) at bottom right
+                els.push(Element::right_text(
+                    format!("{}-)", self.resources.langbase.lstr(248)),
+                    319,
+                    13,
+                    FONT_HELP,
+                ));
                 els
             }
             RenderMode::Done | RenderMode::Error => {
