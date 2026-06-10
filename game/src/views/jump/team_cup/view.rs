@@ -556,7 +556,10 @@ impl View<RouteTarget> for TeamCupJumpView {
                 }
             }
 
-            if scene.outcome().is_some() && !self.ui_state.is_result_acknowledged() {
+            if scene.outcome().is_some()
+                && !self.ui_state.is_outcome_recorded()
+                && !self.ui_state.is_result_acknowledged()
+            {
                 if matches!(event, Event::Keyboard(_)) {
                     self.ui_state.acknowledge_outcome();
                 }
@@ -570,7 +573,13 @@ impl View<RouteTarget> for TeamCupJumpView {
                 self.store.try_with_team_cup_mut(|tc| {
                     tc.advance_results_runtime(TeamCupResultsKind::LegResults);
                 });
-                self.drive_until_visible();
+                if let Some(ref scene) = self.scene {
+                    match self.session.drive_competition::<TeamCupRuntime>(scene) {
+                        Ok(Some(cmd)) => self.apply_command(cmd),
+                        Ok(None) => {}
+                        Err(e) => self.ui_state.enter_error(e.to_string()),
+                    }
+                }
             }
             return None;
         }
