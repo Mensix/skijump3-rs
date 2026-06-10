@@ -39,7 +39,6 @@ pub fn elements(frame: &JumpRenderFrame, ctx: &JumpPresentationContext<'_>) -> V
             info_elements(&mut els, frame, ctx);
         }
         JumpPhase::Result => {
-            info_panel_elements(&mut els, frame, ctx);
             result_elements(&mut els, frame, ctx);
         }
         JumpPhase::Landing => landing_elements(&mut els, frame, ctx),
