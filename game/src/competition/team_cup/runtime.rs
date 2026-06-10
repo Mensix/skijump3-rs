@@ -25,6 +25,7 @@ impl TeamCupRuntime {
             team_order,
             phase: TeamCupPhase::Setup,
             human_teams,
+            standings_pending: false,
         }
     }
 
@@ -36,6 +37,10 @@ impl TeamCupRuntime {
                 }
 
                 TeamCupPhase::Jumping => {
+                    if self.standings_pending {
+                        self.standings_pending = false;
+                        return CompetitionDecision::ShowResults(TeamCupResultsKind::LegResults);
+                    }
                     if self.current_leg >= NUM_LEGS {
                         self.phase = TeamCupPhase::Complete;
                         continue;
@@ -216,11 +221,22 @@ impl CompetitionRuntime for TeamCupRuntime {
         self.decide_next()
     }
 
-    fn record_jump_runtime(&mut self, _context: &Self::Context, outcome: JumpOutcome) {
+    fn record_jump_runtime(&mut self, context: &Self::Context, outcome: JumpOutcome) {
+        let is_human = self
+            .teams
+            .get(context.team_idx)
+            .is_some_and(|t| t.is_human_team);
         self.record_jump(outcome.distance, outcome.score, DEFAULT_START_GATE as u8);
+        if is_human && self.phase == TeamCupPhase::Jumping {
+            self.standings_pending = true;
+        }
     }
 
     fn advance_results_runtime(&mut self, _kind: Self::ResultsKind) {
+        if self.standings_pending {
+            self.standings_pending = false;
+            return;
+        }
         self.advance_after_results();
     }
 

@@ -34,6 +34,7 @@ pub struct TeamCupJumpView {
     team_names: Vec<String>,
     name_buffer: String,
     cursor_visible: bool,
+    results_kind: TeamCupResultsKind,
 }
 
 impl TeamCupJumpView {
@@ -59,6 +60,7 @@ impl TeamCupJumpView {
             team_names: names,
             name_buffer,
             cursor_visible: true,
+            results_kind: TeamCupResultsKind::LegResults,
         }
     }
 
@@ -282,7 +284,8 @@ impl TeamCupJumpView {
                 );
                 self.ui_state.enter_jump();
             }
-            TeamCupUiCommand::ShowResults(_kind) => {
+            TeamCupUiCommand::ShowResults(kind) => {
+                self.results_kind = kind;
                 self.ui_state.enter_results();
             }
             TeamCupUiCommand::Done => {
@@ -391,25 +394,73 @@ impl View<RouteTarget> for TeamCupJumpView {
                 }
             }
             RenderMode::Results => {
-                let standings = self
-                    .store
-                    .try_with_team_cup(|tc| tc.standings_runtime(TeamCupStandingsKind::Leg))
-                    .unwrap_or_default();
                 let mut els = new_screen_with_bg(1, BG_TEAMCUP);
-                els.push(Element::text(
-                    self.resources.langbase.lstr(71),
-                    30,
-                    20,
-                    FONT_DEFAULT,
-                    false,
-                ));
+                let standings_kind = match self.results_kind {
+                    TeamCupResultsKind::Standings => TeamCupStandingsKind::Overall,
+                    TeamCupResultsKind::LegResults => TeamCupStandingsKind::Leg,
+                };
+                let (ctx, standings) = self
+                    .store
+                    .try_with_team_cup(|tc| {
+                        let standings = tc.standings_runtime(standings_kind);
+                        let ctx = (
+                            tc.current_leg,
+                            tc.current_round,
+                            tc.current_jumper_slot,
+                            tc.standings_pending,
+                        );
+                        (ctx, standings)
+                    })
+                    .unwrap_or_default();
+                let (leg, round, jumper_slot, is_intermediate) = ctx;
+
+                let header = match self.results_kind {
+                    TeamCupResultsKind::Standings => {
+                        format!("{} - Leg {}", self.resources.langbase.lstr(72), leg + 1)
+                    }
+                    TeamCupResultsKind::LegResults if is_intermediate => {
+                        format!(
+                            "Leg {}/{} - R {} - Jumper {}",
+                            leg + 1,
+                            6,
+                            round + 1,
+                            jumper_slot + 1,
+                        )
+                    }
+                    TeamCupResultsKind::LegResults => {
+                        format!("Leg {} {}", leg + 1, self.resources.langbase.lstr(72))
+                    }
+                };
+                els.push(Element::text(header, 30, 20, FONT_DEFAULT, false));
+
+                let mut y = 36;
                 for (i, entry) in standings.iter().enumerate() {
                     if i >= 15 {
                         break;
                     }
-                    let s = format!("{}. {}  {}", entry.rank, entry.name, entry.primary_score);
-                    els.push(Element::text(s, 30, 40 + i as i32 * 9, FONT_GOLD, false));
+                    let color = if entry.is_human { FONT_GOLD } else { FONT_HELP };
+                    let s = if let Some(cup_pts) = entry.secondary_score {
+                        format!(
+                            "{}. {}  {} ({})",
+                            entry.rank, entry.name, entry.primary_score, cup_pts
+                        )
+                    } else {
+                        format!("{}. {}  {}", entry.rank, entry.name, entry.primary_score)
+                    };
+                    els.push(Element::text(s, 20, y, color, false));
+                    y += 9;
                 }
+
+                hud::push_wait_for_key(
+                    &mut els,
+                    &self.resources.langbase,
+                    305,
+                    180,
+                    BG_TEAMCUP,
+                    FONT_DEFAULT,
+                    FONT_DEFAULT,
+                    self.cursor_visible,
+                );
                 els
             }
             RenderMode::Done | RenderMode::Error => {

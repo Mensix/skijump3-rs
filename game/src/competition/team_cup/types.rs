@@ -16,6 +16,7 @@ pub struct TeamCupRuntime {
     pub team_order: Vec<usize>,
     pub phase: TeamCupPhase,
     pub human_teams: usize,
+    pub standings_pending: bool,
 }
 
 #[derive(Debug, Clone)]
