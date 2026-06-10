@@ -162,7 +162,9 @@ impl JumpRunner {
             suppress_info_panel: self.suppress_info_panel.get(),
             suit_color: self.config.participant.suit_color as usize,
             ski_color: self.config.participant.ski_color as usize,
-            show_keymap: if frame.phase == JumpPhase::OnBar && !self.keymap_shown.get() {
+            show_keymap: if !self.keymap_shown.get()
+                && matches!(frame.phase, JumpPhase::Info | JumpPhase::OnBar)
+            {
                 self.keymap_shown.set(true);
                 true
             } else {
