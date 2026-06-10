@@ -15,6 +15,7 @@ pub(crate) mod sim;
 pub(crate) mod snow;
 pub(crate) mod state;
 pub(crate) mod types;
+pub(crate) mod visuals;
 pub(crate) mod wind;
 
 pub(crate) use ai::ComputerInputProvider;

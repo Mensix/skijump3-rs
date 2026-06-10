@@ -1,18 +1,13 @@
 use crate::data::records::HillRecord;
-use crate::gfx::palette::{
-    self, FILL_BORDER, FILL_TURQUOISE, FONT_DEFAULT, FONT_GOLD, FONT_GREET, JUMPER_SKI_SOURCE,
-    JUMPER_SUIT_SOURCE_SHADE_1, JUMPER_SUIT_SOURCE_SHADE_3,
-};
+use crate::gfx::palette::{self, FILL_BORDER, FILL_TURQUOISE, FONT_DEFAULT, FONT_GOLD, FONT_GREET};
 use crate::gfx::sprites;
 use crate::jump::frame::JumpRenderFrame;
 use crate::jump::hud;
 use crate::jump::types::JumpPhase;
+use crate::jump::visuals::{self, JumperSpriteSpec};
 use crate::text::lang::LangBase;
 use engine::color::Rgba;
-use engine::consts::{HEIGHT, WIDTH};
-use engine::sprite::SpriteColorRecolor;
-use engine::ui::{Element, Font, ImageRegion};
-use std::rc::Rc;
+use engine::ui::{Element, Font};
 
 const FONT_DIM_TURQUOISE: Rgba = Rgba::from_rgb6(0, 47, 52);
 
@@ -34,17 +29,8 @@ pub struct JumpPresentationContext<'a> {
 }
 
 pub fn elements(frame: &JumpRenderFrame, ctx: &JumpPresentationContext<'_>) -> Vec<Element> {
-    let mut els = vec![Element::image_region(ImageRegion {
-        pixels: Rc::clone(&frame.viewport),
-        src_w: WIDTH,
-        src_h: HEIGHT,
-        src_x: 0,
-        src_y: 0,
-        dst_x: 0,
-        dst_y: 0,
-        w: WIDTH,
-        h: HEIGHT,
-    })];
+    let mut els = Vec::new();
+    visuals::push_viewport(&mut els, &frame.viewport);
 
     let start_light_recolor = palette::start_light_recolor(frame.phase == JumpPhase::Disqualified);
 
@@ -87,42 +73,23 @@ pub fn elements(frame: &JumpRenderFrame, ctx: &JumpPresentationContext<'_>) -> V
         ));
     }
 
-    if let Some((hr_x, hr_y)) = frame.hill_record_marker {
-        els.push(Element::sprite(
-            sprites::Sprite::HillRecordMarker as u16,
-            hr_x - frame.sx,
-            hr_y - frame.sy,
-        ));
-    }
+    visuals::push_hill_record_marker(&mut els, frame.hill_record_marker, frame.sx, frame.sy);
 
     // Pascal: jumper not drawn during Info phase (only hill + info panel)
     if frame.phase != JumpPhase::Info {
-        // Sprite pixels use original Pascal source indices; recolor maps
-        // jumper-color pixels to explicit RGBA values.
-        let body_recolor = SpriteColorRecolor::new(vec![
-            (
-                JUMPER_SUIT_SOURCE_SHADE_1,
-                palette::suit_color_shade(ctx.suit_color, 1),
-            ),
-            (
-                JUMPER_SUIT_SOURCE_SHADE_3,
-                palette::suit_color_shade(ctx.suit_color, 3),
-            ),
-        ]);
-        let ski_recolor =
-            SpriteColorRecolor::new(vec![(JUMPER_SKI_SOURCE, palette::ski_color(ctx.ski_color))]);
-        els.push(Element::sprite_remapped(
-            frame.body_anim,
-            frame.body_x - frame.sx,
-            frame.body_y - frame.sy - 2,
-            body_recolor,
-        ));
-        els.push(Element::sprite_remapped(
-            frame.ski_anim,
-            jumper_x,
-            jumper_y - 1,
-            ski_recolor,
-        ));
+        visuals::push_jumper_sprites(
+            &mut els,
+            JumperSpriteSpec {
+                body_anim: frame.body_anim,
+                ski_anim: frame.ski_anim,
+                body_x: frame.body_x - frame.sx,
+                body_y: frame.body_y - frame.sy - 2,
+                ski_x: jumper_x,
+                ski_y: jumper_y - 1,
+                suit_color: ctx.suit_color,
+                ski_color: ctx.ski_color,
+            },
+        );
     }
     els
 }
@@ -346,56 +313,5 @@ pub fn wind_elements(els: &mut Vec<Element>, position: WindPosition, value: i32)
             FONT_GREET,
             false,
         ));
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use engine::sprite::SpriteColorRecolor;
-
-    #[test]
-    fn standard_jumper_recolor_pairs() {
-        // Construct the actual recolor objects used in production
-        // and confirm the RGBA mapping is correct.
-        let suit_color = 0usize;
-        let ski_color = 0usize;
-        let body_recolor = SpriteColorRecolor::new(vec![
-            (
-                JUMPER_SUIT_SOURCE_SHADE_1,
-                palette::suit_color_shade(suit_color, 1),
-            ),
-            (
-                JUMPER_SUIT_SOURCE_SHADE_3,
-                palette::suit_color_shade(suit_color, 3),
-            ),
-        ]);
-        let ski_recolor =
-            SpriteColorRecolor::new(vec![(JUMPER_SKI_SOURCE, palette::ski_color(ski_color))]);
-
-        assert_eq!(
-            body_recolor.get(JUMPER_SUIT_SOURCE_SHADE_1),
-            Some(palette::suit_color_shade(0, 1))
-        );
-        assert_eq!(
-            body_recolor.get(JUMPER_SUIT_SOURCE_SHADE_3),
-            Some(palette::suit_color_shade(0, 3))
-        );
-        assert_eq!(body_recolor.get(0), None, "transparent not recolored");
-        assert_eq!(
-            body_recolor.get(JUMPER_SKI_SOURCE),
-            None,
-            "ski index not in body recolor"
-        );
-
-        assert_eq!(
-            ski_recolor.get(JUMPER_SKI_SOURCE),
-            Some(palette::ski_color(ski_color))
-        );
-        assert_eq!(
-            ski_recolor.get(JUMPER_SUIT_SOURCE_SHADE_1),
-            None,
-            "suit index not in ski recolor"
-        );
     }
 }

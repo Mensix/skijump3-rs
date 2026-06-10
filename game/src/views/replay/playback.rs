@@ -3,20 +3,20 @@ use crate::data::hill_profile::HillTerrain;
 use crate::error::AssetError;
 use crate::gfx::palette::{
     self, BG_LEFT, BLACK, FILL_BORDER, FONT_DEFAULT, FONT_GOLD, FONT_GREET, FONT_HELP,
-    JUMPER_SKI_SOURCE, JUMPER_SUIT_SOURCE_SHADE_1, JUMPER_SUIT_SOURCE_SHADE_3,
 };
 use crate::gfx::sprites;
+use crate::jump::hud;
 use crate::jump::math;
 use crate::jump::presentation::{self, WindPosition};
 use crate::jump::replay_player::ReplaySession;
 use crate::jump::snow::SnowSystem;
+use crate::jump::visuals::{self, JumperSpriteSpec};
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::lang::LangBase;
 use crate::views::replay::playback_controls::{PlaybackMode, PlaybackSpeed, ReplayPlayback};
 use engine::consts::{HEIGHT, WIDTH};
-use engine::sprite::SpriteColorRecolor;
-use engine::ui::{Blinker, Element, Event, ImageRegion, Key, View};
+use engine::ui::{Blinker, Element, Event, Key, View};
 use std::cell::{Cell, RefCell};
 use std::collections::VecDeque;
 use std::rc::Rc;
@@ -163,56 +163,28 @@ impl View<RouteTarget> for ReplayView {
             );
         }
         let viewport: Rc<[u8]> = viewport_rgba.into();
-        let mut els = vec![Element::image_region(ImageRegion {
-            pixels: Rc::clone(&viewport),
-            src_w: WIDTH,
-            src_h: HEIGHT,
-            src_x: 0,
-            src_y: 0,
-            dst_x: 0,
-            dst_y: 0,
-            w: WIDTH,
-            h: HEIGHT,
-        })];
+        let mut els = Vec::new();
+        visuals::push_viewport(&mut els, &viewport);
 
-        if let Some((hr_x, hr_y)) = session.trace().meta.hill_record_marker {
-            els.push(Element::sprite(
-                sprites::Sprite::HillRecordMarker as u16,
-                hr_x - sx,
-                hr_y - sy,
-            ));
-        }
-        let suit_color = session.trace().meta.suit_color as usize;
-        let ski_color = session.trace().meta.ski_color as usize;
-        let body_recolor = SpriteColorRecolor::new(vec![
-            (
-                JUMPER_SUIT_SOURCE_SHADE_1,
-                palette::suit_color_shade(suit_color, 1),
-            ),
-            (
-                JUMPER_SUIT_SOURCE_SHADE_3,
-                palette::suit_color_shade(suit_color, 3),
-            ),
-        ]);
-        let ski_recolor =
-            SpriteColorRecolor::new(vec![(JUMPER_SKI_SOURCE, palette::ski_color(ski_color))]);
-        els.push(Element::sprite_remapped(
-            u16::from(replay_frame.body_anim),
-            x - sx,
-            y - sy - 2,
-            body_recolor,
-        ));
-        els.push(Element::sprite_remapped(
-            u16::from(replay_frame.ski_anim),
-            x - sx,
-            y - sy - 1,
-            ski_recolor,
-        ));
+        visuals::push_hill_record_marker(&mut els, session.trace().meta.hill_record_marker, sx, sy);
+        visuals::push_jumper_sprites(
+            &mut els,
+            JumperSpriteSpec {
+                body_anim: u16::from(replay_frame.body_anim),
+                ski_anim: u16::from(replay_frame.ski_anim),
+                body_x: x - sx,
+                body_y: y - sy - 2,
+                ski_x: x - sx,
+                ski_y: y - sy - 1,
+                suit_color: session.trace().meta.suit_color as usize,
+                ski_color: session.trace().meta.ski_color as usize,
+            },
+        );
 
         let wind_pos = WindPosition { x: 10, y: 180 };
 
         if !session.trace().meta.intro {
-            els.push(Element::sprite(sprites::Sprite::InfoPanel as u16, 227, 2));
+            hud::push_info_panel_frame(&mut els);
             if session.frame_index() % 30 > 15 {
                 els.push(Element::text("R", 2, 2, FONT_GOLD, false));
             }
@@ -292,13 +264,12 @@ impl View<RouteTarget> for ReplayView {
         if session.trace().meta.intro {
             self.update_intro_boxes(session.frame_index());
             if let Some(phase) = *self.active_intro_box.borrow() {
-                intro_box_elements(&mut els, &self.resources.langbase, phase);
-                let ix = 30;
-                let iy = if phase <= 3 { 140 } else { 30 };
-                let blink = self.cursor_blink.visible(11, 10);
-                if blink {
-                    els.push(Element::fillbox(ix + 247, iy + 27, 5, 1, FONT_DEFAULT));
-                }
+                intro_box_elements(
+                    &mut els,
+                    &self.resources.langbase,
+                    phase,
+                    self.cursor_blink.visible(11, 10),
+                );
             }
         }
         els
@@ -414,7 +385,12 @@ fn replay_speed_text(speed: PlaybackSpeed, langbase: &LangBase) -> String {
     }
 }
 
-fn intro_box_elements(els: &mut Vec<Element>, langbase: &LangBase, phase: u8) {
+fn intro_box_elements(
+    els: &mut Vec<Element>,
+    langbase: &LangBase,
+    phase: u8,
+    cursor_visible: bool,
+) {
     let ix = 30;
     let iy = if phase <= 3 { 140 } else { 30 };
     els.push(Element::fillbox(ix - 7, iy - 7, 269, 40, FILL_BORDER));
@@ -433,12 +409,14 @@ fn intro_box_elements(els: &mut Vec<Element>, langbase: &LangBase, phase: u8) {
         FONT_GOLD,
         false,
     ));
-    els.push(Element::text(
-        langbase.lstr(15),
+    hud::push_wait_for_key(
+        els,
+        langbase,
         ix + 246,
         iy + 21,
+        BG_LEFT,
         FONT_DEFAULT,
-        true,
-    ));
-    els.push(Element::fillbox(ix + 245, iy + 19, 9, 11, BG_LEFT));
+        FONT_DEFAULT,
+        cursor_visible,
+    );
 }
