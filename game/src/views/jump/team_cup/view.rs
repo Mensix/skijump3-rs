@@ -1,7 +1,7 @@
 use super::session::{TeamCupSessionController, TeamCupUiCommand};
 use crate::competition::runtime::CompetitionRuntime;
 use crate::competition::team_cup::types::{TeamCupResultsKind, TeamCupStandingsKind};
-use crate::components::screen::new_screen_with_bg;
+use crate::components::screen::{self, new_screen_with_bg};
 use crate::gfx::palette::{BG_TEAMCUP, BLACK, FONT_DEFAULT, FONT_GOLD, FONT_HELP};
 use crate::jump::hud;
 use crate::jump::{JumpParticipant, JumpPolicy};
@@ -418,11 +418,7 @@ impl View<RouteTarget> for TeamCupJumpView {
                 } else {
                     String::new()
                 };
-                vec![
-                    Element::fillbox(0, 0, 320, 200, BLACK),
-                    Element::text(&msg, 10, 10, FONT_DEFAULT, false),
-                    Element::text(self.resources.langbase.lstr(15), 10, 180, FONT_HELP, false),
-                ]
+                screen::message_screen(&msg, self.resources.langbase.lstr(15))
             }
         }
     }

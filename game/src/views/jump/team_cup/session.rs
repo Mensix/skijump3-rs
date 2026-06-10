@@ -6,6 +6,7 @@ use crate::jump::config::JumpParticipant;
 use crate::jump::types::JumpOutcome;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::views::jump::competition::flow as competition_flow;
+use crate::views::jump::competition::persistence;
 use crate::views::jump::scene::JumpScene;
 use crate::views::jump::scene::JumpSceneError;
 
@@ -106,15 +107,6 @@ impl TeamCupSessionController {
     }
 
     pub(crate) fn save_team_cup_results(&self) {
-        if self.profiles_saved.replace(true) {
-            return;
-        }
-        if let Err(e) = self
-            .resources
-            .save_manager
-            .save_players(&self.store.profiles())
-        {
-            eprintln!("Warning: failed to save players: {e}");
-        }
+        persistence::save_profiles_once(&self.profiles_saved, &self.resources, &self.store);
     }
 }

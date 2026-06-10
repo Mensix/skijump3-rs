@@ -2,8 +2,8 @@ use crate::competition::machine::Competition;
 use crate::competition::types::{CompetitionPhase, CupStyle, Participant, QualificationStatus};
 use crate::components::screen::{new_screen, page_hints};
 use crate::gfx::palette::{
-    BG_LEFT, BG_RIGHT_BRIGHT, FILL_HIGHLIGHT, FILL_TURQUOISE, FONT_DEFAULT, FONT_GREET,
-    FONT_HEADER, FONT_HELP,
+    BG_RIGHT_BRIGHT, FILL_HIGHLIGHT, FILL_TURQUOISE, FONT_DEFAULT, FONT_GREET, FONT_HEADER,
+    FONT_HELP,
 };
 use crate::store::ResourcesRef;
 use crate::text::format::{format_tenths, ordinal_dot};
@@ -11,6 +11,9 @@ use engine::color::Rgba;
 use engine::ui::Element;
 
 pub const QUALIFICATION_ITEMS_PER_PAGE: usize = 25;
+
+mod ko;
+pub use ko::render_ko_pairs;
 
 const WC_ITEMS_PER_PAGE: usize = 44;
 const WC_COL_SPLIT: usize = 22;
@@ -34,13 +37,6 @@ const OTHER_NAME: Rgba = FONT_HELP;
 const OTHER_RANK: Rgba = FILL_HIGHLIGHT;
 const OTHER_DISTANCE: Rgba = FILL_TURQUOISE;
 const INJURY_COLOR: Rgba = BG_RIGHT_BRIGHT;
-
-const KO_LEFT_POINTS: i32 = 40;
-const KO_LEFT_NAME: i32 = 145;
-const KO_RIGHT_NAME: i32 = 175;
-const KO_RIGHT_POINTS: i32 = 303;
-const KO_LEFT_STATUS: i32 = 12;
-const KO_RIGHT_STATUS: i32 = 308;
 
 pub struct ResultsPage {
     pub(crate) phase: CompetitionPhase,
@@ -522,174 +518,6 @@ pub fn render_results_page(page: &ResultsPage, resources: &ResourcesRef) -> Vec<
     }
 
     els
-}
-
-pub fn render_ko_pairs(
-    competition: &Competition,
-    resources: &ResourcesRef,
-    show_results: bool,
-    show_cursor: bool,
-) -> Vec<Element> {
-    let mut els = new_screen(1);
-    els.push(Element::text(
-        resources.langbase.lstr(94),
-        30,
-        6,
-        FONT_DEFAULT,
-        false,
-    ));
-
-    // Pascal: showpairs uses luett/mcluett (saved seed-pairing order).
-    // For intro (QualificationResults), event_order is still in seed order.
-    // For results (Round1Results), event_order has been re-sorted by points;
-    // we must use the saved ko_pairing_standings to preserve original pairings.
-    let standings = if show_results {
-        competition.ko_pairing_standings()
-    } else {
-        competition.event_standings()
-    };
-    let count = standings.len().min(50);
-    let half = count / 2;
-    for pair in 0..half.min(25) {
-        let y = 24 + pair as i32 * 7;
-        let left = standings[half + pair];
-        let right = standings[half - 1 - pair];
-        render_ko_side(&mut els, left, y, true, show_results, resources);
-        els.push(Element::text("vs.", 154, y, OTHER_NAME, false));
-        render_ko_side(&mut els, right, y, false, show_results, resources);
-    }
-
-    // Pascal waitforkey3(305,6,ch):
-    //   fontcolor(240); ewritefont(305,6,lstr(15));  → text right-aligned at (305,6)
-    //   getch(306,6,243,ch,ch2) → fillbox(304,4,312,14,243)  → 9×11 box
-    //   givech: fillbox(306,12,310,12,col) blinking 10/10    → 5×1 cursor
-    els.push(Element::text(
-        resources.langbase.lstr(15),
-        305,
-        6,
-        FONT_DEFAULT,
-        true,
-    ));
-    els.push(Element::fillbox(304, 4, 9, 11, BG_LEFT));
-    if show_cursor {
-        els.push(Element::fillbox(306, 12, 5, 1, FONT_DEFAULT));
-    }
-    els
-}
-
-fn render_ko_side(
-    els: &mut Vec<Element>,
-    p: &Participant,
-    y: i32,
-    left: bool,
-    show_results: bool,
-    resources: &ResourcesRef,
-) {
-    let own = !p.is_computer;
-
-    // Pascal: fontcolor override chain:
-    //   Base: 241 (OTHER_NAME) for others, 240 (FONT_DEFAULT) for own
-    //   Results mode qualifier colors: qual=1 (Qualified) → 251 (OTHER_RANK, golden)
-    //                                    qual=2 (LuckyLoser) → 252 (OTHER_DISTANCE, turquoise)
-    //   Own jumper overrides EVERYTHING to 240 (FONT_DEFAULT)
-    //   Non-qualified (qual=0) keep base color (241 gray)
-    let name_color = if own {
-        FONT_DEFAULT
-    } else if show_results {
-        match p.qual {
-            QualificationStatus::Qualified => OTHER_RANK,
-            QualificationStatus::LuckyLoser => OTHER_DISTANCE,
-            _ => OTHER_NAME,
-        }
-    } else {
-        OTHER_NAME
-    };
-
-    // Pascal: name, points, and status all use the same fontcolor
-    let element_color = name_color;
-
-    let status = match p.qual {
-        QualificationStatus::Qualified => "Q",
-        QualificationStatus::LuckyLoser => "LL",
-        _ => "",
-    };
-
-    // Pascal intro mode: shows (qual[who]) = KoSeed number, not rank
-    let seed_str = match p.qual {
-        QualificationStatus::KoSeed(n) => n.to_string(),
-        _ => p.rank.to_string(),
-    };
-
-    // Pascal: plus = min(fontlen(name) + 5, 105)
-    let name = p.display_name();
-    let name_px_width = resources.font.string_width(name) as i32;
-    let plus = (name_px_width + 5).min(105);
-
-    if left {
-        els.push(Element::text(
-            truncate_name(name),
-            KO_LEFT_NAME,
-            y,
-            element_color,
-            true,
-        ));
-        if show_results {
-            els.push(Element::text(
-                format_tenths(p.points.unwrap_or(0)),
-                KO_LEFT_POINTS,
-                y,
-                element_color,
-                true,
-            ));
-            els.push(Element::text(
-                status,
-                KO_LEFT_STATUS,
-                y,
-                element_color,
-                true,
-            ));
-        } else {
-            els.push(Element::text(
-                format!("({seed_str})"),
-                KO_LEFT_NAME - plus,
-                y,
-                element_color,
-                true,
-            ));
-        }
-    } else {
-        els.push(Element::text(
-            truncate_name(name),
-            KO_RIGHT_NAME,
-            y,
-            element_color,
-            false,
-        ));
-        if show_results {
-            els.push(Element::text(
-                format_tenths(p.points.unwrap_or(0)),
-                KO_RIGHT_POINTS,
-                y,
-                element_color,
-                true,
-            ));
-            els.push(Element::text(
-                status,
-                KO_RIGHT_STATUS,
-                y,
-                element_color,
-                false,
-            ));
-        } else {
-            els.push(Element::text(
-                format!("({seed_str})"),
-                KO_RIGHT_NAME + plus,
-                y,
-                element_color,
-                false,
-            ));
-        }
-    }
 }
 
 pub fn render_stats_page(

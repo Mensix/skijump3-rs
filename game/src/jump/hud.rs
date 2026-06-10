@@ -1,3 +1,4 @@
+use crate::components::prompt;
 use crate::data::records::HillRecord;
 use crate::gfx::palette::{FONT_DEFAULT, FONT_GOLD, FONT_GREET, FONT_HELP};
 use crate::gfx::sprites;
@@ -92,14 +93,14 @@ pub(crate) fn push_wait_for_key(
     cursor_color: Rgba,
     cursor_visible: bool,
 ) {
-    els.push(Element::right_text(
-        langbase.lstr(15).to_string(),
+    prompt::push_wait_for_key(
+        els,
+        langbase,
         x,
         y,
+        bg,
         text_color,
-    ));
-    els.push(Element::fillbox(x - 1, y - 2, 9, 11, bg));
-    if cursor_visible {
-        els.push(Element::fillbox(x + 1, y + 6, 5, 1, cursor_color));
-    }
+        cursor_color,
+        cursor_visible,
+    );
 }

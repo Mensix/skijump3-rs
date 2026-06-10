@@ -1,6 +1,6 @@
+use crate::components::screen;
 use crate::data::hill::HillCatalog;
 use crate::data::records::RecordStore;
-use crate::gfx::palette::{BLACK, FONT_DEFAULT};
 use crate::jump::config::JumpConfig;
 use crate::jump::frame::JumpRenderFrame;
 use crate::jump::presentation;
@@ -180,9 +180,5 @@ impl JumpRunner {
 }
 
 fn unavailable_elements(message: &str) -> Vec<Element> {
-    vec![
-        Element::fillbox(0, 0, WIDTH as i32, HEIGHT as i32, BLACK),
-        Element::text(message, 20, 80, FONT_DEFAULT, false),
-        Element::text("PRESS ESC", 20, 95, FONT_DEFAULT, false),
-    ]
+    screen::message_screen(message, "PRESS ESC")
 }

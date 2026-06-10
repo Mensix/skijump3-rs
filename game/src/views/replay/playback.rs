@@ -1,9 +1,8 @@
+use crate::components::screen;
 use crate::data::hill::HillInfo;
 use crate::data::hill_profile::HillTerrain;
 use crate::error::AssetError;
-use crate::gfx::palette::{
-    self, BG_LEFT, BLACK, FILL_BORDER, FONT_DEFAULT, FONT_GOLD, FONT_GREET, FONT_HELP,
-};
+use crate::gfx::palette::{self, BG_LEFT, FILL_BORDER, FONT_DEFAULT, FONT_GOLD, FONT_GREET};
 use crate::gfx::sprites;
 use crate::jump::hud;
 use crate::jump::math;
@@ -126,22 +125,14 @@ impl View<RouteTarget> for ReplayView {
 
     fn elements(&self) -> Vec<Element> {
         let Ok(terrain) = &self.terrain else {
-            return vec![
-                Element::fillbox(0, 0, WIDTH as i32, HEIGHT as i32, BLACK),
-                Element::text("Replay hill not found", 20, 80, FONT_DEFAULT, false),
-                Element::text("PRESS ESC", 20, 95, FONT_HELP, false),
-            ];
+            return screen::message_screen("Replay hill not found", "PRESS ESC");
         };
         let mut session_ref = self.session.borrow_mut();
         let Some(session) = session_ref.as_mut() else {
-            return vec![
-                Element::fillbox(0, 0, WIDTH as i32, HEIGHT as i32, BLACK),
-                Element::text("No replay selected", 20, 80, FONT_DEFAULT, false),
-                Element::text("PRESS ESC", 20, 95, FONT_HELP, false),
-            ];
+            return screen::message_screen("No replay selected", "PRESS ESC");
         };
         let Some(frame) = session.render_frame() else {
-            return vec![Element::fillbox(0, 0, WIDTH as i32, HEIGHT as i32, BLACK)];
+            return screen::black_screen();
         };
         let (x, y) = frame.position;
         let (sx, sy) = frame.scroll;

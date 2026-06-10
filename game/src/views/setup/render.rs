@@ -11,7 +11,14 @@ pub(crate) fn elements(view: &SetupView) -> Vec<Element> {
 
     match view.modal.get() {
         Some(SetupModal::WindPlace(pos)) => {
-            els.extend(rect_bg(54, 19, 222, 162));
+            els.extend(screen::panel_background(
+                54,
+                19,
+                222,
+                162,
+                FILL_BORDER,
+                BG_LEFT,
+            ));
             els.push(Element::text(
                 view.langbase().lstr(221),
                 75,
@@ -54,7 +61,14 @@ pub(crate) fn elements(view: &SetupView) -> Vec<Element> {
             ));
         }
         Some(SetupModal::SeeComps(val)) => {
-            els.extend(rect_bg(74, 79, 172, 54));
+            els.extend(screen::panel_background(
+                74,
+                79,
+                172,
+                54,
+                FILL_BORDER,
+                BG_LEFT,
+            ));
             els.push(Element::text(
                 view.langbase().lstr(220),
                 85,
@@ -78,7 +92,14 @@ pub(crate) fn elements(view: &SetupView) -> Vec<Element> {
             els.push(Element::text(display, 95, 112, FONT_HEADER, false));
         }
         Some(SetupModal::ConfirmReset(kind)) => {
-            els.extend(rect_bg(69, 79, 182, 52));
+            els.extend(screen::panel_background(
+                69,
+                79,
+                182,
+                52,
+                FILL_BORDER,
+                BG_LEFT,
+            ));
             let label = if kind == 1 {
                 view.langbase().lstr(190)
             } else {
@@ -122,13 +143,6 @@ pub(crate) fn elements(view: &SetupView) -> Vec<Element> {
     }
 
     els
-}
-
-fn rect_bg(x: i32, y: i32, w: i32, h: i32) -> Vec<Element> {
-    vec![
-        Element::fillbox(x, y, w, h, FILL_BORDER),
-        Element::fillbox(x + 1, y + 1, w - 2, h - 2, BG_LEFT),
-    ]
 }
 
 fn render_screen(view: &SetupView, els: &mut Vec<Element>) {

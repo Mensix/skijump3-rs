@@ -1,5 +1,5 @@
-use crate::components::screen;
-use crate::gfx::palette::{BG_LEFT, FONT_DEFAULT, FONT_HEADER, FONT_HELP};
+use crate::components::{prompt, screen};
+use crate::gfx::palette::{BG_LEFT, FONT_HEADER, FONT_HELP};
 use crate::text::lang::LangBase;
 use crate::text::layout::lstr;
 use engine::ui::{Blinker, Component, Element, Event, Font, Key};
@@ -42,10 +42,13 @@ impl Component for ConfirmDialog {
         els.push(Element::text(&self.message, 70, 90, FONT_HEADER, false));
         els.push(Element::text(str2, 70, 110, FONT_HEADER, false));
         els.push(Element::text("(Y/N)", hint_x, 110, FONT_HELP, false));
-        els.push(Element::fillbox(cursor_x - 2, 108, 9, 11, BG_LEFT));
-        if self.blinker.visible(11, 10) {
-            els.push(Element::fillbox(cursor_x, 116, 5, 1, FONT_DEFAULT));
-        }
+        prompt::push_yes_no_cursor(
+            &mut els,
+            cursor_x,
+            110,
+            BG_LEFT,
+            self.blinker.visible(11, 10),
+        );
         els
     }
 

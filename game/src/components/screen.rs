@@ -1,4 +1,4 @@
-use crate::gfx::palette::{BG_LEFT, BG_RIGHT, BLACK, FILL_DIM, FONT_HELP};
+use crate::gfx::palette::{BG_LEFT, BG_RIGHT, BLACK, FILL_DIM, FONT_DEFAULT, FONT_HELP};
 use crate::gfx::sprites;
 use engine::color::Rgba;
 use engine::ui::Element;
@@ -49,6 +49,20 @@ pub fn new_screen_with_bg(style: u8, bg: Rgba) -> Vec<Element> {
     els
 }
 
+#[must_use]
+pub fn black_screen() -> Vec<Element> {
+    vec![Element::fillbox(0, 0, 320, 200, BLACK)]
+}
+
+#[must_use]
+pub fn message_screen(message: &str, hint: &str) -> Vec<Element> {
+    vec![
+        Element::fillbox(0, 0, 320, 200, BLACK),
+        Element::text(message, 20, 80, FONT_DEFAULT, false),
+        Element::text(hint, 20, 95, FONT_HELP, false),
+    ]
+}
+
 /// Two-tone modal box overlay with dither.
 #[must_use]
 pub fn modal_background(x: i32, y: i32, w: i32, h: i32) -> Vec<Element> {
@@ -56,6 +70,14 @@ pub fn modal_background(x: i32, y: i32, w: i32, h: i32) -> Vec<Element> {
         Element::fillbox(x, y, w, h, BLACK),
         Element::fillbox(x + 1, y + 1, w - 2, h - 2, BG_RIGHT),
         Element::fill_area(63),
+    ]
+}
+
+#[must_use]
+pub fn panel_background(x: i32, y: i32, w: i32, h: i32, border: Rgba, bg: Rgba) -> Vec<Element> {
+    vec![
+        Element::fillbox(x, y, w, h, border),
+        Element::fillbox(x + 1, y + 1, w - 2, h - 2, bg),
     ]
 }
 

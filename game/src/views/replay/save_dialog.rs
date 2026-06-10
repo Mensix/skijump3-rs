@@ -1,5 +1,5 @@
 use crate::components::page_nav::cycle_index;
-use crate::components::screen;
+use crate::components::{prompt, screen};
 use crate::gfx::palette::{BG_LEFT, BLACK, FONT_DEFAULT, FONT_GOLD};
 use crate::jump::replay::ReplayTrace;
 use crate::store::ResourcesRef;
@@ -274,10 +274,7 @@ impl SaveReplayDialog {
             FONT_GOLD,
             false,
         ));
-        els.push(Element::fillbox(188, 108, 9, 11, BG_LEFT));
-        if self.cursor_blink.visible(11, 10) {
-            els.push(Element::fillbox(190, 116, 5, 1, FONT_DEFAULT));
-        }
+        prompt::push_yes_no_cursor(els, 190, 110, BG_LEFT, self.cursor_blink.visible(11, 10));
     }
 }
 

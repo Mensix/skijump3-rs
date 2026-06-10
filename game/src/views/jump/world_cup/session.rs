@@ -9,6 +9,7 @@ use crate::jump::types::JumpOutcome;
 use crate::jump::JumpParticipant;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::format::format_tenths;
+use crate::views::jump::competition::persistence;
 use crate::views::jump::scene::JumpScene;
 use crate::views::jump::scene::JumpSceneError;
 
@@ -128,7 +129,7 @@ impl WorldCupSessionController {
     /// Persist competition results (profiles and records) to disk.
     /// Called on Done or SeasonComplete. Idempotent — runs once.
     pub(crate) fn save_competition_results(&self) {
-        if self.profiles_saved.replace(true) {
+        if self.profiles_saved.get() {
             return;
         }
         self.store.try_with_competition(|c| {
@@ -174,18 +175,11 @@ impl WorldCupSessionController {
                 }
             }
         });
-        if let Err(e) = self
-            .resources
-            .save_manager
-            .save_players(&self.store.profiles())
-        {
-            eprintln!("Warning: failed to save players: {e}");
-        }
-        if let Some(records) = self.store.try_records() {
-            if let Err(e) = self.resources.save_manager.save_records(&records) {
-                eprintln!("Warning: failed to save records: {e}");
-            }
-        }
+        persistence::save_profiles_and_records_once(
+            &self.profiles_saved,
+            &self.resources,
+            &self.store,
+        );
     }
 }
 

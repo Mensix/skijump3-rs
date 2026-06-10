@@ -4,7 +4,8 @@ use super::session::{WorldCupSessionController, WorldCupUiCommand};
 use crate::competition::machine::Competition;
 use crate::competition::runtime::{CompetitionRuntime, IndividualResultsKind};
 use crate::competition::types::CompetitionPhase;
-use crate::gfx::palette::{BLACK, FONT_GREET};
+use crate::components::screen;
+use crate::gfx::palette::FONT_GREET;
 use crate::jump::types::JumpPhase;
 use crate::jump::JumpParticipant;
 use crate::jump::JumpPolicy;
@@ -133,7 +134,7 @@ impl WorldCupJumpView {
                 els.extend(results::render_header(c, &self.resources));
                 els
             })
-            .unwrap_or_else(|| vec![Element::fillbox(0, 0, 320, 200, BLACK)])
+            .unwrap_or_else(screen::black_screen)
     }
 
     /// Pascal: rank calculation — counts participants with points <= jumper's total.
@@ -212,11 +213,7 @@ impl View<RouteTarget> for WorldCupJumpView {
             RenderMode::Done => vec![],
             RenderMode::Error => {
                 let msg = self.ui_state.error_message();
-                vec![
-                    Element::fillbox(0, 0, 320, 200, BLACK),
-                    Element::text(&msg, 10, 10, FONT_GREET, false),
-                    Element::text("Press any key to return", 10, 180, FONT_GREET, false),
-                ]
+                screen::message_screen(&msg, "Press any key to return")
             }
         }
     }

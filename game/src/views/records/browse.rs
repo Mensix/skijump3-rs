@@ -1,3 +1,4 @@
+use crate::components::page_nav;
 use crate::components::screen::{new_screen, new_screen_with_bg, page_hints};
 use crate::data::records::{HillRecord, Hiscore};
 use crate::gfx::palette::{BG_KOTH, FONT_DEFAULT, FONT_GREET, FONT_HELP, FONT_NEW};
@@ -6,61 +7,10 @@ use crate::store::{ResourcesRef, StoreRef};
 use crate::text::format::{format_tenths_i64, ordinal_dot};
 use crate::text::layout::{is_computer_name, lstr, shorten_name};
 use engine::ui::{Cell, Table};
-use engine::ui::{Element, Event, Key, View};
+use engine::ui::{Element, Event, View};
 
 const HALL_PAGES: usize = 3;
 const PAGE_SIZE: usize = 20;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum PageAction {
-    Next,
-    Prev,
-    First,
-    Back,
-}
-
-const fn handle_page_event(event: Event, page: &mut usize, pages: usize) -> Option<PageAction> {
-    match event {
-        Event::Keyboard(Key::Escape) => Some(PageAction::Back),
-        Event::Keyboard(Key::Home) => Some(PageAction::First),
-        Event::Keyboard(Key::Left | Key::PageUp) if *page > 0 => Some(PageAction::Prev),
-        Event::Keyboard(Key::Right | Key::PageDown | Key::Enter | Key::Char(' ')) => {
-            Some(PageAction::Next)
-        }
-        Event::Keyboard(_) => {
-            if *page >= pages {
-                *page = pages.saturating_sub(1);
-            }
-            None
-        }
-    }
-}
-
-const fn apply_page_action(
-    action: PageAction,
-    page: &mut usize,
-    pages: usize,
-) -> Option<RouteTarget> {
-    match action {
-        PageAction::Back => Some(RouteTarget::Back),
-        PageAction::First => {
-            *page = 0;
-            None
-        }
-        PageAction::Prev => {
-            *page = page.saturating_sub(1);
-            None
-        }
-        PageAction::Next => {
-            *page += 1;
-            if *page >= pages {
-                Some(RouteTarget::MainMenu)
-            } else {
-                None
-            }
-        }
-    }
-}
 
 #[derive(Debug)]
 pub struct HallOfFameView {
@@ -257,8 +207,7 @@ impl View<RouteTarget> for HallOfFameView {
     }
 
     fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {
-        handle_page_event(event, &mut self.page, HALL_PAGES)
-            .and_then(|action| apply_page_action(action, &mut self.page, HALL_PAGES))
+        page_nav::handle_paged_event(event, &mut self.page, HALL_PAGES)
     }
 }
 
@@ -418,7 +367,6 @@ impl View<RouteTarget> for HillRecordsView {
 
     fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {
         let pages = self.pages();
-        handle_page_event(event, &mut self.page, pages)
-            .and_then(|action| apply_page_action(action, &mut self.page, pages))
+        page_nav::handle_paged_event(event, &mut self.page, pages)
     }
 }
