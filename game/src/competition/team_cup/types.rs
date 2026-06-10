@@ -17,6 +17,7 @@ pub struct TeamCupRuntime {
     pub phase: TeamCupPhase,
     pub human_teams: usize,
     pub standings_pending: bool,
+    pub human_jumped_in_slot: bool,
 }
 
 #[derive(Debug, Clone)]

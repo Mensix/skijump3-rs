@@ -27,6 +27,7 @@ impl TeamCupRuntime {
             phase: TeamCupPhase::Setup,
             human_teams,
             standings_pending: false,
+            human_jumped_in_slot: false,
         }
     }
 
@@ -58,6 +59,11 @@ impl TeamCupRuntime {
                     if self.current_team_order_pos >= self.team_order.len() {
                         self.current_team_order_pos = 0;
                         self.current_jumper_slot += 1;
+                        let had_human = self.human_jumped_in_slot;
+                        self.human_jumped_in_slot = false;
+                        if had_human {
+                            self.standings_pending = true;
+                        }
                         continue;
                     }
 
@@ -234,18 +240,14 @@ impl CompetitionRuntime for TeamCupRuntime {
     }
 
     fn record_jump_runtime(&mut self, context: &Self::Context, outcome: JumpOutcome) {
-        let is_human = self
-            .teams
-            .get(context.team_idx)
-            .is_some_and(|t| t.is_human_team);
         let is_human_member = self
             .teams
             .get(context.team_idx)
             .and_then(|t| t.members.get(context.member_idx))
             .is_some_and(|m| !m.competitor.is_computer);
         self.record_jump(outcome.distance, outcome.score, DEFAULT_START_GATE as u8);
-        if is_human && is_human_member && self.phase == TeamCupPhase::Jumping {
-            self.standings_pending = true;
+        if is_human_member && self.phase == TeamCupPhase::Jumping {
+            self.human_jumped_in_slot = true;
         }
     }
 
