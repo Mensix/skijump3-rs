@@ -34,6 +34,7 @@ pub struct JumpRunner {
     computer_pre_ai_wind_done: bool,
     last_wind: FlightWind,
     pub(crate) suppress_info_panel: Cell<bool>,
+    keymap_shown: Cell<bool>,
 }
 
 impl JumpRunner {
@@ -51,6 +52,7 @@ impl JumpRunner {
             computer_pre_ai_wind_done: false,
             last_wind: FlightWind::default(),
             suppress_info_panel: Cell::new(false),
+            keymap_shown: Cell::new(false),
         }
     }
 
@@ -160,6 +162,12 @@ impl JumpRunner {
             suppress_info_panel: self.suppress_info_panel.get(),
             suit_color: self.config.participant.suit_color as usize,
             ski_color: self.config.participant.ski_color as usize,
+            show_keymap: if frame.phase == JumpPhase::OnBar && !self.keymap_shown.get() {
+                self.keymap_shown.set(true);
+                true
+            } else {
+                false
+            },
         };
         presentation::elements(&frame, &ctx)
     }

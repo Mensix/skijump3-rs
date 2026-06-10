@@ -26,6 +26,7 @@ pub struct JumpPresentationContext<'a> {
     pub(crate) suit_color: usize,
     pub(crate) ski_color: usize,
     pub(crate) team_name: &'a str,
+    pub(crate) show_keymap: bool,
 }
 
 pub fn elements(frame: &JumpRenderFrame, ctx: &JumpPresentationContext<'_>) -> Vec<Element> {
@@ -159,7 +160,7 @@ fn info_panel_elements(
     if ctx.suppress_info_panel {
         return;
     }
-    if frame.phase == JumpPhase::OnBar {
+    if frame.phase == JumpPhase::OnBar && ctx.show_keymap {
         hud::push_keymap(els, ctx.langbase);
     } else {
         hud::push_hill_record_info(els, ctx.langbase, ctx.hill_name_k, ctx.hill_record);
