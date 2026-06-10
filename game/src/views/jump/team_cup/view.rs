@@ -2,7 +2,7 @@ use super::session::{TeamCupSessionController, TeamCupUiCommand};
 use crate::competition::runtime::CompetitionRuntime;
 use crate::competition::team_cup::types::{TeamCupResultsKind, TeamCupStandingsKind};
 use crate::components::screen::{self, new_screen_with_bg};
-use crate::gfx::palette::{BG_TEAMCUP, BLACK, FONT_DEFAULT, FONT_GOLD, FONT_HELP};
+use crate::gfx::palette::{BG_TEAMCUP, BLACK, FILL_HIGHLIGHT, FONT_DEFAULT, FONT_GOLD, FONT_HELP};
 use crate::jump::hud;
 use crate::jump::{JumpParticipant, JumpPolicy};
 use crate::route::RouteTarget;
@@ -436,29 +436,23 @@ impl View<RouteTarget> for TeamCupJumpView {
                     }
                     let is_human = entry.is_human;
 
-                    // Pascal Entry: rank only when different from last
+                    // Pascal Entry: rank in col2, name in col1, points in col1
                     if entry.rank != last_rank && entry.rank > 0 {
-                        let c = if is_human { FONT_GOLD } else { FONT_HELP };
+                        let c = if is_human { FONT_GOLD } else { FILL_HIGHLIGHT };
                         els.push(Element::text(format!("{}.", entry.rank), 24, y, c, true));
                     }
                     last_rank = entry.rank;
 
-                    // Name: column 2 = 32, shortened to 122px
-                    let c = if is_human { FONT_GOLD } else { FONT_HELP };
-                    els.push(Element::text(
-                        shorten_name(&entry.name, &self.resources.font, 122),
-                        32,
-                        y,
-                        c,
-                        false,
-                    ));
+                    let nc = if is_human { FONT_DEFAULT } else { FONT_HELP };
+                    let name = shorten_name(&entry.name, &self.resources.font, 122);
+                    els.push(Element::text(name, 32, y, nc, false));
 
-                    // Points: column 3 = 184
+                    // Points as raw integer (no DOS tenths quirk)
                     els.push(Element::right_text(
                         entry.primary_score.to_string(),
                         184,
                         y,
-                        c,
+                        nc,
                     ));
 
                     y += 10;
