@@ -64,7 +64,8 @@ impl TeamCupRuntime {
                     let team_idx = self.team_order[self.current_team_order_pos];
                     let member = &self.teams[team_idx].members[self.current_jumper_slot];
                     let hill_idx = self.schedule[self.current_leg];
-                    let is_human = self.teams[team_idx].is_human_team;
+                    let is_human_team = self.teams[team_idx].is_human_team;
+                    let is_human = is_human_team && !member.competitor.is_computer;
                     let is_new_event = self.current_round == 0
                         && self.current_jumper_slot == 0
                         && self.current_team_order_pos == 0;
@@ -182,8 +183,18 @@ impl TeamCupRuntime {
         if self.current_team_order_pos >= self.team_order.len() {
             return false;
         }
+        if self.current_jumper_slot >= MEMBERS_PER_TEAM {
+            return false;
+        }
         let team_idx = self.team_order[self.current_team_order_pos];
-        self.teams.get(team_idx).is_some_and(|t| t.is_human_team)
+        let Some(team) = self.teams.get(team_idx) else {
+            return false;
+        };
+        team.is_human_team
+            && team
+                .members
+                .get(self.current_jumper_slot)
+                .is_some_and(|m| !m.competitor.is_computer)
     }
 
     pub fn current_jump_context(&self) -> TeamCupJumpContext {
@@ -227,8 +238,13 @@ impl CompetitionRuntime for TeamCupRuntime {
             .teams
             .get(context.team_idx)
             .is_some_and(|t| t.is_human_team);
+        let is_human_member = self
+            .teams
+            .get(context.team_idx)
+            .and_then(|t| t.members.get(context.member_idx))
+            .is_some_and(|m| !m.competitor.is_computer);
         self.record_jump(outcome.distance, outcome.score, DEFAULT_START_GATE as u8);
-        if is_human && self.phase == TeamCupPhase::Jumping {
+        if is_human && is_human_member && self.phase == TeamCupPhase::Jumping {
             self.standings_pending = true;
         }
     }
