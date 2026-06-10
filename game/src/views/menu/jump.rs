@@ -7,7 +7,6 @@ use crate::components::layout::{self, MainLayout};
 use crate::components::menu::{Menu, MenuItem};
 use crate::components::screen;
 use crate::gfx::palette::{BG_ERASE, BG_LIST, FONT_DEFAULT, FONT_GOLD, FONT_HEADER};
-use crate::rng::Random;
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use engine::ui::{Component, Element, Event, View};
@@ -131,14 +130,9 @@ impl JumpMenuView {
         let human_teams = num_players / 4;
         let hill_count = self.resources.hills.len();
         let profiles = self.store.profiles();
-        let tc = build_team_cup(
-            &names,
-            &teams_def,
-            &profiles,
-            human_teams,
-            hill_count,
-            &mut Random::new(0),
-        );
+        let tc = self.store.with_jump_rng_wind_mut(|rng, _| {
+            build_team_cup(&names, &teams_def, &profiles, human_teams, hill_count, rng)
+        });
         drop(profiles);
         self.store.start_team_cup(tc);
         RouteTarget::TeamCup
