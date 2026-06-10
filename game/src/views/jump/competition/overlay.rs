@@ -1,3 +1,5 @@
+use crate::competition::runtime::CompetitionRuntime;
+use crate::competition::team_cup::types::{TeamCupRuntime, TeamCupStandingsKind};
 use crate::competition::types::{CompetitionPhase, CupStyle, Participant, QualificationStatus};
 use crate::gfx::palette::{FONT_GOLD, FONT_HELP};
 use crate::jump::hud;
@@ -9,6 +11,7 @@ use engine::ui::Element;
 
 /// Lightweight snapshot of competition data for overlay rendering.
 /// Built once per frame to avoid repeated `store.read()` calls.
+/// Supports both WC/4H (via `Competition`) and Team Cup (via `TeamCupRuntime`).
 #[derive(Debug, Clone)]
 pub struct OverlayData {
     pub phase: CompetitionPhase,
@@ -35,6 +38,13 @@ pub struct WcStandingEntry {
 impl OverlayData {
     /// Collect all data the overlay needs from the competition store.
     pub fn collect(store: &StoreRef) -> Option<Self> {
+        if let Some(data) = Self::collect_wc(store) {
+            return Some(data);
+        }
+        Self::collect_tc(store)
+    }
+
+    fn collect_wc(store: &StoreRef) -> Option<Self> {
         store.try_with_competition(|c| {
             let event_standings = c.event_standings();
             let event_top5 = event_standings
@@ -69,6 +79,41 @@ impl OverlayData {
                 current_participant: c.current_jumper().map(|idx| c.participant(idx).clone()),
                 event_standings_top5: event_top5,
                 wc_standings_top5: wc_top5,
+            }
+        })
+    }
+
+    fn collect_tc(store: &StoreRef) -> Option<Self> {
+        store.try_with_team_cup(|tc| {
+            let leg_standings = tc.standings_runtime(TeamCupStandingsKind::Leg);
+            let overall_standings = tc.standings_runtime(TeamCupStandingsKind::Overall);
+            let hill_idx = tc.current_hill_idx();
+            let event_top5 = leg_standings
+                .iter()
+                .take(5)
+                .filter(|e| e.primary_score > 0.0)
+                .map(|e| EventStandingEntry {
+                    name: e.name.clone(),
+                    points: e.primary_score,
+                })
+                .collect();
+            let overall_top5: Vec<EventStandingEntry> = overall_standings
+                .iter()
+                .take(5)
+                .filter(|e| e.primary_score > 0.0)
+                .map(|e| EventStandingEntry {
+                    name: e.name.clone(),
+                    points: e.primary_score,
+                })
+                .collect();
+            OverlayData {
+                phase: CompetitionPhase::Round1,
+                style: CupStyle::TeamCup,
+                current_event: tc.current_leg,
+                current_hill: hill_idx,
+                current_participant: None,
+                event_standings_top5: event_top5,
+                wc_standings_top5: Vec::new(),
             }
         })
     }
@@ -167,11 +212,15 @@ impl CompetitionOverlay {
             OverlayKind::Keymap => hud::push_keymap(&mut els, &self.resources.langbase),
             OverlayKind::CyclingWithInfoBox => {
                 self.cycling_info_elements(&mut els, ctx.frame_counter, ctx.hill_idx, &ctx.data);
-                self.jumper_info_box(&mut els, &ctx.participant, false);
+                if ctx.data.style != CupStyle::TeamCup {
+                    self.jumper_info_box(&mut els, &ctx.participant, false);
+                }
             }
             OverlayKind::Round2WithInfoBox => {
                 self.cycling_info_elements(&mut els, ctx.frame_counter, ctx.hill_idx, &ctx.data);
-                self.jumper_info_box(&mut els, &ctx.participant, true);
+                if ctx.data.style != CupStyle::TeamCup {
+                    self.jumper_info_box(&mut els, &ctx.participant, true);
+                }
             }
         }
         els

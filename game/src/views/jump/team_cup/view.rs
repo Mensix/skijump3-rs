@@ -11,6 +11,7 @@ use crate::store::{ResourcesRef, Store, StoreRef};
 use crate::text::format::format_decimal;
 use crate::text::layout::shorten_name;
 use crate::views::jump::competition::flow::{handle_human_jump, CompetitionFlowCommand};
+use crate::views::jump::competition::overlay::{CompetitionOverlay, OverlayKind};
 use crate::views::jump::competition::session::CompetitionSession;
 use crate::views::jump::competition::ui_state::{CompetitionUiState, RenderMode};
 use crate::views::jump::input::{JumpInputAction, JumpInputController};
@@ -31,6 +32,7 @@ pub struct TeamCupJumpView {
     store: StoreRef,
     scene: Option<JumpScene>,
     ui_state: CompetitionUiState,
+    overlay: CompetitionOverlay,
     phase: ViewPhase,
     blinker: Blinker,
     session: CompetitionSession,
@@ -57,6 +59,7 @@ impl TeamCupJumpView {
             store: store.clone(),
             scene: None,
             ui_state: CompetitionUiState::new(),
+            overlay: CompetitionOverlay::new(resources.clone(), store.clone()),
             phase: ViewPhase::NamingTeam(0),
             blinker: Blinker::new(),
             session: CompetitionSession::new(resources, store),
@@ -400,7 +403,19 @@ impl View<RouteTarget> for TeamCupJumpView {
         match self.ui_state.render_mode() {
             RenderMode::Jump => {
                 if let Some(ref scene) = self.scene {
-                    scene.elements()
+                    let overlay_ctx =
+                        self.overlay
+                            .context(scene.phase(), scene.frame_counter(), &self.ui_state);
+                    scene.set_suppress_info_panel(
+                        overlay_ctx
+                            .as_ref()
+                            .is_some_and(|ctx| ctx.kind != OverlayKind::None),
+                    );
+                    let mut els = scene.elements();
+                    if let Some(ctx) = overlay_ctx {
+                        els.extend(self.overlay.render_elements(&ctx));
+                    }
+                    els
                 } else {
                     vec![]
                 }
