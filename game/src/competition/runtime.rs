@@ -28,6 +28,19 @@ pub trait CompetitionRuntime {
     fn advance_results_runtime(&mut self, kind: Self::ResultsKind);
     fn is_complete_runtime(&self) -> bool;
     fn standings_runtime(&self, kind: Self::StandingsKind) -> Vec<StandingEntry>;
+
+    /// Whether the current jumper is human (needs UI).
+    fn is_human_current(&self) -> bool;
+
+    /// Context for the current jump (used by session to record outcome).
+    fn current_jump_context(&self) -> Self::Context;
+
+    /// Competition style for save/display logic.
+    fn cup_style(&self) -> CupStyle;
+
+    /// Current event/leg index (for new-event detection).
+    /// Returns 0 for single-event competitions.
+    fn event_idx(&self) -> usize;
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -146,5 +159,26 @@ impl CompetitionRuntime for Competition {
                 })
                 .collect(),
         }
+    }
+
+    fn is_human_current(&self) -> bool {
+        self.is_human_current()
+    }
+
+    fn current_jump_context(&self) -> Self::Context {
+        let participant_idx = self.current_jumper().unwrap_or(0);
+        IndividualJumpContext {
+            event_idx: self.current_event,
+            phase: self.phase(),
+            participant_idx,
+        }
+    }
+
+    fn cup_style(&self) -> CupStyle {
+        self.style()
+    }
+
+    fn event_idx(&self) -> usize {
+        self.current_event
     }
 }

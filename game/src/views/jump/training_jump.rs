@@ -16,7 +16,6 @@ impl TrainingJumpView {
         let hill_idx = store.practice_hill();
         let participant = JumpParticipant::trainee();
         let start_gate = store.practice_start_gate();
-        store.setup_jump_event();
         let scene = JumpScene::new(
             ResourcesRef::clone(&resources),
             StoreRef::clone(&store),

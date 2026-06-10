@@ -29,10 +29,12 @@ pub struct JumpScene {
 impl JumpScene {
     /// Create a snow system, optionally sampling snow count and wind
     /// on the very first event (Pascal-faithful one-time init).
+    /// Also initializes wind for the event if this is the first scene.
     fn prepare_snow(store: &StoreRef) -> SnowSystem {
         let mut snow = SnowSystem::new();
         if store.consume_first_jump_event() {
             store.with_jump_rng_wind_mut(|rng, wind| {
+                wind.initialize(rng, store.wind_place());
                 let snow_count = calculate_snow_count(rng);
                 snow.set_count(snow_count, rng);
                 wind.sample(rng);

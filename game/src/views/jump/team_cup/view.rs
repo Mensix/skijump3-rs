@@ -1,14 +1,16 @@
-use super::session::{TeamCupSessionController, TeamCupUiCommand};
 use crate::competition::runtime::CompetitionRuntime;
-use crate::competition::team_cup::types::{TeamCupResultsKind, TeamCupStandingsKind};
+use crate::competition::team_cup::types::{
+    TeamCupJumpContext, TeamCupResultsKind, TeamCupRuntime, TeamCupStandingsKind,
+};
 use crate::components::screen::{self, new_screen_with_bg};
 use crate::gfx::palette::{BG_TEAMCUP, BLACK, FILL_HIGHLIGHT, FONT_DEFAULT, FONT_GOLD, FONT_HELP};
 use crate::jump::hud;
 use crate::jump::{JumpParticipant, JumpPolicy};
 use crate::route::RouteTarget;
-use crate::store::{ResourcesRef, StoreRef};
+use crate::store::{ResourcesRef, Store, StoreRef};
 use crate::text::layout::shorten_name;
-use crate::views::jump::competition::flow::handle_human_jump;
+use crate::views::jump::competition::flow::{handle_human_jump, CompetitionFlowCommand};
+use crate::views::jump::competition::session::CompetitionSession;
 use crate::views::jump::competition::ui_state::{CompetitionUiState, RenderMode};
 use crate::views::jump::input::{JumpInputAction, JumpInputController};
 use crate::views::jump::scene::JumpScene;
@@ -30,7 +32,7 @@ pub struct TeamCupJumpView {
     ui_state: CompetitionUiState,
     phase: ViewPhase,
     blinker: Blinker,
-    controller: TeamCupSessionController,
+    session: CompetitionSession,
     team_names: Vec<String>,
     name_buffer: String,
     cursor_visible: bool,
@@ -56,7 +58,7 @@ impl TeamCupJumpView {
             ui_state: CompetitionUiState::new(),
             phase: ViewPhase::NamingTeam(0),
             blinker: Blinker::new(),
-            controller: TeamCupSessionController::new(resources, store),
+            session: CompetitionSession::new(resources, store),
             team_names: names,
             name_buffer,
             cursor_visible: true,
@@ -253,7 +255,7 @@ impl TeamCupJumpView {
             JumpParticipant::trainee(),
             JumpPolicy::competition(),
         );
-        match self.controller.drive_competition(&scene) {
+        match self.session.drive_competition::<TeamCupRuntime>(&scene) {
             Ok(Some(cmd)) => self.apply_command(cmd),
             Ok(None) => {
                 self.ui_state.enter_error("No competition running".into());
@@ -264,10 +266,18 @@ impl TeamCupJumpView {
         }
     }
 
-    fn apply_command(&mut self, command: TeamCupUiCommand) {
+    fn apply_command(
+        &mut self,
+        command: CompetitionFlowCommand<TeamCupJumpContext, TeamCupResultsKind>,
+    ) {
         match command {
-            TeamCupUiCommand::HumanJump(req) => {
-                let phase_label = if req.context.round_idx == 0 {
+            CompetitionFlowCommand::HumanJump {
+                participant,
+                hill_idx,
+                context,
+                is_new_event: _,
+            } => {
+                let phase_label = if context.round_idx == 0 {
                     self.resources.langbase.lstr(54).to_string()
                 } else {
                     self.resources.langbase.lstr(55).to_string()
@@ -277,18 +287,18 @@ impl TeamCupJumpView {
                     &self.ui_state,
                     &self.resources,
                     &self.store,
-                    req.participant,
-                    req.hill_idx,
+                    participant,
+                    hill_idx,
                     phase_label,
-                    Some(req.context.team_name.clone()),
+                    Some(context.team_name.clone()),
                 );
                 self.ui_state.enter_jump();
             }
-            TeamCupUiCommand::ShowResults(kind) => {
+            CompetitionFlowCommand::ShowResults(kind) => {
                 self.results_kind = kind;
                 self.ui_state.enter_results();
             }
-            TeamCupUiCommand::Done => {
+            CompetitionFlowCommand::Done => {
                 self.phase = ViewPhase::Done;
                 self.ui_state.enter_done();
             }
@@ -349,7 +359,7 @@ impl View<RouteTarget> for TeamCupJumpView {
             && self
                 .scene
                 .as_ref()
-                .is_some_and(|s| self.controller.record_finished_human_jump(s))
+                .is_some_and(|s| self.session.record_finished_human_jump::<TeamCupRuntime>(s))
         {
             self.ui_state.mark_outcome_recorded();
         }
@@ -359,7 +369,7 @@ impl View<RouteTarget> for TeamCupJumpView {
         if self.ui_state.is_outcome_recorded() && self.ui_state.render_mode() != RenderMode::Results
         {
             if let Some(ref scene) = self.scene {
-                match self.controller.drive_competition(scene) {
+                match self.session.drive_competition::<TeamCupRuntime>(scene) {
                     Ok(Some(cmd)) => self.apply_command(cmd),
                     Ok(None) => {}
                     Err(e) => self.ui_state.enter_error(e.to_string()),

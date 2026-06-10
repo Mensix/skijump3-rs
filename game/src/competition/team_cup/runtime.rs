@@ -6,6 +6,7 @@ use super::types::{
 use crate::competition::core::ranking::ranked_order;
 use crate::competition::core::standings::StandingEntry;
 use crate::competition::runtime::{CompetitionDecision, CompetitionRuntime};
+use crate::competition::types::CupStyle;
 use crate::jump::types::{JumpOutcome, DEFAULT_START_GATE};
 
 impl TeamCupRuntime {
@@ -249,6 +250,22 @@ impl CompetitionRuntime for TeamCupRuntime {
             TeamCupStandingsKind::Leg => self.current_leg_standings(),
             TeamCupStandingsKind::Overall => self.overall_standings(),
         }
+    }
+
+    fn is_human_current(&self) -> bool {
+        self.is_human_current()
+    }
+
+    fn current_jump_context(&self) -> Self::Context {
+        self.current_jump_context()
+    }
+
+    fn cup_style(&self) -> CupStyle {
+        CupStyle::TeamCup
+    }
+
+    fn event_idx(&self) -> usize {
+        self.current_leg
     }
 }
 

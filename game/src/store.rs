@@ -1,4 +1,5 @@
 use crate::competition::machine::Competition;
+use crate::competition::runtime::CompetitionRuntime;
 use crate::competition::team_cup::types::TeamCupRuntime;
 use crate::content::names::NameCatalog;
 use crate::data::hill::HillCatalog;
@@ -120,6 +121,10 @@ impl JumpRuntime {
 
     pub fn set_wind_place(&self, val: u8) {
         self.wind_place.set(val);
+    }
+
+    pub fn wind_place(&self) -> u8 {
+        self.wind_place.get()
     }
 
     pub fn with_rng_wind_mut<R>(&self, f: impl FnOnce(&mut Random, &mut Wind) -> R) -> R {
@@ -396,6 +401,10 @@ impl Store {
         self.jump_runtime.set_wind_place(val);
     }
 
+    pub fn wind_place(&self) -> u8 {
+        self.jump_runtime.wind_place()
+    }
+
     pub fn with_jump_rng_wind_mut<R>(&self, f: impl FnOnce(&mut Random, &mut Wind) -> R) -> R {
         self.jump_runtime.with_rng_wind_mut(f)
     }
@@ -410,6 +419,31 @@ impl Store {
 
     pub fn clone_selected_replay(&self) -> Option<ReplayTrace> {
         self.replay_selection.clone_selected()
+    }
+}
+
+/// Generic access to a competition runtime in the store.
+pub(crate) trait HasRuntime<R: CompetitionRuntime + 'static> {
+    fn with_runtime_mut<F, T>(&self, f: F) -> Option<T>
+    where
+        F: FnOnce(&mut R) -> T;
+}
+
+impl HasRuntime<Competition> for Store {
+    fn with_runtime_mut<F, T>(&self, f: F) -> Option<T>
+    where
+        F: FnOnce(&mut Competition) -> T,
+    {
+        self.try_with_competition_mut(f)
+    }
+}
+
+impl HasRuntime<TeamCupRuntime> for Store {
+    fn with_runtime_mut<F, T>(&self, f: F) -> Option<T>
+    where
+        F: FnOnce(&mut TeamCupRuntime) -> T,
+    {
+        self.try_with_team_cup_mut(f)
     }
 }
 
