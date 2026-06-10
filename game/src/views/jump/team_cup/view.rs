@@ -526,6 +526,25 @@ impl View<RouteTarget> for TeamCupJumpView {
         }
 
         if let Some(ref scene) = self.scene {
+            if scene.is_save_dialog_active() {
+                scene.handle_save_dialog_event(&event);
+                return None;
+            }
+
+            // Let the shared input controller process events first
+            if self.phase == ViewPhase::Jumping {
+                let mut session = scene.session_mut();
+                let action = JumpInputController.handle_event(event, &mut session);
+                match action {
+                    JumpInputAction::SaveReplay => {
+                        scene.open_save_dialog();
+                        return None;
+                    }
+                    JumpInputAction::RouteBack => return Some(RouteTarget::Back),
+                    _ => {}
+                }
+            }
+
             if scene.outcome().is_some() && !self.ui_state.is_result_acknowledged() {
                 if matches!(event, Event::Keyboard(_)) {
                     self.ui_state.acknowledge_outcome();
@@ -543,17 +562,6 @@ impl View<RouteTarget> for TeamCupJumpView {
                 self.drive_until_visible();
             }
             return None;
-        }
-
-        // Forward keyboard to jump controls while jump is active
-        if let Some(ref scene) = self.scene {
-            if self.phase == ViewPhase::Jumping {
-                let mut session = scene.session_mut();
-                let action = JumpInputController.handle_event(event, &mut session);
-                if matches!(action, JumpInputAction::RouteBack) {
-                    return Some(RouteTarget::Back);
-                }
-            }
         }
 
         None

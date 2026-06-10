@@ -231,30 +231,42 @@ impl View<RouteTarget> for WorldCupJumpView {
             return self.handle_result_event(event);
         }
 
+        // Replay save dialog
+        if self.scene.is_save_dialog_active() {
+            self.scene.handle_save_dialog_event(&event);
+            return None;
+        }
+
+        // Let the shared input controller process events first (save replay, etc.)
+        let action = {
+            let mut session = self.scene.session_mut();
+            JumpInputController.handle_event(event, &mut session)
+        };
+        match action {
+            JumpInputAction::SaveReplay => {
+                self.scene.open_save_dialog();
+                return None;
+            }
+            JumpInputAction::RouteBack => return Some(RouteTarget::Back),
+            JumpInputAction::None => {}
+            _ => return None,
+        }
+
         // Pascal: wait for key after human jump before advancing
         if self.scene.outcome().is_some() && !self.ui_state.is_result_acknowledged() {
             let is_dq = self.scene.phase() == Some(JumpPhase::Disqualified);
             let accepted = if is_dq {
-                // Pascal waitforkey: ANY key dismisses the DQ screen
                 matches!(event, Event::Keyboard(_))
             } else {
                 matches!(event, Event::Keyboard(Key::Enter | Key::Escape))
             };
             if accepted {
                 self.ui_state.acknowledge_outcome();
-                return None;
             }
             return None;
         }
 
-        let action = {
-            let mut session = self.scene.session_mut();
-            JumpInputController.handle_event(event, &mut session)
-        };
-        match action {
-            JumpInputAction::RouteBack => Some(RouteTarget::Back),
-            _ => None,
-        }
+        None
     }
 }
 

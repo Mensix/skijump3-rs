@@ -6,7 +6,8 @@ use crate::jump::snow::{calculate_snow_count, SnowSystem};
 use crate::jump::types::{JumpOutcome, JumpPhase};
 use crate::jump::{JumpParticipant, JumpPolicy, JumpRunner, JumpRunnerRenderEnv, JumpSession};
 use crate::store::{ResourcesRef, StoreRef};
-use engine::ui::Element;
+use crate::views::replay::save_dialog::{SaveAction, SaveReplayDialog};
+use engine::ui::{Component, Element, Event};
 use std::cell::RefCell;
 
 #[derive(Debug, thiserror::Error)]
@@ -20,6 +21,7 @@ pub enum JumpSceneError {
 
 pub struct JumpScene {
     runner: RefCell<JumpRunner>,
+    save_dialog: RefCell<SaveReplayDialog>,
     resources: ResourcesRef,
     store: StoreRef,
 }
@@ -60,6 +62,7 @@ impl JumpScene {
         ));
         Self {
             runner,
+            save_dialog: RefCell::new(SaveReplayDialog::new(resources.clone())),
             resources,
             store,
         }
@@ -142,6 +145,57 @@ impl JumpScene {
         self.runner.borrow().outcome()
     }
 
+    // ── replay save dialog ─────────────────────────────────────
+
+    pub fn is_save_dialog_active(&self) -> bool {
+        self.save_dialog.borrow().is_active()
+    }
+
+    pub fn open_save_dialog(&self) {
+        let outcome = self.runner.borrow().outcome();
+        let distance = outcome
+            .map(|o| format!("{:.1}", o.distance))
+            .unwrap_or_default();
+        let hill_name = self
+            .resources
+            .hills
+            .hill(self.runner.borrow().hill_idx())
+            .map(|h| format!("{} K{}", h.name, h.kr))
+            .unwrap_or_default();
+        let pb = self.store.profiles();
+        let author_name = pb
+            .active_order
+            .first()
+            .and_then(|&idx| {
+                let p = pb.profiles.get(idx)?;
+                Some(if p.real_name.is_empty() {
+                    p.name.clone()
+                } else {
+                    p.real_name.clone()
+                })
+            })
+            .unwrap_or_default();
+        self.save_dialog.borrow_mut().open(
+            author_name,
+            format!("Huge Jump in {hill_name}"),
+            distance,
+            hill_name,
+        );
+    }
+
+    pub fn handle_save_dialog_event(&self, event: &Event) -> Option<bool> {
+        let action = Component::handle_event(&mut *self.save_dialog.borrow_mut(), event);
+        match action {
+            Some(SaveAction::SaveReplay) => {
+                if let Some(trace) = self.replay_trace() {
+                    self.save_dialog.borrow_mut().write_replay(&trace);
+                }
+                Some(true)
+            }
+            Some(SaveAction::Consumed) | None => Some(false),
+        }
+    }
+
     pub fn replay_trace(&self) -> Option<ReplayTrace> {
         self.runner.borrow().replay_trace()
     }
@@ -178,6 +232,9 @@ impl JumpScene {
     }
 
     pub fn elements(&self) -> Vec<Element> {
+        if self.is_save_dialog_active() {
+            return Component::elements(&*self.save_dialog.borrow());
+        }
         let records = self.store.records();
         self.store.with_jump_wind(|wind| {
             self.runner.borrow_mut().elements(JumpRunnerRenderEnv {
@@ -192,6 +249,9 @@ impl JumpScene {
 
     /// Advance physics, AI, and wind by one frame for the visible runner.
     pub fn update(&self) {
+        if self.is_save_dialog_active() {
+            return;
+        }
         self.store
             .with_jump_rng_wind_mut(|rng, wind| self.runner.borrow_mut().update(rng, wind));
     }
@@ -209,10 +269,7 @@ impl JumpScene {
     ) -> JumpRunner {
         let hill = resources.hills.hill(hill_idx).cloned();
         let terrain = resources.terrain(hill_idx).map(|t| (*t).clone());
-        let record_distance = store
-            .records()
-            .hill_record(hill_idx)
-            .map_or(0.0, |r| r.len);
+        let record_distance = store.records().hill_record(hill_idx).map_or(0.0, |r| r.len);
         let snow_count = snow.count();
         JumpRunner::new(
             JumpConfig {
