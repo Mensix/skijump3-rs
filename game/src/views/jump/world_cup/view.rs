@@ -1,16 +1,16 @@
-use super::overlay::CompetitionOverlay;
+use super::overlay::{CompetitionOverlay, OverlayKind};
 use super::results;
 use super::session::{WorldCupSessionController, WorldCupUiCommand};
-use crate::views::jump::competition::ui_state::{CompetitionUiState, RenderMode, ResultScreen};
 use crate::competition::machine::Competition;
 use crate::competition::runtime::{CompetitionRuntime, IndividualResultsKind};
-use crate::competition::types::{CompetitionPhase, CupStyle};
+use crate::competition::types::CompetitionPhase;
 use crate::gfx::palette::{BLACK, FONT_GREET};
 use crate::jump::types::JumpPhase;
 use crate::jump::JumpParticipant;
 use crate::jump::JumpPolicy;
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
+use crate::views::jump::competition::ui_state::{CompetitionUiState, RenderMode, ResultScreen};
 use crate::views::jump::input::{JumpInputAction, JumpInputController};
 use crate::views::jump::scene::JumpScene;
 use engine::ui::{Blinker, Element, Event, Key, View};
@@ -187,28 +187,19 @@ impl View<RouteTarget> for WorldCupJumpView {
     fn elements(&self) -> Vec<Element> {
         match self.ui_state.render_mode() {
             RenderMode::Jump => {
-                // Suppress static InfoPanel text when overlays provide their own content:
-                // Round 2 cycling info, or the keymap for the first human's first event.
-                let hide = self
-                    .store
-                    .try_with_competition(|c| {
-                        let cycling =
-                            c.phase().needs_event_results() && c.style() != CupStyle::CustomCup;
-                        let keymap_active = self.ui_state.is_first_human_onbar()
-                            && c.current_event == 0
-                            && c.current_jumper()
-                                .is_some_and(|idx| !c.participant(idx).is_computer);
-                        cycling || keymap_active
-                    })
-                    .unwrap_or(false);
-                self.scene.set_hide_info_panel_text(hide);
-                let mut els = self.scene.elements();
-                // Overlay: keymap / cycling info / jumper info box
-                if let Some(ctx) = self.overlay.context(
+                let overlay_ctx = self.overlay.context(
                     self.scene.phase(),
                     self.scene.frame_counter(),
                     &self.ui_state,
-                ) {
+                );
+                self.scene.set_suppress_info_panel(
+                    overlay_ctx
+                        .as_ref()
+                        .is_some_and(|ctx| ctx.kind != OverlayKind::None),
+                );
+                let mut els = self.scene.elements();
+                // Overlay: keymap / cycling info / jumper info box
+                if let Some(ctx) = overlay_ctx {
                     els.extend(self.overlay.render_elements(&ctx));
                 }
                 // Pascal: show rank ($X.) left of score at (255,45) during Result phase

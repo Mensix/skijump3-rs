@@ -1,11 +1,13 @@
 use super::session::{TeamCupSessionController, TeamCupUiCommand};
-use crate::components::screen::new_screen_with_bg;
 use crate::competition::runtime::CompetitionRuntime;
 use crate::competition::team_cup::types::{TeamCupResultsKind, TeamCupStandingsKind};
+use crate::components::screen::new_screen_with_bg;
 use crate::gfx::palette::{BG_TEAMCUP, BLACK, FONT_DEFAULT, FONT_GOLD, FONT_HELP};
+use crate::jump::hud;
 use crate::jump::{JumpParticipant, JumpPolicy};
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
+use crate::text::layout::shorten_name;
 use crate::views::jump::competition::flow::handle_human_jump;
 use crate::views::jump::competition::ui_state::{CompetitionUiState, RenderMode};
 use crate::views::jump::input::{JumpInputAction, JumpInputController};
@@ -61,7 +63,11 @@ impl TeamCupJumpView {
     }
 
     fn get_team_x(&self, team_idx: usize) -> i32 {
-        if team_idx == 0 { 30 } else { 160 }
+        if team_idx == 0 {
+            30
+        } else {
+            160
+        }
     }
 
     fn naming_elements(&self) -> Vec<Element> {
@@ -156,19 +162,17 @@ impl TeamCupJumpView {
             ));
         }
 
-        // WaitForKey3(305,180,ch): EWriteFont = right-aligned at xx
-        els.push(Element::right_text(
-            self.resources.langbase.lstr(15).to_string(),
+        // WaitForKey3(305,180,ch) + getch(306,180,243)
+        hud::push_wait_for_key(
+            &mut els,
+            &self.resources.langbase,
             305,
             180,
+            BG_TEAMCUP,
             FONT_DEFAULT,
-        ));
-        // getch(306,180,243): fillbox(304,178,312,188,243) = bishopy rect 9×11
-        els.push(Element::fillbox(304, 178, 9, 11, BG_TEAMCUP));
-        if self.cursor_visible {
-            // givech: fillbox(306,186,310,186) = 5×1 underscore
-            els.push(Element::fillbox(306, 186, 5, 1, FONT_DEFAULT));
-        }
+            FONT_DEFAULT,
+            self.cursor_visible,
+        );
 
         els
     }
@@ -195,7 +199,7 @@ impl TeamCupJumpView {
 
                 // Team name in white
                 els.push(Element::text(
-                    nsh(&team.name, 95, &self.resources.font),
+                    shorten_name(&team.name, &self.resources.font, 95),
                     x,
                     y,
                     FONT_DEFAULT,
@@ -207,7 +211,7 @@ impl TeamCupJumpView {
                 for (j, member) in team.members.iter().enumerate() {
                     // Pascal: t2=1..4 → y+1+(t2*6)
                     els.push(Element::text(
-                        nsh(&member.competitor.name, 90, &self.resources.font),
+                        shorten_name(&member.competitor.name, &self.resources.font, 90),
                         x + 4,
                         y + 7 + j as i32 * 6,
                         jcolor,
@@ -224,18 +228,16 @@ impl TeamCupJumpView {
         });
 
         // WaitForKey3 at top right (305,6)
-        els.push(Element::right_text(
-            self.resources.langbase.lstr(15).to_string(),
+        hud::push_wait_for_key(
+            &mut els,
+            &self.resources.langbase,
             305,
             6,
+            BG_TEAMCUP,
             FONT_DEFAULT,
-        ));
-        // getch(306,6,243): fillbox(304,4,312,14,243)
-        els.push(Element::fillbox(304, 4, 9, 11, BG_TEAMCUP));
-        if self.cursor_visible {
-            // givech: fillbox(306,12,310,12) = 5×1 underscore
-            els.push(Element::fillbox(306, 12, 5, 1, FONT_DEFAULT));
-        }
+            FONT_DEFAULT,
+            self.cursor_visible,
+        );
 
         els
     }
@@ -252,8 +254,7 @@ impl TeamCupJumpView {
         match self.controller.drive_competition(&scene) {
             Ok(Some(cmd)) => self.apply_command(cmd),
             Ok(None) => {
-                self.ui_state
-                    .enter_error("No competition running".into());
+                self.ui_state.enter_error("No competition running".into());
             }
             Err(e) => {
                 self.ui_state.enter_error(e.to_string());
@@ -330,7 +331,10 @@ impl View<RouteTarget> for TeamCupJumpView {
     fn update(&mut self) {
         self.cursor_visible = self.blinker.visible(10, 10);
 
-        if matches!(self.phase, ViewPhase::NamingTeam(_) | ViewPhase::Ready | ViewPhase::ShowTeams) {
+        if matches!(
+            self.phase,
+            ViewPhase::NamingTeam(_) | ViewPhase::Ready | ViewPhase::ShowTeams
+        ) {
             return;
         }
         if self.phase != ViewPhase::Jumping {
@@ -417,13 +421,7 @@ impl View<RouteTarget> for TeamCupJumpView {
                 vec![
                     Element::fillbox(0, 0, 320, 200, BLACK),
                     Element::text(&msg, 10, 10, FONT_DEFAULT, false),
-                    Element::text(
-                        self.resources.langbase.lstr(15),
-                        10,
-                        180,
-                        FONT_HELP,
-                        false,
-                    ),
+                    Element::text(self.resources.langbase.lstr(15), 10, 180, FONT_HELP, false),
                 ]
             }
         }
@@ -442,22 +440,21 @@ impl View<RouteTarget> for TeamCupJumpView {
         }
 
         if matches!(self.phase, ViewPhase::NamingTeam(_)) {
-            if let Event::Keyboard(key) = event {
-                match key {
-                    Key::Char(c) if c.is_ascii_graphic() || c == ' ' => {
-                        let width = self.resources.font.string_width(&self.name_buffer) as i32;
-                        if self.name_buffer.len() < 20 && width < 110 {
-                            self.name_buffer.push(c);
-                        }
+            let Event::Keyboard(key) = event;
+            match key {
+                Key::Char(c) if c.is_ascii_graphic() || c == ' ' => {
+                    let width = self.resources.font.string_width(&self.name_buffer) as i32;
+                    if self.name_buffer.len() < 20 && width < 110 {
+                        self.name_buffer.push(c);
                     }
-                    Key::Backspace => {
-                        self.name_buffer.pop();
-                    }
-                    Key::Enter => {
-                        self.finalize_current_name();
-                    }
-                    _ => {}
                 }
+                Key::Backspace => {
+                    self.name_buffer.pop();
+                }
+                Key::Enter => {
+                    self.finalize_current_name();
+                }
+                _ => {}
             }
             return None;
         }
@@ -489,10 +486,9 @@ impl View<RouteTarget> for TeamCupJumpView {
         if self.ui_state.render_mode() == RenderMode::Results {
             if matches!(event, Event::Keyboard(_)) {
                 self.ui_state.dismiss_results();
-                self.store
-                    .try_with_team_cup_mut(|tc| {
-                        tc.advance_results_runtime(TeamCupResultsKind::LegResults);
-                    });
+                self.store.try_with_team_cup_mut(|tc| {
+                    tc.advance_results_runtime(TeamCupResultsKind::LegResults);
+                });
                 self.drive_until_visible();
             }
             return None;
@@ -542,7 +538,13 @@ fn drop_team_cup_header(els: &mut Vec<Element>, resources: &ResourcesRef, store:
                 .hill(hill_idx)
                 .map(|h| format!("{}. {} K{}", i + 1, h.name, h.kr))
                 .unwrap_or_else(|| format!("{}. Hill {}", i + 1, hill_idx));
-            els.push(Element::text(hill_name, 30, 124 + i as i32 * 10, FONT_GOLD, false));
+            els.push(Element::text(
+                hill_name,
+                30,
+                124 + i as i32 * 10,
+                FONT_GOLD,
+                false,
+            ));
         }
     }
 }
@@ -554,31 +556,22 @@ fn jumper_names_els(els: &mut Vec<Element>, store: &StoreRef, team_n: usize, xx:
                 .iter()
                 .filter(|t| t.is_human_team)
                 .nth(team_n)
-                .map(|t| t.members.iter().map(|m| m.competitor.name.clone()).collect())
+                .map(|t| {
+                    t.members
+                        .iter()
+                        .map(|m| m.competitor.name.clone())
+                        .collect()
+                })
                 .unwrap_or_default()
         })
         .unwrap_or_default();
     for (j, jname) in jumpers.iter().enumerate() {
-        els.push(Element::text(jname.clone(), xx + 13, 56 + j as i32 * 10, FONT_GOLD, false));
+        els.push(Element::text(
+            jname.clone(),
+            xx + 13,
+            56 + j as i32 * 10,
+            FONT_GOLD,
+            false,
+        ));
     }
-}
-
-/// Pascal `nsh(str, maxpx)`: shorten name to fit `maxpx` pixel width.
-fn nsh(text: &str, max_px: i32, font: &engine::ui::Font) -> String {
-    if font.string_width(text) as i32 <= max_px {
-        return text.to_string();
-    }
-    // Try "I. Lastname" abbreviation
-    if let Some(space) = text.find(' ') {
-        let abbr = format!("{}.{}", &text[..1], &text[space..]);
-        if font.string_width(&abbr) as i32 <= max_px {
-            return abbr;
-        }
-    }
-    // Truncate + "."
-    let mut s: String = text.chars().take(text.len().saturating_sub(3)).collect();
-    while font.string_width(&format!("{}.", s)) as i32 > max_px && !s.is_empty() {
-        s.pop();
-    }
-    format!("{}.", s)
 }

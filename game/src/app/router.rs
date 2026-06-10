@@ -124,7 +124,8 @@ pub fn create_router(
                 RouteTarget::Quit,
                 ls(&layout, &store, |l, s| Box::new(MainMenuView::new(l, s))),
             ),
-            (RouteTarget::TeamCup,
+            (
+                RouteTarget::TeamCup,
                 rs(&resources, &store, |r, s| {
                     Box::new(TeamCupJumpView::new(r, s))
                 }),

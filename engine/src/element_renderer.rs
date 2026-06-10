@@ -20,11 +20,11 @@ struct DitherRect {
 // STANDARD_UI_PALETTE entries for palette indices 243/244/245 plus any
 // MuutaMenu-remapped equivalents (e.g. Team Cup bishop's purple).
 const DITHER_FILL_COLORS: [Rgba; 5] = [
-    Rgba::from_rgb6(18, 13, 34),  // 243 default (BG_LEFT)
-    Rgba::from_rgb6(34, 13, 18),  // 244 default (BG_RIGHT)
-    Rgba::from_rgb6(20, 20, 20),  // 245        (FILL_DIM)
-    Rgba::from_rgb6(0, 25, 0),    // KOTH       (BG_KOTH)
-    Rgba::from_rgb6(28, 8, 24),   // Team Cup   (BG_TEAMCUP, MuutaMenu 1,2)
+    Rgba::from_rgb6(18, 13, 34), // 243 default (BG_LEFT)
+    Rgba::from_rgb6(34, 13, 18), // 244 default (BG_RIGHT)
+    Rgba::from_rgb6(20, 20, 20), // 245        (FILL_DIM)
+    Rgba::from_rgb6(0, 25, 0),   // KOTH       (BG_KOTH)
+    Rgba::from_rgb6(28, 8, 24),  // Team Cup   (BG_TEAMCUP, MuutaMenu 1,2)
 ];
 
 fn is_fill_area_dither_color(color: Rgba) -> bool {

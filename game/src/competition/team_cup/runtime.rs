@@ -28,9 +28,7 @@ impl TeamCupRuntime {
         }
     }
 
-    pub fn decide_next(
-        &mut self,
-    ) -> CompetitionDecision<TeamCupJumpContext, TeamCupResultsKind> {
+    pub fn decide_next(&mut self) -> CompetitionDecision<TeamCupJumpContext, TeamCupResultsKind> {
         loop {
             match self.phase {
                 TeamCupPhase::Setup => {
@@ -409,7 +407,10 @@ mod tests {
             }
         }
         let d = r.decide_next();
-        assert_eq!(d, CompetitionDecision::ShowResults(TeamCupResultsKind::LegResults));
+        assert_eq!(
+            d,
+            CompetitionDecision::ShowResults(TeamCupResultsKind::LegResults)
+        );
     }
 
     #[test]

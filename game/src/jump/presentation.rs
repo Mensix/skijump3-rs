@@ -1,10 +1,11 @@
 use crate::data::records::HillRecord;
-    use crate::gfx::palette::{
-        self, FILL_BORDER, FILL_TURQUOISE, FONT_DEFAULT, FONT_GOLD, FONT_GREET, FONT_HELP,
-        JUMPER_SKI_SOURCE, JUMPER_SUIT_SOURCE_SHADE_1, JUMPER_SUIT_SOURCE_SHADE_3,
-    };
+use crate::gfx::palette::{
+    self, FILL_BORDER, FILL_TURQUOISE, FONT_DEFAULT, FONT_GOLD, FONT_GREET, JUMPER_SKI_SOURCE,
+    JUMPER_SUIT_SOURCE_SHADE_1, JUMPER_SUIT_SOURCE_SHADE_3,
+};
 use crate::gfx::sprites;
 use crate::jump::frame::JumpRenderFrame;
+use crate::jump::hud;
 use crate::jump::types::JumpPhase;
 use crate::text::lang::LangBase;
 use engine::color::Rgba;
@@ -26,7 +27,7 @@ pub struct JumpPresentationContext<'a> {
     pub(crate) wind_position: WindPosition,
     pub(crate) phase_label: &'a str,
     pub(crate) allow_gate_adjust: bool,
-    pub(crate) hide_info_panel_text: bool,
+    pub(crate) suppress_info_panel: bool,
     pub(crate) suit_color: usize,
     pub(crate) ski_color: usize,
     pub(crate) team_name: &'a str,
@@ -48,11 +49,17 @@ pub fn elements(frame: &JumpRenderFrame, ctx: &JumpPresentationContext<'_>) -> V
     let start_light_recolor = palette::start_light_recolor(frame.phase == JumpPhase::Disqualified);
 
     match frame.phase {
-        JumpPhase::Info => info_elements(&mut els, frame, ctx),
-        JumpPhase::Result => result_elements(&mut els, frame, ctx),
+        JumpPhase::Info => {
+            info_elements(&mut els, frame, ctx);
+        }
+        JumpPhase::Result => {
+            info_panel_elements(&mut els, frame, ctx);
+            result_elements(&mut els, frame, ctx);
+        }
         JumpPhase::Landing => landing_elements(&mut els, frame, ctx),
         JumpPhase::Flight => {}
         JumpPhase::OnBar => {
+            info_panel_elements(&mut els, frame, ctx);
             gate_info_elements(&mut els, frame, ctx);
         }
         JumpPhase::Inrun => {}
@@ -151,44 +158,20 @@ fn jumper_info_box_elements(
     _frame: &JumpRenderFrame,
     ctx: &JumpPresentationContext<'_>,
 ) {
-    els.push(Element::sprite(
-        sprites::Sprite::JumperInfoBox as u16,
-        3,
-        150,
-    ));
     let phase_label = if ctx.phase_label.is_empty() {
         ctx.langbase.lstr(51)
     } else {
         ctx.phase_label
     };
-    let label56 = ctx.langbase.lstr(56);
-    let label_w = ctx.font.string_width(label56) as i32;
-    els.push(Element::text(phase_label, 12, 160, FONT_GREET, false));
-    els.push(Element::text(label56, 12, 172, FONT_GREET, false));
-    els.push(Element::text(
+    let subline = (!ctx.team_name.is_empty()).then_some((ctx.team_name, FILL_TURQUOISE));
+    hud::push_jumper_info_box(
+        els,
+        ctx.font,
+        ctx.langbase,
+        phase_label,
         ctx.jumper_name,
-        12 + label_w,
-        172,
-        FONT_DEFAULT,
-        false,
-    ));
-    if !ctx.team_name.is_empty() {
-        // Pascal: WriteFont(14+fontlen(lstr(56)),179,jnimet[team])
-        els.push(Element::text(
-            ctx.team_name,
-            14 + label_w,
-            179,
-            FILL_TURQUOISE,
-            false,
-        ));
-    }
-    els.push(Element::text(
-        ctx.langbase.lstr(59),
-        12,
-        191,
-        FONT_HELP,
-        false,
-    ));
+        subline,
+    );
 }
 
 fn info_elements(
@@ -196,35 +179,29 @@ fn info_elements(
     frame: &JumpRenderFrame,
     ctx: &JumpPresentationContext<'_>,
 ) {
-    els.push(Element::sprite(sprites::Sprite::InfoPanel as u16, 227, 2));
-    if !ctx.hide_info_panel_text {
-        els.push(Element::right_text(ctx.hill_name_k, 308, 9, FONT_GOLD));
-        els.push(Element::text(
-            ctx.langbase.lstr(65),
-            308,
-            19,
-            FONT_GOLD,
-            true,
-        ));
-        if let Some(record) = ctx.hill_record {
-            if record.len > 0 {
-                els.push(Element::right_text(&record.name, 308, 29, FONT_GOLD));
-                els.push(Element::text(
-                    format!("{:.1}m", record.len as f64 / 10.0),
-                    308,
-                    39,
-                    FONT_GOLD,
-                    true,
-                ));
-            }
-        }
-    }
+    info_panel_elements(els, frame, ctx);
     gate_info_elements(els, frame, ctx);
     jumper_info_box_elements(els, frame, ctx);
 }
 
+/// Draw the right-side InfoPanel sprite and its default content.
+fn info_panel_elements(
+    els: &mut Vec<Element>,
+    frame: &JumpRenderFrame,
+    ctx: &JumpPresentationContext<'_>,
+) {
+    if ctx.suppress_info_panel {
+        return;
+    }
+    if frame.phase == JumpPhase::OnBar {
+        hud::push_keymap(els, ctx.langbase);
+    } else {
+        hud::push_hill_record_info(els, ctx.langbase, ctx.hill_name_k, ctx.hill_record);
+    }
+}
+
 fn panel_header(els: &mut Vec<Element>, name: &str, color: Rgba) {
-    els.push(Element::sprite(sprites::Sprite::InfoPanel as u16, 227, 2));
+    hud::push_info_panel_frame(els);
     els.push(Element::right_text(name, 308, 9, color));
 }
 

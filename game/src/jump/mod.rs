@@ -2,6 +2,7 @@ pub(crate) mod ai;
 pub mod animation;
 pub(crate) mod config;
 pub(crate) mod frame;
+pub(crate) mod hud;
 pub(crate) mod math;
 pub(crate) mod policy;
 pub(crate) mod presentation;

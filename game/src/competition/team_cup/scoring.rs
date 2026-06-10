@@ -28,5 +28,3 @@ pub fn award_leg_points(teams: &mut [TeamCupTeam], leg_idx: usize) {
         teams[ranked.item].cup_points += pts;
     }
 }
-
-

@@ -53,15 +53,16 @@ impl TeamCupSessionController {
             Some(o) => o,
             None => return false,
         };
-        self.store.try_with_team_cup_mut(|tc| {
-            if !tc.is_human_current() {
-                return false;
-            }
-            let ctx = tc.current_jump_context();
-            tc.record_jump_runtime(&ctx, outcome);
-            true
-        })
-        .unwrap_or(false)
+        self.store
+            .try_with_team_cup_mut(|tc| {
+                if !tc.is_human_current() {
+                    return false;
+                }
+                let ctx = tc.current_jump_context();
+                tc.record_jump_runtime(&ctx, outcome);
+                true
+            })
+            .unwrap_or(false)
     }
 
     pub(crate) fn drive_competition(

@@ -98,10 +98,7 @@ mod tests {
 
     #[test]
     fn file_store_falls_back_to_embedded() {
-        let store = FileStore::new(
-            PathBuf::from("/nonexistent"),
-            PathBuf::from("/nonexistent"),
-        );
+        let store = FileStore::new(PathBuf::from("/nonexistent"), PathBuf::from("/nonexistent"));
         let data = store.read("languages/english.toml");
         assert!(data.is_ok(), "should read from embedded: {:?}", data.err());
     }

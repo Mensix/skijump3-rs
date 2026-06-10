@@ -110,8 +110,8 @@ impl JumpScene {
         self.runner.borrow_mut().set_team_name(name);
     }
 
-    pub fn set_hide_info_panel_text(&self, hide: bool) {
-        self.runner.borrow().hide_info_panel_text.set(hide);
+    pub fn set_suppress_info_panel(&self, suppress: bool) {
+        self.runner.borrow().suppress_info_panel.set(suppress);
     }
 
     pub fn reset_state(&self, start_gate: i32) {

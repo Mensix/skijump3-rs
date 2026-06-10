@@ -1,9 +1,9 @@
-use crate::views::jump::competition::ui_state::CompetitionUiState;
 use crate::competition::types::{CompetitionPhase, CupStyle, Participant, QualificationStatus};
-use crate::gfx::palette::{FONT_DEFAULT, FONT_GOLD, FONT_GREET, FONT_HELP};
-use crate::gfx::sprites;
+use crate::gfx::palette::{FONT_GOLD, FONT_HELP};
+use crate::jump::hud;
 use crate::jump::types::JumpPhase;
 use crate::store::{ResourcesRef, StoreRef};
+use crate::views::jump::competition::ui_state::CompetitionUiState;
 use engine::ui::Element;
 
 /// Lightweight snapshot of competition data for overlay rendering.
@@ -90,9 +90,6 @@ pub enum OverlayKind {
     Round2WithInfoBox,
 }
 
-/// Default key names matching input bindings (K[1..5]).
-const KEY_NAMES: [&str; 5] = ["ARROW UP", "ARROW RIGHT", "ARROW LEFT", "T", "R"];
-
 /// Renders overlays (keymap, cycling info, jumper info box) on top of the
 /// jump scene during World Cup competition phases. Pure data-in/elements-out.
 pub struct CompetitionOverlay {
@@ -166,7 +163,7 @@ impl CompetitionOverlay {
         let mut els = Vec::new();
         match ctx.kind {
             OverlayKind::None => {}
-            OverlayKind::Keymap => self.drawkeymap_elements(&mut els),
+            OverlayKind::Keymap => hud::push_keymap(&mut els, &self.resources.langbase),
             OverlayKind::CyclingWithInfoBox => {
                 self.cycling_info_elements(&mut els, ctx.frame_counter, ctx.hill_idx, &ctx.data);
                 self.jumper_info_box(&mut els, &ctx.participant, false);
@@ -179,29 +176,6 @@ impl CompetitionOverlay {
         els
     }
 
-    /// Pascal drawkeymap: key binding hints shown when jumper is on bar.
-    fn drawkeymap_elements(&self, els: &mut Vec<Element>) {
-        els.push(Element::sprite(sprites::Sprite::InfoPanel as u16, 227, 2));
-        els.push(Element::right_text(
-            self.resources.langbase.lstr(330),
-            308,
-            9,
-            FONT_GOLD,
-        ));
-        for i in 1..=5 {
-            els.push(Element::right_text(
-                format!(
-                    "{}: {}",
-                    self.resources.langbase.lstr(330 + i),
-                    KEY_NAMES[i - 1]
-                ),
-                308,
-                i as i32 * 10 + 9,
-                FONT_GOLD,
-            ));
-        }
-    }
-
     /// Pascal `JumperInfoBox` at (3,150).
     fn jumper_info_box(
         &self,
@@ -209,14 +183,6 @@ impl CompetitionOverlay {
         participant: &Participant,
         round2_with_r1: bool,
     ) {
-        els.push(Element::sprite(
-            sprites::Sprite::JumperInfoBox as u16,
-            3,
-            150,
-        ));
-        let label56 = self.resources.langbase.lstr(56);
-        let label56_w = self.resources.font.string_width(label56) as i32;
-
         let (phase, rank, quali_wc) = self
             .store
             .try_with_competition(|c| {
@@ -244,9 +210,6 @@ impl CompetitionOverlay {
             _ => self.resources.langbase.lstr(51).to_string(),
         };
 
-        els.push(Element::text(phase_label, 12, 160, FONT_GREET, false));
-        els.push(Element::text(label56, 12, 172, FONT_GREET, false));
-
         let name = if quali_wc {
             format!("{} Q WC", participant.display_name())
         } else if round2_with_r1 && rank > 0 {
@@ -254,29 +217,24 @@ impl CompetitionOverlay {
         } else {
             participant.display_name().to_string()
         };
-        els.push(Element::text(
-            name,
-            12 + label56_w,
-            172,
-            FONT_DEFAULT,
-            false,
-        ));
 
-        if round2_with_r1 {
-            let r1text = format!(
+        let r1text = if round2_with_r1 {
+            Some(format!(
                 "{} ({}µ)",
                 fmt_tenths(participant.round1_score),
                 fmt_tenths(participant.round1_len)
-            );
-            els.push(Element::text(r1text, 14 + label56_w, 179, FONT_HELP, false));
-        }
-        els.push(Element::text(
-            self.resources.langbase.lstr(59),
-            12,
-            191,
-            FONT_HELP,
-            false,
-        ));
+            ))
+        } else {
+            None
+        };
+        hud::push_jumper_info_box(
+            els,
+            &self.resources.font,
+            &self.resources.langbase,
+            &phase_label,
+            &name,
+            r1text.as_deref().map(|text| (text, FONT_HELP)),
+        );
     }
 
     /// Pascal drawinfo: cycling info on the `InfoPanel`.
@@ -301,7 +259,7 @@ impl CompetitionOverlay {
                 } else if (146..=276).contains(&phase) {
                     self.wc_standings_elements(els, data);
                 } else {
-                    els.push(Element::sprite(sprites::Sprite::InfoPanel as u16, 227, 2));
+                    hud::push_info_panel_frame(els);
                 }
             } else {
                 self.hill_info_elements(els, hill_idx);
@@ -319,13 +277,13 @@ impl CompetitionOverlay {
         } else if has_wc_leader && (292..=422).contains(&phase) {
             self.wc_standings_elements(els, data);
         } else {
-            els.push(Element::sprite(sprites::Sprite::InfoPanel as u16, 227, 2));
+            hud::push_info_panel_frame(els);
         }
     }
 
     /// Pascal drawtop5info: hill name + top 5 event points with gap behind leader
     fn top5_event_elements(&self, els: &mut Vec<Element>, data: &OverlayData) {
-        els.push(Element::sprite(sprites::Sprite::InfoPanel as u16, 227, 2));
+        hud::push_info_panel_frame(els);
         let hill_name_k = self
             .resources
             .hills
@@ -366,39 +324,24 @@ impl CompetitionOverlay {
 
     /// Pascal drawhrinfo: hill record name + distance
     fn hill_info_elements(&self, els: &mut Vec<Element>, hill_idx: usize) {
-        els.push(Element::sprite(sprites::Sprite::InfoPanel as u16, 227, 2));
         let hill_name_k = self
             .resources
             .hills
             .hill(hill_idx)
             .map(|h| format!("{} K{}", h.name, h.kr))
             .unwrap_or_default();
-        els.push(Element::text(hill_name_k, 308, 9, FONT_GOLD, true));
-        els.push(Element::text(
-            self.resources.langbase.lstr(65).to_string(),
-            308,
-            19,
-            FONT_GOLD,
-            true,
-        ));
         let records = self.store.records();
-        if let Some(r) = records.hill_record(hill_idx) {
-            if r.len > 0 {
-                els.push(Element::text(r.name.clone(), 308, 29, FONT_GOLD, true));
-                els.push(Element::text(
-                    format!("{:.1}m", r.len as f64 / 10.0),
-                    308,
-                    39,
-                    FONT_GOLD,
-                    true,
-                ));
-            }
-        }
+        hud::push_hill_record_info(
+            els,
+            &self.resources.langbase,
+            &hill_name_k,
+            records.hill_record(hill_idx),
+        );
     }
 
     /// Pascal drawwcinfo: top 5 WC / season standings with raw points.
     fn wc_standings_elements(&self, els: &mut Vec<Element>, data: &OverlayData) {
-        els.push(Element::sprite(sprites::Sprite::InfoPanel as u16, 227, 2));
+        hud::push_info_panel_frame(els);
         els.push(Element::text(
             self.resources.langbase.lstr(70).to_string(),
             308,

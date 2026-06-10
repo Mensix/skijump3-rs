@@ -33,7 +33,7 @@ pub struct JumpRunner {
     computer_input: Option<ComputerInputProvider>,
     computer_pre_ai_wind_done: bool,
     last_wind: FlightWind,
-    pub(crate) hide_info_panel_text: Cell<bool>,
+    pub(crate) suppress_info_panel: Cell<bool>,
 }
 
 impl JumpRunner {
@@ -50,7 +50,7 @@ impl JumpRunner {
             computer_input,
             computer_pre_ai_wind_done: false,
             last_wind: FlightWind::default(),
-            hide_info_panel_text: Cell::new(false),
+            suppress_info_panel: Cell::new(false),
         }
     }
 
@@ -157,7 +157,7 @@ impl JumpRunner {
             phase_label: &self.config.phase_label,
             team_name: &self.config.team_name,
             allow_gate_adjust: self.config.policy.allow_start_gate_adjust,
-            hide_info_panel_text: self.hide_info_panel_text.get(),
+            suppress_info_panel: self.suppress_info_panel.get(),
             suit_color: self.config.participant.suit_color as usize,
             ski_color: self.config.participant.ski_color as usize,
         };
