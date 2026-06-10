@@ -1,4 +1,3 @@
-use super::overlay::{CompetitionOverlay, OverlayKind};
 use super::results;
 use crate::competition::machine::Competition;
 use crate::competition::runtime::{
@@ -15,6 +14,7 @@ use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::format::format_decimal;
 use crate::views::jump::competition::flow::CompetitionFlowCommand;
+use crate::views::jump::competition::overlay::{CompetitionOverlay, OverlayKind};
 use crate::views::jump::competition::session::CompetitionSession;
 use crate::views::jump::competition::ui_state::{CompetitionUiState, RenderMode, ResultScreen};
 use crate::views::jump::input::{JumpInputAction, JumpInputController};
