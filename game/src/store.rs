@@ -90,7 +90,12 @@ impl JumpRuntime {
     #[must_use]
     pub fn new() -> Self {
         Self {
-            rng: RefCell::new(Random::default()),
+            rng: RefCell::new(Random::new(
+                std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_secs() as u32,
+            )),
             wind: RefCell::new(Wind::default()),
             wind_place: Cell::new(0),
             first_event: Cell::new(true),
