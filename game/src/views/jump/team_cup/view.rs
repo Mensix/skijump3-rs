@@ -5,9 +5,9 @@ use crate::jump::{JumpParticipant, JumpPolicy};
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::views::jump::competition::flow::{
-    acknowledge_finished_jump, command_or_error, handle_competition_jump_input,
-    handle_human_jump, handle_save_dialog, record_acknowledged_human_jump,
-    render_jump_scene_with_overlay, route_error_back, CompetitionFlowCommand, JumpInputResult,
+    acknowledge_finished_jump, command_or_error, handle_competition_jump_input, handle_human_jump,
+    handle_save_dialog, record_acknowledged_human_jump, render_jump_scene_with_overlay,
+    route_error_back, CompetitionFlowCommand, JumpInputResult,
 };
 use crate::views::jump::competition::overlay::CompetitionOverlay;
 use crate::views::jump::competition::results::{
