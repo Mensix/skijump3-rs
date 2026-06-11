@@ -18,8 +18,12 @@ impl CompetitionJumpView {
             .with_active(|active| active.kind())
             .unwrap_or(ActiveCompetitionKind::Individual)
         {
-            ActiveCompetitionKind::Training => Self::Training(TrainingJumpView::new(resources, store)),
-            ActiveCompetitionKind::Individual => Self::Individual(WorldCupJumpView::new(resources, store)),
+            ActiveCompetitionKind::Training => {
+                Self::Training(TrainingJumpView::new(resources, store))
+            }
+            ActiveCompetitionKind::Individual => {
+                Self::Individual(WorldCupJumpView::new(resources, store))
+            }
             ActiveCompetitionKind::TeamCup => Self::TeamCup(TeamCupJumpView::new(resources, store)),
         }
     }

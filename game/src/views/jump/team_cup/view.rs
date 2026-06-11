@@ -1,3 +1,4 @@
+use super::setup::{SetupAction, TeamCupSetup};
 use crate::competition::team_cup::types::{TeamCupJumpContext, TeamCupResultsKind, TeamCupRuntime};
 use crate::components::screen;
 use crate::jump::{JumpParticipant, JumpPolicy};
@@ -16,7 +17,6 @@ use crate::views::jump::competition::session::CompetitionSession;
 use crate::views::jump::competition::ui_state::{CompetitionUiState, RenderMode};
 use crate::views::jump::scene::JumpScene;
 use engine::ui::{Blinker, Element, Event, View};
-use super::setup::{SetupAction, TeamCupSetup};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ViewPhase {
@@ -115,7 +115,6 @@ impl TeamCupJumpView {
             }
         }
     }
-
 }
 
 impl View<RouteTarget> for TeamCupJumpView {
