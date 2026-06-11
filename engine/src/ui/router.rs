@@ -45,21 +45,18 @@ pub enum Key {
     Char(char),
 }
 
-#[allow(clippy::type_complexity)]
+pub type ViewFactory<T> = Box<dyn Fn() -> Box<dyn View<T>>>;
+pub type RouteEntry<T> = (T, ViewFactory<T>);
+
 pub struct Router<T: Clone + PartialEq + 'static> {
     current: Box<dyn View<T>>,
     current_route: Option<T>,
     history: Vec<T>,
-    routes: Vec<(T, Box<dyn Fn() -> Box<dyn View<T>>>)>,
+    routes: Vec<RouteEntry<T>>,
 }
 
 impl<T: Clone + PartialEq + 'static> Router<T> {
-    #[allow(clippy::type_complexity)]
-    pub fn new(
-        route: T,
-        initial: Box<dyn View<T>>,
-        routes: Vec<(T, Box<dyn Fn() -> Box<dyn View<T>>>)>,
-    ) -> Self {
+    pub fn new(route: T, initial: Box<dyn View<T>>, routes: Vec<RouteEntry<T>>) -> Self {
         Self {
             current: initial,
             current_route: Some(route),

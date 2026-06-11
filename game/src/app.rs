@@ -1,24 +1,22 @@
+mod assets;
+mod rendering;
 mod router;
 
 use crate::app::router::create_router;
-use crate::content::ContentStore;
 use crate::data::records::RecordStore;
 use crate::files::FileStore;
-use crate::gfx::palette::{Rgb6Palette, FONT_HELP};
-use crate::gfx::png::load_png;
 use crate::route::RouteTarget;
 use crate::save::{SaveManager, SaveRef};
 use crate::store::{Resources, ResourcesRef, Store, StoreRef};
-use engine::element_renderer::ElementRenderContext;
 use engine::input::Input;
 use engine::sprite::SpriteData;
-use engine::ui::{BackgroundMode, Element, Font, Router};
+use engine::ui::{Font, Router};
 use engine::video::{Renderer, TextureId};
 use std::rc::Rc;
-use std::time::Instant;
 
-const MAIN_PNG: &str = "MAIN.png";
-const CONTENT_MANIFEST: &str = "content.toml";
+use self::assets::LoadedAssets;
+use self::rendering::FrameRenderer;
+
 const HISCORES_TOML: &str = "hiscores.toml";
 
 pub struct Game {
@@ -29,19 +27,7 @@ pub struct Game {
     router: Router<RouteTarget>,
     sprites: Vec<SpriteData>,
     main_background: TextureId,
-    element_render_context: ElementRenderContext,
-    fps_frame_count: u64,
-    fps_elapsed: f64,
-    fps_display: f64,
-    fps_last: Instant,
-}
-
-fn precompute_sprite_rgba(sprite: &mut SpriteData, palette: &Rgb6Palette) {
-    sprite.rgba_data = sprite
-        .data
-        .iter()
-        .flat_map(|&p| palette.rgba_bytes(p))
-        .collect();
+    frame_renderer: FrameRenderer,
 }
 
 impl Game {
@@ -52,15 +38,13 @@ impl Game {
         let asset_dir = std::path::PathBuf::from("game/assets");
         let files = Rc::new(FileStore::new(asset_dir, save_dir));
 
-        let (palette, mut sprites, content_store) = Self::load_assets(&files)?;
-        let main_background = Self::load_background_texture(&files, &mut renderer)?;
+        let LoadedAssets {
+            content_store,
+            font,
+            main_background,
+            sprites,
+        } = assets::load(&files, &mut renderer)?;
         let langbase = Rc::new(content_store.langbase);
-
-        let font = Font::from_sprites(&sprites);
-
-        for sprite in &mut sprites {
-            precompute_sprite_rgba(sprite, &palette);
-        }
 
         let save_manager: SaveRef =
             Rc::new(SaveManager::new(Rc::clone(&files), Rc::clone(&langbase)));
@@ -95,11 +79,7 @@ impl Game {
             router,
             sprites,
             main_background,
-            element_render_context: ElementRenderContext::new(),
-            fps_frame_count: 0,
-            fps_elapsed: 0.0,
-            fps_display: 0.0,
-            fps_last: Instant::now(),
+            frame_renderer: FrameRenderer::new(),
         })
     }
 
@@ -108,28 +88,6 @@ impl Game {
         let renderer = Renderer::new(&sdl)?;
         let input = Input::new(&sdl)?;
         Ok((sdl, renderer, input))
-    }
-
-    fn load_background_texture(
-        files: &FileStore,
-        renderer: &mut Renderer,
-    ) -> Result<TextureId, String> {
-        let png_data = files.read(MAIN_PNG).map_err(|e| e.to_string())?;
-        let img = load_png(&png_data).map_err(|e| e.to_string())?;
-        renderer.create_rgba_texture(&img.pixels, img.width, img.height)
-    }
-
-    #[allow(clippy::type_complexity)]
-    fn load_assets(
-        files: &FileStore,
-    ) -> Result<(Rgb6Palette, Vec<SpriteData>, ContentStore), String> {
-        let palette_toml = files.read("palette.toml").map_err(|e| e.to_string())?;
-        let palette = Rgb6Palette::from_toml_bytes("palette.toml", &palette_toml)
-            .map_err(|e| e.to_string())?;
-        let content = ContentStore::load(files, CONTENT_MANIFEST).map_err(|e| e.to_string())?;
-        let sprites = content.sprites.clone();
-
-        Ok((palette, sprites, content))
     }
 
     pub fn run(&mut self) -> Result<(), String> {
@@ -157,42 +115,13 @@ impl Game {
 
     fn render_frame(&mut self) -> Result<(), String> {
         self.router.current_view_mut().update();
-
-        let mut elements = self.router.current_view().elements();
-
-        self.fps_frame_count += 1;
-        self.fps_elapsed += self.fps_last.elapsed().as_secs_f64();
-        self.fps_last = Instant::now();
-        if self.fps_elapsed >= 0.5 {
-            self.fps_display = self.fps_frame_count as f64 / self.fps_elapsed;
-            self.fps_frame_count = 0;
-            self.fps_elapsed = 0.0;
-        }
-
-        if cfg!(debug_assertions) {
-            elements.push(Element::right_text(
-                format!("{:.0} fps", self.fps_display),
-                319,
-                192,
-                FONT_HELP,
-            ));
-        }
-
-        let background = match self.router.current_view().gpu_background() {
-            BackgroundMode::MainPng => Some(self.main_background),
-            BackgroundMode::NoneBlack => None,
-        };
-
-        self.element_render_context.render_frame(
+        self.frame_renderer.render(
             &mut self.renderer,
             &self.font,
             &self.sprites,
-            &elements,
-            background,
-        )?;
-
-        self.renderer.wait_frame();
-        Ok(())
+            &self.router,
+            self.main_background,
+        )
     }
 }
 
