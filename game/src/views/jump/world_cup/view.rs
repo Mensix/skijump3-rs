@@ -17,7 +17,9 @@ use crate::views::jump::competition::flow::{
     CompetitionFlowCommand, JumpInputResult,
 };
 use crate::views::jump::competition::overlay::CompetitionOverlay;
-use crate::views::jump::competition::results::{self as competition_results, CompetitionResultsRequest};
+use crate::views::jump::competition::results::{
+    self as competition_results, CompetitionResultsRequest,
+};
 use crate::views::jump::competition::session::CompetitionSession;
 use crate::views::jump::competition::ui_state::{CompetitionUiState, RenderMode, ResultScreen};
 use crate::views::jump::scene::JumpScene;

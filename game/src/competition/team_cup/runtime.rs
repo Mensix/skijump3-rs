@@ -175,7 +175,7 @@ impl TeamCupRuntime {
                 is_human: self.teams[team_idx].is_human_team,
             }
         })
-            .collect()
+        .collect()
     }
 
     pub fn standings(&self, kind: TeamCupStandingsKind) -> Vec<StandingEntry> {
@@ -327,7 +327,7 @@ mod tests {
             .collect();
         let schedule = vec![0, 1, 2, 3, 4, 5];
         let team_order: Vec<usize> = (0..teams.len()).collect();
-        TeamCupRuntime::new(teams, schedule, 2, team_order)
+        TeamCupRuntime::new(teams, schedule, team_order)
     }
 
     fn simulate_leg(runtime: &mut TeamCupRuntime, leg_base_score: f64) {

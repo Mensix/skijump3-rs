@@ -21,7 +21,9 @@ pub(crate) fn render(
         CompetitionResultsRequest::Individual { ko_cursor_visible } => {
             render_individual(resources, store, ui_state, ko_cursor_visible)
         }
-        CompetitionResultsRequest::TeamCup { kind } => team_cup::results::render(resources, store, kind),
+        CompetitionResultsRequest::TeamCup { kind } => {
+            team_cup::results::render(resources, store, kind)
+        }
     }
 }
 
@@ -35,9 +37,12 @@ fn render_individual(
         .with_active(|active| {
             let c = active.individual()?;
             Some(match ui_state.current_screen() {
-                ResultScreen::KoPairs(show_results) => {
-                    world_cup::results::render_ko_pairs(c, resources, show_results, ko_cursor_visible)
-                }
+                ResultScreen::KoPairs(show_results) => world_cup::results::render_ko_pairs(
+                    c,
+                    resources,
+                    show_results,
+                    ko_cursor_visible,
+                ),
                 ResultScreen::Stats => {
                     world_cup::results::render_stats_page(c, resources, ui_state.current_page())
                 }
