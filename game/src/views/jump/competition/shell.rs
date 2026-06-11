@@ -1,3 +1,4 @@
+use crate::competition::active::ActiveCompetitionKind;
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::views::jump::team_cup::TeamCupJumpView;
@@ -13,18 +14,13 @@ pub(crate) enum CompetitionJumpView {
 
 impl CompetitionJumpView {
     pub(crate) fn new(resources: ResourcesRef, store: StoreRef) -> Self {
-        if store
-            .with_active(|active| active.is_training())
-            .unwrap_or(false)
+        match store
+            .with_active(|active| active.kind())
+            .unwrap_or(ActiveCompetitionKind::Individual)
         {
-            Self::Training(TrainingJumpView::new(resources, store))
-        } else if store
-            .with_active(|active| active.is_team_cup())
-            .unwrap_or(false)
-        {
-            Self::TeamCup(TeamCupJumpView::new(resources, store))
-        } else {
-            Self::Individual(WorldCupJumpView::new(resources, store))
+            ActiveCompetitionKind::Training => Self::Training(TrainingJumpView::new(resources, store)),
+            ActiveCompetitionKind::Individual => Self::Individual(WorldCupJumpView::new(resources, store)),
+            ActiveCompetitionKind::TeamCup => Self::TeamCup(TeamCupJumpView::new(resources, store)),
         }
     }
 }

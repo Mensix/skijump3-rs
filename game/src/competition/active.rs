@@ -8,6 +8,13 @@ pub enum ActiveCompetition {
     TeamCup(TeamCupRuntime),
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ActiveCompetitionKind {
+    Training,
+    Individual,
+    TeamCup,
+}
+
 impl ActiveCompetition {
     pub fn from_individual(comp: Competition) -> Self {
         Self::Individual(comp)
@@ -21,12 +28,12 @@ impl ActiveCompetition {
         Self::TeamCup(comp)
     }
 
-    pub const fn is_team_cup(&self) -> bool {
-        matches!(self, Self::TeamCup(_))
-    }
-
-    pub const fn is_training(&self) -> bool {
-        matches!(self, Self::Training)
+    pub const fn kind(&self) -> ActiveCompetitionKind {
+        match self {
+            Self::Training => ActiveCompetitionKind::Training,
+            Self::Individual(_) => ActiveCompetitionKind::Individual,
+            Self::TeamCup(_) => ActiveCompetitionKind::TeamCup,
+        }
     }
 
     pub const fn individual(&self) -> Option<&Competition> {
