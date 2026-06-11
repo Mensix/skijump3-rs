@@ -6,3 +6,6 @@ pub mod runtime;
 pub mod scoring;
 pub mod team_cup;
 pub mod types;
+
+// Re-export key types for convenience
+pub use machine::Competition;
