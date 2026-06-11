@@ -228,8 +228,11 @@ pub(crate) fn handle_competition_jump_input(
     event: Event,
     consume_other_actions: bool,
 ) -> JumpInputResult {
-    let mut session = scene.session_mut();
-    match JumpInputController.handle_event(event, &mut session) {
+    let action = {
+        let mut session = scene.session_mut();
+        JumpInputController.handle_event(event, &mut session)
+    };
+    match action {
         JumpInputAction::SaveReplay => {
             scene.open_save_dialog();
             JumpInputResult::Consumed
