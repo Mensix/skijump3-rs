@@ -50,14 +50,6 @@ impl NameCatalog {
             &self.namesets[0].teams
         }
     }
-
-    pub(crate) fn nameset(&self, namenumber: i32) -> Option<&NameSet> {
-        if namenumber >= 0 && (namenumber as usize) < self.namesets.len() {
-            Some(&self.namesets[namenumber as usize])
-        } else {
-            self.namesets.first()
-        }
-    }
 }
 
 #[derive(Debug, Deserialize)]

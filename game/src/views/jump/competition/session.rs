@@ -12,9 +12,6 @@ use crate::views::jump::scene::{JumpScene, JumpSceneError};
 pub(crate) enum SessionError {
     #[error("AI simulation failed: {0}")]
     JumpScene(#[from] JumpSceneError),
-
-    #[error("No runtime in store")]
-    NoRuntime,
 }
 
 #[derive(Debug)]
@@ -82,6 +79,21 @@ impl CompetitionSession {
         };
 
         Ok(Some(command))
+    }
+
+    pub(crate) fn advance_results_and_drive<R>(
+        &self,
+        scene: &JumpScene,
+        kind: R::ResultsKind,
+    ) -> Result<Option<CompetitionFlowCommand<R::Context, R::ResultsKind>>, SessionError>
+    where
+        R: CompetitionRuntime + 'static,
+        Store: HasRuntime<R>,
+    {
+        self.store.with_runtime_mut(|r: &mut R| {
+            r.advance_results_runtime(kind);
+        });
+        self.drive_competition::<R>(scene)
     }
 
     pub(crate) fn save_results(&self) {

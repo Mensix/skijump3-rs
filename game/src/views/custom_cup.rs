@@ -1,4 +1,4 @@
-use crate::competition::builder::build_custom_competition;
+use crate::competition::factory;
 use crate::components::screen::new_screen;
 use crate::gfx::palette::{FILL_BORDER, FONT_DEFAULT, FONT_GREET, FONT_HEADER, FONT_HELP};
 use crate::route::RouteTarget;
@@ -108,14 +108,14 @@ impl View<RouteTarget> for CustomCupSetupView {
                     return None;
                 }
                 let profiles = self.store.profiles();
-                let comp = build_custom_competition(
+                let comp = factory::custom_cup(
                     &profiles,
                     self.resources.player_names(),
                     self.selected.clone(),
                     0,
                 );
                 drop(profiles);
-                self.store.start_competition(comp);
+                self.store.start_active(comp);
                 Some(RouteTarget::CompetitionJump)
             }
             Event::Keyboard(Key::Left) => {

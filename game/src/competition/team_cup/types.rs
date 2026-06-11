@@ -15,14 +15,12 @@ pub struct TeamCupRuntime {
     pub current_team_order_pos: usize,
     pub team_order: Vec<usize>,
     pub phase: TeamCupPhase,
-    pub human_teams: usize,
     pub standings_pending: bool,
     pub human_jumped_in_slot: bool,
 }
 
 #[derive(Debug, Clone)]
 pub struct TeamCupTeam {
-    pub id: usize,
     pub name: String,
     pub members: Vec<TeamCupMember>,
     pub leg_score: f64,

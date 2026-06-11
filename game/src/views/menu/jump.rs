@@ -1,8 +1,6 @@
 use std::cell::Cell;
 
-use crate::competition::builder::build_competition;
-use crate::competition::team_cup::builder::build_team_cup;
-use crate::competition::types::CupStyle;
+use crate::competition::factory;
 use crate::components::layout::{self, MainLayout};
 use crate::components::menu::{Menu, MenuItem};
 use crate::components::screen;
@@ -20,10 +18,10 @@ pub struct JumpMenuView {
 }
 
 const JUMP_MENU_ACTIONS: &[Option<RouteTarget>] = &[
-    None,                        // 1 - WorldCup (special, builds competition)
-    None,                        // 2 - CustomCup (special, builds competition)
-    None,                        // 3 - FourHills (special, builds competition)
-    Some(RouteTarget::TeamCup),  // 4 - TeamCup
+    None,                        // 1 - WorldCup (starts shared competition shell)
+    None,                        // 2 - CustomCup (opens setup)
+    None,                        // 3 - FourHills (starts shared competition shell)
+    None,                        // 4 - TeamCup (starts shared competition shell)
     Some(RouteTarget::MainMenu), // 5 - SeasonComplete (not implemented)
     Some(RouteTarget::Practice), // 6 - Practice
     Some(RouteTarget::MainMenu), // 7 - MainMenu
@@ -93,9 +91,9 @@ impl View<RouteTarget> for JumpMenuView {
         }
 
         match self.menu.handle_event(&event) {
-            Some(1) => Some(self.start_competition(CupStyle::WorldCup)),
+            Some(1) => Some(self.start_world_cup()),
             Some(2) => Some(RouteTarget::CustomCupSetup),
-            Some(3) => Some(self.start_competition(CupStyle::FourHills)),
+            Some(3) => Some(self.start_four_hills()),
             Some(4) => {
                 let num_players = self.store.profiles().active_order.len();
                 if num_players == 4 || num_players == 8 {
@@ -118,24 +116,60 @@ impl View<RouteTarget> for JumpMenuView {
 }
 
 impl JumpMenuView {
+    fn start_world_cup(&self) -> RouteTarget {
+        let profiles = self.store.profiles();
+        let trainrounds = self.resources.save_manager.config.borrow().trainrounds;
+        let comp = factory::world_cup(
+            &profiles,
+            self.resources.player_names(),
+            self.resources.hills.len(),
+            trainrounds as usize,
+        );
+        drop(profiles);
+        self.store.start_active(comp);
+        RouteTarget::CompetitionJump
+    }
+
+    fn start_four_hills(&self) -> RouteTarget {
+        let profiles = self.store.profiles();
+        let trainrounds = self.resources.save_manager.config.borrow().trainrounds;
+        let comp = factory::four_hills(
+            &profiles,
+            self.resources.player_names(),
+            self.resources.hills.len(),
+            trainrounds as usize,
+        );
+        drop(profiles);
+        self.store.start_active(comp);
+        RouteTarget::CompetitionJump
+    }
+
     fn start_team_cup(&self) -> RouteTarget {
-        let num_players = self.store.profiles().active_order.len();
-        let namenumber = self.resources.save_manager.config.borrow().namenumber;
+        let profiles = self.store.profiles();
         let names = self.resources.player_names().to_vec();
+        let namenumber = self.resources.save_manager.config.borrow().namenumber;
         let teams_def = self
             .resources
             .namesets
             .teams_for_config(namenumber)
             .to_vec();
+        let num_players = profiles.active_order.len();
         let human_teams = num_players / 4;
         let hill_count = self.resources.hills.len();
-        let profiles = self.store.profiles();
-        let tc = self.store.with_jump_rng_wind_mut(|rng, _| {
-            build_team_cup(&names, &teams_def, &profiles, human_teams, hill_count, rng)
-        });
         drop(profiles);
-        self.store.start_team_cup(tc);
-        RouteTarget::TeamCup
+
+        let comp = self.store.with_jump_rng_wind_mut(|rng, _| {
+            factory::team_cup(
+                &names,
+                &teams_def,
+                &self.store.profiles(),
+                human_teams,
+                hill_count,
+                rng,
+            )
+        });
+        self.store.start_active(comp);
+        RouteTarget::CompetitionJump
     }
 
     fn team_warning_elements(layout: &MainLayout) -> Vec<Element> {
@@ -147,20 +181,5 @@ impl JumpMenuView {
         els.push(Element::text(lang.lstr(264), 80, 112, FONT_GOLD, false));
         els.push(Element::text(lang.lstr(265), 80, 122, FONT_GOLD, false));
         els
-    }
-
-    fn start_competition(&self, style: CupStyle) -> RouteTarget {
-        let profiles = self.store.profiles();
-        let trainrounds = self.resources.save_manager.config.borrow().trainrounds;
-        let comp = build_competition(
-            style,
-            &profiles,
-            self.resources.player_names(),
-            self.resources.hills.len(),
-            trainrounds as usize,
-        );
-        drop(profiles);
-        self.store.start_competition(comp);
-        RouteTarget::CompetitionJump
     }
 }

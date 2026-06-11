@@ -260,9 +260,6 @@ impl Competition {
             CompetitionPhase::WorldCupStandings => {
                 self.enter_phase(CompetitionPhase::EventComplete);
             }
-            CompetitionPhase::TeamCupStandings => {
-                self.enter_phase(CompetitionPhase::EventComplete);
-            }
             CompetitionPhase::EventComplete => {
                 self.current_event += 1;
                 if self.current_event >= self.hill_order.len() {

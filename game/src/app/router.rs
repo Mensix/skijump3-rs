@@ -3,9 +3,9 @@ use crate::route::RouteTarget;
 use crate::save::SaveRef;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::views::{
-    CustomCupSetupView, HallOfFameView, HillRecordsView, JumpMenuView, MainMenuView, ProfilesView,
-    ReplayBrowserView, ReplayView, SetupView, TeamCupJumpView, TrainingJumpView, TrainingSetupView,
-    WelcomeScreenView, WorldCupJumpView,
+    CompetitionJumpView, CustomCupSetupView, HallOfFameView, HillRecordsView, JumpMenuView,
+    MainMenuView, ProfilesView, ReplayBrowserView, ReplayView, SetupView, TrainingSetupView,
+    WelcomeScreenView,
 };
 use engine::ui::{Router, View};
 use std::rc::Rc;
@@ -73,13 +73,13 @@ pub fn create_router(
             (
                 RouteTarget::Jump,
                 rs(&resources, &store, |r, s| {
-                    Box::new(TrainingJumpView::new(r, s))
+                    Box::new(CompetitionJumpView::new(r, s))
                 }),
             ),
             (
                 RouteTarget::CompetitionJump,
                 rs(&resources, &store, |r, s| {
-                    Box::new(WorldCupJumpView::new(r, s))
+                    Box::new(CompetitionJumpView::new(r, s))
                 }),
             ),
             (
@@ -123,12 +123,6 @@ pub fn create_router(
             (
                 RouteTarget::Quit,
                 ls(&layout, &store, |l, s| Box::new(MainMenuView::new(l, s))),
-            ),
-            (
-                RouteTarget::TeamCup,
-                rs(&resources, &store, |r, s| {
-                    Box::new(TeamCupJumpView::new(r, s))
-                }),
             ),
             (RouteTarget::Welcome, {
                 let r = resources;

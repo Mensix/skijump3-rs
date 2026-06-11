@@ -1,13 +1,6 @@
 use crate::store::{ResourcesRef, StoreRef};
 use std::cell::Cell;
 
-pub(crate) fn save_profiles_once(saved: &Cell<bool>, resources: &ResourcesRef, store: &StoreRef) {
-    if saved.replace(true) {
-        return;
-    }
-    save_profiles(resources, store);
-}
-
 pub(crate) fn save_profiles_and_records_once(
     saved: &Cell<bool>,
     resources: &ResourcesRef,

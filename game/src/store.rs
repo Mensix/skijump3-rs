@@ -1,6 +1,3 @@
-use crate::competition::machine::Competition;
-use crate::competition::runtime::CompetitionRuntime;
-use crate::competition::team_cup::types::TeamCupRuntime;
 use crate::content::names::NameCatalog;
 use crate::data::hill::HillCatalog;
 use crate::data::hill_profile::HillTerrain;
@@ -220,50 +217,12 @@ impl Default for ReplaySelection {
     }
 }
 
-/// Wraps `Option<Competition>` with scoped access methods so callers
-/// don't need to choreograph `borrow()` / `drop()` manually.
-#[derive(Debug, Clone)]
-pub struct CompetitionSlot {
-    inner: RefCell<Option<Competition>>,
-}
-
-impl CompetitionSlot {
-    #[must_use]
-    pub fn new() -> Self {
-        Self {
-            inner: RefCell::new(None),
-        }
-    }
-
-    pub fn start(&self, comp: Competition) {
-        *self.inner.borrow_mut() = Some(comp);
-    }
-
-    pub fn try_with<R>(&self, f: impl FnOnce(&Competition) -> R) -> Option<R> {
-        self.inner.borrow().as_ref().map(f)
-    }
-
-    /// Pass the inner Competition to a callback that may need
-    /// concurrent access to other Store fields. The borrow is
-    /// released when the callback returns.
-    pub fn try_with_mut<R>(&self, f: impl FnOnce(&mut Competition) -> R) -> Option<R> {
-        self.inner.borrow_mut().as_mut().map(f)
-    }
-}
-
-impl Default for CompetitionSlot {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 #[derive(Debug, Clone)]
 pub struct Store {
     jump_runtime: JumpRuntime,
     practice: PracticeSettings,
     replay_selection: ReplaySelection,
-    competition: CompetitionSlot,
-    team_cup: RefCell<Option<TeamCupRuntime>>,
+    active_competition: RefCell<Option<crate::competition::ActiveCompetition>>,
     profiles: RefCell<ProfileStore>,
     records: RefCell<RecordStore>,
     selected_hill: Cell<usize>,
@@ -284,8 +243,7 @@ impl Store {
             jump_runtime: JumpRuntime::new(),
             practice: PracticeSettings::new(),
             replay_selection: ReplaySelection::new(),
-            competition: CompetitionSlot::new(),
-            team_cup: RefCell::new(None),
+            active_competition: RefCell::new(None),
             profiles: RefCell::new(ProfileStore::new()),
             records: RefCell::new(records),
             selected_hill: Cell::new(0),
@@ -300,8 +258,7 @@ impl Store {
             jump_runtime: JumpRuntime::new(),
             practice: PracticeSettings::new(),
             replay_selection: ReplaySelection::new(),
-            competition: CompetitionSlot::new(),
-            team_cup: RefCell::new(None),
+            active_competition: RefCell::new(None),
             profiles: RefCell::new(profiles),
             records: RefCell::new(records),
             selected_hill: Cell::new(0),
@@ -310,32 +267,22 @@ impl Store {
         }
     }
 
-    pub fn start_competition(&self, comp: Competition) {
-        self.competition.start(comp);
+    pub fn start_active(&self, comp: crate::competition::ActiveCompetition) {
+        *self.active_competition.borrow_mut() = Some(comp);
     }
 
-    pub fn try_with_competition<R>(&self, f: impl FnOnce(&Competition) -> R) -> Option<R> {
-        self.competition.try_with(f)
+    pub fn with_active<R>(
+        &self,
+        f: impl FnOnce(&crate::competition::ActiveCompetition) -> R,
+    ) -> Option<R> {
+        self.active_competition.borrow().as_ref().map(f)
     }
 
-    pub fn try_with_competition_mut<R>(&self, f: impl FnOnce(&mut Competition) -> R) -> Option<R> {
-        self.competition.try_with_mut(f)
-    }
-
-    pub fn start_team_cup(&self, tc: TeamCupRuntime) {
-        *self.team_cup.borrow_mut() = Some(tc);
-    }
-
-    pub fn try_with_team_cup<R>(&self, f: impl FnOnce(&TeamCupRuntime) -> R) -> Option<R> {
-        self.team_cup.borrow().as_ref().map(f)
-    }
-
-    pub fn try_with_team_cup_mut<R>(&self, f: impl FnOnce(&mut TeamCupRuntime) -> R) -> Option<R> {
-        self.team_cup.borrow_mut().as_mut().map(f)
-    }
-
-    pub fn clear_team_cup(&self) {
-        *self.team_cup.borrow_mut() = None;
+    pub fn with_active_mut<R>(
+        &self,
+        f: impl FnOnce(&mut crate::competition::ActiveCompetition) -> R,
+    ) -> Option<R> {
+        self.active_competition.borrow_mut().as_mut().map(f)
     }
 
     pub fn profiles(&self) -> Ref<'_, ProfileStore> {
@@ -427,29 +374,28 @@ impl Store {
     }
 }
 
-/// Generic access to a competition runtime in the store.
-pub(crate) trait HasRuntime<R: CompetitionRuntime + 'static> {
-    fn with_runtime_mut<F, T>(&self, f: F) -> Option<T>
-    where
-        F: FnOnce(&mut R) -> T;
-}
-
-impl HasRuntime<Competition> for Store {
-    fn with_runtime_mut<F, T>(&self, f: F) -> Option<T>
-    where
-        F: FnOnce(&mut Competition) -> T,
-    {
-        self.try_with_competition_mut(f)
-    }
-}
-
-impl HasRuntime<TeamCupRuntime> for Store {
-    fn with_runtime_mut<F, T>(&self, f: F) -> Option<T>
-    where
-        F: FnOnce(&mut TeamCupRuntime) -> T,
-    {
-        self.try_with_team_cup_mut(f)
-    }
-}
-
 pub type StoreRef = Rc<Store>;
+
+pub trait HasRuntime<R> {
+    fn with_runtime_mut<T>(&self, f: impl FnOnce(&mut R) -> T) -> Option<T>;
+}
+
+impl HasRuntime<crate::competition::machine::Competition> for Store {
+    fn with_runtime_mut<T>(
+        &self,
+        f: impl FnOnce(&mut crate::competition::machine::Competition) -> T,
+    ) -> Option<T> {
+        self.with_active_mut(|active| active.individual_mut().map(f))
+            .flatten()
+    }
+}
+
+impl HasRuntime<crate::competition::team_cup::types::TeamCupRuntime> for Store {
+    fn with_runtime_mut<T>(
+        &self,
+        f: impl FnOnce(&mut crate::competition::team_cup::types::TeamCupRuntime) -> T,
+    ) -> Option<T> {
+        self.with_active_mut(|active| active.team_cup_runtime_mut().map(f))
+            .flatten()
+    }
+}

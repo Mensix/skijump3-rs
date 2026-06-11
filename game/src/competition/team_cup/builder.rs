@@ -20,7 +20,7 @@ pub fn build_team_cup(
     let schedule = build_schedule(hill_count, rng);
     let team_order = shuffle_team_order(teams.len(), rng);
 
-    TeamCupRuntime::new(teams, schedule, human_team_count, team_order)
+    TeamCupRuntime::new(teams, schedule, team_order)
 }
 
 fn shuffle_team_order(num_teams: usize, rng: &mut Random) -> Vec<usize> {
@@ -89,7 +89,6 @@ fn build_teams(
             .collect();
 
         teams.push(TeamCupTeam {
-            id: ti,
             name,
             members,
             leg_score: 0.0,

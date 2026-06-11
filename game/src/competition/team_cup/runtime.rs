@@ -6,16 +6,10 @@ use super::types::{
 use crate::competition::core::ranking::ranked_order;
 use crate::competition::core::standings::StandingEntry;
 use crate::competition::runtime::{CompetitionDecision, CompetitionRuntime};
-use crate::competition::types::CupStyle;
 use crate::jump::types::{JumpOutcome, DEFAULT_START_GATE};
 
 impl TeamCupRuntime {
-    pub fn new(
-        teams: Vec<TeamCupTeam>,
-        schedule: Vec<usize>,
-        human_teams: usize,
-        team_order: Vec<usize>,
-    ) -> Self {
+    pub fn new(teams: Vec<TeamCupTeam>, schedule: Vec<usize>, team_order: Vec<usize>) -> Self {
         Self {
             teams,
             schedule,
@@ -25,7 +19,6 @@ impl TeamCupRuntime {
             current_team_order_pos: 0,
             team_order,
             phase: TeamCupPhase::Setup,
-            human_teams,
             standings_pending: false,
             human_jumped_in_slot: false,
         }
@@ -185,6 +178,13 @@ impl TeamCupRuntime {
         .collect()
     }
 
+    pub fn standings(&self, kind: TeamCupStandingsKind) -> Vec<StandingEntry> {
+        match kind {
+            TeamCupStandingsKind::Leg => self.current_leg_standings(),
+            TeamCupStandingsKind::Overall => self.overall_standings(),
+        }
+    }
+
     pub fn is_human_current(&self) -> bool {
         if self.current_team_order_pos >= self.team_order.len() {
             return false;
@@ -233,7 +233,6 @@ impl TeamCupRuntime {
 impl CompetitionRuntime for TeamCupRuntime {
     type Context = TeamCupJumpContext;
     type ResultsKind = TeamCupResultsKind;
-    type StandingsKind = TeamCupStandingsKind;
 
     fn decide_next_runtime(&mut self) -> CompetitionDecision<Self::Context, Self::ResultsKind> {
         self.decide_next()
@@ -263,23 +262,12 @@ impl CompetitionRuntime for TeamCupRuntime {
         self.phase == TeamCupPhase::Complete
     }
 
-    fn standings_runtime(&self, kind: Self::StandingsKind) -> Vec<StandingEntry> {
-        match kind {
-            TeamCupStandingsKind::Leg => self.current_leg_standings(),
-            TeamCupStandingsKind::Overall => self.overall_standings(),
-        }
-    }
-
     fn is_human_current(&self) -> bool {
         self.is_human_current()
     }
 
     fn current_jump_context(&self) -> Self::Context {
         self.current_jump_context()
-    }
-
-    fn cup_style(&self) -> CupStyle {
-        CupStyle::TeamCup
     }
 
     fn event_idx(&self) -> usize {
@@ -321,7 +309,6 @@ mod tests {
             .map(|(i, n)| make_member(n, !is_human || i > 0, id * 4 + i))
             .collect();
         TeamCupTeam {
-            id,
             name: name.to_string(),
             members,
             leg_score: 0.0,
@@ -340,7 +327,7 @@ mod tests {
             .collect();
         let schedule = vec![0, 1, 2, 3, 4, 5];
         let team_order: Vec<usize> = (0..teams.len()).collect();
-        TeamCupRuntime::new(teams, schedule, 2, team_order)
+        TeamCupRuntime::new(teams, schedule, team_order)
     }
 
     fn simulate_leg(runtime: &mut TeamCupRuntime, leg_base_score: f64) {
