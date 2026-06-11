@@ -1,4 +1,3 @@
-use crate::competition::runtime::CompetitionRuntime;
 use crate::competition::team_cup::types::{TeamCupJumpContext, TeamCupResultsKind, TeamCupRuntime};
 use crate::components::screen::{self, new_screen_with_bg};
 use crate::gfx::palette::{BG_TEAMCUP, BLACK, FONT_DEFAULT, FONT_GOLD, FONT_HELP};
@@ -493,11 +492,11 @@ impl View<RouteTarget> for TeamCupJumpView {
         if self.ui_state.render_mode() == RenderMode::Results {
             if matches!(event, Event::Keyboard(_)) {
                 self.ui_state.dismiss_results();
-                self.store.try_with_team_cup_mut(|tc| {
-                    tc.advance_results_runtime(TeamCupResultsKind::LegResults);
-                });
                 if let Some(ref scene) = self.scene {
-                    match self.session.drive_competition::<TeamCupRuntime>(scene) {
+                    match self.session.advance_results_and_drive::<TeamCupRuntime>(
+                        scene,
+                        TeamCupResultsKind::LegResults,
+                    ) {
                         Ok(Some(cmd)) => self.apply_command(cmd),
                         Ok(None) => {}
                         Err(e) => self.ui_state.enter_error(e.to_string()),

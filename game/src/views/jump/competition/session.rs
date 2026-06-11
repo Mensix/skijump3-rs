@@ -82,6 +82,21 @@ impl CompetitionSession {
         Ok(Some(command))
     }
 
+    pub(crate) fn advance_results_and_drive<R>(
+        &self,
+        scene: &JumpScene,
+        kind: R::ResultsKind,
+    ) -> Result<Option<CompetitionFlowCommand<R::Context, R::ResultsKind>>, SessionError>
+    where
+        R: CompetitionRuntime + 'static,
+        Store: HasRuntime<R>,
+    {
+        self.store.with_runtime_mut(|r: &mut R| {
+            r.advance_results_runtime(kind);
+        });
+        self.drive_competition::<R>(scene)
+    }
+
     pub(crate) fn save_results(&self) {
         if self.profiles_saved.get() {
             return;

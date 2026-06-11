@@ -1,7 +1,7 @@
 use super::results;
 use crate::competition::machine::Competition;
 use crate::competition::runtime::{
-    CompetitionRuntime, IndividualJumpContext, IndividualResultsKind,
+    IndividualJumpContext, IndividualResultsKind,
 };
 use crate::competition::scoring::wc_points_for_rank;
 use crate::competition::types::{CompetitionPhase, CupStyle};
@@ -344,10 +344,10 @@ impl WorldCupJumpView {
                 // Pascal WaitForKey(0): any key on the last entry exits the list
                 self.blinker.reset();
                 self.ui_state.dismiss_results();
-                self.store.try_with_competition_mut(|c| {
-                    c.advance_results_runtime(IndividualResultsKind::Results);
-                });
-                match self.session.drive_competition::<Competition>(&self.scene) {
+                match self.session.advance_results_and_drive::<Competition>(
+                    &self.scene,
+                    IndividualResultsKind::Results,
+                ) {
                     Ok(Some(command)) => self.apply_command(command),
                     Ok(None) => {}
                     Err(e) => self.ui_state.enter_error(e.to_string()),
@@ -398,10 +398,10 @@ impl WorldCupJumpView {
                 }
                 self.blinker.reset();
                 self.ui_state.dismiss_results();
-                self.store.try_with_competition_mut(|c| {
-                    c.advance_results_runtime(IndividualResultsKind::Results);
-                });
-                match self.session.drive_competition::<Competition>(&self.scene) {
+                match self.session.advance_results_and_drive::<Competition>(
+                    &self.scene,
+                    IndividualResultsKind::Results,
+                ) {
                     Ok(Some(command)) => self.apply_command(command),
                     Ok(None) => {}
                     Err(e) => self.ui_state.enter_error(e.to_string()),
