@@ -12,9 +12,8 @@ use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::format::format_decimal;
 use crate::views::jump::competition::flow::{
-    acknowledge_finished_jump, command_or_error, handle_competition_jump_input, handle_save_dialog,
-    record_acknowledged_human_jump, render_jump_scene_with_overlay, route_error_back,
-    CompetitionFlowCommand, JumpInputResult,
+    command_or_error, handle_jump_scene_event, record_acknowledged_human_jump,
+    render_jump_scene_with_overlay, route_error_back, CompetitionFlowCommand, JumpInputResult,
 };
 use crate::views::jump::competition::overlay::CompetitionOverlay;
 use crate::views::jump::competition::results::{
@@ -223,22 +222,12 @@ impl View<RouteTarget> for WorldCupJumpView {
             return self.handle_result_event(event);
         }
 
-        // Replay save dialog
-        if handle_save_dialog(&self.scene, &event) {
-            return None;
-        }
-
         // Let the shared input controller process events first (save replay, etc.)
-        match handle_competition_jump_input(&self.scene, event, true) {
+        let is_dq = self.scene.phase() == Some(JumpPhase::Disqualified);
+        match handle_jump_scene_event(&self.scene, &self.ui_state, event, true, !is_dq, false) {
             JumpInputResult::Route(route) => return Some(route),
             JumpInputResult::Consumed => return None,
             JumpInputResult::None => {}
-        }
-
-        // Pascal: wait for key after human jump before advancing
-        let is_dq = self.scene.phase() == Some(JumpPhase::Disqualified);
-        if acknowledge_finished_jump(&self.scene, &self.ui_state, event, !is_dq) {
-            return None;
         }
 
         None

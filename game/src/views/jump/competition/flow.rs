@@ -211,6 +211,32 @@ pub(crate) fn handle_competition_jump_input(
     }
 }
 
+pub(crate) fn handle_jump_scene_event(
+    scene: &JumpScene,
+    ui_state: &CompetitionUiState,
+    event: Event,
+    consume_other_actions: bool,
+    accepts_only_enter_escape: bool,
+    acknowledge_only_unrecorded: bool,
+) -> JumpInputResult {
+    if handle_save_dialog(scene, &event) {
+        return JumpInputResult::Consumed;
+    }
+
+    match handle_competition_jump_input(scene, event, consume_other_actions) {
+        JumpInputResult::None => {}
+        result => return result,
+    }
+
+    if (!acknowledge_only_unrecorded || !ui_state.is_outcome_recorded())
+        && acknowledge_finished_jump(scene, ui_state, event, accepts_only_enter_escape)
+    {
+        return JumpInputResult::Consumed;
+    }
+
+    JumpInputResult::None
+}
+
 pub(crate) fn route_error_back(ui_state: &CompetitionUiState, event: Event) -> Option<RouteTarget> {
     if ui_state.render_mode() != crate::views::jump::competition::ui_state::RenderMode::Error {
         return None;

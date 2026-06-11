@@ -5,9 +5,8 @@ use crate::jump::{JumpParticipant, JumpPolicy};
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::views::jump::competition::flow::{
-    acknowledge_finished_jump, command_or_error, handle_competition_jump_input, handle_human_jump,
-    handle_save_dialog, record_acknowledged_human_jump, render_jump_scene_with_overlay,
-    route_error_back, CompetitionFlowCommand, JumpInputResult,
+    command_or_error, handle_human_jump, handle_jump_scene_event, record_acknowledged_human_jump,
+    render_jump_scene_with_overlay, route_error_back, CompetitionFlowCommand, JumpInputResult,
 };
 use crate::views::jump::competition::overlay::CompetitionOverlay;
 use crate::views::jump::competition::results::{
@@ -212,23 +211,13 @@ impl View<RouteTarget> for TeamCupJumpView {
         }
 
         if let Some(ref scene) = self.scene {
-            if handle_save_dialog(scene, &event) {
-                return None;
-            }
-
             // Let the shared input controller process events first
             if self.phase == ViewPhase::Jumping {
-                match handle_competition_jump_input(scene, event, false) {
+                match handle_jump_scene_event(scene, &self.ui_state, event, false, false, true) {
                     JumpInputResult::Route(route) => return Some(route),
                     JumpInputResult::Consumed => return None,
                     JumpInputResult::None => {}
                 }
-            }
-
-            if !self.ui_state.is_outcome_recorded()
-                && acknowledge_finished_jump(scene, &self.ui_state, event, false)
-            {
-                return None;
             }
         }
 
