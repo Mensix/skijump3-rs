@@ -175,7 +175,14 @@ impl TeamCupRuntime {
                 is_human: self.teams[team_idx].is_human_team,
             }
         })
-        .collect()
+            .collect()
+    }
+
+    pub fn standings(&self, kind: TeamCupStandingsKind) -> Vec<StandingEntry> {
+        match kind {
+            TeamCupStandingsKind::Leg => self.current_leg_standings(),
+            TeamCupStandingsKind::Overall => self.overall_standings(),
+        }
     }
 
     pub fn is_human_current(&self) -> bool {
@@ -226,7 +233,6 @@ impl TeamCupRuntime {
 impl CompetitionRuntime for TeamCupRuntime {
     type Context = TeamCupJumpContext;
     type ResultsKind = TeamCupResultsKind;
-    type StandingsKind = TeamCupStandingsKind;
 
     fn decide_next_runtime(&mut self) -> CompetitionDecision<Self::Context, Self::ResultsKind> {
         self.decide_next()
@@ -254,13 +260,6 @@ impl CompetitionRuntime for TeamCupRuntime {
 
     fn is_complete_runtime(&self) -> bool {
         self.phase == TeamCupPhase::Complete
-    }
-
-    fn standings_runtime(&self, kind: Self::StandingsKind) -> Vec<StandingEntry> {
-        match kind {
-            TeamCupStandingsKind::Leg => self.current_leg_standings(),
-            TeamCupStandingsKind::Overall => self.overall_standings(),
-        }
     }
 
     fn is_human_current(&self) -> bool {

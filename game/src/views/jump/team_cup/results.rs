@@ -1,4 +1,3 @@
-use crate::competition::runtime::CompetitionRuntime;
 use crate::competition::team_cup::types::{TeamCupResultsKind, TeamCupStandingsKind};
 use crate::components::screen::new_screen_with_bg;
 use crate::gfx::palette::{BG_TEAMCUP, FILL_HIGHLIGHT, FONT_DEFAULT, FONT_GOLD, FONT_HELP};
@@ -20,7 +19,7 @@ pub(crate) fn render(
     let (header, standings) = store
         .with_active(|active| {
             let tc = active.team_cup_runtime()?;
-            let standings = tc.standings_runtime(standings_kind);
+            let standings = tc.standings(standings_kind);
             let leg = tc.current_leg + 1;
             let round = tc.current_round + 1;
             let jumper = tc.current_jumper_slot + 1;

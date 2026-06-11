@@ -1,4 +1,3 @@
-use crate::competition::runtime::CompetitionRuntime;
 use crate::competition::team_cup::types::TeamCupStandingsKind;
 use crate::competition::types::{CompetitionPhase, CupStyle, Participant, QualificationStatus};
 use crate::gfx::palette::{FONT_GOLD, FONT_HELP};
@@ -89,7 +88,7 @@ impl OverlayData {
     }
 
     fn from_team_cup(tc: &crate::competition::team_cup::types::TeamCupRuntime) -> Self {
-        let leg_standings = tc.standings_runtime(TeamCupStandingsKind::Leg);
+        let leg_standings = tc.standings(TeamCupStandingsKind::Leg);
         let hill_idx = tc.current_hill_idx();
         let event_top5 = leg_standings
             .iter()

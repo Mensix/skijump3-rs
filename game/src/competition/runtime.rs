@@ -1,6 +1,5 @@
-use crate::competition::core::standings::StandingEntry;
 use crate::competition::machine::{Competition, StepDecision};
-use crate::competition::types::{CompetitionPhase, CupStyle, Participant};
+use crate::competition::types::{CompetitionPhase, Participant};
 use crate::jump::config::JumpParticipant;
 use crate::jump::policy::JumperControl;
 use crate::jump::types::JumpOutcome;
@@ -21,13 +20,11 @@ pub enum CompetitionDecision<C, R> {
 pub trait CompetitionRuntime {
     type Context: Clone;
     type ResultsKind: Copy + Eq;
-    type StandingsKind: Copy + Eq;
 
     fn decide_next_runtime(&mut self) -> CompetitionDecision<Self::Context, Self::ResultsKind>;
     fn record_jump_runtime(&mut self, context: &Self::Context, outcome: JumpOutcome);
     fn advance_results_runtime(&mut self, kind: Self::ResultsKind);
     fn is_complete_runtime(&self) -> bool;
-    fn standings_runtime(&self, kind: Self::StandingsKind) -> Vec<StandingEntry>;
 
     /// Whether the current jumper is human (needs UI).
     fn is_human_current(&self) -> bool;
@@ -52,12 +49,6 @@ pub enum IndividualResultsKind {
     Results,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum IndividualStandingsKind {
-    Event,
-    Overall,
-}
-
 pub(crate) fn participant_to_jump(p: &Participant) -> JumpParticipant {
     JumpParticipant {
         id: p.id,
@@ -78,7 +69,6 @@ pub(crate) fn participant_to_jump(p: &Participant) -> JumpParticipant {
 impl CompetitionRuntime for Competition {
     type Context = IndividualJumpContext;
     type ResultsKind = IndividualResultsKind;
-    type StandingsKind = IndividualStandingsKind;
 
     fn decide_next_runtime(&mut self) -> CompetitionDecision<Self::Context, Self::ResultsKind> {
         loop {
@@ -126,36 +116,6 @@ impl CompetitionRuntime for Competition {
 
     fn is_complete_runtime(&self) -> bool {
         self.is_over()
-    }
-
-    fn standings_runtime(&self, kind: Self::StandingsKind) -> Vec<StandingEntry> {
-        match kind {
-            IndividualStandingsKind::Event => self
-                .event_standings()
-                .into_iter()
-                .map(|p| StandingEntry {
-                    rank: p.rank,
-                    name: p.display_name().to_string(),
-                    primary_score: p.points.unwrap_or(0.0),
-                    secondary_score: None,
-                    is_human: !p.is_computer,
-                })
-                .collect(),
-            IndividualStandingsKind::Overall => self
-                .overall_standings()
-                .into_iter()
-                .map(|p| StandingEntry {
-                    rank: p.rank,
-                    name: p.display_name().to_string(),
-                    primary_score: match self.style() {
-                        CupStyle::FourHills | CupStyle::CustomCup => p.four_hills_points,
-                        CupStyle::WorldCup | CupStyle::TeamCup => f64::from(p.wc_points),
-                    },
-                    secondary_score: None,
-                    is_human: !p.is_computer,
-                })
-                .collect(),
-        }
     }
 
     fn is_human_current(&self) -> bool {
