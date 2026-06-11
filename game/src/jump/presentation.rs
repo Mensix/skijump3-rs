@@ -46,7 +46,6 @@ pub fn elements(frame: &JumpRenderFrame, ctx: &JumpPresentationContext<'_>) -> V
         JumpPhase::Flight => {}
         JumpPhase::OnBar => {
             info_panel_elements(&mut els, frame, ctx);
-            gate_info_elements(&mut els, frame, ctx);
         }
         JumpPhase::Inrun => {}
         JumpPhase::Disqualified => dq_elements(&mut els, frame, ctx),
