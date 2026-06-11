@@ -7,7 +7,7 @@ use crate::gfx::palette::{BG_TEAMCUP, BLACK, FILL_HIGHLIGHT, FONT_DEFAULT, FONT_
 use crate::jump::hud;
 use crate::jump::{JumpParticipant, JumpPolicy};
 use crate::route::RouteTarget;
-use crate::store::{ResourcesRef, Store, StoreRef};
+use crate::store::{ResourcesRef, StoreRef};
 use crate::text::format::format_decimal;
 use crate::text::layout::shorten_name;
 use crate::views::jump::competition::flow::{handle_human_jump, CompetitionFlowCommand};

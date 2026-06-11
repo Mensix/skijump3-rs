@@ -1,8 +1,6 @@
 use std::cell::Cell;
 
-use crate::competition::builder::build_competition;
-use crate::competition::team_cup::builder::build_team_cup;
-use crate::competition::types::CupStyle;
+use crate::competition::factory;
 use crate::components::layout::{self, MainLayout};
 use crate::components::menu::{Menu, MenuItem};
 use crate::components::screen;
@@ -121,30 +119,28 @@ impl JumpMenuView {
     fn start_world_cup(&self) -> RouteTarget {
         let profiles = self.store.profiles();
         let trainrounds = self.resources.save_manager.config.borrow().trainrounds;
-        let comp = build_competition(
-            CupStyle::WorldCup,
+        let comp = factory::world_cup(
             &profiles,
             self.resources.player_names(),
             self.resources.hills.len(),
             trainrounds as usize,
         );
         drop(profiles);
-        self.store.start_active_competition(comp);
+        self.store.start_active(comp);
         RouteTarget::CompetitionJump
     }
 
     fn start_four_hills(&self) -> RouteTarget {
         let profiles = self.store.profiles();
         let trainrounds = self.resources.save_manager.config.borrow().trainrounds;
-        let comp = build_competition(
-            CupStyle::FourHills,
+        let comp = factory::four_hills(
             &profiles,
             self.resources.player_names(),
             self.resources.hills.len(),
             trainrounds as usize,
         );
         drop(profiles);
-        self.store.start_active_competition(comp);
+        self.store.start_active(comp);
         RouteTarget::CompetitionJump
     }
 
@@ -159,9 +155,9 @@ impl JumpMenuView {
         drop(profiles);
 
         let comp = self.store.with_jump_rng_wind_mut(|rng, _| {
-            build_team_cup(&names, &teams_def, &self.store.profiles(), human_teams, hill_count, rng)
+            factory::team_cup(&names, &teams_def, &self.store.profiles(), human_teams, hill_count, rng)
         });
-        self.store.start_team_cup(comp);
+        self.store.start_active(comp);
         RouteTarget::TeamCup
     }
 

@@ -267,16 +267,8 @@ impl Store {
         }
     }
 
-    pub fn start_active_competition(&self, comp: crate::competition::machine::Competition) {
-        *self.active_competition.borrow_mut() = Some(crate::competition::ActiveCompetition::individual(comp));
-    }
-
-    pub fn start_competition(&self, comp: crate::competition::machine::Competition) {
-        self.start_active_competition(comp);
-    }
-
-    pub fn start_team_cup(&self, comp: crate::competition::team_cup::types::TeamCupRuntime) {
-        *self.active_competition.borrow_mut() = Some(crate::competition::ActiveCompetition::team_cup(comp));
+    pub fn start_active(&self, comp: crate::competition::ActiveCompetition) {
+        *self.active_competition.borrow_mut() = Some(comp);
     }
 
     pub fn with_active_competition<R>(&self, f: impl FnOnce(&crate::competition::machine::Competition) -> R) -> Option<R> {

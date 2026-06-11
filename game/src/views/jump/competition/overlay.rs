@@ -1,5 +1,5 @@
 use crate::competition::runtime::CompetitionRuntime;
-use crate::competition::team_cup::types::{TeamCupRuntime, TeamCupStandingsKind};
+use crate::competition::team_cup::types::TeamCupStandingsKind;
 use crate::competition::types::{CompetitionPhase, CupStyle, Participant, QualificationStatus};
 use crate::gfx::palette::{FONT_GOLD, FONT_HELP};
 use crate::jump::hud;
@@ -86,18 +86,8 @@ impl OverlayData {
     fn collect_tc(store: &StoreRef) -> Option<Self> {
         store.try_with_team_cup(|tc| {
             let leg_standings = tc.standings_runtime(TeamCupStandingsKind::Leg);
-            let overall_standings = tc.standings_runtime(TeamCupStandingsKind::Overall);
             let hill_idx = tc.current_hill_idx();
             let event_top5 = leg_standings
-                .iter()
-                .take(5)
-                .filter(|e| e.primary_score > 0.0)
-                .map(|e| EventStandingEntry {
-                    name: e.name.clone(),
-                    points: e.primary_score,
-                })
-                .collect();
-            let overall_top5: Vec<EventStandingEntry> = overall_standings
                 .iter()
                 .take(5)
                 .filter(|e| e.primary_score > 0.0)
