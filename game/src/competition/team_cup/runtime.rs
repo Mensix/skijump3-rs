@@ -9,12 +9,7 @@ use crate::competition::runtime::{CompetitionDecision, CompetitionRuntime};
 use crate::jump::types::{JumpOutcome, DEFAULT_START_GATE};
 
 impl TeamCupRuntime {
-    pub fn new(
-        teams: Vec<TeamCupTeam>,
-        schedule: Vec<usize>,
-        human_teams: usize,
-        team_order: Vec<usize>,
-    ) -> Self {
+    pub fn new(teams: Vec<TeamCupTeam>, schedule: Vec<usize>, team_order: Vec<usize>) -> Self {
         Self {
             teams,
             schedule,
@@ -24,7 +19,6 @@ impl TeamCupRuntime {
             current_team_order_pos: 0,
             team_order,
             phase: TeamCupPhase::Setup,
-            human_teams,
             standings_pending: false,
             human_jumped_in_slot: false,
         }
@@ -316,7 +310,6 @@ mod tests {
             .map(|(i, n)| make_member(n, !is_human || i > 0, id * 4 + i))
             .collect();
         TeamCupTeam {
-            id,
             name: name.to_string(),
             members,
             leg_score: 0.0,
