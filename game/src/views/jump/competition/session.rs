@@ -13,8 +13,6 @@ pub(crate) enum SessionError {
     #[error("AI simulation failed: {0}")]
     JumpScene(#[from] JumpSceneError),
 
-    #[error("No runtime in store")]
-    NoRuntime,
 }
 
 #[derive(Debug)]

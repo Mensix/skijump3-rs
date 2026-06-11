@@ -35,9 +35,6 @@ pub trait CompetitionRuntime {
     /// Context for the current jump (used by session to record outcome).
     fn current_jump_context(&self) -> Self::Context;
 
-    /// Competition style for save/display logic.
-    fn cup_style(&self) -> CupStyle;
-
     /// Current event/leg index (for new-event detection).
     /// Returns 0 for single-event competitions.
     fn event_idx(&self) -> usize;
@@ -172,10 +169,6 @@ impl CompetitionRuntime for Competition {
             phase: self.phase(),
             participant_idx,
         }
-    }
-
-    fn cup_style(&self) -> CupStyle {
-        self.style()
     }
 
     fn event_idx(&self) -> usize {
