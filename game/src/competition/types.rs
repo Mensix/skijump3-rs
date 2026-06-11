@@ -32,7 +32,6 @@ pub enum CompetitionPhase {
     Round2,
     Round2Results,
     FourHillsStandings,
-    TeamCupStandings,
     WorldCupStandings,
     EventComplete,
     SeasonComplete,
@@ -55,7 +54,6 @@ impl CompetitionPhase {
                 | Self::Round1Results
                 | Self::Round2Results
                 | Self::FourHillsStandings
-                | Self::TeamCupStandings
                 | Self::WorldCupStandings
                 | Self::SeasonComplete
         )
