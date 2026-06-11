@@ -266,75 +266,59 @@ impl CompetitionOverlay {
         let base = 361 + style as usize * 40;
         let lang = &self.resources.langbase;
 
-        // Box sprite at (3,150)
         els.push(Element::sprite(Sprite::JumperInfoBox as u16, 3, 150));
-
-        // Header
         els.push(Element::text(lang.lstr(400), 12, 150, FONT_GREET, false));
-
-        // Opening quote
         els.push(Element::text("\"", 12, 160, FONT_GREET, false));
 
-        // Build cstr[0..3] from telemetry ranges (Pascal mapping)
         let cstr0 = self.coach_range(lang, base + 2, t.angle_counter, &[49, 61, 200]);
         let cstr1 = if t.grade < 10 {
             self.coach_range(lang, base + 5, t.grade, &[1, 2, 3])
         } else {
             self.coach_range(lang, base + 10, t.grade / 10, &[5, 8, 9, 10, 11, 20])
         };
-        let cstr2 = self.coach_range(
-            lang,
-            base + 18,
-            t.takeoff_timing,
-            &[5, 9, 12, 15, 16, 19, 23, 50],
-        );
+        let cstr2 = self.coach_range(lang, base + 18, t.takeoff_timing, &[5, 9, 12, 15, 16, 19, 23, 50]);
         let cstr3 = self.coach_range(lang, base + 28, t.height, &[49, 55, 60, 64, 70, 90, 200]);
 
         let cstr0 = if t.grade < 10 { cstr1.clone() } else { cstr0 };
 
-        // Pseudo-random selection via telemetry hash
         let r = (t.grade as u16).wrapping_mul(7)
             ^ (t.height as u16).wrapping_mul(13)
             ^ (t.takeoff_timing as u16).wrapping_mul(31)
             ^ (t.angle_counter as u16).wrapping_mul(61);
-        let pick1 = if r & 1 == 0 { &cstr0 } else { &cstr1 };
-        let pick2 = if r & 2 == 0 { &cstr2 } else { &cstr3 };
+        let pick_a = if r & 1 == 0 { &cstr0 } else { &cstr1 };
+        let pick_b = if r & 2 == 0 { &cstr2 } else { &cstr3 };
 
-        let coach_text = format!("{pick1} {pick2}");
+        // Pascal: joined with '*' which acts as space + optional line-break hint
+        let text = format!("{pick_a}*{pick_b}");
 
-        // Word-wrap: split at ~30 chars, putting wrapped parts on new lines
-        let mut x = 18i32;
-        let mut y = 160i32;
+        // Pascal word-wrap (count=30, half=15):
+        //   wstr accumulates chars, * → space in buffer,
+        //   break at space when past 30 chars, or at * when past 15 chars.
+        let mut y = 152i32;
         let mut line = String::with_capacity(32);
-        for ch in coach_text.chars() {
-            if ch == '*' {
-                if !line.is_empty() {
-                    els.push(Element::text(line.clone(), x, y, FONT_GREET, false));
-                    line.clear();
+        for ch in text.chars() {
+            line.push(if ch == '*' { ' ' } else { ch });
+            // Pascal: index = line.len() + 1, check index > count → line.len() >= 30
+            if (line.len() >= 30 && ch == ' ') || (ch == '*' && line.len() >= 15) {
+                if ch == '*' {
+                    line.pop();
                 }
-                y += 8;
-                x = 18;
-                continue;
-            }
-            line.push(ch);
-            if line.len() >= 30 && ch == ' ' {
-                els.push(Element::text(line.clone(), x, y, FONT_GREET, false));
+                if y < 190 {
+                    y += 8;
+                }
+                els.push(Element::text(line.clone(), 18, y, FONT_GREET, false));
                 line.clear();
-                y += 8;
-                x = 18;
             }
         }
         if !line.is_empty() {
-            if y < 192 {
-                y += 8;
+            if line.len() < 2 {
+                els.push(Element::text(format!("{line}\""), 18, y, FONT_GREET, false));
+            } else {
+                if y < 192 {
+                    y += 8;
+                }
+                els.push(Element::text(format!("{line}\""), 18, y, FONT_GREET, false));
             }
-            els.push(Element::text(
-                format!("{}\"", line),
-                18,
-                y,
-                FONT_GREET,
-                false,
-            ));
         }
     }
 
