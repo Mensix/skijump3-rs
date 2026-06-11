@@ -80,6 +80,7 @@ impl JumpScene {
         policy: JumpPolicy,
         phase_label: String,
     ) {
+        *self.telemetry.borrow_mut() = None;
         let snow = Self::prepare_snow(&self.store);
         *self.runner.borrow_mut() = Self::build_runner(
             self.resources.clone(),

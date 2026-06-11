@@ -201,7 +201,7 @@ impl CompetitionOverlay {
                     .current_participant
                     .as_ref()
                     .is_some_and(|p| !p.is_computer)
-                && matches!(scene_phase, JumpPhase::Info | JumpPhase::OnBar)
+                && matches!(scene_phase, JumpPhase::Info | JumpPhase::OnBar | JumpPhase::Result)
             {
                 return OverlayKind::Coach;
             }
