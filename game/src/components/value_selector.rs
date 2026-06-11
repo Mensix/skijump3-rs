@@ -48,7 +48,7 @@ impl ValueSelector {
             y,
             width: 31,
             max,
-            value,
+            value: if value > max { max } else { value },
             kind: ValueSelectorKind::ColorBars,
             bg,
             border,
