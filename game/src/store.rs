@@ -279,10 +279,6 @@ impl Store {
         self.active_competition.borrow_mut().as_mut().map(f)
     }
 
-    pub fn clear_active_competition(&self) {
-        *self.active_competition.borrow_mut() = None;
-    }
-
     pub fn profiles(&self) -> Ref<'_, ProfileStore> {
         self.profiles.borrow()
     }
