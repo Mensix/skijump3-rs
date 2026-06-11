@@ -182,10 +182,9 @@ impl View<RouteTarget> for TeamCupJumpView {
 
         if self.controller.render_mode() == RenderMode::Results {
             if matches!(event, Event::Keyboard(_)) {
-                self.controller.ui_state().dismiss_results();
                 if let Some(cmd) = self
                     .controller
-                    .advance_results(TeamCupResultsKind::LegResults)
+                    .dismiss_results_and_advance(TeamCupResultsKind::LegResults)
                 {
                     self.apply_command(cmd);
                 }

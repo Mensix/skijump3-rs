@@ -146,7 +146,7 @@ where
         self.ui_state.enter_error(msg.into());
     }
 
-    pub(crate) fn advance_results(
+    fn advance_results(
         &mut self,
         kind: R::ResultsKind,
     ) -> Option<CompetitionFlowCommand<R::Context, R::ResultsKind>> {
@@ -155,6 +155,14 @@ where
             &self.ui_state,
             self.session.advance_results_and_drive::<R>(scene, kind),
         )
+    }
+
+    pub(crate) fn dismiss_results_and_advance(
+        &mut self,
+        kind: R::ResultsKind,
+    ) -> Option<CompetitionFlowCommand<R::Context, R::ResultsKind>> {
+        self.ui_state.dismiss_results();
+        self.advance_results(kind)
     }
 
     fn ensure_scene(&mut self) {

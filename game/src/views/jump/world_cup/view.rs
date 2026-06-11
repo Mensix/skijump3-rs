@@ -268,10 +268,9 @@ impl WorldCupJumpView {
 
     fn dismiss_results_and_advance(&mut self) {
         self.blinker.reset();
-        self.controller.ui_state().dismiss_results();
         if let Some(command) = self
             .controller
-            .advance_results(IndividualResultsKind::Results)
+            .dismiss_results_and_advance(IndividualResultsKind::Results)
         {
             self.apply_command(command);
         }
