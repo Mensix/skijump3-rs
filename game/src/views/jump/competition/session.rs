@@ -12,7 +12,6 @@ use crate::views::jump::scene::{JumpScene, JumpSceneError};
 pub(crate) enum SessionError {
     #[error("AI simulation failed: {0}")]
     JumpScene(#[from] JumpSceneError),
-
 }
 
 #[derive(Debug)]

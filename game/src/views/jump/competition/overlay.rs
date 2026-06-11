@@ -38,72 +38,77 @@ pub struct WcStandingEntry {
 impl OverlayData {
     /// Collect all data the overlay needs from the competition store.
     pub fn collect(store: &StoreRef) -> Option<Self> {
-        store.with_active(|active| match active {
-            crate::competition::ActiveCompetition::Training => None,
-            crate::competition::ActiveCompetition::Individual(comp) => Some(Self::from_individual(comp)),
-            crate::competition::ActiveCompetition::TeamCup(comp) => Some(Self::from_team_cup(comp)),
-        })
-        .flatten()
+        store
+            .with_active(|active| match active {
+                crate::competition::ActiveCompetition::Training => None,
+                crate::competition::ActiveCompetition::Individual(comp) => {
+                    Some(Self::from_individual(comp))
+                }
+                crate::competition::ActiveCompetition::TeamCup(comp) => {
+                    Some(Self::from_team_cup(comp))
+                }
+            })
+            .flatten()
     }
 
     fn from_individual(c: &crate::competition::machine::Competition) -> Self {
-            let event_standings = c.event_standings();
-            let event_top5 = event_standings
-                .iter()
-                .take(5)
-                .filter_map(|p| {
-                    p.points
-                        .filter(|&pts| pts > 0.0)
-                        .map(|pts| EventStandingEntry {
-                            name: p.display_name().to_string(),
-                            points: pts,
-                        })
-                })
-                .collect();
+        let event_standings = c.event_standings();
+        let event_top5 = event_standings
+            .iter()
+            .take(5)
+            .filter_map(|p| {
+                p.points
+                    .filter(|&pts| pts > 0.0)
+                    .map(|pts| EventStandingEntry {
+                        name: p.display_name().to_string(),
+                        points: pts,
+                    })
+            })
+            .collect();
 
-            let wc_standings = c.overall_standings();
-            let wc_top5 = wc_standings
-                .iter()
-                .take(5)
-                .filter(|p| p.wc_points > 0)
-                .map(|p| WcStandingEntry {
-                    name: p.display_name().to_string(),
-                    points: p.wc_points,
-                })
-                .collect();
+        let wc_standings = c.overall_standings();
+        let wc_top5 = wc_standings
+            .iter()
+            .take(5)
+            .filter(|p| p.wc_points > 0)
+            .map(|p| WcStandingEntry {
+                name: p.display_name().to_string(),
+                points: p.wc_points,
+            })
+            .collect();
 
-            Self {
-                phase: c.phase(),
-                style: c.style(),
-                current_event: c.current_event,
-                current_hill: c.current_hill(),
-                current_participant: c.current_jumper().map(|idx| c.participant(idx).clone()),
-                event_standings_top5: event_top5,
-                wc_standings_top5: wc_top5,
-            }
+        Self {
+            phase: c.phase(),
+            style: c.style(),
+            current_event: c.current_event,
+            current_hill: c.current_hill(),
+            current_participant: c.current_jumper().map(|idx| c.participant(idx).clone()),
+            event_standings_top5: event_top5,
+            wc_standings_top5: wc_top5,
+        }
     }
 
     fn from_team_cup(tc: &crate::competition::team_cup::types::TeamCupRuntime) -> Self {
-            let leg_standings = tc.standings_runtime(TeamCupStandingsKind::Leg);
-            let hill_idx = tc.current_hill_idx();
-            let event_top5 = leg_standings
-                .iter()
-                .take(5)
-                .filter(|e| e.primary_score > 0.0)
-                .map(|e| EventStandingEntry {
-                    name: e.name.clone(),
-                    points: e.primary_score,
-                })
-                .collect();
-            Self {
-                phase: CompetitionPhase::Round1,
-                style: CupStyle::TeamCup,
-                current_event: tc.current_leg,
-                current_hill: hill_idx,
-                current_participant: None,
-                event_standings_top5: event_top5,
-                wc_standings_top5: Vec::new(),
-            }
+        let leg_standings = tc.standings_runtime(TeamCupStandingsKind::Leg);
+        let hill_idx = tc.current_hill_idx();
+        let event_top5 = leg_standings
+            .iter()
+            .take(5)
+            .filter(|e| e.primary_score > 0.0)
+            .map(|e| EventStandingEntry {
+                name: e.name.clone(),
+                points: e.primary_score,
+            })
+            .collect();
+        Self {
+            phase: CompetitionPhase::Round1,
+            style: CupStyle::TeamCup,
+            current_event: tc.current_leg,
+            current_hill: hill_idx,
+            current_participant: None,
+            event_standings_top5: event_top5,
+            wc_standings_top5: Vec::new(),
+        }
     }
 }
 

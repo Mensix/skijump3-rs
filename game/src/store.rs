@@ -271,11 +271,17 @@ impl Store {
         *self.active_competition.borrow_mut() = Some(comp);
     }
 
-    pub fn with_active<R>(&self, f: impl FnOnce(&crate::competition::ActiveCompetition) -> R) -> Option<R> {
+    pub fn with_active<R>(
+        &self,
+        f: impl FnOnce(&crate::competition::ActiveCompetition) -> R,
+    ) -> Option<R> {
         self.active_competition.borrow().as_ref().map(f)
     }
 
-    pub fn with_active_mut<R>(&self, f: impl FnOnce(&mut crate::competition::ActiveCompetition) -> R) -> Option<R> {
+    pub fn with_active_mut<R>(
+        &self,
+        f: impl FnOnce(&mut crate::competition::ActiveCompetition) -> R,
+    ) -> Option<R> {
         self.active_competition.borrow_mut().as_mut().map(f)
     }
 
@@ -375,13 +381,21 @@ pub trait HasRuntime<R> {
 }
 
 impl HasRuntime<crate::competition::machine::Competition> for Store {
-    fn with_runtime_mut<T>(&self, f: impl FnOnce(&mut crate::competition::machine::Competition) -> T) -> Option<T> {
-        self.with_active_mut(|active| active.individual_mut().map(f)).flatten()
+    fn with_runtime_mut<T>(
+        &self,
+        f: impl FnOnce(&mut crate::competition::machine::Competition) -> T,
+    ) -> Option<T> {
+        self.with_active_mut(|active| active.individual_mut().map(f))
+            .flatten()
     }
 }
 
 impl HasRuntime<crate::competition::team_cup::types::TeamCupRuntime> for Store {
-    fn with_runtime_mut<T>(&self, f: impl FnOnce(&mut crate::competition::team_cup::types::TeamCupRuntime) -> T) -> Option<T> {
-        self.with_active_mut(|active| active.team_cup_runtime_mut().map(f)).flatten()
+    fn with_runtime_mut<T>(
+        &self,
+        f: impl FnOnce(&mut crate::competition::team_cup::types::TeamCupRuntime) -> T,
+    ) -> Option<T> {
+        self.with_active_mut(|active| active.team_cup_runtime_mut().map(f))
+            .flatten()
     }
 }

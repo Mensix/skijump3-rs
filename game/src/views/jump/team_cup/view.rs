@@ -7,8 +7,8 @@ use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::layout::shorten_name;
 use crate::views::jump::competition::flow::{
-    acknowledge_finished_jump, handle_human_jump, handle_save_dialog,
-    handle_competition_jump_input, record_acknowledged_human_jump, render_jump_scene_with_overlay,
+    acknowledge_finished_jump, handle_competition_jump_input, handle_human_jump,
+    handle_save_dialog, record_acknowledged_human_jump, render_jump_scene_with_overlay,
     route_error_back, CompetitionFlowCommand, JumpInputResult,
 };
 use crate::views::jump::competition::overlay::CompetitionOverlay;
@@ -47,11 +47,11 @@ impl TeamCupJumpView {
             .with_active(|active| {
                 let tc = active.team_cup_runtime()?;
                 Some(
-                tc.teams
-                    .iter()
-                    .filter(|t| t.is_human_team)
-                    .map(|t| t.name.clone())
-                    .collect()
+                    tc.teams
+                        .iter()
+                        .filter(|t| t.is_human_team)
+                        .map(|t| t.name.clone())
+                        .collect(),
                 )
             })
             .flatten()
@@ -413,7 +413,9 @@ impl View<RouteTarget> for TeamCupJumpView {
                     vec![]
                 }
             }
-            RenderMode::Results => super::results::render(&self.resources, &self.store, self.results_kind),
+            RenderMode::Results => {
+                super::results::render(&self.resources, &self.store, self.results_kind)
+            }
             RenderMode::Done | RenderMode::Error => {
                 let msg = if self.ui_state.render_mode() == RenderMode::Error {
                     self.ui_state.error_message()
@@ -562,17 +564,17 @@ fn jumper_names_els(els: &mut Vec<Element>, store: &StoreRef, team_n: usize, xx:
         .with_active(|active| {
             let tc = active.team_cup_runtime()?;
             Some(
-            tc.teams
-                .iter()
-                .filter(|t| t.is_human_team)
-                .nth(team_n)
-                .map(|t| {
-                    t.members
-                        .iter()
-                        .map(|m| m.competitor.name.clone())
-                        .collect()
-                })
-                .unwrap_or_default()
+                tc.teams
+                    .iter()
+                    .filter(|t| t.is_human_team)
+                    .nth(team_n)
+                    .map(|t| {
+                        t.members
+                            .iter()
+                            .map(|m| m.competitor.name.clone())
+                            .collect()
+                    })
+                    .unwrap_or_default(),
             )
         })
         .flatten()

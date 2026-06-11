@@ -3,8 +3,8 @@ use crate::route::RouteTarget;
 use crate::save::SaveRef;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::views::{
-    CustomCupSetupView, HallOfFameView, HillRecordsView, JumpMenuView, MainMenuView, ProfilesView,
-    ReplayBrowserView, ReplayView, SetupView, CompetitionJumpView, TrainingSetupView,
+    CompetitionJumpView, CustomCupSetupView, HallOfFameView, HillRecordsView, JumpMenuView,
+    MainMenuView, ProfilesView, ReplayBrowserView, ReplayView, SetupView, TrainingSetupView,
     WelcomeScreenView,
 };
 use engine::ui::{Router, View};

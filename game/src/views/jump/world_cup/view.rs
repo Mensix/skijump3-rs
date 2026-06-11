@@ -1,8 +1,6 @@
 use super::results;
 use crate::competition::machine::Competition;
-use crate::competition::runtime::{
-    IndividualJumpContext, IndividualResultsKind,
-};
+use crate::competition::runtime::{IndividualJumpContext, IndividualResultsKind};
 use crate::competition::scoring::wc_points_for_rank;
 use crate::competition::types::{CompetitionPhase, CupStyle};
 use crate::components::screen;
@@ -14,8 +12,8 @@ use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::format::format_decimal;
 use crate::views::jump::competition::flow::{
-    acknowledge_finished_jump, handle_save_dialog, record_acknowledged_human_jump,
-    handle_competition_jump_input, render_jump_scene_with_overlay, route_error_back,
+    acknowledge_finished_jump, handle_competition_jump_input, handle_save_dialog,
+    record_acknowledged_human_jump, render_jump_scene_with_overlay, route_error_back,
     CompetitionFlowCommand, JumpInputResult,
 };
 use crate::views::jump::competition::overlay::CompetitionOverlay;
@@ -130,18 +128,11 @@ impl WorldCupJumpView {
                 Some(match self.ui_state.current_screen() {
                     ResultScreen::KoPairs(show_results) => {
                         let show_cursor = self.blinker.visible(10, 10);
-                        results::render_ko_pairs(
-                            c,
-                            &self.resources,
-                            show_results,
-                            show_cursor,
-                        )
+                        results::render_ko_pairs(c, &self.resources, show_results, show_cursor)
                     }
-                    ResultScreen::Stats => results::render_stats_page(
-                            c,
-                            &self.resources,
-                            self.ui_state.current_page(),
-                        ),
+                    ResultScreen::Stats => {
+                        results::render_stats_page(c, &self.resources, self.ui_state.current_page())
+                    }
                     ResultScreen::List => {
                         let page_data = if self.ui_state.is_compact() {
                             results::build_compact_results_page(c)
@@ -166,23 +157,29 @@ impl WorldCupJumpView {
             return None;
         }
         let own_id = self.scene.participant_id();
-        self.store.with_active(|active| {
-            let c = active.individual()?;
-            let standings = c.event_standings();
-            let own_before = standings
-                .iter()
-                .find(|p| p.id == own_id)
-                .and_then(|p| p.points)
-                .unwrap_or(0.0);
-            let own_total = own_before + outcome.score;
-            let rank = standings
-                .iter()
-                .filter(|p| p.id != own_id && p.points.is_some_and(|pts| pts > own_total))
-                .count()
-                + 1;
-            Some(Element::right_text(format!("(${rank}.)"), 255, 45, FONT_GREET))
-        })
-        .flatten()
+        self.store
+            .with_active(|active| {
+                let c = active.individual()?;
+                let standings = c.event_standings();
+                let own_before = standings
+                    .iter()
+                    .find(|p| p.id == own_id)
+                    .and_then(|p| p.points)
+                    .unwrap_or(0.0);
+                let own_total = own_before + outcome.score;
+                let rank = standings
+                    .iter()
+                    .filter(|p| p.id != own_id && p.points.is_some_and(|pts| pts > own_total))
+                    .count()
+                    + 1;
+                Some(Element::right_text(
+                    format!("(${rank}.)"),
+                    255,
+                    45,
+                    FONT_GREET,
+                ))
+            })
+            .flatten()
     }
 }
 
@@ -209,7 +206,8 @@ impl View<RouteTarget> for WorldCupJumpView {
     fn elements(&self) -> Vec<Element> {
         match self.ui_state.render_mode() {
             RenderMode::Jump => {
-                let mut els = render_jump_scene_with_overlay(&self.scene, &self.overlay, &self.ui_state);
+                let mut els =
+                    render_jump_scene_with_overlay(&self.scene, &self.overlay, &self.ui_state);
                 // Pascal: show rank ($X.) left of score at (255,45) during Result phase
                 if let Some(rank_el) = self.rank_element() {
                     els.push(rank_el);
@@ -269,8 +267,8 @@ impl WorldCupJumpView {
             .with_active(|active| {
                 let c = active.individual()?;
                 Some(
-                c.phase().is_result_phase()
-                    || c.phase().needs_event_results() && c.current_jumper().is_none()
+                    c.phase().is_result_phase()
+                        || c.phase().needs_event_results() && c.current_jumper().is_none(),
                 )
             })
             .flatten()
@@ -333,11 +331,11 @@ impl WorldCupJumpView {
                         .with_active(|active| {
                             let c = active.individual()?;
                             Some(
-                            c.overall_standings()
-                                .iter()
-                                .filter(|p| !p.is_computer)
-                                .count()
-                                .max(1)
+                                c.overall_standings()
+                                    .iter()
+                                    .filter(|p| !p.is_computer)
+                                    .count()
+                                    .max(1),
                             )
                         })
                         .flatten()
@@ -380,12 +378,12 @@ impl WorldCupJumpView {
                     .with_active(|active| {
                         let c = active.individual()?;
                         Some(
-                        c.is_four_hills_event()
-                            && matches!(
-                                c.phase(),
-                                CompetitionPhase::QualificationResults
-                                    | CompetitionPhase::Round1Results
-                            )
+                            c.is_four_hills_event()
+                                && matches!(
+                                    c.phase(),
+                                    CompetitionPhase::QualificationResults
+                                        | CompetitionPhase::Round1Results
+                                ),
                         )
                     })
                     .flatten()

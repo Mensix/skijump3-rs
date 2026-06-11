@@ -148,14 +148,25 @@ impl JumpMenuView {
         let profiles = self.store.profiles();
         let names = self.resources.player_names().to_vec();
         let namenumber = self.resources.save_manager.config.borrow().namenumber;
-        let teams_def = self.resources.namesets.teams_for_config(namenumber).to_vec();
+        let teams_def = self
+            .resources
+            .namesets
+            .teams_for_config(namenumber)
+            .to_vec();
         let num_players = profiles.active_order.len();
         let human_teams = num_players / 4;
         let hill_count = self.resources.hills.len();
         drop(profiles);
 
         let comp = self.store.with_jump_rng_wind_mut(|rng, _| {
-            factory::team_cup(&names, &teams_def, &self.store.profiles(), human_teams, hill_count, rng)
+            factory::team_cup(
+                &names,
+                &teams_def,
+                &self.store.profiles(),
+                human_teams,
+                hill_count,
+                rng,
+            )
         });
         self.store.start_active(comp);
         RouteTarget::CompetitionJump

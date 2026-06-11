@@ -13,9 +13,15 @@ pub(crate) enum CompetitionJumpView {
 
 impl CompetitionJumpView {
     pub(crate) fn new(resources: ResourcesRef, store: StoreRef) -> Self {
-        if store.with_active(|active| active.is_training()).unwrap_or(false) {
+        if store
+            .with_active(|active| active.is_training())
+            .unwrap_or(false)
+        {
             Self::Training(TrainingJumpView::new(resources, store))
-        } else if store.with_active(|active| active.is_team_cup()).unwrap_or(false) {
+        } else if store
+            .with_active(|active| active.is_team_cup())
+            .unwrap_or(false)
+        {
             Self::TeamCup(TeamCupJumpView::new(resources, store))
         } else {
             Self::Individual(WorldCupJumpView::new(resources, store))
