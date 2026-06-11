@@ -1,11 +1,8 @@
 use crate::competition::team_cup::types::{TeamCupJumpContext, TeamCupResultsKind, TeamCupRuntime};
-use crate::components::screen::{self, new_screen_with_bg};
-use crate::gfx::palette::{BG_TEAMCUP, BLACK, FONT_DEFAULT, FONT_GOLD, FONT_HELP};
-use crate::jump::hud;
+use crate::components::screen;
 use crate::jump::{JumpParticipant, JumpPolicy};
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
-use crate::text::layout::shorten_name;
 use crate::views::jump::competition::flow::{
     acknowledge_finished_jump, handle_competition_jump_input, handle_human_jump,
     handle_save_dialog, record_acknowledged_human_jump, render_jump_scene_with_overlay,
@@ -43,19 +40,7 @@ pub struct TeamCupJumpView {
 
 impl TeamCupJumpView {
     pub(crate) fn new(resources: ResourcesRef, store: StoreRef) -> Self {
-        let names: Vec<String> = store
-            .with_active(|active| {
-                let tc = active.team_cup_runtime()?;
-                Some(
-                    tc.teams
-                        .iter()
-                        .filter(|t| t.is_human_team)
-                        .map(|t| t.name.clone())
-                        .collect(),
-                )
-            })
-            .flatten()
-            .unwrap_or_default();
+        let names = super::setup::team_names(&store);
         let name_buffer = names.first().cloned().unwrap_or_default();
         Self {
             resources: resources.clone(),
@@ -73,187 +58,32 @@ impl TeamCupJumpView {
         }
     }
 
-    fn get_team_x(&self, team_idx: usize) -> i32 {
-        if team_idx == 0 {
-            30
-        } else {
-            160
-        }
-    }
-
     fn naming_elements(&self) -> Vec<Element> {
-        let mut els = new_screen_with_bg(1, BG_TEAMCUP);
-
-        drop_team_cup_header(&mut els, &self.resources, &self.store);
-
-        for n in 0..self.team_names.len() {
-            let xx = self.get_team_x(n);
-            let is_current = matches!(self.phase, ViewPhase::NamingTeam(t) if t == n);
-
-            jumper_names_els(&mut els, &self.store, n, xx);
-
-            if is_current {
-                // "Please Name Team N:" (white, color 240)
-                els.push(Element::text(
-                    format!("{} {}:", self.resources.langbase.lstr(113), n + 1),
-                    xx,
-                    30,
-                    FONT_DEFAULT,
-                    false,
-                ));
-
-                // Input field: fillbox(xx-2,40,xx+maxlength+2,49,242)
-                els.push(Element::fillbox(xx - 2, 40, 125, 10, BLACK));
-                els.push(Element::text(
-                    self.name_buffer.clone(),
-                    xx,
-                    42,
-                    FONT_DEFAULT,
-                    false,
-                ));
-                if self.cursor_visible {
-                    let cw = self.resources.font.string_width(&self.name_buffer) as i32;
-                    // givech underscore cursor at (xx+cx, yy+6), 5×1
-                    els.push(Element::fillbox(xx + cw, 48, 5, 1, FONT_DEFAULT));
-                }
-            } else {
-                // Already named: clear area (Pascal FillBox(xx-10,30,xx+124,54,243))
-                els.push(Element::fillbox(xx - 10, 30, 135, 25, BG_TEAMCUP));
-                els.push(Element::fill_area(63));
-
-                // "Team N:" (gray, color 241) + name (white)
-                els.push(Element::text(
-                    format!("{} {}:", self.resources.langbase.lstr(114), n + 1),
-                    xx,
-                    30,
-                    FONT_HELP,
-                    false,
-                ));
-                els.push(Element::text(
-                    self.team_names[n].clone(),
-                    xx,
-                    42,
-                    FONT_DEFAULT,
-                    false,
-                ));
-            }
-        }
-
-        els
+        let current_team = match self.phase {
+            ViewPhase::NamingTeam(idx) => idx,
+            _ => 0,
+        };
+        super::setup::naming_elements(
+            &self.resources,
+            &self.store,
+            &self.team_names,
+            current_team,
+            &self.name_buffer,
+            self.cursor_visible,
+        )
     }
 
     fn ready_elements(&self) -> Vec<Element> {
-        let mut els = new_screen_with_bg(1, BG_TEAMCUP);
-
-        drop_team_cup_header(&mut els, &self.resources, &self.store);
-
-        for n in 0..self.team_names.len() {
-            let xx = self.get_team_x(n);
-
-            jumper_names_els(&mut els, &self.store, n, xx);
-
-            // Clear area (Pascal FillBox(xx-10,30,xx+124,54,243))
-            els.push(Element::fillbox(xx - 10, 30, 135, 25, BG_TEAMCUP));
-            els.push(Element::fill_area(63));
-
-            // "Team N:" (gray) + name (white)
-            els.push(Element::text(
-                format!("{} {}:", self.resources.langbase.lstr(114), n + 1),
-                xx,
-                30,
-                FONT_HELP,
-                false,
-            ));
-            els.push(Element::text(
-                self.team_names[n].clone(),
-                xx,
-                42,
-                FONT_DEFAULT,
-                false,
-            ));
-        }
-
-        // WaitForKey3(305,180,ch) + getch(306,180,243)
-        hud::push_wait_for_key(
-            &mut els,
-            &self.resources.langbase,
-            305,
-            180,
-            BG_TEAMCUP,
-            FONT_DEFAULT,
-            FONT_DEFAULT,
+        super::setup::ready_elements(
+            &self.resources,
+            &self.store,
+            &self.team_names,
             self.cursor_visible,
-        );
-
-        els
+        )
     }
 
     fn showteams_elements(&self) -> Vec<Element> {
-        let mut els = new_screen_with_bg(1, BG_TEAMCUP);
-
-        // Title
-        els.push(Element::text(
-            self.resources.langbase.lstr(111).to_string(),
-            30,
-            6,
-            FONT_DEFAULT,
-            false,
-        ));
-
-        // Team grid: 3 columns, 5 rows
-        let mut x = 5i32;
-        let mut y = 24i32;
-        self.store.with_active(|active| {
-            let Some(tc) = active.team_cup_runtime() else {
-                return;
-            };
-            for &team_idx in tc.team_order.iter().rev() {
-                let team = &tc.teams[team_idx];
-                let is_human = team.is_human_team;
-
-                // Team name in white
-                els.push(Element::text(
-                    shorten_name(&team.name, &self.resources.font, 95),
-                    x,
-                    y,
-                    FONT_DEFAULT,
-                    false,
-                ));
-
-                // Jumper names: gold if human, gray if AI
-                let jcolor = if is_human { FONT_GOLD } else { FONT_HELP };
-                for (j, member) in team.members.iter().enumerate() {
-                    // Pascal: t2=1..4 → y+1+(t2*6)
-                    els.push(Element::text(
-                        shorten_name(&member.competitor.name, &self.resources.font, 90),
-                        x + 4,
-                        y + 7 + j as i32 * 6,
-                        jcolor,
-                        false,
-                    ));
-                }
-
-                x += 102;
-                if x > 240 {
-                    x = 5;
-                    y += 35;
-                }
-            }
-        });
-
-        // WaitForKey3 at top right (305,6)
-        hud::push_wait_for_key(
-            &mut els,
-            &self.resources.langbase,
-            305,
-            6,
-            BG_TEAMCUP,
-            FONT_DEFAULT,
-            FONT_DEFAULT,
-            self.cursor_visible,
-        );
-
-        els
+        super::setup::showteams_elements(&self.resources, &self.store, self.cursor_visible)
     }
 
     fn drive_until_visible(&mut self) {
@@ -513,79 +343,5 @@ impl View<RouteTarget> for TeamCupJumpView {
         }
 
         None
-    }
-}
-
-// Shared helpers -----------------------------------------------------------
-
-fn drop_team_cup_header(els: &mut Vec<Element>, resources: &ResourcesRef, store: &StoreRef) {
-    // Title: "Get Ready for the Team Cup" (lstr 111)
-    els.push(Element::text(
-        resources.langbase.lstr(111).to_string(),
-        30,
-        6,
-        FONT_DEFAULT,
-        false,
-    ));
-
-    // Schedule header (lstr 112)
-    els.push(Element::text(
-        resources.langbase.lstr(112).to_string(),
-        30,
-        110,
-        FONT_DEFAULT,
-        false,
-    ));
-
-    // 6 hill names
-    if let Some(schedule) = store
-        .with_active(|active| active.team_cup_runtime().map(|tc| tc.schedule.clone()))
-        .flatten()
-    {
-        for (i, &hill_idx) in schedule.iter().enumerate() {
-            let hill_name = resources
-                .hills
-                .hill(hill_idx)
-                .map(|h| format!("{}. {} K{}", i + 1, h.name, h.kr))
-                .unwrap_or_else(|| format!("{}. Hill {}", i + 1, hill_idx));
-            els.push(Element::text(
-                hill_name,
-                30,
-                124 + i as i32 * 10,
-                FONT_GOLD,
-                false,
-            ));
-        }
-    }
-}
-
-fn jumper_names_els(els: &mut Vec<Element>, store: &StoreRef, team_n: usize, xx: i32) {
-    let jumpers: Vec<String> = store
-        .with_active(|active| {
-            let tc = active.team_cup_runtime()?;
-            Some(
-                tc.teams
-                    .iter()
-                    .filter(|t| t.is_human_team)
-                    .nth(team_n)
-                    .map(|t| {
-                        t.members
-                            .iter()
-                            .map(|m| m.competitor.name.clone())
-                            .collect()
-                    })
-                    .unwrap_or_default(),
-            )
-        })
-        .flatten()
-        .unwrap_or_default();
-    for (j, jname) in jumpers.iter().enumerate() {
-        els.push(Element::text(
-            jname.clone(),
-            xx + 13,
-            56 + j as i32 * 10,
-            FONT_GOLD,
-            false,
-        ));
     }
 }
