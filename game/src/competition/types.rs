@@ -133,7 +133,6 @@ pub struct Participant {
     // Season-wide state
     pub wc_points: i32,
     pub four_hills_points: f64,
-    pub tc_points: i32,
     pub injury: u8,
 
     // Per-event state. None = hasn't started (DNS)
@@ -165,7 +164,6 @@ impl Participant {
             profile_idx: competitor.profile_idx,
             wc_points: 0,
             four_hills_points: 0.0,
-            tc_points: 0,
             injury: 0,
             points: None,
             rank: 0,

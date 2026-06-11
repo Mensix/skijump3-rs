@@ -70,7 +70,6 @@ fn build_participants(profiles: &ProfileStore, computer_names: &[String]) -> Vec
                 skip_quali: p.skip_quali as u8,
                 wc_points: 0,
                 four_hills_points: 0.0,
-                tc_points: 0,
                 injury: 0,
                 points: None,
                 rank: 0,
