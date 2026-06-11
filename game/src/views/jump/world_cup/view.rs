@@ -12,8 +12,9 @@ use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::format::format_decimal;
 use crate::views::jump::competition::flow::{
-    command_or_error, handle_jump_scene_event, record_acknowledged_human_jump,
-    render_jump_scene_with_overlay, route_error_back, CompetitionFlowCommand, JumpInputResult,
+    command_or_error, handle_jump_scene_event, prepare_human_jump_scene,
+    record_acknowledged_human_jump, render_jump_scene_with_overlay, route_error_back,
+    CompetitionFlowCommand, JumpInputResult,
 };
 use crate::views::jump::competition::overlay::CompetitionOverlay;
 use crate::views::jump::competition::results::{
@@ -94,18 +95,14 @@ impl WorldCupJumpView {
         hill_idx: usize,
         phase_label: String,
     ) {
-        let needs_rebuild = self.scene.participant_id() != participant.id
-            || self.scene.hill_idx() != hill_idx
-            || self.ui_state.is_outcome_recorded()
-            || (self.scene.outcome().is_some() && self.ui_state.is_result_acknowledged());
-        if needs_rebuild {
-            self.ui_state.reset_acknowledged();
-            self.ui_state.reset_outcome_recorded();
-            self.scene
-                .rebuild_for_competition(hill_idx, 15, participant, phase_label);
-        } else {
-            self.scene.set_phase_label(phase_label);
-        }
+        prepare_human_jump_scene(
+            &self.scene,
+            &self.ui_state,
+            participant,
+            hill_idx,
+            phase_label,
+            None,
+        );
     }
 
     fn select_default_result_screen(&self) {

@@ -75,14 +75,7 @@ pub(crate) fn handle_human_jump(
     phase_label: String,
     team_name: Option<String>,
 ) {
-    let needs_build = scene.as_ref().is_none_or(|s| {
-        s.participant_id() != participant.id
-            || s.hill_idx() != hill_idx
-            || ui_state.is_outcome_recorded()
-            || (s.outcome().is_some() && ui_state.is_result_acknowledged())
-    });
-
-    if needs_build {
+    if scene.is_none() {
         ui_state.reset_acknowledged();
         ui_state.reset_outcome_recorded();
         let new_scene = JumpScene::new(
@@ -99,11 +92,40 @@ pub(crate) fn handle_human_jump(
         }
         *scene = Some(new_scene);
     } else if let Some(ref s) = scene {
-        s.set_phase_label(phase_label);
-        if let Some(name) = team_name {
-            s.set_team_name(name);
-        }
+        prepare_human_jump_scene(s, ui_state, participant, hill_idx, phase_label, team_name);
     }
+}
+
+pub(crate) fn prepare_human_jump_scene(
+    scene: &JumpScene,
+    ui_state: &CompetitionUiState,
+    participant: JumpParticipant,
+    hill_idx: usize,
+    phase_label: String,
+    team_name: Option<String>,
+) {
+    if needs_human_jump_scene_rebuild(scene, ui_state, &participant, hill_idx) {
+        ui_state.reset_acknowledged();
+        ui_state.reset_outcome_recorded();
+        scene.rebuild_for_competition(hill_idx, 15, participant, phase_label);
+    } else {
+        scene.set_phase_label(phase_label);
+    }
+    if let Some(name) = team_name {
+        scene.set_team_name(name);
+    }
+}
+
+fn needs_human_jump_scene_rebuild(
+    scene: &JumpScene,
+    ui_state: &CompetitionUiState,
+    participant: &JumpParticipant,
+    hill_idx: usize,
+) -> bool {
+    scene.participant_id() != participant.id
+        || scene.hill_idx() != hill_idx
+        || ui_state.is_outcome_recorded()
+        || (scene.outcome().is_some() && ui_state.is_result_acknowledged())
 }
 
 pub(crate) fn command_or_error<C, R>(
