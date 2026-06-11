@@ -1,10 +1,14 @@
 use crate::competition::runtime::{CompetitionDecision, CompetitionRuntime};
+use crate::route::RouteTarget;
 use crate::jump::config::JumpParticipant;
 use crate::jump::policy::JumpPolicy;
 use crate::jump::types::JumpOutcome;
-use crate::store::{ResourcesRef, StoreRef};
+use crate::store::{HasRuntime, ResourcesRef, Store, StoreRef};
+use crate::views::jump::competition::overlay::{CompetitionOverlay, OverlayKind};
+use crate::views::jump::competition::session::CompetitionSession;
 use crate::views::jump::competition::ui_state::CompetitionUiState;
 use crate::views::jump::scene::JumpScene;
+use engine::ui::{Element, Event, Key};
 
 #[derive(Debug)]
 pub(crate) enum CompetitionFlowCommand<C, R> {
@@ -99,4 +103,79 @@ pub(crate) fn handle_human_jump(
             s.set_team_name(name);
         }
     }
+}
+
+pub(crate) fn record_acknowledged_human_jump<R>(
+    session: &CompetitionSession,
+    ui_state: &CompetitionUiState,
+    scene: Option<&JumpScene>,
+) -> bool
+where
+    R: CompetitionRuntime + 'static,
+    Store: HasRuntime<R>,
+{
+    if !ui_state.is_result_acknowledged() || ui_state.is_outcome_recorded() {
+        return false;
+    }
+    let Some(scene) = scene else {
+        return false;
+    };
+    if !session.record_finished_human_jump::<R>(scene) {
+        return false;
+    }
+    ui_state.mark_outcome_recorded();
+    true
+}
+
+pub(crate) fn render_jump_scene_with_overlay(
+    scene: &JumpScene,
+    overlay: &CompetitionOverlay,
+    ui_state: &CompetitionUiState,
+) -> Vec<Element> {
+    let overlay_ctx = overlay.context(scene.phase(), scene.frame_counter(), ui_state);
+    scene.set_suppress_info_panel(
+        overlay_ctx
+            .as_ref()
+            .is_some_and(|ctx| ctx.kind != OverlayKind::None),
+    );
+    let mut els = scene.elements();
+    if let Some(ctx) = overlay_ctx {
+        els.extend(overlay.render_elements(&ctx));
+    }
+    els
+}
+
+pub(crate) fn acknowledge_finished_jump(
+    scene: &JumpScene,
+    ui_state: &CompetitionUiState,
+    event: Event,
+    accepts_only_enter_escape: bool,
+) -> bool {
+    if scene.outcome().is_none() || ui_state.is_result_acknowledged() {
+        return false;
+    }
+    let accepted = if accepts_only_enter_escape {
+        matches!(event, Event::Keyboard(Key::Enter | Key::Escape))
+    } else {
+        matches!(event, Event::Keyboard(_))
+    };
+    if accepted {
+        ui_state.acknowledge_outcome();
+    }
+    true
+}
+
+pub(crate) fn handle_save_dialog(scene: &JumpScene, event: &Event) -> bool {
+    if !scene.is_save_dialog_active() {
+        return false;
+    }
+    scene.handle_save_dialog_event(event);
+    true
+}
+
+pub(crate) fn route_error_back(ui_state: &CompetitionUiState, event: Event) -> Option<RouteTarget> {
+    if ui_state.render_mode() != crate::views::jump::competition::ui_state::RenderMode::Error {
+        return None;
+    }
+    matches!(event, Event::Keyboard(_)).then_some(RouteTarget::Back)
 }

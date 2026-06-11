@@ -10,8 +10,12 @@ use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::format::format_decimal;
 use crate::text::layout::shorten_name;
-use crate::views::jump::competition::flow::{handle_human_jump, CompetitionFlowCommand};
-use crate::views::jump::competition::overlay::{CompetitionOverlay, OverlayKind};
+use crate::views::jump::competition::flow::{
+    acknowledge_finished_jump, handle_human_jump, handle_save_dialog,
+    record_acknowledged_human_jump, render_jump_scene_with_overlay, route_error_back,
+    CompetitionFlowCommand,
+};
+use crate::views::jump::competition::overlay::CompetitionOverlay;
 use crate::views::jump::competition::session::CompetitionSession;
 use crate::views::jump::competition::ui_state::{CompetitionUiState, RenderMode};
 use crate::views::jump::input::{JumpInputAction, JumpInputController};
@@ -358,15 +362,11 @@ impl View<RouteTarget> for TeamCupJumpView {
             return;
         }
 
-        if self.ui_state.is_result_acknowledged()
-            && !self.ui_state.is_outcome_recorded()
-            && self
-                .scene
-                .as_ref()
-                .is_some_and(|s| self.session.record_finished_human_jump::<TeamCupRuntime>(s))
-        {
-            self.ui_state.mark_outcome_recorded();
-        }
+        record_acknowledged_human_jump::<TeamCupRuntime>(
+            &self.session,
+            &self.ui_state,
+            self.scene.as_ref(),
+        );
 
         // Drive competition only after human jump outcome is recorded,
         // not every frame during the jump (avoids recreating the scene).
@@ -403,19 +403,7 @@ impl View<RouteTarget> for TeamCupJumpView {
         match self.ui_state.render_mode() {
             RenderMode::Jump => {
                 if let Some(ref scene) = self.scene {
-                    let overlay_ctx =
-                        self.overlay
-                            .context(scene.phase(), scene.frame_counter(), &self.ui_state);
-                    scene.set_suppress_info_panel(
-                        overlay_ctx
-                            .as_ref()
-                            .is_some_and(|ctx| ctx.kind != OverlayKind::None),
-                    );
-                    let mut els = scene.elements();
-                    if let Some(ctx) = overlay_ctx {
-                        els.extend(self.overlay.render_elements(&ctx));
-                    }
-                    els
+                    render_jump_scene_with_overlay(scene, &self.overlay, &self.ui_state)
                 } else {
                     vec![]
                 }
@@ -505,10 +493,10 @@ impl View<RouteTarget> for TeamCupJumpView {
     }
 
     fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {
+        if let Some(route) = route_error_back(&self.ui_state, event) {
+            return Some(route);
+        }
         if self.ui_state.render_mode() == RenderMode::Error {
-            if matches!(event, Event::Keyboard(_)) {
-                return Some(RouteTarget::Back);
-            }
             return None;
         }
 
@@ -552,8 +540,7 @@ impl View<RouteTarget> for TeamCupJumpView {
         }
 
         if let Some(ref scene) = self.scene {
-            if scene.is_save_dialog_active() {
-                scene.handle_save_dialog_event(&event);
+            if handle_save_dialog(scene, &event) {
                 return None;
             }
 
@@ -571,13 +558,9 @@ impl View<RouteTarget> for TeamCupJumpView {
                 }
             }
 
-            if scene.outcome().is_some()
-                && !self.ui_state.is_outcome_recorded()
-                && !self.ui_state.is_result_acknowledged()
+            if !self.ui_state.is_outcome_recorded()
+                && acknowledge_finished_jump(scene, &self.ui_state, event, false)
             {
-                if matches!(event, Event::Keyboard(_)) {
-                    self.ui_state.acknowledge_outcome();
-                }
                 return None;
             }
         }

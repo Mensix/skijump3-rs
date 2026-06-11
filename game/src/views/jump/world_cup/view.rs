@@ -13,8 +13,11 @@ use crate::jump::JumpPolicy;
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::format::format_decimal;
-use crate::views::jump::competition::flow::CompetitionFlowCommand;
-use crate::views::jump::competition::overlay::{CompetitionOverlay, OverlayKind};
+use crate::views::jump::competition::flow::{
+    acknowledge_finished_jump, handle_save_dialog, record_acknowledged_human_jump,
+    render_jump_scene_with_overlay, route_error_back, CompetitionFlowCommand,
+};
+use crate::views::jump::competition::overlay::CompetitionOverlay;
 use crate::views::jump::competition::session::CompetitionSession;
 use crate::views::jump::competition::ui_state::{CompetitionUiState, RenderMode, ResultScreen};
 use crate::views::jump::input::{JumpInputAction, JumpInputController};
@@ -177,15 +180,11 @@ impl WorldCupJumpView {
 
 impl View<RouteTarget> for WorldCupJumpView {
     fn update(&mut self) {
-        // Record acknowledged human jump outcome if not yet recorded
-        if self.ui_state.is_result_acknowledged()
-            && !self.ui_state.is_outcome_recorded()
-            && self
-                .session
-                .record_finished_human_jump::<Competition>(&self.scene)
-        {
-            self.ui_state.mark_outcome_recorded();
-        }
+        record_acknowledged_human_jump::<Competition>(
+            &self.session,
+            &self.ui_state,
+            Some(&self.scene),
+        );
 
         // Drive competition and dispatch any resulting command
         match self.session.drive_competition::<Competition>(&self.scene) {
@@ -202,21 +201,7 @@ impl View<RouteTarget> for WorldCupJumpView {
     fn elements(&self) -> Vec<Element> {
         match self.ui_state.render_mode() {
             RenderMode::Jump => {
-                let overlay_ctx = self.overlay.context(
-                    self.scene.phase(),
-                    self.scene.frame_counter(),
-                    &self.ui_state,
-                );
-                self.scene.set_suppress_info_panel(
-                    overlay_ctx
-                        .as_ref()
-                        .is_some_and(|ctx| ctx.kind != OverlayKind::None),
-                );
-                let mut els = self.scene.elements();
-                // Overlay: keymap / cycling info / jumper info box
-                if let Some(ctx) = overlay_ctx {
-                    els.extend(self.overlay.render_elements(&ctx));
-                }
+                let mut els = render_jump_scene_with_overlay(&self.scene, &self.overlay, &self.ui_state);
                 // Pascal: show rank ($X.) left of score at (255,45) during Result phase
                 if let Some(rank_el) = self.rank_element() {
                     els.push(rank_el);
@@ -234,10 +219,10 @@ impl View<RouteTarget> for WorldCupJumpView {
 
     fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {
         // Error screen: any key navigates back to main menu
+        if let Some(route) = route_error_back(&self.ui_state, event) {
+            return Some(route);
+        }
         if self.ui_state.render_mode() == RenderMode::Error {
-            if matches!(event, Event::Keyboard(_)) {
-                return Some(RouteTarget::Back);
-            }
             return None;
         }
 
@@ -246,8 +231,7 @@ impl View<RouteTarget> for WorldCupJumpView {
         }
 
         // Replay save dialog
-        if self.scene.is_save_dialog_active() {
-            self.scene.handle_save_dialog_event(&event);
+        if handle_save_dialog(&self.scene, &event) {
             return None;
         }
 
@@ -267,16 +251,8 @@ impl View<RouteTarget> for WorldCupJumpView {
         }
 
         // Pascal: wait for key after human jump before advancing
-        if self.scene.outcome().is_some() && !self.ui_state.is_result_acknowledged() {
-            let is_dq = self.scene.phase() == Some(JumpPhase::Disqualified);
-            let accepted = if is_dq {
-                matches!(event, Event::Keyboard(_))
-            } else {
-                matches!(event, Event::Keyboard(Key::Enter | Key::Escape))
-            };
-            if accepted {
-                self.ui_state.acknowledge_outcome();
-            }
+        let is_dq = self.scene.phase() == Some(JumpPhase::Disqualified);
+        if acknowledge_finished_jump(&self.scene, &self.ui_state, event, !is_dq) {
             return None;
         }
 
