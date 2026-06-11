@@ -3,6 +3,7 @@ use crate::competition::team_cup::types::TeamCupRuntime;
 
 #[derive(Debug, Clone)]
 pub enum ActiveCompetition {
+    Training,
     Individual(Competition),
     TeamCup(TeamCupRuntime),
 }
@@ -10,6 +11,10 @@ pub enum ActiveCompetition {
 impl ActiveCompetition {
     pub fn from_individual(comp: Competition) -> Self {
         Self::Individual(comp)
+    }
+
+    pub const fn training() -> Self {
+        Self::Training
     }
 
     pub fn from_team_cup(comp: TeamCupRuntime) -> Self {
@@ -20,8 +25,13 @@ impl ActiveCompetition {
         matches!(self, Self::TeamCup(_))
     }
 
+    pub const fn is_training(&self) -> bool {
+        matches!(self, Self::Training)
+    }
+
     pub const fn individual(&self) -> Option<&Competition> {
         match self {
+            Self::Training => None,
             Self::Individual(comp) => Some(comp),
             Self::TeamCup(_) => None,
         }
@@ -29,6 +39,7 @@ impl ActiveCompetition {
 
     pub const fn individual_mut(&mut self) -> Option<&mut Competition> {
         match self {
+            Self::Training => None,
             Self::Individual(comp) => Some(comp),
             Self::TeamCup(_) => None,
         }
@@ -36,6 +47,7 @@ impl ActiveCompetition {
 
     pub const fn team_cup_runtime(&self) -> Option<&TeamCupRuntime> {
         match self {
+            Self::Training => None,
             Self::Individual(_) => None,
             Self::TeamCup(comp) => Some(comp),
         }
@@ -43,6 +55,7 @@ impl ActiveCompetition {
 
     pub const fn team_cup_runtime_mut(&mut self) -> Option<&mut TeamCupRuntime> {
         match self {
+            Self::Training => None,
             Self::Individual(_) => None,
             Self::TeamCup(comp) => Some(comp),
         }

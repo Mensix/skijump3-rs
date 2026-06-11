@@ -50,6 +50,10 @@ pub fn custom_cup(
     ))
 }
 
+pub const fn training() -> ActiveCompetition {
+    ActiveCompetition::training()
+}
+
 pub fn team_cup(
     names: &[String],
     teams_def: &[TeamDef],

@@ -73,7 +73,7 @@ pub fn create_router(
             (
                 RouteTarget::Jump,
                 rs(&resources, &store, |r, s| {
-                    Box::new(CompetitionJumpView::training(r, s))
+                    Box::new(CompetitionJumpView::new(r, s))
                 }),
             ),
             (

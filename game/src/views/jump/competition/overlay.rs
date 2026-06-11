@@ -39,9 +39,11 @@ impl OverlayData {
     /// Collect all data the overlay needs from the competition store.
     pub fn collect(store: &StoreRef) -> Option<Self> {
         store.with_active(|active| match active {
-            crate::competition::ActiveCompetition::Individual(comp) => Self::from_individual(comp),
-            crate::competition::ActiveCompetition::TeamCup(comp) => Self::from_team_cup(comp),
+            crate::competition::ActiveCompetition::Training => None,
+            crate::competition::ActiveCompetition::Individual(comp) => Some(Self::from_individual(comp)),
+            crate::competition::ActiveCompetition::TeamCup(comp) => Some(Self::from_team_cup(comp)),
         })
+        .flatten()
     }
 
     fn from_individual(c: &crate::competition::machine::Competition) -> Self {

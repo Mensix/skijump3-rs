@@ -1,3 +1,4 @@
+use crate::competition::factory;
 use crate::components::menu::{Menu, MenuItem};
 use crate::components::screen;
 use crate::gfx::palette::{FONT_DEFAULT, FONT_GOLD, FONT_GREET};
@@ -98,6 +99,7 @@ impl TrainingSetupView {
             let hill_idx = self.start + sel;
             self.store.set_practice_hill(hill_idx);
             self.store.set_selected_hill(hill_idx);
+            self.store.start_active(factory::training());
             Some(RouteTarget::Jump)
         }
     }
