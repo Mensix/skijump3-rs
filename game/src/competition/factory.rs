@@ -12,7 +12,7 @@ pub fn world_cup(
     hill_count: usize,
     trainrounds: usize,
 ) -> ActiveCompetition {
-    ActiveCompetition::individual(build_competition(
+    ActiveCompetition::from_individual(build_competition(
         CupStyle::WorldCup,
         profiles,
         computer_names,
@@ -27,7 +27,7 @@ pub fn four_hills(
     hill_count: usize,
     trainrounds: usize,
 ) -> ActiveCompetition {
-    ActiveCompetition::individual(build_competition(
+    ActiveCompetition::from_individual(build_competition(
         CupStyle::FourHills,
         profiles,
         computer_names,
@@ -42,7 +42,7 @@ pub fn custom_cup(
     hill_order: Vec<usize>,
     trainrounds: usize,
 ) -> ActiveCompetition {
-    ActiveCompetition::individual(build_custom_competition(
+    ActiveCompetition::from_individual(build_custom_competition(
         profiles,
         computer_names,
         hill_order,
@@ -58,7 +58,7 @@ pub fn team_cup(
     hill_count: usize,
     rng: &mut Random,
 ) -> ActiveCompetition {
-    ActiveCompetition::team_cup(build_team_cup(
+    ActiveCompetition::from_team_cup(build_team_cup(
         names,
         teams_def,
         profiles,

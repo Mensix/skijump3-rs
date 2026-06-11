@@ -38,14 +38,13 @@ pub struct WcStandingEntry {
 impl OverlayData {
     /// Collect all data the overlay needs from the competition store.
     pub fn collect(store: &StoreRef) -> Option<Self> {
-        if let Some(data) = Self::collect_wc(store) {
-            return Some(data);
-        }
-        Self::collect_tc(store)
+        store.with_active(|active| match active {
+            crate::competition::ActiveCompetition::Individual(comp) => Self::from_individual(comp),
+            crate::competition::ActiveCompetition::TeamCup(comp) => Self::from_team_cup(comp),
+        })
     }
 
-    fn collect_wc(store: &StoreRef) -> Option<Self> {
-        store.try_with_competition(|c| {
+    fn from_individual(c: &crate::competition::machine::Competition) -> Self {
             let event_standings = c.event_standings();
             let event_top5 = event_standings
                 .iter()
@@ -71,7 +70,7 @@ impl OverlayData {
                 })
                 .collect();
 
-            OverlayData {
+            Self {
                 phase: c.phase(),
                 style: c.style(),
                 current_event: c.current_event,
@@ -80,11 +79,9 @@ impl OverlayData {
                 event_standings_top5: event_top5,
                 wc_standings_top5: wc_top5,
             }
-        })
     }
 
-    fn collect_tc(store: &StoreRef) -> Option<Self> {
-        store.try_with_team_cup(|tc| {
+    fn from_team_cup(tc: &crate::competition::team_cup::types::TeamCupRuntime) -> Self {
             let leg_standings = tc.standings_runtime(TeamCupStandingsKind::Leg);
             let hill_idx = tc.current_hill_idx();
             let event_top5 = leg_standings
@@ -96,7 +93,7 @@ impl OverlayData {
                     points: e.primary_score,
                 })
                 .collect();
-            OverlayData {
+            Self {
                 phase: CompetitionPhase::Round1,
                 style: CupStyle::TeamCup,
                 current_event: tc.current_leg,
@@ -105,7 +102,6 @@ impl OverlayData {
                 event_standings_top5: event_top5,
                 wc_standings_top5: Vec::new(),
             }
-        })
     }
 }
 

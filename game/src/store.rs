@@ -271,18 +271,20 @@ impl Store {
         *self.active_competition.borrow_mut() = Some(comp);
     }
 
+    pub fn with_active<R>(&self, f: impl FnOnce(&crate::competition::ActiveCompetition) -> R) -> Option<R> {
+        self.active_competition.borrow().as_ref().map(f)
+    }
+
+    pub fn with_active_mut<R>(&self, f: impl FnOnce(&mut crate::competition::ActiveCompetition) -> R) -> Option<R> {
+        self.active_competition.borrow_mut().as_mut().map(f)
+    }
+
     pub fn with_active_competition<R>(&self, f: impl FnOnce(&crate::competition::machine::Competition) -> R) -> Option<R> {
-        match self.active_competition.borrow().as_ref()? {
-            crate::competition::ActiveCompetition::Individual(comp) => Some(f(comp)),
-            crate::competition::ActiveCompetition::TeamCup(_) => None,
-        }
+        self.with_active(|active| active.individual().map(f)).flatten()
     }
 
     pub fn with_active_competition_mut<R>(&self, f: impl FnOnce(&mut crate::competition::machine::Competition) -> R) -> Option<R> {
-        match self.active_competition.borrow_mut().as_mut()? {
-            crate::competition::ActiveCompetition::Individual(comp) => Some(f(comp)),
-            crate::competition::ActiveCompetition::TeamCup(_) => None,
-        }
+        self.with_active_mut(|active| active.individual_mut().map(f)).flatten()
     }
 
     pub fn try_with_competition<R>(&self, f: impl FnOnce(&crate::competition::machine::Competition) -> R) -> Option<R> {
@@ -294,17 +296,11 @@ impl Store {
     }
 
     pub fn try_with_team_cup<R>(&self, f: impl FnOnce(&crate::competition::team_cup::types::TeamCupRuntime) -> R) -> Option<R> {
-        match self.active_competition.borrow().as_ref()? {
-            crate::competition::ActiveCompetition::Individual(_) => None,
-            crate::competition::ActiveCompetition::TeamCup(comp) => Some(f(comp)),
-        }
+        self.with_active(|active| active.team_cup_runtime().map(f)).flatten()
     }
 
     pub fn try_with_team_cup_mut<R>(&self, f: impl FnOnce(&mut crate::competition::team_cup::types::TeamCupRuntime) -> R) -> Option<R> {
-        match self.active_competition.borrow_mut().as_mut()? {
-            crate::competition::ActiveCompetition::Individual(_) => None,
-            crate::competition::ActiveCompetition::TeamCup(comp) => Some(f(comp)),
-        }
+        self.with_active_mut(|active| active.team_cup_runtime_mut().map(f)).flatten()
     }
 
     pub fn clear_active_competition(&self) {
