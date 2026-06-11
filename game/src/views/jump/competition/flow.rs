@@ -168,7 +168,12 @@ pub(crate) fn render_jump_scene_with_overlay(
     overlay: &CompetitionOverlay,
     ui_state: &CompetitionUiState,
 ) -> Vec<Element> {
-    let overlay_ctx = overlay.context(scene.phase(), scene.frame_counter(), ui_state);
+    let overlay_ctx = overlay.context(
+        scene.phase(),
+        scene.frame_counter(),
+        ui_state,
+        scene.telemetry(),
+    );
     scene.set_suppress_info_panel(
         overlay_ctx
             .as_ref()

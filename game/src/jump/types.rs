@@ -68,6 +68,25 @@ impl FallType {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
+pub struct JumpTelemetry {
+    pub grade: u8,
+    pub height: u8,
+    pub takeoff_timing: u8,
+    pub angle_counter: u8,
+}
+
+impl JumpTelemetry {
+    pub fn new(grade: u8, height: u8, takeoff_timing: u8, angle_counter: u8) -> Self {
+        Self {
+            grade,
+            height,
+            takeoff_timing,
+            angle_counter,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct JumpOutcome {
     pub(crate) distance: f64,
     pub(crate) score: f64,

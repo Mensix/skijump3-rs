@@ -1,4 +1,7 @@
-use crate::gfx::palette::{BG_LEFT, BG_RIGHT, BLACK, FILL_DIM, FONT_DEFAULT, FONT_HELP};
+use crate::competition::types::{CompetitionPhase, CupStyle};
+use crate::gfx::palette::{
+    BG_4HILLS, BG_LEFT, BG_RIGHT, BG_WC, BLACK, FILL_DIM, FONT_DEFAULT, FONT_HELP,
+};
 use crate::gfx::sprites;
 use engine::color::Rgba;
 use engine::ui::Element;
@@ -90,4 +93,21 @@ pub fn page_hints(page: usize, pages: usize, prev: &str, next: &str, end: &str) 
     let text = if page + 1 == pages { end } else { next };
     els.push(Element::right_text(format!("{text}-)"), 319, 13, FONT_HELP));
     els
+}
+
+/// Background colour for list/standings screens, matching Pascal MuutaMenu tints.
+#[must_use]
+pub fn list_background(phase: CompetitionPhase, style: CupStyle) -> Rgba {
+    match phase {
+        CompetitionPhase::FourHillsStandings => BG_4HILLS,
+        CompetitionPhase::WorldCupStandings => BG_WC,
+        CompetitionPhase::SeasonComplete => {
+            if matches!(style, CupStyle::FourHills | CupStyle::CustomCup) {
+                BG_4HILLS
+            } else {
+                BG_WC
+            }
+        }
+        _ => BG_LEFT,
+    }
 }

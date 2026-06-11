@@ -88,6 +88,8 @@ pub const BG_RIGHT_BRIGHT: Rgba = Rgba::from_rgb6(43, 16, 23);
 // Additional fill/text colours from old palette indices
 pub const BG_KOTH: Rgba = Rgba::from_rgb6(0, 25, 0); // NewScreen(1,2) -> MuutaMenu(1,4) -> ReplaceMenu col=4 KOTH
 pub const BG_TEAMCUP: Rgba = Rgba::from_rgb6(28, 8, 24); // NewScreen(1,1) -> MuutaMenu(1,2) -> ReplaceMenu col=2
+pub const BG_WC: Rgba = Rgba::from_rgb6(47, 0, 0); // NewScreen(1,3) -> MuutaMenu(1,5) -> WCStandings/SeasonComplete red
+pub const BG_4HILLS: Rgba = Rgba::from_rgb6(10, 10, 10); // NewScreen(1,4) -> MuutaMenu(1,1) -> 4HillsStandings near-black
 pub const FILL_BORDER: Rgba = Rgba::from_rgb6(23, 16, 43); // 248
 pub const FILL_HIGHLIGHT: Rgba = Rgba::from_rgb6(52, 47, 0); // 251
 pub const FILL_TURQUOISE: Rgba = Rgba::from_rgb6(0, 47, 52); // 252

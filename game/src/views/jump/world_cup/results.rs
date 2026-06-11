@@ -1,6 +1,6 @@
 use crate::competition::machine::Competition;
 use crate::competition::types::{CompetitionPhase, CupStyle, Participant, QualificationStatus};
-use crate::components::screen::{new_screen, page_hints};
+use crate::components::screen::{list_background, new_screen_with_bg, page_hints};
 use crate::gfx::palette::{
     BG_RIGHT_BRIGHT, FILL_HIGHLIGHT, FILL_TURQUOISE, FONT_DEFAULT, FONT_GREET, FONT_HEADER,
     FONT_HELP,
@@ -40,6 +40,7 @@ const INJURY_COLOR: Rgba = BG_RIGHT_BRIGHT;
 
 pub struct ResultsPage {
     pub(crate) phase: CompetitionPhase,
+    pub(crate) style: CupStyle,
     pub(crate) page: usize,
     pub(crate) total_pages: usize,
     pub(crate) items: Vec<ResultsEntry>,
@@ -143,6 +144,7 @@ pub fn build_results_page(competition: &Competition, page: usize) -> ResultsPage
     };
     ResultsPage {
         phase: competition.phase(),
+        style: competition.style(),
         page,
         total_pages,
         items,
@@ -181,6 +183,7 @@ pub fn build_compact_results_page(competition: &Competition) -> ResultsPage {
 
     ResultsPage {
         phase: competition.phase(),
+        style: competition.style(),
         page: 0,
         total_pages: 1,
         items,
@@ -422,7 +425,7 @@ fn render_results_entry(
 }
 
 pub fn render_results_page(page: &ResultsPage, resources: &ResourcesRef) -> Vec<Element> {
-    let mut els = new_screen(1);
+    let mut els = new_screen_with_bg(1, list_background(page.phase, page.style));
 
     els.extend(page_hints(
         page.page,
@@ -539,10 +542,10 @@ pub fn render_stats_page(
     }
     let idx = page.min(humans.len().saturating_sub(1));
     let Some(player) = humans.get(idx) else {
-        return new_screen(1);
+        return new_screen_with_bg(1, list_background(competition.phase(), competition.style()));
     };
 
-    let mut els = new_screen(1);
+    let mut els = new_screen_with_bg(1, list_background(competition.phase(), competition.style()));
     els.push(Element::text(
         resources.langbase.lstr(89),
         30,

@@ -41,6 +41,7 @@ impl CompetitionSession {
             Some(o) => o,
             None => return false,
         };
+        scene.collect_telemetry();
         self.store
             .with_runtime_mut(|r: &mut R| {
                 if !r.is_human_current() {

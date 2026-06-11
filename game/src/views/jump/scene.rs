@@ -3,7 +3,7 @@ use crate::jump::config::JumpConfig;
 use crate::jump::replay::ReplayTrace;
 use crate::jump::sim;
 use crate::jump::snow::{calculate_snow_count, SnowSystem};
-use crate::jump::types::{JumpOutcome, JumpPhase};
+use crate::jump::types::{JumpOutcome, JumpPhase, JumpTelemetry};
 use crate::jump::{JumpParticipant, JumpPolicy, JumpRunner, JumpRunnerRenderEnv, JumpSession};
 use crate::store::{ResourcesRef, StoreRef};
 use crate::views::replay::save_dialog::{SaveAction, SaveReplayDialog};
@@ -24,6 +24,7 @@ pub struct JumpScene {
     save_dialog: RefCell<SaveReplayDialog>,
     resources: ResourcesRef,
     store: StoreRef,
+    telemetry: RefCell<Option<JumpTelemetry>>,
 }
 
 impl JumpScene {
@@ -65,6 +66,7 @@ impl JumpScene {
         Self {
             runner,
             save_dialog: RefCell::new(SaveReplayDialog::new(resources.clone())),
+            telemetry: RefCell::new(None),
             resources,
             store,
         }
@@ -145,6 +147,30 @@ impl JumpScene {
 
     pub fn outcome(&self) -> Option<JumpOutcome> {
         self.runner.borrow().outcome()
+    }
+
+    /// Populate telemetry from the runner's internal jump state after a jump completes.
+    /// Safe to call multiple times — only populates once.
+    pub fn collect_telemetry(&self) {
+        if self.telemetry.borrow().is_some() {
+            return;
+        }
+        let runner = self.runner.borrow();
+        let Some(state) = runner.state() else { return };
+        let grade = state.grade.max(0) as u8;
+        let height = state.height.max(0) as u8;
+        let takeoff_timing = state.takeoff_counter;
+        let angle_counter = state.info_counter.max(0) as u8;
+        *self.telemetry.borrow_mut() = Some(JumpTelemetry::new(
+            grade,
+            height,
+            takeoff_timing,
+            angle_counter,
+        ));
+    }
+
+    pub fn telemetry(&self) -> Option<JumpTelemetry> {
+        *self.telemetry.borrow()
     }
 
     // ── replay save dialog ─────────────────────────────────────

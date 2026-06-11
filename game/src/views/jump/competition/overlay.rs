@@ -2,7 +2,7 @@ use crate::competition::team_cup::types::TeamCupStandingsKind;
 use crate::competition::types::{CompetitionPhase, CupStyle, Participant, QualificationStatus};
 use crate::gfx::palette::{FONT_GOLD, FONT_HELP};
 use crate::jump::hud;
-use crate::jump::types::JumpPhase;
+use crate::jump::types::{JumpPhase, JumpTelemetry};
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::format::format_decimal;
 use crate::views::jump::competition::ui_state::CompetitionUiState;
@@ -20,6 +20,7 @@ pub struct OverlayData {
     pub current_participant: Option<Participant>,
     pub event_standings_top5: Vec<EventStandingEntry>,
     pub wc_standings_top5: Vec<WcStandingEntry>,
+    pub coach_style: u8,
 }
 
 #[derive(Debug, Clone)]
@@ -37,20 +38,21 @@ pub struct WcStandingEntry {
 impl OverlayData {
     /// Collect all data the overlay needs from the competition store.
     pub fn collect(store: &StoreRef) -> Option<Self> {
+        let coach_style = active_coach_style(store);
         store
             .with_active(|active| match active {
                 crate::competition::ActiveCompetition::Training => None,
                 crate::competition::ActiveCompetition::Individual(comp) => {
-                    Some(Self::from_individual(comp))
+                    Some(Self::from_individual(comp, coach_style))
                 }
                 crate::competition::ActiveCompetition::TeamCup(comp) => {
-                    Some(Self::from_team_cup(comp))
+                    Some(Self::from_team_cup(comp, coach_style))
                 }
             })
             .flatten()
     }
 
-    fn from_individual(c: &crate::competition::machine::Competition) -> Self {
+    fn from_individual(c: &crate::competition::machine::Competition, coach_style: u8) -> Self {
         let event_standings = c.event_standings();
         let event_top5 = event_standings
             .iter()
@@ -84,10 +86,14 @@ impl OverlayData {
             current_participant: c.current_jumper().map(|idx| c.participant(idx).clone()),
             event_standings_top5: event_top5,
             wc_standings_top5: wc_top5,
+            coach_style,
         }
     }
 
-    fn from_team_cup(tc: &crate::competition::team_cup::types::TeamCupRuntime) -> Self {
+    fn from_team_cup(
+        tc: &crate::competition::team_cup::types::TeamCupRuntime,
+        coach_style: u8,
+    ) -> Self {
         let leg_standings = tc.standings(TeamCupStandingsKind::Leg);
         let hill_idx = tc.current_hill_idx();
         let event_top5 = leg_standings
@@ -107,8 +113,18 @@ impl OverlayData {
             current_participant: None,
             event_standings_top5: event_top5,
             wc_standings_top5: Vec::new(),
+            coach_style,
         }
     }
+}
+
+fn active_coach_style(store: &StoreRef) -> u8 {
+    let pb = store.profiles();
+    let idx = match pb.active_order.first() {
+        Some(&idx) => idx,
+        None => return 0,
+    };
+    pb.profiles.get(idx).map_or(0, |p| p.coach_style as u8)
 }
 
 /// All data needed to render an overlay on top of the jump scene.
@@ -118,6 +134,7 @@ pub struct OverlayContext {
     pub hill_idx: usize,
     pub frame_counter: i32,
     pub data: OverlayData,
+    pub telemetry: Option<JumpTelemetry>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -126,6 +143,7 @@ pub enum OverlayKind {
     Keymap,
     CyclingWithInfoBox,
     Round2WithInfoBox,
+    Coach,
 }
 
 /// Renders overlays (keymap, cycling info, jumper info box) on top of the
@@ -146,10 +164,11 @@ impl CompetitionOverlay {
         scene_phase: Option<JumpPhase>,
         frame_counter: i32,
         ui_state: &CompetitionUiState,
+        telemetry: Option<JumpTelemetry>,
     ) -> Option<OverlayContext> {
         let scene_phase = scene_phase?;
         let data = OverlayData::collect(&self.store)?;
-        let kind = self.resolve_kind(&data, scene_phase, ui_state);
+        let kind = self.resolve_kind(&data, scene_phase, ui_state, &telemetry);
         let participant = data
             .current_participant
             .clone()
@@ -160,6 +179,7 @@ impl CompetitionOverlay {
             hill_idx: data.current_hill,
             frame_counter,
             data,
+            telemetry,
         })
     }
 
@@ -168,9 +188,23 @@ impl CompetitionOverlay {
         data: &OverlayData,
         scene_phase: JumpPhase,
         ui_state: &CompetitionUiState,
+        telemetry: &Option<JumpTelemetry>,
     ) -> OverlayKind {
         if scene_phase == JumpPhase::Disqualified {
             return OverlayKind::None;
+        }
+        // Coach corner: show after a human jump result during Info/OnBar
+        if let Some(t) = telemetry {
+            if t.grade > 0
+                && data.coach_style > 0
+                && data
+                    .current_participant
+                    .as_ref()
+                    .is_some_and(|p| !p.is_computer)
+                && matches!(scene_phase, JumpPhase::Info | JumpPhase::OnBar)
+            {
+                return OverlayKind::Coach;
+            }
         }
         let first_event = data.current_event == 0;
         let show_keymap = ui_state.is_first_human_onbar()
@@ -214,8 +248,109 @@ impl CompetitionOverlay {
                     self.jumper_info_box(&mut els, &ctx.participant, true);
                 }
             }
+            OverlayKind::Coach => self.coach_elements(&mut els, ctx),
         }
         els
+    }
+
+    /// Pascal `DoCoachCorner`: coach advice panel at bottom-left after jump.
+    fn coach_elements(&self, els: &mut Vec<Element>, ctx: &OverlayContext) {
+        use crate::gfx::palette::FONT_GREET;
+        use crate::gfx::sprites::Sprite;
+
+        let Some(ref t) = ctx.telemetry else { return };
+        let style = ctx.data.coach_style;
+        if style == 0 || t.grade == 0 {
+            return;
+        }
+        let base = 361 + style as usize * 40;
+        let lang = &self.resources.langbase;
+
+        // Box sprite at (3,150)
+        els.push(Element::sprite(Sprite::JumperInfoBox as u16, 3, 150));
+
+        // Header
+        els.push(Element::text(lang.lstr(400), 12, 150, FONT_GREET, false));
+
+        // Opening quote
+        els.push(Element::text("\"", 12, 160, FONT_GREET, false));
+
+        // Build cstr[0..3] from telemetry ranges (Pascal mapping)
+        let cstr0 = self.coach_range(lang, base + 2, t.angle_counter, &[49, 61, 200]);
+        let cstr1 = if t.grade < 10 {
+            self.coach_range(lang, base + 5, t.grade, &[1, 2, 3])
+        } else {
+            self.coach_range(lang, base + 10, t.grade / 10, &[5, 8, 9, 10, 11, 20])
+        };
+        let cstr2 = self.coach_range(
+            lang,
+            base + 18,
+            t.takeoff_timing,
+            &[5, 9, 12, 15, 16, 19, 23, 50],
+        );
+        let cstr3 = self.coach_range(lang, base + 28, t.height, &[49, 55, 60, 64, 70, 90, 200]);
+
+        let cstr0 = if t.grade < 10 { cstr1.clone() } else { cstr0 };
+
+        // Pseudo-random selection via telemetry hash
+        let r = (t.grade as u16).wrapping_mul(7)
+            ^ (t.height as u16).wrapping_mul(13)
+            ^ (t.takeoff_timing as u16).wrapping_mul(31)
+            ^ (t.angle_counter as u16).wrapping_mul(61);
+        let pick1 = if r & 1 == 0 { &cstr0 } else { &cstr1 };
+        let pick2 = if r & 2 == 0 { &cstr2 } else { &cstr3 };
+
+        let coach_text = format!("{pick1} {pick2}");
+
+        // Word-wrap: split at ~30 chars, putting wrapped parts on new lines
+        let mut x = 18i32;
+        let mut y = 160i32;
+        let mut line = String::with_capacity(32);
+        for ch in coach_text.chars() {
+            if ch == '*' {
+                if !line.is_empty() {
+                    els.push(Element::text(line.clone(), x, y, FONT_GREET, false));
+                    line.clear();
+                }
+                y += 8;
+                x = 18;
+                continue;
+            }
+            line.push(ch);
+            if line.len() >= 30 && ch == ' ' {
+                els.push(Element::text(line.clone(), x, y, FONT_GREET, false));
+                line.clear();
+                y += 8;
+                x = 18;
+            }
+        }
+        if !line.is_empty() {
+            if y < 192 {
+                y += 8;
+            }
+            els.push(Element::text(
+                format!("{}\"", line),
+                18,
+                y,
+                FONT_GREET,
+                false,
+            ));
+        }
+    }
+
+    /// Look up language string for a value within the given range thresholds.
+    fn coach_range(
+        &self,
+        lang: &crate::text::lang::LangBase,
+        base: usize,
+        val: u8,
+        thresholds: &[u8],
+    ) -> String {
+        let idx = thresholds
+            .iter()
+            .position(|&t| val <= t)
+            .unwrap_or(thresholds.len());
+        lang.lstr(base + idx).to_string()
     }
 
     /// Pascal `JumperInfoBox` at (3,150).
