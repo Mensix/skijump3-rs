@@ -12,7 +12,10 @@ use super::list::{ColorField, Mode, ProfilesView, QuestionAction, TextField, REP
 use super::render::profile_label;
 
 pub(super) fn save_players(view: &ProfilesView) {
-    if let Err(e) = view.save_manager.save_players(&view.store.profiles()) {
+    let result = view
+        .store
+        .with_profiles(|profiles| view.save_manager.save_players(profiles));
+    if let Err(e) = result {
         eprintln!("Warning: failed to save players: {e}");
     }
 }
@@ -26,10 +29,10 @@ pub(super) fn handle_list_enter(view: &mut ProfilesView) -> Option<RouteTarget> 
 
     if view.selected >= np {
         let profile = view.unique_default_profile();
-        let mut store = view.store.profiles_mut();
-        store.profiles.push(profile);
-        let profile_index = store.num_profiles() - 1;
-        drop(store);
+        let profile_index = view.store.with_profiles_mut(|store| {
+            store.profiles.push(profile);
+            store.num_profiles() - 1
+        });
         save_players(view);
         view.selected = profile_index;
         view.mode = Mode::Edit {

@@ -1,13 +1,11 @@
 mod assets;
 mod rendering;
 mod router;
+mod state;
 
 use crate::app::router::create_router;
-use crate::data::records::RecordStore;
 use crate::files::FileStore;
 use crate::route::RouteTarget;
-use crate::save::{SaveManager, SaveRef};
-use crate::store::{Resources, ResourcesRef, Store, StoreRef};
 use engine::input::Input;
 use engine::sprite::SpriteData;
 use engine::ui::{Font, Router};
@@ -16,8 +14,7 @@ use std::rc::Rc;
 
 use self::assets::LoadedAssets;
 use self::rendering::FrameRenderer;
-
-const HISCORES_TOML: &str = "hiscores.toml";
+use self::state::GameState;
 
 pub struct Game {
     _sdl: sdl2::Sdl,
@@ -44,32 +41,18 @@ impl Game {
             main_background,
             sprites,
         } = assets::load(&files, &mut renderer)?;
-        let langbase = Rc::new(content_store.langbase);
-
-        let save_manager: SaveRef =
-            Rc::new(SaveManager::new(Rc::clone(&files), Rc::clone(&langbase)));
-
-        let start_route = if save_manager.config.borrow().languagenumber == 255 {
+        let state = GameState::load(Rc::clone(&files), font.clone(), content_store)?;
+        let start_route = if state.starts_with_welcome() {
             RouteTarget::Welcome
         } else {
             RouteTarget::MainMenu
         };
-
-        let records_data = files.read(HISCORES_TOML).map_err(|e| e.to_string())?;
-        let records = RecordStore::from_toml_bytes(&records_data).map_err(|e| e.to_string())?;
-        let resources: ResourcesRef = Rc::new(Resources::new(
-            font.clone(),
-            Rc::clone(&langbase),
-            content_store.namesets,
-            content_store.hills,
-            Rc::clone(&files),
-            save_manager.clone(),
-        ));
-
-        let profiles = save_manager.load_players();
-        let store: StoreRef = Rc::new(Store::with_profiles(records, profiles));
-        store.set_wind_place(save_manager.config.borrow().windplace as u8);
-        let router = create_router(resources, store, start_route, save_manager);
+        let router = create_router(
+            state.resources,
+            state.store,
+            start_route,
+            state.save_manager,
+        );
 
         Ok(Self {
             _sdl: sdl,

@@ -9,7 +9,7 @@ use crate::jump::replay::ReplayTrace;
 use crate::jump::types::DEFAULT_START_GATE;
 use crate::jump::wind::Wind;
 use crate::rng::Random;
-use crate::save::SaveRef;
+use crate::save::{SaveManager, SaveRef};
 use crate::text::lang::LangBase;
 use engine::ui::Font;
 use std::cell::{Cell, Ref, RefCell, RefMut};
@@ -232,28 +232,13 @@ pub struct Store {
 
 impl Default for Store {
     fn default() -> Self {
-        Self::new(RecordStore::default())
+        Self::from_loaded_data(RecordStore::default(), ProfileStore::new())
     }
 }
 
 impl Store {
     #[must_use]
-    pub fn new(records: RecordStore) -> Self {
-        Self {
-            jump_runtime: JumpRuntime::new(),
-            practice: PracticeSettings::new(),
-            replay_selection: ReplaySelection::new(),
-            active_competition: RefCell::new(None),
-            profiles: RefCell::new(ProfileStore::new()),
-            records: RefCell::new(records),
-            selected_hill: Cell::new(0),
-            start_gate: Cell::new(DEFAULT_START_GATE),
-            selected_main_menu: Cell::new(0),
-        }
-    }
-
-    #[must_use]
-    pub fn with_profiles(records: RecordStore, profiles: ProfileStore) -> Self {
+    pub fn from_loaded_data(records: RecordStore, profiles: ProfileStore) -> Self {
         Self {
             jump_runtime: JumpRuntime::new(),
             practice: PracticeSettings::new(),
@@ -265,6 +250,10 @@ impl Store {
             start_gate: Cell::new(DEFAULT_START_GATE),
             selected_main_menu: Cell::new(0),
         }
+    }
+
+    pub fn configure_from_save(&self, save_manager: &SaveManager) {
+        self.set_wind_place(save_manager.config.borrow().windplace as u8);
     }
 
     pub fn start_active(&self, comp: crate::competition::ActiveCompetition) {
@@ -293,12 +282,23 @@ impl Store {
         self.profiles.borrow_mut()
     }
 
+    pub fn with_profiles<R>(&self, f: impl FnOnce(&ProfileStore) -> R) -> R {
+        let profiles = self.profiles.borrow();
+        f(&profiles)
+    }
+
+    pub fn with_profiles_mut<R>(&self, f: impl FnOnce(&mut ProfileStore) -> R) -> R {
+        let mut profiles = self.profiles.borrow_mut();
+        f(&mut profiles)
+    }
+
     pub fn records(&self) -> Ref<'_, RecordStore> {
         self.records.borrow()
     }
 
-    pub fn try_records(&self) -> Option<Ref<'_, RecordStore>> {
-        self.records.try_borrow().ok()
+    pub fn with_records<R>(&self, f: impl FnOnce(&RecordStore) -> R) -> R {
+        let records = self.records.borrow();
+        f(&records)
     }
 
     #[must_use]

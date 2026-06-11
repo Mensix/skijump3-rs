@@ -14,15 +14,15 @@ pub(crate) fn save_profiles_and_records_once(
 }
 
 fn save_profiles(resources: &ResourcesRef, store: &StoreRef) {
-    if let Err(e) = resources.save_manager.save_players(&store.profiles()) {
+    let result = store.with_profiles(|profiles| resources.save_manager.save_players(profiles));
+    if let Err(e) = result {
         eprintln!("Warning: failed to save players: {e}");
     }
 }
 
 fn save_records(resources: &ResourcesRef, store: &StoreRef) {
-    if let Some(records) = store.try_records() {
-        if let Err(e) = resources.save_manager.save_records(&records) {
-            eprintln!("Warning: failed to save records: {e}");
-        }
+    let result = store.with_records(|records| resources.save_manager.save_records(records));
+    if let Err(e) = result {
+        eprintln!("Warning: failed to save records: {e}");
     }
 }
