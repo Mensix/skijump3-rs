@@ -44,13 +44,17 @@ pub struct TeamCupJumpView {
 impl TeamCupJumpView {
     pub(crate) fn new(resources: ResourcesRef, store: StoreRef) -> Self {
         let names: Vec<String> = store
-            .try_with_team_cup(|tc| {
+            .with_active(|active| {
+                let tc = active.team_cup_runtime()?;
+                Some(
                 tc.teams
                     .iter()
                     .filter(|t| t.is_human_team)
                     .map(|t| t.name.clone())
                     .collect()
+                )
             })
+            .flatten()
             .unwrap_or_default();
         let name_buffer = names.first().cloned().unwrap_or_default();
         Self {
@@ -199,7 +203,10 @@ impl TeamCupJumpView {
         // Team grid: 3 columns, 5 rows
         let mut x = 5i32;
         let mut y = 24i32;
-        self.store.try_with_team_cup(|tc| {
+        self.store.with_active(|active| {
+            let Some(tc) = active.team_cup_runtime() else {
+                return;
+            };
             for &team_idx in tc.team_order.iter().rev() {
                 let team = &tc.teams[team_idx];
                 let is_human = team.is_human_team;
@@ -316,7 +323,10 @@ impl TeamCupJumpView {
         };
 
         if !name.is_empty() {
-            self.store.try_with_team_cup_mut(|tc| {
+            self.store.with_active_mut(|active| {
+                let Some(tc) = active.team_cup_runtime_mut() else {
+                    return;
+                };
                 let human_indices: Vec<usize> = tc
                     .teams
                     .iter()
@@ -526,7 +536,10 @@ fn drop_team_cup_header(els: &mut Vec<Element>, resources: &ResourcesRef, store:
     ));
 
     // 6 hill names
-    if let Some(schedule) = store.try_with_team_cup(|tc| tc.schedule.clone()) {
+    if let Some(schedule) = store
+        .with_active(|active| active.team_cup_runtime().map(|tc| tc.schedule.clone()))
+        .flatten()
+    {
         for (i, &hill_idx) in schedule.iter().enumerate() {
             let hill_name = resources
                 .hills
@@ -546,7 +559,9 @@ fn drop_team_cup_header(els: &mut Vec<Element>, resources: &ResourcesRef, store:
 
 fn jumper_names_els(els: &mut Vec<Element>, store: &StoreRef, team_n: usize, xx: i32) {
     let jumpers: Vec<String> = store
-        .try_with_team_cup(|tc| {
+        .with_active(|active| {
+            let tc = active.team_cup_runtime()?;
+            Some(
             tc.teams
                 .iter()
                 .filter(|t| t.is_human_team)
@@ -558,7 +573,9 @@ fn jumper_names_els(els: &mut Vec<Element>, store: &StoreRef, team_n: usize, xx:
                         .collect()
                 })
                 .unwrap_or_default()
+            )
         })
+        .flatten()
         .unwrap_or_default();
     for (j, jname) in jumpers.iter().enumerate() {
         els.push(Element::text(

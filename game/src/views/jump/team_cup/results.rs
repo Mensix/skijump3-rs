@@ -18,7 +18,8 @@ pub(crate) fn render(
         TeamCupResultsKind::LegResults => TeamCupStandingsKind::Leg,
     };
     let (header, standings) = store
-        .try_with_team_cup(|tc| {
+        .with_active(|active| {
+            let tc = active.team_cup_runtime()?;
             let standings = tc.standings_runtime(standings_kind);
             let leg = tc.current_leg + 1;
             let round = tc.current_round + 1;
@@ -38,8 +39,9 @@ pub(crate) fn render(
                     format!("{} {} 6", text, leg)
                 }
             };
-            (header, standings)
+            Some((header, standings))
         })
+        .flatten()
         .unwrap_or_default();
 
     els.push(Element::text(header, 30, 6, FONT_DEFAULT, false));

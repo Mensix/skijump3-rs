@@ -295,10 +295,6 @@ impl Store {
         self.with_active_competition_mut(f)
     }
 
-    pub fn try_with_team_cup<R>(&self, f: impl FnOnce(&crate::competition::team_cup::types::TeamCupRuntime) -> R) -> Option<R> {
-        self.with_active(|active| active.team_cup_runtime().map(f)).flatten()
-    }
-
     pub fn try_with_team_cup_mut<R>(&self, f: impl FnOnce(&mut crate::competition::team_cup::types::TeamCupRuntime) -> R) -> Option<R> {
         self.with_active_mut(|active| active.team_cup_runtime_mut().map(f)).flatten()
     }
