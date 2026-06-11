@@ -286,6 +286,20 @@ impl WorldCupJumpView {
         });
     }
 
+    fn dismiss_results_and_advance(&mut self) {
+        self.blinker.reset();
+        self.ui_state.dismiss_results();
+        if let Some(command) = command_or_error(
+            &self.ui_state,
+            self.session.advance_results_and_drive::<Competition>(
+                &self.scene,
+                IndividualResultsKind::Results,
+            ),
+        ) {
+            self.apply_command(command);
+        }
+    }
+
     fn handle_result_event(&mut self, event: Event) -> Option<RouteTarget> {
         match event {
             Event::Keyboard(Key::Right | Key::Char(' ')) => {
@@ -316,17 +330,7 @@ impl WorldCupJumpView {
                     return None;
                 }
                 // Pascal WaitForKey(0): any key on the last entry exits the list
-                self.blinker.reset();
-                self.ui_state.dismiss_results();
-                if let Some(command) = command_or_error(
-                    &self.ui_state,
-                    self.session.advance_results_and_drive::<Competition>(
-                        &self.scene,
-                        IndividualResultsKind::Results,
-                    ),
-                ) {
-                    self.apply_command(command);
-                }
+                self.dismiss_results_and_advance();
                 None
             }
             Event::Keyboard(Key::Char('c' | 'C')) => {
@@ -385,17 +389,7 @@ impl WorldCupJumpView {
                     self.save_competition_results();
                     return Some(RouteTarget::Back);
                 }
-                self.blinker.reset();
-                self.ui_state.dismiss_results();
-                if let Some(command) = command_or_error(
-                    &self.ui_state,
-                    self.session.advance_results_and_drive::<Competition>(
-                        &self.scene,
-                        IndividualResultsKind::Results,
-                    ),
-                ) {
-                    self.apply_command(command);
-                }
+                self.dismiss_results_and_advance();
                 None
             }
             _ => None,
