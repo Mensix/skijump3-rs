@@ -74,7 +74,14 @@ impl WorldCupJumpView {
                     self.store.setup_jump_event();
                 }
                 let phase_label = phase_label(&self.resources, context.phase);
-                self.handle_human_jump(participant, hill_idx, phase_label);
+                prepare_human_jump_scene(
+                    &self.scene,
+                    &self.ui_state,
+                    participant,
+                    hill_idx,
+                    phase_label,
+                    None,
+                );
                 self.ui_state.enter_jump();
             }
             CompetitionFlowCommand::ShowResults(IndividualResultsKind::Results) => {
@@ -87,22 +94,6 @@ impl WorldCupJumpView {
                 self.ui_state.enter_done();
             }
         }
-    }
-
-    fn handle_human_jump(
-        &self,
-        participant: JumpParticipant,
-        hill_idx: usize,
-        phase_label: String,
-    ) {
-        prepare_human_jump_scene(
-            &self.scene,
-            &self.ui_state,
-            participant,
-            hill_idx,
-            phase_label,
-            None,
-        );
     }
 
     fn select_default_result_screen(&self) {
