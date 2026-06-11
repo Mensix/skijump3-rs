@@ -184,7 +184,7 @@ impl View<RouteTarget> for TeamCupJumpView {
             if matches!(event, Event::Keyboard(_)) {
                 if let Some(cmd) = self
                     .controller
-                    .dismiss_results_and_advance(TeamCupResultsKind::LegResults)
+                    .dismiss_results_and_advance(self.results_kind)
                 {
                     self.apply_command(cmd);
                 }
