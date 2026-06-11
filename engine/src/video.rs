@@ -31,6 +31,7 @@ impl Renderer {
         let window = video
             .window("Ski Jump International v3", WIDTH * 2, HEIGHT * 2)
             .position_centered()
+            .maximized()
             .build()
             .map_err(|e| e.to_string())?;
 
