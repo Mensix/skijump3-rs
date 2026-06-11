@@ -9,7 +9,7 @@ pub mod welcome;
 
 pub use custom_cup::CustomCupSetupView;
 pub(crate) use jump::CompetitionJumpView;
-pub use jump::{TrainingJumpView, TrainingSetupView};
+pub use jump::TrainingSetupView;
 pub use menu::{JumpMenuView, MainMenuView};
 pub use profiles::ProfilesView;
 pub use records::{HallOfFameView, HillRecordsView};

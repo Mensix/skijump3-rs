@@ -7,5 +7,4 @@ pub mod training_setup;
 pub(crate) mod world_cup;
 
 pub(crate) use competition::CompetitionJumpView;
-pub use training_jump::TrainingJumpView;
 pub use training_setup::TrainingSetupView;

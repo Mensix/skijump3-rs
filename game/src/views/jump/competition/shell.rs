@@ -1,10 +1,12 @@
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::views::jump::team_cup::TeamCupJumpView;
+use crate::views::jump::training_jump::TrainingJumpView;
 use crate::views::jump::world_cup::WorldCupJumpView;
 use engine::ui::{BackgroundMode, Element, Event, View};
 
 pub(crate) enum CompetitionJumpView {
+    Training(TrainingJumpView),
     Individual(WorldCupJumpView),
     TeamCup(TeamCupJumpView),
 }
@@ -17,11 +19,16 @@ impl CompetitionJumpView {
             Self::Individual(WorldCupJumpView::new(resources, store))
         }
     }
+
+    pub(crate) fn training(resources: ResourcesRef, store: StoreRef) -> Self {
+        Self::Training(TrainingJumpView::new(resources, store))
+    }
 }
 
 impl View<RouteTarget> for CompetitionJumpView {
     fn update(&mut self) {
         match self {
+            Self::Training(view) => view.update(),
             Self::Individual(view) => view.update(),
             Self::TeamCup(view) => view.update(),
         }
@@ -29,6 +36,7 @@ impl View<RouteTarget> for CompetitionJumpView {
 
     fn elements(&self) -> Vec<Element> {
         match self {
+            Self::Training(view) => view.elements(),
             Self::Individual(view) => view.elements(),
             Self::TeamCup(view) => view.elements(),
         }
@@ -36,6 +44,7 @@ impl View<RouteTarget> for CompetitionJumpView {
 
     fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {
         match self {
+            Self::Training(view) => view.handle_event(event),
             Self::Individual(view) => view.handle_event(event),
             Self::TeamCup(view) => view.handle_event(event),
         }
@@ -43,6 +52,7 @@ impl View<RouteTarget> for CompetitionJumpView {
 
     fn gpu_background(&self) -> BackgroundMode {
         match self {
+            Self::Training(view) => view.gpu_background(),
             Self::Individual(view) => view.gpu_background(),
             Self::TeamCup(view) => view.gpu_background(),
         }
