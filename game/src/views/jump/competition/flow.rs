@@ -5,7 +5,7 @@ use crate::jump::types::JumpOutcome;
 use crate::route::RouteTarget;
 use crate::store::{HasRuntime, ResourcesRef, Store, StoreRef};
 use crate::views::jump::competition::overlay::{CompetitionOverlay, OverlayKind};
-use crate::views::jump::competition::session::CompetitionSession;
+use crate::views::jump::competition::session::{CompetitionSession, SessionError};
 use crate::views::jump::competition::ui_state::CompetitionUiState;
 use crate::views::jump::input::{JumpInputAction, JumpInputController};
 use crate::views::jump::scene::JumpScene;
@@ -102,6 +102,19 @@ pub(crate) fn handle_human_jump(
         s.set_phase_label(phase_label);
         if let Some(name) = team_name {
             s.set_team_name(name);
+        }
+    }
+}
+
+pub(crate) fn command_or_error<C, R>(
+    ui_state: &CompetitionUiState,
+    result: Result<Option<CompetitionFlowCommand<C, R>>, SessionError>,
+) -> Option<CompetitionFlowCommand<C, R>> {
+    match result {
+        Ok(command) => command,
+        Err(e) => {
+            ui_state.enter_error(e.to_string());
+            None
         }
     }
 }

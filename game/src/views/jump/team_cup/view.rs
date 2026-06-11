@@ -5,9 +5,9 @@ use crate::jump::{JumpParticipant, JumpPolicy};
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::views::jump::competition::flow::{
-    acknowledge_finished_jump, handle_competition_jump_input, handle_human_jump,
-    handle_save_dialog, record_acknowledged_human_jump, render_jump_scene_with_overlay,
-    route_error_back, CompetitionFlowCommand, JumpInputResult,
+    acknowledge_finished_jump, command_or_error, handle_competition_jump_input,
+    handle_human_jump, handle_save_dialog, record_acknowledged_human_jump,
+    render_jump_scene_with_overlay, route_error_back, CompetitionFlowCommand, JumpInputResult,
 };
 use crate::views::jump::competition::overlay::CompetitionOverlay;
 use crate::views::jump::competition::results::{
@@ -66,14 +66,13 @@ impl TeamCupJumpView {
             JumpParticipant::trainee(),
             JumpPolicy::competition(),
         );
-        match self.session.drive_competition::<TeamCupRuntime>(&scene) {
-            Ok(Some(cmd)) => self.apply_command(cmd),
-            Ok(None) => {
-                self.ui_state.enter_error("No competition running".into());
-            }
-            Err(e) => {
-                self.ui_state.enter_error(e.to_string());
-            }
+        if let Some(cmd) = command_or_error(
+            &self.ui_state,
+            self.session.drive_competition::<TeamCupRuntime>(&scene),
+        ) {
+            self.apply_command(cmd);
+        } else if self.ui_state.render_mode() != RenderMode::Error {
+            self.ui_state.enter_error("No competition running".into());
         }
     }
 
@@ -139,10 +138,11 @@ impl View<RouteTarget> for TeamCupJumpView {
         if self.ui_state.is_outcome_recorded() && self.ui_state.render_mode() != RenderMode::Results
         {
             if let Some(ref scene) = self.scene {
-                match self.session.drive_competition::<TeamCupRuntime>(scene) {
-                    Ok(Some(cmd)) => self.apply_command(cmd),
-                    Ok(None) => {}
-                    Err(e) => self.ui_state.enter_error(e.to_string()),
+                if let Some(cmd) = command_or_error(
+                    &self.ui_state,
+                    self.session.drive_competition::<TeamCupRuntime>(scene),
+                ) {
+                    self.apply_command(cmd);
                 }
             }
         }
@@ -236,13 +236,14 @@ impl View<RouteTarget> for TeamCupJumpView {
             if matches!(event, Event::Keyboard(_)) {
                 self.ui_state.dismiss_results();
                 if let Some(ref scene) = self.scene {
-                    match self.session.advance_results_and_drive::<TeamCupRuntime>(
-                        scene,
-                        TeamCupResultsKind::LegResults,
+                    if let Some(cmd) = command_or_error(
+                        &self.ui_state,
+                        self.session.advance_results_and_drive::<TeamCupRuntime>(
+                            scene,
+                            TeamCupResultsKind::LegResults,
+                        ),
                     ) {
-                        Ok(Some(cmd)) => self.apply_command(cmd),
-                        Ok(None) => {}
-                        Err(e) => self.ui_state.enter_error(e.to_string()),
+                        self.apply_command(cmd);
                     }
                 }
             }

@@ -12,9 +12,9 @@ use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::format::format_decimal;
 use crate::views::jump::competition::flow::{
-    acknowledge_finished_jump, handle_competition_jump_input, handle_save_dialog,
-    record_acknowledged_human_jump, render_jump_scene_with_overlay, route_error_back,
-    CompetitionFlowCommand, JumpInputResult,
+    acknowledge_finished_jump, command_or_error, handle_competition_jump_input,
+    handle_save_dialog, record_acknowledged_human_jump, render_jump_scene_with_overlay,
+    route_error_back, CompetitionFlowCommand, JumpInputResult,
 };
 use crate::views::jump::competition::overlay::CompetitionOverlay;
 use crate::views::jump::competition::results::{
@@ -178,10 +178,11 @@ impl View<RouteTarget> for WorldCupJumpView {
         );
 
         // Drive competition and dispatch any resulting command
-        match self.session.drive_competition::<Competition>(&self.scene) {
-            Ok(Some(command)) => self.apply_command(command),
-            Ok(None) => {}
-            Err(e) => self.ui_state.enter_error(e.to_string()),
+        if let Some(command) = command_or_error(
+            &self.ui_state,
+            self.session.drive_competition::<Competition>(&self.scene),
+        ) {
+            self.apply_command(command);
         }
 
         if self.ui_state.render_mode() == RenderMode::Jump {
@@ -340,13 +341,14 @@ impl WorldCupJumpView {
                 // Pascal WaitForKey(0): any key on the last entry exits the list
                 self.blinker.reset();
                 self.ui_state.dismiss_results();
-                match self.session.advance_results_and_drive::<Competition>(
-                    &self.scene,
-                    IndividualResultsKind::Results,
+                if let Some(command) = command_or_error(
+                    &self.ui_state,
+                    self.session.advance_results_and_drive::<Competition>(
+                        &self.scene,
+                        IndividualResultsKind::Results,
+                    ),
                 ) {
-                    Ok(Some(command)) => self.apply_command(command),
-                    Ok(None) => {}
-                    Err(e) => self.ui_state.enter_error(e.to_string()),
+                    self.apply_command(command);
                 }
                 None
             }
@@ -408,13 +410,14 @@ impl WorldCupJumpView {
                 }
                 self.blinker.reset();
                 self.ui_state.dismiss_results();
-                match self.session.advance_results_and_drive::<Competition>(
-                    &self.scene,
-                    IndividualResultsKind::Results,
+                if let Some(command) = command_or_error(
+                    &self.ui_state,
+                    self.session.advance_results_and_drive::<Competition>(
+                        &self.scene,
+                        IndividualResultsKind::Results,
+                    ),
                 ) {
-                    Ok(Some(command)) => self.apply_command(command),
-                    Ok(None) => {}
-                    Err(e) => self.ui_state.enter_error(e.to_string()),
+                    self.apply_command(command);
                 }
                 None
             }
