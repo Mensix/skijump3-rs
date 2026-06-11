@@ -9,6 +9,7 @@ use crate::views::jump::competition::flow::{
     route_error_back, CompetitionFlowCommand, JumpInputResult,
 };
 use crate::views::jump::competition::overlay::CompetitionOverlay;
+use crate::views::jump::competition::results::{self as competition_results, CompetitionResultsRequest};
 use crate::views::jump::competition::session::CompetitionSession;
 use crate::views::jump::competition::ui_state::{CompetitionUiState, RenderMode};
 use crate::views::jump::scene::JumpScene;
@@ -244,7 +245,14 @@ impl View<RouteTarget> for TeamCupJumpView {
                 }
             }
             RenderMode::Results => {
-                super::results::render(&self.resources, &self.store, self.results_kind)
+                competition_results::render(
+                    &self.resources,
+                    &self.store,
+                    &self.ui_state,
+                    CompetitionResultsRequest::TeamCup {
+                        kind: self.results_kind,
+                    },
+                )
             }
             RenderMode::Done | RenderMode::Error => {
                 let msg = if self.ui_state.render_mode() == RenderMode::Error {

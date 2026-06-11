@@ -17,6 +17,7 @@ use crate::views::jump::competition::flow::{
     CompetitionFlowCommand, JumpInputResult,
 };
 use crate::views::jump::competition::overlay::CompetitionOverlay;
+use crate::views::jump::competition::results::{self as competition_results, CompetitionResultsRequest};
 use crate::views::jump::competition::session::CompetitionSession;
 use crate::views::jump::competition::ui_state::{CompetitionUiState, RenderMode, ResultScreen};
 use crate::views::jump::scene::JumpScene;
@@ -122,31 +123,14 @@ impl WorldCupJumpView {
     }
 
     fn results_page(&self) -> Vec<Element> {
-        self.store
-            .with_active(|active| {
-                let c = active.individual()?;
-                Some(match self.ui_state.current_screen() {
-                    ResultScreen::KoPairs(show_results) => {
-                        let show_cursor = self.blinker.visible(10, 10);
-                        results::render_ko_pairs(c, &self.resources, show_results, show_cursor)
-                    }
-                    ResultScreen::Stats => {
-                        results::render_stats_page(c, &self.resources, self.ui_state.current_page())
-                    }
-                    ResultScreen::List => {
-                        let page_data = if self.ui_state.is_compact() {
-                            results::build_compact_results_page(c)
-                        } else {
-                            results::build_results_page(c, self.ui_state.current_page())
-                        };
-                        let mut els = results::render_results_page(&page_data, &self.resources);
-                        els.extend(results::render_header(c, &self.resources));
-                        els
-                    }
-                })
-            })
-            .flatten()
-            .unwrap_or_else(screen::black_screen)
+        competition_results::render(
+            &self.resources,
+            &self.store,
+            &self.ui_state,
+            CompetitionResultsRequest::Individual {
+                ko_cursor_visible: self.blinker.visible(10, 10),
+            },
+        )
     }
 
     /// Pascal: rank calculation — counts participants with points <= jumper's total.
