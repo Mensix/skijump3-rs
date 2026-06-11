@@ -22,7 +22,11 @@ pub(crate) fn team_names(store: &StoreRef) -> Vec<String> {
 }
 
 pub(crate) fn team_x(team_idx: usize) -> i32 {
-    if team_idx == 0 { 30 } else { 160 }
+    if team_idx == 0 {
+        30
+    } else {
+        160
+    }
 }
 
 pub(crate) fn naming_elements(
@@ -50,7 +54,13 @@ pub(crate) fn naming_elements(
                 false,
             ));
             els.push(Element::fillbox(xx - 2, 40, 125, 10, BLACK));
-            els.push(Element::text(name_buffer.to_string(), xx, 42, FONT_DEFAULT, false));
+            els.push(Element::text(
+                name_buffer.to_string(),
+                xx,
+                42,
+                FONT_DEFAULT,
+                false,
+            ));
             if cursor_visible {
                 let cw = resources.font.string_width(name_buffer) as i32;
                 els.push(Element::fillbox(xx + cw, 48, 5, 1, FONT_DEFAULT));
@@ -173,7 +183,13 @@ fn push_named_team(
         FONT_HELP,
         false,
     ));
-    els.push(Element::text(team_names[n].clone(), xx, 42, FONT_DEFAULT, false));
+    els.push(Element::text(
+        team_names[n].clone(),
+        xx,
+        42,
+        FONT_DEFAULT,
+        false,
+    ));
 }
 
 fn push_team_cup_header(els: &mut Vec<Element>, resources: &ResourcesRef, store: &StoreRef) {
@@ -222,7 +238,12 @@ fn push_jumper_names(els: &mut Vec<Element>, store: &StoreRef, team_n: usize, xx
                     .iter()
                     .filter(|t| t.is_human_team)
                     .nth(team_n)
-                    .map(|t| t.members.iter().map(|m| m.competitor.name.clone()).collect())
+                    .map(|t| {
+                        t.members
+                            .iter()
+                            .map(|m| m.competitor.name.clone())
+                            .collect()
+                    })
                     .unwrap_or_default(),
             )
         })

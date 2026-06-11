@@ -154,7 +154,7 @@ fn info_elements(
 /// Draw the right-side InfoPanel sprite and its default content.
 fn info_panel_elements(
     els: &mut Vec<Element>,
-    frame: &JumpRenderFrame,
+    _frame: &JumpRenderFrame,
     ctx: &JumpPresentationContext<'_>,
 ) {
     if ctx.suppress_info_panel {
