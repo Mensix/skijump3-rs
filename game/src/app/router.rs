@@ -4,8 +4,8 @@ use crate::save::SaveRef;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::views::{
     CustomCupSetupView, HallOfFameView, HillRecordsView, JumpMenuView, MainMenuView, ProfilesView,
-    ReplayBrowserView, ReplayView, SetupView, TeamCupJumpView, TrainingJumpView, TrainingSetupView,
-    WelcomeScreenView, WorldCupJumpView,
+    ReplayBrowserView, ReplayView, SetupView, CompetitionJumpView, TrainingJumpView,
+    TrainingSetupView, WelcomeScreenView,
 };
 use engine::ui::{Router, View};
 use std::rc::Rc;
@@ -79,7 +79,7 @@ pub fn create_router(
             (
                 RouteTarget::CompetitionJump,
                 rs(&resources, &store, |r, s| {
-                    Box::new(WorldCupJumpView::new(r, s))
+                    Box::new(CompetitionJumpView::new(r, s))
                 }),
             ),
             (
@@ -127,7 +127,7 @@ pub fn create_router(
             (
                 RouteTarget::TeamCup,
                 rs(&resources, &store, |r, s| {
-                    Box::new(TeamCupJumpView::new(r, s))
+                    Box::new(CompetitionJumpView::new(r, s))
                 }),
             ),
             (RouteTarget::Welcome, {
