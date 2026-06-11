@@ -3,9 +3,146 @@ use crate::gfx::palette::{BG_TEAMCUP, BLACK, FONT_DEFAULT, FONT_GOLD, FONT_HELP}
 use crate::jump::hud;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::layout::shorten_name;
-use engine::ui::Element;
+use engine::ui::{Element, Event, Key};
 
-pub(crate) fn team_names(store: &StoreRef) -> Vec<String> {
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Phase {
+    NamingTeam(usize),
+    Ready,
+    ShowTeams,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum SetupAction {
+    None,
+    StartJumping,
+}
+
+pub(crate) struct TeamCupSetup {
+    phase: Phase,
+    team_names: Vec<String>,
+    name_buffer: String,
+}
+
+impl TeamCupSetup {
+    pub(crate) fn new(store: &StoreRef) -> Self {
+        let team_names = team_names(store);
+        let name_buffer = team_names.first().cloned().unwrap_or_default();
+        Self {
+            phase: Phase::NamingTeam(0),
+            team_names,
+            name_buffer,
+        }
+    }
+
+    pub(crate) fn elements(
+        &self,
+        resources: &ResourcesRef,
+        store: &StoreRef,
+        cursor_visible: bool,
+    ) -> Vec<Element> {
+        match self.phase {
+            Phase::NamingTeam(idx) => naming_elements(
+                resources,
+                store,
+                &self.team_names,
+                idx,
+                &self.name_buffer,
+                cursor_visible,
+            ),
+            Phase::Ready => ready_elements(resources, store, &self.team_names, cursor_visible),
+            Phase::ShowTeams => showteams_elements(resources, store, cursor_visible),
+        }
+    }
+
+    pub(crate) fn handle_event(
+        &mut self,
+        resources: &ResourcesRef,
+        store: &StoreRef,
+        event: Event,
+    ) -> SetupAction {
+        match self.phase {
+            Phase::NamingTeam(_) => self.handle_naming(resources, store, event),
+            Phase::Ready => {
+                if matches!(event, Event::Keyboard(_)) {
+                    self.phase = Phase::ShowTeams;
+                }
+                SetupAction::None
+            }
+            Phase::ShowTeams => {
+                if matches!(event, Event::Keyboard(_)) {
+                    SetupAction::StartJumping
+                } else {
+                    SetupAction::None
+                }
+            }
+        }
+    }
+
+    fn handle_naming(
+        &mut self,
+        resources: &ResourcesRef,
+        store: &StoreRef,
+        event: Event,
+    ) -> SetupAction {
+        let Event::Keyboard(key) = event;
+        match key {
+            Key::Char(c) if c.is_ascii_graphic() || c == ' ' => {
+                let width = resources.font.string_width(&self.name_buffer) as i32;
+                if self.name_buffer.len() < 20 && width < 110 {
+                    self.name_buffer.push(c);
+                }
+            }
+            Key::Backspace => {
+                self.name_buffer.pop();
+            }
+            Key::Enter => {
+                self.finalize_current_name(store);
+            }
+            _ => {}
+        }
+        SetupAction::None
+    }
+
+    fn finalize_current_name(&mut self, store: &StoreRef) {
+        let name = self.name_buffer.trim().to_string();
+        let n = match self.phase {
+            Phase::NamingTeam(idx) => idx,
+            _ => return,
+        };
+
+        if !name.is_empty() {
+            store.with_active_mut(|active| {
+                let Some(tc) = active.team_cup_runtime_mut() else {
+                    return;
+                };
+                let human_indices: Vec<usize> = tc
+                    .teams
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, t)| t.is_human_team)
+                    .map(|(i, _)| i)
+                    .rev()
+                    .collect();
+                if let Some(&team_idx) = human_indices.get(n) {
+                    tc.teams[team_idx].name = name.clone();
+                }
+            });
+            self.team_names[n] = name;
+        }
+
+        self.name_buffer.clear();
+
+        if n + 1 < self.team_names.len() {
+            self.phase = Phase::NamingTeam(n + 1);
+            self.name_buffer = self.team_names[n + 1].clone();
+        } else {
+            self.phase = Phase::Ready;
+        }
+    }
+}
+
+fn team_names(store: &StoreRef) -> Vec<String> {
     store
         .with_active(|active| {
             let tc = active.team_cup_runtime()?;
@@ -21,7 +158,7 @@ pub(crate) fn team_names(store: &StoreRef) -> Vec<String> {
         .unwrap_or_default()
 }
 
-pub(crate) fn team_x(team_idx: usize) -> i32 {
+fn team_x(team_idx: usize) -> i32 {
     if team_idx == 0 {
         30
     } else {
@@ -29,7 +166,7 @@ pub(crate) fn team_x(team_idx: usize) -> i32 {
     }
 }
 
-pub(crate) fn naming_elements(
+fn naming_elements(
     resources: &ResourcesRef,
     store: &StoreRef,
     team_names: &[String],
@@ -73,7 +210,7 @@ pub(crate) fn naming_elements(
     els
 }
 
-pub(crate) fn ready_elements(
+fn ready_elements(
     resources: &ResourcesRef,
     store: &StoreRef,
     team_names: &[String],
@@ -102,7 +239,7 @@ pub(crate) fn ready_elements(
     els
 }
 
-pub(crate) fn showteams_elements(
+fn showteams_elements(
     resources: &ResourcesRef,
     store: &StoreRef,
     cursor_visible: bool,

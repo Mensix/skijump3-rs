@@ -15,13 +15,12 @@ use crate::views::jump::competition::results::{
 use crate::views::jump::competition::session::CompetitionSession;
 use crate::views::jump::competition::ui_state::{CompetitionUiState, RenderMode};
 use crate::views::jump::scene::JumpScene;
-use engine::ui::{Blinker, Element, Event, Key, View};
+use engine::ui::{Blinker, Element, Event, View};
+use super::setup::{SetupAction, TeamCupSetup};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ViewPhase {
-    NamingTeam(usize),
-    Ready,
-    ShowTeams,
+    Setup,
     Jumping,
     Done,
 }
@@ -35,58 +34,27 @@ pub struct TeamCupJumpView {
     phase: ViewPhase,
     blinker: Blinker,
     session: CompetitionSession,
-    team_names: Vec<String>,
-    name_buffer: String,
+    setup: TeamCupSetup,
     cursor_visible: bool,
     results_kind: TeamCupResultsKind,
 }
 
 impl TeamCupJumpView {
     pub(crate) fn new(resources: ResourcesRef, store: StoreRef) -> Self {
-        let names = super::setup::team_names(&store);
-        let name_buffer = names.first().cloned().unwrap_or_default();
+        let setup = TeamCupSetup::new(&store);
         Self {
             resources: resources.clone(),
             store: store.clone(),
             scene: None,
             ui_state: CompetitionUiState::new(),
             overlay: CompetitionOverlay::new(resources.clone(), store.clone()),
-            phase: ViewPhase::NamingTeam(0),
+            phase: ViewPhase::Setup,
             blinker: Blinker::new(),
             session: CompetitionSession::new(resources, store),
-            team_names: names,
-            name_buffer,
+            setup,
             cursor_visible: true,
             results_kind: TeamCupResultsKind::LegResults,
         }
-    }
-
-    fn naming_elements(&self) -> Vec<Element> {
-        let current_team = match self.phase {
-            ViewPhase::NamingTeam(idx) => idx,
-            _ => 0,
-        };
-        super::setup::naming_elements(
-            &self.resources,
-            &self.store,
-            &self.team_names,
-            current_team,
-            &self.name_buffer,
-            self.cursor_visible,
-        )
-    }
-
-    fn ready_elements(&self) -> Vec<Element> {
-        super::setup::ready_elements(
-            &self.resources,
-            &self.store,
-            &self.team_names,
-            self.cursor_visible,
-        )
-    }
-
-    fn showteams_elements(&self) -> Vec<Element> {
-        super::setup::showteams_elements(&self.resources, &self.store, self.cursor_visible)
     }
 
     fn drive_until_visible(&mut self) {
@@ -148,52 +116,13 @@ impl TeamCupJumpView {
         }
     }
 
-    fn finalize_current_name(&mut self) {
-        let name = self.name_buffer.trim().to_string();
-        let n = match self.phase {
-            ViewPhase::NamingTeam(idx) => idx,
-            _ => return,
-        };
-
-        if !name.is_empty() {
-            self.store.with_active_mut(|active| {
-                let Some(tc) = active.team_cup_runtime_mut() else {
-                    return;
-                };
-                let human_indices: Vec<usize> = tc
-                    .teams
-                    .iter()
-                    .enumerate()
-                    .filter(|(_, t)| t.is_human_team)
-                    .map(|(i, _)| i)
-                    .rev() // Pascal: GetTeam(0)→jnimet[15], GetTeam(1)→jnimet[14]
-                    .collect();
-                if let Some(&team_idx) = human_indices.get(n) {
-                    tc.teams[team_idx].name = name.clone();
-                }
-            });
-            self.team_names[n] = name;
-        }
-
-        self.name_buffer.clear();
-
-        if n + 1 < self.team_names.len() {
-            self.phase = ViewPhase::NamingTeam(n + 1);
-            self.name_buffer = self.team_names[n + 1].clone();
-        } else {
-            self.phase = ViewPhase::Ready;
-        }
-    }
 }
 
 impl View<RouteTarget> for TeamCupJumpView {
     fn update(&mut self) {
         self.cursor_visible = self.blinker.visible(10, 10);
 
-        if matches!(
-            self.phase,
-            ViewPhase::NamingTeam(_) | ViewPhase::Ready | ViewPhase::ShowTeams
-        ) {
+        if self.phase == ViewPhase::Setup {
             return;
         }
         if self.phase != ViewPhase::Jumping {
@@ -225,14 +154,10 @@ impl View<RouteTarget> for TeamCupJumpView {
     }
 
     fn elements(&self) -> Vec<Element> {
-        if matches!(self.phase, ViewPhase::NamingTeam(_)) {
-            return self.naming_elements();
-        }
-        if self.phase == ViewPhase::Ready {
-            return self.ready_elements();
-        }
-        if self.phase == ViewPhase::ShowTeams {
-            return self.showteams_elements();
+        if self.phase == ViewPhase::Setup {
+            return self
+                .setup
+                .elements(&self.resources, &self.store, self.cursor_visible);
         }
         if self.phase == ViewPhase::Done {
             return vec![];
@@ -277,35 +202,10 @@ impl View<RouteTarget> for TeamCupJumpView {
             return Some(RouteTarget::Back);
         }
 
-        if matches!(self.phase, ViewPhase::NamingTeam(_)) {
-            let Event::Keyboard(key) = event;
-            match key {
-                Key::Char(c) if c.is_ascii_graphic() || c == ' ' => {
-                    let width = self.resources.font.string_width(&self.name_buffer) as i32;
-                    if self.name_buffer.len() < 20 && width < 110 {
-                        self.name_buffer.push(c);
-                    }
-                }
-                Key::Backspace => {
-                    self.name_buffer.pop();
-                }
-                Key::Enter => {
-                    self.finalize_current_name();
-                }
-                _ => {}
-            }
-            return None;
-        }
-
-        if self.phase == ViewPhase::Ready {
-            if matches!(event, Event::Keyboard(_)) {
-                self.phase = ViewPhase::ShowTeams;
-            }
-            return None;
-        }
-
-        if self.phase == ViewPhase::ShowTeams {
-            if matches!(event, Event::Keyboard(_)) {
+        if self.phase == ViewPhase::Setup {
+            if self.setup.handle_event(&self.resources, &self.store, event)
+                == SetupAction::StartJumping
+            {
                 self.phase = ViewPhase::Jumping;
                 self.drive_until_visible();
             }
