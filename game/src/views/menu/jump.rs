@@ -158,7 +158,7 @@ impl JumpMenuView {
             factory::team_cup(&names, &teams_def, &self.store.profiles(), human_teams, hill_count, rng)
         });
         self.store.start_active(comp);
-        RouteTarget::TeamCup
+        RouteTarget::CompetitionJump
     }
 
     fn team_warning_elements(layout: &MainLayout) -> Vec<Element> {
