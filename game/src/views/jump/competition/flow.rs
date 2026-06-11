@@ -7,6 +7,7 @@ use crate::store::{HasRuntime, ResourcesRef, Store, StoreRef};
 use crate::views::jump::competition::overlay::{CompetitionOverlay, OverlayKind};
 use crate::views::jump::competition::session::CompetitionSession;
 use crate::views::jump::competition::ui_state::CompetitionUiState;
+use crate::views::jump::input::{JumpInputAction, JumpInputController};
 use crate::views::jump::scene::JumpScene;
 use engine::ui::{Element, Event, Key};
 
@@ -171,6 +172,30 @@ pub(crate) fn handle_save_dialog(scene: &JumpScene, event: &Event) -> bool {
     }
     scene.handle_save_dialog_event(event);
     true
+}
+
+pub(crate) enum JumpInputResult {
+    None,
+    Consumed,
+    Route(RouteTarget),
+}
+
+pub(crate) fn handle_competition_jump_input(
+    scene: &JumpScene,
+    event: Event,
+    consume_other_actions: bool,
+) -> JumpInputResult {
+    let mut session = scene.session_mut();
+    match JumpInputController.handle_event(event, &mut session) {
+        JumpInputAction::SaveReplay => {
+            scene.open_save_dialog();
+            JumpInputResult::Consumed
+        }
+        JumpInputAction::RouteBack => JumpInputResult::Route(RouteTarget::Back),
+        JumpInputAction::None => JumpInputResult::None,
+        _ if consume_other_actions => JumpInputResult::Consumed,
+        _ => JumpInputResult::None,
+    }
 }
 
 pub(crate) fn route_error_back(ui_state: &CompetitionUiState, event: Event) -> Option<RouteTarget> {

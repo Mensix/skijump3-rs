@@ -15,12 +15,12 @@ use crate::store::{ResourcesRef, StoreRef};
 use crate::text::format::format_decimal;
 use crate::views::jump::competition::flow::{
     acknowledge_finished_jump, handle_save_dialog, record_acknowledged_human_jump,
-    render_jump_scene_with_overlay, route_error_back, CompetitionFlowCommand,
+    handle_competition_jump_input, render_jump_scene_with_overlay, route_error_back,
+    CompetitionFlowCommand, JumpInputResult,
 };
 use crate::views::jump::competition::overlay::CompetitionOverlay;
 use crate::views::jump::competition::session::CompetitionSession;
 use crate::views::jump::competition::ui_state::{CompetitionUiState, RenderMode, ResultScreen};
-use crate::views::jump::input::{JumpInputAction, JumpInputController};
 use crate::views::jump::scene::JumpScene;
 use engine::ui::{Blinker, Element, Event, Key, View};
 
@@ -236,18 +236,10 @@ impl View<RouteTarget> for WorldCupJumpView {
         }
 
         // Let the shared input controller process events first (save replay, etc.)
-        let action = {
-            let mut session = self.scene.session_mut();
-            JumpInputController.handle_event(event, &mut session)
-        };
-        match action {
-            JumpInputAction::SaveReplay => {
-                self.scene.open_save_dialog();
-                return None;
-            }
-            JumpInputAction::RouteBack => return Some(RouteTarget::Back),
-            JumpInputAction::None => {}
-            _ => return None,
+        match handle_competition_jump_input(&self.scene, event, true) {
+            JumpInputResult::Route(route) => return Some(route),
+            JumpInputResult::Consumed => return None,
+            JumpInputResult::None => {}
         }
 
         // Pascal: wait for key after human jump before advancing
