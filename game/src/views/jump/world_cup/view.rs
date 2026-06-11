@@ -109,10 +109,15 @@ impl WorldCupJumpView {
     }
 
     fn select_default_result_screen(&self) {
-        if let Some(phase) = self.store.try_with_competition(Competition::phase) {
+        if let Some(phase) = self
+            .store
+            .with_active(|active| active.individual().map(Competition::phase))
+            .flatten()
+        {
             let is_4h = self
                 .store
-                .try_with_competition(Competition::is_four_hills_event)
+                .with_active(|active| active.individual().map(Competition::is_four_hills_event))
+                .flatten()
                 .unwrap_or(false);
             self.ui_state.select_default_screen(is_4h, phase);
         }
@@ -120,35 +125,36 @@ impl WorldCupJumpView {
 
     fn results_page(&self) -> Vec<Element> {
         self.store
-            .try_with_competition(|c| {
-                match self.ui_state.current_screen() {
+            .with_active(|active| {
+                let c = active.individual()?;
+                Some(match self.ui_state.current_screen() {
                     ResultScreen::KoPairs(show_results) => {
                         let show_cursor = self.blinker.visible(10, 10);
-                        return results::render_ko_pairs(
+                        results::render_ko_pairs(
                             c,
                             &self.resources,
                             show_results,
                             show_cursor,
-                        );
+                        )
                     }
-                    ResultScreen::Stats => {
-                        return results::render_stats_page(
+                    ResultScreen::Stats => results::render_stats_page(
                             c,
                             &self.resources,
                             self.ui_state.current_page(),
-                        );
+                        ),
+                    ResultScreen::List => {
+                        let page_data = if self.ui_state.is_compact() {
+                            results::build_compact_results_page(c)
+                        } else {
+                            results::build_results_page(c, self.ui_state.current_page())
+                        };
+                        let mut els = results::render_results_page(&page_data, &self.resources);
+                        els.extend(results::render_header(c, &self.resources));
+                        els
                     }
-                    ResultScreen::List => {}
-                }
-                let page_data = if self.ui_state.is_compact() {
-                    results::build_compact_results_page(c)
-                } else {
-                    results::build_results_page(c, self.ui_state.current_page())
-                };
-                let mut els = results::render_results_page(&page_data, &self.resources);
-                els.extend(results::render_header(c, &self.resources));
-                els
+                })
             })
+            .flatten()
             .unwrap_or_else(screen::black_screen)
     }
 
@@ -160,7 +166,8 @@ impl WorldCupJumpView {
             return None;
         }
         let own_id = self.scene.participant_id();
-        self.store.try_with_competition(|c| {
+        self.store.with_active(|active| {
+            let c = active.individual()?;
             let standings = c.event_standings();
             let own_before = standings
                 .iter()
@@ -173,8 +180,9 @@ impl WorldCupJumpView {
                 .filter(|p| p.id != own_id && p.points.is_some_and(|pts| pts > own_total))
                 .count()
                 + 1;
-            Element::right_text(format!("(${rank}.)"), 255, 45, FONT_GREET)
+            Some(Element::right_text(format!("(${rank}.)"), 255, 45, FONT_GREET))
         })
+        .flatten()
     }
 }
 
@@ -258,17 +266,24 @@ impl WorldCupJumpView {
             return true;
         }
         self.store
-            .try_with_competition(|c| {
+            .with_active(|active| {
+                let c = active.individual()?;
+                Some(
                 c.phase().is_result_phase()
                     || c.phase().needs_event_results() && c.current_jumper().is_none()
+                )
             })
+            .flatten()
             .unwrap_or(false)
     }
 
     fn save_competition_results(&self) {
         self.session.save_results();
         // WC-specific profile updates (bestpoints, etc.)
-        self.store.try_with_competition(|c| {
+        self.store.with_active(|active| {
+            let Some(c) = active.individual() else {
+                return;
+            };
             let style = c.style();
             let overall = c.overall_standings();
             let mut profiles = self.store.profiles_mut();
@@ -315,19 +330,24 @@ impl WorldCupJumpView {
                 let total = match self.ui_state.current_screen() {
                     ResultScreen::Stats => self
                         .store
-                        .try_with_competition(|c| {
+                        .with_active(|active| {
+                            let c = active.individual()?;
+                            Some(
                             c.overall_standings()
                                 .iter()
                                 .filter(|p| !p.is_computer)
                                 .count()
                                 .max(1)
+                            )
                         })
+                        .flatten()
                         .unwrap_or(1),
                     ResultScreen::KoPairs(_) => 1,
                     ResultScreen::List if self.ui_state.is_compact() => 1,
                     ResultScreen::List => self
                         .store
-                        .try_with_competition(results::total_pages)
+                        .with_active(|active| active.individual().map(results::total_pages))
+                        .flatten()
                         .unwrap_or(0),
                 };
                 if self.ui_state.next_page(total) {
@@ -357,19 +377,28 @@ impl WorldCupJumpView {
             Event::Keyboard(Key::Char('k' | 'K')) => {
                 let ko = self
                     .store
-                    .try_with_competition(|c| {
+                    .with_active(|active| {
+                        let c = active.individual()?;
+                        Some(
                         c.is_four_hills_event()
                             && matches!(
                                 c.phase(),
                                 CompetitionPhase::QualificationResults
                                     | CompetitionPhase::Round1Results
                             )
+                        )
                     })
+                    .flatten()
                     .unwrap_or(false);
                 if ko {
                     let round1 = self
                         .store
-                        .try_with_competition(|c| c.phase() == CompetitionPhase::Round1Results)
+                        .with_active(|active| {
+                            active
+                                .individual()
+                                .map(|c| c.phase() == CompetitionPhase::Round1Results)
+                        })
+                        .flatten()
                         .unwrap_or(false);
                     self.ui_state.toggle_ko_pairs(round1);
                 }
@@ -382,7 +411,12 @@ impl WorldCupJumpView {
             Event::Keyboard(Key::Escape | Key::Enter) => {
                 let is_season_complete = self
                     .store
-                    .try_with_competition(|c| c.phase() == CompetitionPhase::SeasonComplete)
+                    .with_active(|active| {
+                        active
+                            .individual()
+                            .map(|c| c.phase() == CompetitionPhase::SeasonComplete)
+                    })
+                    .flatten()
                     .unwrap_or(false);
                 if is_season_complete {
                     self.save_competition_results();

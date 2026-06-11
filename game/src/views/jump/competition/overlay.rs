@@ -221,7 +221,8 @@ impl CompetitionOverlay {
     ) {
         let (phase, rank, quali_wc) = self
             .store
-            .try_with_competition(|c| {
+            .with_active(|active| {
+                let c = active.individual()?;
                 let phase = c.phase();
                 let rank = if round2_with_r1 {
                     participant.round1_rank
@@ -234,8 +235,9 @@ impl CompetitionOverlay {
                 };
                 let quali_wc = phase == CompetitionPhase::Qualification
                     && matches!(participant.qual, QualificationStatus::PreQualified);
-                (phase, rank, quali_wc)
+                Some((phase, rank, quali_wc))
             })
+            .flatten()
             .unwrap_or((CompetitionPhase::Qualification, 0, false));
 
         let phase_label = match phase {
