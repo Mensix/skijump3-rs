@@ -13,6 +13,7 @@ use crate::text::lang::LangBase;
 enum KothMode {
     Main,
     Packs,
+    Opponents,
 }
 
 pub struct KothSetupView {
@@ -21,6 +22,7 @@ pub struct KothSetupView {
     selected: Cell<usize>,
     mode: Cell<KothMode>,
     pack_cursor: Cell<usize>,
+    opponent_cursor: Cell<usize>,
 }
 
 impl KothSetupView {
@@ -34,6 +36,7 @@ impl KothSetupView {
             selected: Cell::new(initial),
             mode: Cell::new(KothMode::Main),
             pack_cursor: Cell::new(0),
+            opponent_cursor: Cell::new(0),
         }
     }
 
@@ -72,8 +75,22 @@ impl KothSetupView {
         let lang = &self.resources.langbase;
         let cfg = self.config();
 
-        // --- right panel: participant names (gold, Pascal 246) ---
-        if cfg.koth_count > 0 {
+        // --- right panel: "Computer Jumpers:" (white, Pascal 240) ---
+        cx.text((180, 10), FONT_DEFAULT, lang.lstr(120));
+
+        if self.mode.get() == KothMode::Opponents {
+            let names = self.resources.player_names();
+            let max_show = names.len().min(20);
+            for i in 0..max_show {
+                let idx = i + 1;
+                let in_pel = cfg.kothpel.iter().any(|&p| p == idx as i32);
+                let color = if in_pel { FONT_GOLD } else { FONT_HELP };
+                let name = names.get(i).map(|s| s.as_str()).unwrap_or("?");
+                let y = (20 + (i + 1) * 8) as i32;
+                let marker = if in_pel { "#" } else { " " };
+                cx.text((180, y), color, format!("{}{}", marker, name));
+            }
+        } else if cfg.koth_count > 0 {
             for i in 0..cfg.koth_count.min(20) as usize {
                 let idx = cfg.kothpel.get(i).copied().unwrap_or(1) as usize;
                 let name = self
@@ -88,9 +105,6 @@ impl KothSetupView {
         } else {
             cx.text((180, 30), FONT_GOLD, lang.lstr(9));
         }
-
-        // --- right panel: "Computer Jumpers:" (white, Pascal 240) ---
-        cx.text((180, 10), FONT_DEFAULT, lang.lstr(120));
 
         // --- left panel: menu background (Pascal MakeMenu bgcolor=245) ---
         cx.fill((4, 7, 160, 63), FILL_DIM);
@@ -167,6 +181,11 @@ impl KothSetupView {
                 let pcy = pack_cursor_y(cur);
                 cx.stroke((4, pcy - 3, 160, 10), FONT_DEFAULT);
             }
+            KothMode::Opponents => {
+                let cur = self.opponent_cursor.get();
+                let oy = 20 + (cur as i32 + 1) * 8;
+                cx.stroke((176, oy - 2, 140, 9), FONT_DEFAULT);
+            }
         }
     }
 
@@ -174,6 +193,7 @@ impl KothSetupView {
         match self.mode.get() {
             KothMode::Main => self.handle_main(event),
             KothMode::Packs => self.handle_packs(event),
+            KothMode::Opponents => None,
         }
     }
 }
@@ -278,8 +298,11 @@ impl KothSetupView {
                 self.mode.set(KothMode::Packs);
                 None
             }
+            3 => {
+                self.mode.set(KothMode::Opponents);
+                None
+            }
             4 => Some(RouteTarget::KothHillPicker),
-            3 => None,
             5 => {
                 self.update_config(|cfg| cfg.kothwind = if cfg.kothwind != 0 { 0 } else { 1 });
                 None
