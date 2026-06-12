@@ -66,19 +66,4 @@ pub(crate) fn push_jumper_info_box(
     cx.text((12, 191), FONT_HELP, langbase.lstr(59));
 }
 
-pub(crate) fn push_wait_for_key(
-    cx: &mut PaintCx<'_>,
-    langbase: &LangBase,
-    x: i32,
-    y: i32,
-    bg: Rgba,
-    text_color: Rgba,
-    cursor_color: Rgba,
-    cursor_visible: bool,
-) {
-    cx.right_text((x, y), text_color, langbase.lstr(15).to_string());
-    cx.fill((x - 2 + 1, y - 2, 9, 11), bg);
-    if cursor_visible {
-        cx.fill((x + 1, y + 6, 5, 1), cursor_color);
-    }
-}
+

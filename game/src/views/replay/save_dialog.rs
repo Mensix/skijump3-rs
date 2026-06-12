@@ -1,11 +1,11 @@
 use crate::components::page_nav::cycle_index;
-use crate::components::{prompt, screen};
-use crate::gfx::palette::{BG_LEFT, BLACK, FONT_DEFAULT, FONT_GOLD};
+use crate::gfx::palette::{BG_LEFT, BG_RIGHT, BLACK, FILL_DIM, FONT_DEFAULT, FONT_GOLD};
+use crate::gfx::sprites;
 use crate::jump::replay::ReplayTrace;
 use crate::store::ResourcesRef;
-use engine::oxide::input::UiEvent;
-use engine::oxide::{ImageRegionDraw, PaintCx};
-use engine::ui::{Blinker, Component, Element, Event, Key, TextEditState};
+use engine::oxide::input::{Key, UiEvent};
+use engine::oxide::PaintCx;
+use engine::ui::{Blinker, TextEditState};
 
 #[derive(Debug, Clone, Copy)]
 enum SaveField {
@@ -34,16 +34,9 @@ impl SaveField {
 #[derive(Debug, Clone)]
 enum SaveDialogState {
     Inactive,
-    Browse {
-        selected: usize,
-    },
-    EditField {
-        field: SaveField,
-        editor: TextEditState,
-    },
-    ConfirmOverwrite {
-        filename: String,
-    },
+    Browse { selected: usize },
+    EditField { field: SaveField, editor: TextEditState },
+    ConfirmOverwrite { filename: String },
 }
 
 pub enum SaveAction {
@@ -92,13 +85,11 @@ impl SaveReplayDialog {
         !matches!(self.state, SaveDialogState::Inactive)
     }
 
-    pub fn open(
-        &mut self,
-        initial_author: String,
-        initial_name: String,
-        distance: String,
-        hill_name: String,
-    ) {
+    fn is_form_active(&self) -> bool {
+        matches!(self.state, SaveDialogState::Browse { .. } | SaveDialogState::EditField { .. })
+    }
+
+    pub fn open(&mut self, initial_author: String, initial_name: String, distance: String, hill_name: String) {
         self.author = initial_author;
         self.name = initial_name;
         self.distance = distance;
@@ -160,17 +151,24 @@ impl SaveReplayDialog {
         }
         self.state = SaveDialogState::Inactive;
     }
-}
 
-impl SaveReplayDialog {
-    fn is_form_active(&self) -> bool {
-        matches!(
-            self.state,
-            SaveDialogState::Browse { .. } | SaveDialogState::EditField { .. }
-        )
+    pub fn paint(&self, cx: &mut PaintCx<'_>) {
+        cx.fill((0, 0, 320, 200), BLACK);
+        cx.fill((0, 0, 320, 19), FILL_DIM);
+        cx.fill((0, 20, 320, 180), BG_LEFT);
+        cx.dither_fill(63);
+        cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
+
+        let is_overlay = matches!(self.state, SaveDialogState::ConfirmOverwrite { .. });
+        if is_overlay || self.is_form_active() {
+            self.paint_form(cx, !is_overlay);
+        }
+        if let SaveDialogState::ConfirmOverwrite { ref filename } = self.state {
+            self.paint_overwrite(cx, filename);
+        }
     }
 
-    fn render_form(&self, els: &mut Vec<Element>, show_box: bool) {
+    fn paint_form(&self, cx: &mut PaintCx<'_>, show_box: bool) {
         let selected_idx = match self.state {
             SaveDialogState::Browse { selected } => selected,
             SaveDialogState::EditField { ref field, .. } => field.idx(),
@@ -182,18 +180,11 @@ impl SaveReplayDialog {
             _ => None,
         };
 
-        els.push(Element::text(
-            format!(
-                "{}: {}µ at {}",
-                self.resources.langbase.lstr(25),
-                self.distance,
-                self.hill_name
-            ),
-            30,
-            6,
+        cx.text(
+            (30, 6),
             FONT_DEFAULT,
-            false,
-        ));
+            format!("{}: {}µ at {}", self.resources.langbase.lstr(25), self.distance, self.hill_name),
+        );
 
         for i in 0..5 {
             let yy = (i * 16 + 42) as i32;
@@ -205,7 +196,7 @@ impl SaveReplayDialog {
                 4 => format!("5. {}", self.resources.langbase.lstr(296)),
                 _ => String::new(),
             };
-            els.push(Element::text(&label, 18, final_yy, label_color, false));
+            cx.text((18, final_yy), label_color, label);
 
             if i < 3 {
                 let is_editing = editing && editing_field == Some(i);
@@ -225,24 +216,17 @@ impl SaveReplayDialog {
                 };
 
                 if is_editing {
-                    let (fw, fh) = match editing_field {
-                        Some(2) => (60, 11),
-                        _ => (134, 10),
-                    };
-                    els.push(Element::fillbox(146, final_yy - 2, fw, fh, BLACK));
+                    let fw = match editing_field { Some(2) => 60, _ => 134 };
+                    cx.fill((146, final_yy - 2, fw, 10), BLACK);
                 }
-                els.push(Element::text(&value, 148, final_yy, FONT_GOLD, false));
+                cx.text((148, final_yy), FONT_GOLD, value);
 
                 if is_editing {
                     if let SaveDialogState::EditField { ref editor, .. } = self.state {
-                        let cx = 148
-                            + self
-                                .resources
-                                .font
-                                .string_width(&editor.buffer()[..editor.cursor_byte()])
-                                as i32;
+                        let cx_pos = 148
+                            + self.resources.font.string_width(&editor.buffer()[..editor.cursor_byte()]) as i32;
                         if self.cursor_blink.visible(11, 10) {
-                            els.push(Element::fillbox(cx, final_yy + 6, 5, 1, FONT_DEFAULT));
+                            cx.fill((cx_pos, final_yy + 6, 5, 1), FONT_DEFAULT);
                         }
                     }
                 }
@@ -250,101 +234,59 @@ impl SaveReplayDialog {
         }
 
         if show_box {
-            let box_y = if selected_idx < 4 {
-                36 + selected_idx * 16
-            } else {
-                36 + 5 * 16
-            };
-            els.push(Element::box_(9, box_y as i32, 135, 17, FONT_DEFAULT));
+            let box_y = if selected_idx < 4 { 36 + selected_idx * 16 } else { 36 + 5 * 16 };
+            cx.stroke((9, box_y as i32, 135, 17), FONT_DEFAULT);
         }
     }
 
-    pub fn paint_on(&self, cx: &mut PaintCx<'_>) {
-        for el in self.elements() {
-            paint_elem(cx, &el);
-        }
-    }
-
-    pub fn handle_ui_event(&mut self, event: &UiEvent) -> Option<SaveAction> {
-        let old_event = match event {
-            UiEvent::KeyDown(key) => Event::Keyboard(*key),
-            UiEvent::Text(c) => Event::Keyboard(Key::Char(*c)),
-            UiEvent::Quit | UiEvent::Tick => return None,
-        };
-        Component::handle_event(self, &old_event)
-    }
-
-    fn render_overwrite(&self, els: &mut Vec<Element>, filename: &str) {
-        els.extend(screen::modal_background(59, 79, 203, 53));
-
-        els.push(Element::text(
+    fn paint_overwrite(&self, cx: &mut PaintCx<'_>, filename: &str) {
+        cx.fill((59, 79, 203, 53), BLACK);
+        cx.fill((60, 80, 201, 51), BG_RIGHT);
+        cx.text(
+            (80, 90),
+            FONT_GOLD,
             format!("{}.SJR {}", filename, self.resources.langbase.lstr(345)),
-            80,
-            90,
+        );
+        cx.text(
+            (80, 110),
             FONT_GOLD,
-            false,
-        ));
-        els.push(Element::text(
             format!("{} (Y/N):", self.resources.langbase.lstr(346)),
-            80,
-            110,
-            FONT_GOLD,
-            false,
-        ));
-        prompt::push_yes_no_cursor(els, 190, 110, BG_LEFT, self.cursor_blink.visible(11, 10));
-    }
-}
-
-impl Component for SaveReplayDialog {
-    type Action = SaveAction;
-
-    fn elements(&self) -> Vec<Element> {
-        let mut els = screen::new_screen(1);
-
-        // Form (header + fields) renders for Browse, EditField, and ConfirmOverwrite
-        // (modal overlays on top). Selection box only when not in overlay.
-        let is_overlay = matches!(self.state, SaveDialogState::ConfirmOverwrite { .. });
-        if is_overlay || self.is_form_active() {
-            self.render_form(&mut els, !is_overlay);
+        );
+        cx.fill((190 - 2, 110 - 2, 9, 11), BG_LEFT);
+        if self.cursor_blink.visible(11, 10) {
+            cx.fill((190, 110 + 6, 5, 1), FONT_DEFAULT);
         }
-        if let SaveDialogState::ConfirmOverwrite { ref filename } = self.state {
-            self.render_overwrite(&mut els, filename);
-        }
-
-        els
     }
 
-    fn handle_event(&mut self, event: &Event) -> Option<SaveAction> {
+    pub fn handle_event(&mut self, event: &UiEvent) -> Option<SaveAction> {
         let state = self.state.clone();
         match state {
             SaveDialogState::Browse { selected } => match event {
-                Event::Keyboard(Key::Escape) => {
+                UiEvent::KeyDown(Key::Escape) => {
                     self.state = SaveDialogState::Inactive;
                     Some(SaveAction::Consumed)
                 }
-                Event::Keyboard(Key::Up) => {
+                UiEvent::KeyDown(Key::Up) => {
                     let next = cycle_index(selected, 5, -1);
                     self.state = SaveDialogState::Browse { selected: next };
                     Some(SaveAction::Consumed)
                 }
-                Event::Keyboard(Key::Down) => {
+                UiEvent::KeyDown(Key::Down) => {
                     let next = cycle_index(selected, 5, 1);
                     self.state = SaveDialogState::Browse { selected: next };
                     Some(SaveAction::Consumed)
                 }
-                Event::Keyboard(Key::Enter | Key::Char(' ')) => Some(self.activate_item(selected)),
-                Event::Keyboard(Key::Char(c)) => Some(self.handle_browse_digit(*c)),
+                UiEvent::KeyDown(Key::Enter) | UiEvent::Text(' ') => Some(self.activate_item(selected)),
+                UiEvent::Text(c) => Some(self.handle_browse_digit(*c)),
                 _ => Some(SaveAction::Consumed),
             },
             SaveDialogState::EditField { field, mut editor } => match event {
-                Event::Keyboard(Key::Escape) => {
+                UiEvent::KeyDown(Key::Escape) => {
                     self.cursor_blink.reset();
-                    self.state = SaveDialogState::Browse {
-                        selected: field.idx(),
-                    };
+                    self.state = SaveDialogState::Browse { selected: field.idx() };
                     Some(SaveAction::Consumed)
                 }
-                Event::Keyboard(Key::Enter) => {
+                UiEvent::KeyDown(Key::Enter) => {
                     self.cursor_blink.reset();
                     let buf = editor.buffer().to_string();
                     match field {
@@ -352,19 +294,17 @@ impl Component for SaveReplayDialog {
                         SaveField::Name => self.name = buf,
                         SaveField::Filename => self.filename = buf,
                     }
-                    self.state = SaveDialogState::Browse {
-                        selected: field.idx(),
-                    };
+                    self.state = SaveDialogState::Browse { selected: field.idx() };
                     Some(SaveAction::Consumed)
                 }
-                Event::Keyboard(Key::Backspace) => {
+                UiEvent::KeyDown(Key::Backspace) => {
                     if editor.backspace() {
                         self.cursor_blink.reset();
                         self.state = SaveDialogState::EditField { field, editor };
                     }
                     Some(SaveAction::Consumed)
                 }
-                Event::Keyboard(Key::Char(c)) => {
+                UiEvent::Text(c) => {
                     if editor.insert(*c) {
                         self.cursor_blink.reset();
                         self.state = SaveDialogState::EditField { field, editor };
@@ -374,56 +314,18 @@ impl Component for SaveReplayDialog {
                 _ => Some(SaveAction::Consumed),
             },
             SaveDialogState::ConfirmOverwrite { .. } => match event {
-                Event::Keyboard(Key::Escape) => {
+                UiEvent::KeyDown(Key::Escape) => {
                     self.state = SaveDialogState::Browse { selected: 2 };
                     Some(SaveAction::Consumed)
                 }
-                Event::Keyboard(Key::Char('y' | 'Y')) => Some(SaveAction::SaveReplay),
-                Event::Keyboard(Key::Char('n' | 'N')) => {
+                UiEvent::Text(c) if *c == 'y' || *c == 'Y' => Some(SaveAction::SaveReplay),
+                UiEvent::Text(c) if *c == 'n' || *c == 'N' => {
                     self.state = SaveDialogState::Browse { selected: 2 };
                     Some(SaveAction::Consumed)
                 }
                 _ => Some(SaveAction::Consumed),
             },
             SaveDialogState::Inactive => Some(SaveAction::Consumed),
-        }
-    }
-}
-
-fn paint_elem(cx: &mut PaintCx<'_>, el: &Element) {
-    match el {
-        Element::Image(pixels, w, h) => cx.image(pixels.clone(), *w, *h),
-        Element::ImageRegion(region) => cx.image_region(ImageRegionDraw {
-            pixels: region.pixels.clone(),
-            src_w: region.src_w,
-            src_h: region.src_h,
-            src_x: region.src_x,
-            src_y: region.src_y,
-            dst_x: region.dst_x,
-            dst_y: region.dst_y,
-            w: region.w,
-            h: region.h,
-        }),
-        Element::Text { text, x, y, color, right, center } => {
-            if *center {
-                cx.center_text((*x, *y), *color, text);
-            } else if *right {
-                cx.right_text((*x, *y), *color, text);
-            } else {
-                cx.text((*x, *y), *color, text);
-            }
-        }
-        Element::Sprite(idx, x, y) => cx.sprite(*idx, (*x, *y)),
-        Element::Fillbox { x, y, w, h, color } => cx.fill((*x, *y, *w, *h), *color),
-        Element::FillArea { thing } => cx.dither_fill(*thing),
-        Element::Box { x, y, w, h, color } => cx.stroke((*x, *y, *w, *h), *color),
-        Element::SpriteRemapped(idx, x, y, recolor) => {
-            cx.sprite_remapped(*idx, (*x, *y), recolor.clone());
-        }
-        Element::Container(children) => {
-            for child in children {
-                paint_elem(cx, child);
-            }
         }
     }
 }

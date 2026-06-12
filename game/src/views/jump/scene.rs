@@ -214,7 +214,7 @@ impl JumpScene {
     }
 
     pub fn handle_save_dialog_event(&self, event: &UiEvent) -> Option<bool> {
-        let action = self.save_dialog.borrow_mut().handle_ui_event(event);
+        let action = self.save_dialog.borrow_mut().handle_event(event);
         match action {
             Some(SaveAction::SaveReplay) => {
                 if let Some(trace) = self.replay_trace() {
@@ -263,7 +263,7 @@ impl JumpScene {
 
     pub fn render(&self, cx: &mut PaintCx<'_>) {
         if self.is_save_dialog_active() {
-            self.save_dialog.borrow().paint_on(cx);
+            self.save_dialog.borrow().paint(cx);
             return;
         }
         let records = self.store.records();

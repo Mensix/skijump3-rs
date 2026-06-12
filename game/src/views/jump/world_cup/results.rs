@@ -1,9 +1,9 @@
 use crate::competition::machine::Competition;
 use crate::competition::types::{CompetitionPhase, CupStyle, Participant, QualificationStatus};
-use crate::components::screen::list_background;
+
 use crate::gfx::palette::{
-    BG_RIGHT_BRIGHT, BLACK, FILL_DIM, FILL_HIGHLIGHT, FILL_TURQUOISE, FONT_DEFAULT, FONT_GREET,
-    FONT_HEADER, FONT_HELP,
+    BG_4HILLS, BG_LEFT, BG_RIGHT_BRIGHT, BG_WC, BLACK, FILL_DIM, FILL_HIGHLIGHT, FILL_TURQUOISE,
+    FONT_DEFAULT, FONT_GREET, FONT_HEADER, FONT_HELP,
 };
 use crate::gfx::sprites;
 use crate::store::ResourcesRef;
@@ -12,6 +12,21 @@ use engine::color::Rgba;
 use engine::oxide::PaintCx;
 
 pub const QUALIFICATION_ITEMS_PER_PAGE: usize = 25;
+
+fn list_background(phase: CompetitionPhase, style: CupStyle) -> Rgba {
+    match phase {
+        CompetitionPhase::FourHillsStandings => BG_4HILLS,
+        CompetitionPhase::WorldCupStandings => BG_WC,
+        CompetitionPhase::SeasonComplete => {
+            if matches!(style, CupStyle::FourHills | CupStyle::CustomCup) {
+                BG_4HILLS
+            } else {
+                BG_WC
+            }
+        }
+        _ => BG_LEFT,
+    }
+}
 
 mod ko;
 pub use ko::render_ko_pairs;
