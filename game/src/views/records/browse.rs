@@ -6,6 +6,8 @@ use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::format::{format_decimal, ordinal_dot};
 use crate::text::layout::{is_computer_name, lstr, shorten_name};
+use engine::oxide::legacy::{commands_to_elements, event_from_ui, paint_elements};
+use engine::oxide::{CommandBuffer, NavAction, PaintCx, Screen, ScreenEventCx, UiEvent};
 use engine::ui::{Cell, Table};
 use engine::ui::{Element, Event, View};
 
@@ -26,6 +28,35 @@ impl HallOfFameView {
             store,
             page: 0,
         }
+    }
+
+    fn legacy_elements(&self) -> Vec<Element> {
+        let mut els = if self.page >= 2 {
+            new_screen_with_bg(1, BG_KOTH)
+        } else {
+            match self.page {
+                1 => new_screen(4),
+                _ => new_screen(1),
+            }
+        };
+
+        match self.page {
+            0 => self.draw_list(&mut els, 0),
+            1 => {
+                self.draw_list(&mut els, 1);
+                self.draw_list(&mut els, 2);
+            }
+            _ => self.draw_koth_records(&mut els),
+        }
+
+        els.extend(page_hints(
+            self.page,
+            HALL_PAGES,
+            &lstr(&self.resources.langbase, 246, "Back"),
+            &lstr(&self.resources.langbase, 247, "Next"),
+            &lstr(&self.resources.langbase, 248, "End"),
+        ));
+        els
     }
 
     fn draw_list(&self, els: &mut Vec<Element>, phase: usize) {
@@ -178,36 +209,38 @@ impl HallOfFameView {
 
 impl View<RouteTarget> for HallOfFameView {
     fn elements(&self) -> Vec<Element> {
-        let mut els = if self.page >= 2 {
-            new_screen_with_bg(1, BG_KOTH)
-        } else {
-            match self.page {
-                1 => new_screen(4),
-                _ => new_screen(1),
-            }
-        };
-
-        match self.page {
-            0 => self.draw_list(&mut els, 0),
-            1 => {
-                self.draw_list(&mut els, 1);
-                self.draw_list(&mut els, 2);
-            }
-            _ => self.draw_koth_records(&mut els),
-        }
-
-        els.extend(page_hints(
-            self.page,
-            HALL_PAGES,
-            &lstr(&self.resources.langbase, 246, "Back"),
-            &lstr(&self.resources.langbase, 247, "Next"),
-            &lstr(&self.resources.langbase, 248, "End"),
-        ));
-        els
+        let mut commands = CommandBuffer::new();
+        let mut cx = PaintCx::new(&mut commands);
+        Screen::paint(self, &mut cx);
+        commands_to_elements(&commands)
     }
 
     fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {
-        page_nav::handle_paged_event(event, &mut self.page, HALL_PAGES)
+        let mut cx = ScreenEventCx::default();
+        Screen::event(self, &mut cx, event.into());
+        match cx.take_action() {
+            NavAction::Navigate(route) => Some(route),
+            NavAction::Back => Some(RouteTarget::Back),
+            NavAction::Quit => Some(RouteTarget::Quit),
+            NavAction::None => None,
+        }
+    }
+}
+
+impl Screen<RouteTarget> for HallOfFameView {
+    fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
+        let Some(event) = event_from_ui(event) else {
+            return;
+        };
+        if let Some(route) = page_nav::handle_paged_event(event, &mut self.page, HALL_PAGES) {
+            cx.navigate(route);
+        } else {
+            cx.consume();
+        }
+    }
+
+    fn paint(&self, cx: &mut PaintCx<'_>) {
+        paint_elements(cx, &self.legacy_elements());
     }
 }
 
@@ -229,6 +262,20 @@ impl HillRecordsView {
 
     fn pages(&self) -> usize {
         self.resources.hills.len().div_ceil(PAGE_SIZE).max(1)
+    }
+
+    fn legacy_elements(&self) -> Vec<Element> {
+        let pages = self.pages();
+        let mut els = new_screen(1);
+        self.draw_hill_records(&mut els);
+        els.extend(page_hints(
+            self.page,
+            pages,
+            &lstr(&self.resources.langbase, 246, "Back"),
+            &lstr(&self.resources.langbase, 247, "Next"),
+            &lstr(&self.resources.langbase, 248, "End"),
+        ));
+        els
     }
 
     fn draw_hill_records(&self, els: &mut Vec<Element>) {
@@ -352,21 +399,38 @@ fn format_ahi(sum: f64, total: f64) -> String {
 
 impl View<RouteTarget> for HillRecordsView {
     fn elements(&self) -> Vec<Element> {
-        let pages = self.pages();
-        let mut els = new_screen(1);
-        self.draw_hill_records(&mut els);
-        els.extend(page_hints(
-            self.page,
-            pages,
-            &lstr(&self.resources.langbase, 246, "Back"),
-            &lstr(&self.resources.langbase, 247, "Next"),
-            &lstr(&self.resources.langbase, 248, "End"),
-        ));
-        els
+        let mut commands = CommandBuffer::new();
+        let mut cx = PaintCx::new(&mut commands);
+        Screen::paint(self, &mut cx);
+        commands_to_elements(&commands)
     }
 
     fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {
+        let mut cx = ScreenEventCx::default();
+        Screen::event(self, &mut cx, event.into());
+        match cx.take_action() {
+            NavAction::Navigate(route) => Some(route),
+            NavAction::Back => Some(RouteTarget::Back),
+            NavAction::Quit => Some(RouteTarget::Quit),
+            NavAction::None => None,
+        }
+    }
+}
+
+impl Screen<RouteTarget> for HillRecordsView {
+    fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
+        let Some(event) = event_from_ui(event) else {
+            return;
+        };
         let pages = self.pages();
-        page_nav::handle_paged_event(event, &mut self.page, pages)
+        if let Some(route) = page_nav::handle_paged_event(event, &mut self.page, pages) {
+            cx.navigate(route);
+        } else {
+            cx.consume();
+        }
+    }
+
+    fn paint(&self, cx: &mut PaintCx<'_>) {
+        paint_elements(cx, &self.legacy_elements());
     }
 }
