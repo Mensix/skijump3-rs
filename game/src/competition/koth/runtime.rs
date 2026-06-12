@@ -65,7 +65,9 @@ impl KothRuntime {
         // Pascal: random swap for consecutive ties
         let mut i = 0;
         while i + 1 < sorted.len() {
-            if (sorted[i].1 - sorted[i + 1].1).abs() < f64::EPSILON && self.rng.random_i32(2) == 0 {
+            if (sorted[i].1 - sorted[i + 1].1).abs() < f64::EPSILON
+                && self.rng.random_i32(2) == 0
+            {
                 sorted.swap(i, i + 1);
                 i += 2;
             } else {
@@ -100,8 +102,9 @@ impl CompetitionRuntime for KothRuntime {
                     while self.current_participant_pos < self.participants.len() {
                         let p = &self.participants[self.current_participant_pos];
                         if p.is_alive() {
-                            let is_human =
-                                self.human_indices.contains(&self.current_participant_pos);
+                            let is_human = self
+                                .human_indices
+                                .contains(&self.current_participant_pos);
                             return CompetitionDecision::Jump {
                                 participant: p.to_jump_participant(),
                                 hill_idx: self.hill_idx,
@@ -119,7 +122,9 @@ impl CompetitionRuntime for KothRuntime {
                     }
 
                     // all participants processed for this jump round
-                    if self.current_jump_round == 0 && self.jump_rounds_per_elimination > 1 {
+                    if self.current_jump_round == 0
+                        && self.jump_rounds_per_elimination > 1
+                    {
                         self.current_jump_round = 1;
                         self.current_participant_pos = 0;
                         continue;
@@ -180,9 +185,7 @@ impl CompetitionRuntime for KothRuntime {
     }
 
     fn current_jump_context(&self) -> Self::Context {
-        let idx = self
-            .current_participant_pos
-            .min(self.participants.len().saturating_sub(1));
+        let idx = self.current_participant_pos.min(self.participants.len().saturating_sub(1));
         KothJumpContext {
             participant_idx: idx,
             elimination_round: self.current_elimination_round,

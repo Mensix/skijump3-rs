@@ -18,13 +18,13 @@ pub struct JumpMenuView {
 }
 
 const JUMP_MENU_ACTIONS: &[Option<RouteTarget>] = &[
-    None,                         // 1 - WorldCup (starts shared competition shell)
-    None,                         // 2 - CustomCup (opens setup)
-    None,                         // 3 - FourHills (starts shared competition shell)
-    None,                         // 4 - TeamCup (starts shared competition shell)
+    None,                        // 1 - WorldCup (starts shared competition shell)
+    None,                        // 2 - CustomCup (opens setup)
+    None,                        // 3 - FourHills (starts shared competition shell)
+    None,                        // 4 - TeamCup (starts shared competition shell)
     Some(RouteTarget::KothSetup), // 5 - King of the Hill
-    Some(RouteTarget::Practice),  // 6 - Practice
-    Some(RouteTarget::MainMenu),  // 7 - MainMenu
+    Some(RouteTarget::Practice), // 6 - Practice
+    Some(RouteTarget::MainMenu), // 7 - MainMenu
 ];
 
 impl JumpMenuView {

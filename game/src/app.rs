@@ -6,10 +6,10 @@ mod state;
 use crate::app::router::create_router;
 use crate::files::FileStore;
 use crate::route::RouteTarget;
-use engine::platform::Runtime;
+use engine::input::Input;
 use engine::sprite::SpriteData;
 use engine::ui::{Font, Router};
-use engine::video::TextureId;
+use engine::video::{Renderer, TextureId};
 use std::rc::Rc;
 
 use self::assets::LoadedAssets;
@@ -17,7 +17,9 @@ use self::rendering::FrameRenderer;
 use self::state::GameState;
 
 pub struct Game {
-    runtime: Runtime,
+    _sdl: sdl2::Sdl,
+    renderer: Renderer,
+    input: Input,
     font: Font,
     router: Router<RouteTarget>,
     sprites: Vec<SpriteData>,
@@ -27,7 +29,7 @@ pub struct Game {
 
 impl Game {
     pub fn new() -> Result<Self, String> {
-        let mut runtime = Runtime::new()?;
+        let (sdl, mut renderer, input) = Self::init_sdl()?;
 
         let save_dir = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
         let asset_dir = std::path::PathBuf::from("game/assets");
@@ -38,7 +40,7 @@ impl Game {
             font,
             main_background,
             sprites,
-        } = assets::load(&files, runtime.renderer_mut())?;
+        } = assets::load(&files, &mut renderer)?;
         let state = GameState::load(Rc::clone(&files), font.clone(), content_store)?;
         let start_route = if state.starts_with_welcome() {
             RouteTarget::Welcome
@@ -53,7 +55,9 @@ impl Game {
         );
 
         Ok(Self {
-            runtime,
+            _sdl: sdl,
+            renderer,
+            input,
             font,
             router,
             sprites,
@@ -62,8 +66,15 @@ impl Game {
         })
     }
 
+    fn init_sdl() -> Result<(sdl2::Sdl, Renderer, Input), String> {
+        let sdl = sdl2::init()?;
+        let renderer = Renderer::new(&sdl)?;
+        let input = Input::new(&sdl)?;
+        Ok((sdl, renderer, input))
+    }
+
     pub fn run(&mut self) -> Result<(), String> {
-        while self.runtime.input().running() {
+        while self.input.running() {
             if self.router.current_route() == Some(&RouteTarget::Quit) {
                 break;
             }
@@ -74,7 +85,7 @@ impl Game {
     }
 
     fn handle_input(&mut self) {
-        for event in self.runtime.input_mut().drain_events() {
+        for event in self.input.drain_events() {
             if let Some(target) = self.router.current_view_mut().handle_event(event) {
                 if target == RouteTarget::Back {
                     self.router.back();
@@ -88,7 +99,7 @@ impl Game {
     fn render_frame(&mut self) -> Result<(), String> {
         self.router.current_view_mut().update();
         self.frame_renderer.render(
-            self.runtime.renderer_mut(),
+            &mut self.renderer,
             &self.font,
             &self.sprites,
             &self.router,

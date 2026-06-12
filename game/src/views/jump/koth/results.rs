@@ -1,8 +1,6 @@
 use crate::competition::koth::types::KothRuntime;
 use crate::components::screen::page_hints;
-use crate::gfx::palette::{
-    BG_4HILLS, FILL_HIGHLIGHT, FILL_TURQUOISE, FONT_DEFAULT, FONT_HEADER, FONT_HELP,
-};
+use crate::gfx::palette::{BG_4HILLS, FILL_HIGHLIGHT, FILL_TURQUOISE, FONT_DEFAULT, FONT_HEADER, FONT_HELP};
 use crate::store::ResourcesRef;
 use crate::text::format::format_decimal;
 use engine::color::Rgba;
@@ -86,8 +84,8 @@ fn build_entries(c: &KothRuntime) -> (Vec<KothEntry>, usize, bool) {
                 }
             };
 
-            let is_last_eliminated =
-                !p.is_alive() && p.eliminated_in_round == c.current_elimination_round;
+            let is_last_eliminated = !p.is_alive()
+                && p.eliminated_in_round == c.current_elimination_round;
             let is_king = is_final && pos == 0;
 
             let cname = if p.competitor.real_name.is_empty() {

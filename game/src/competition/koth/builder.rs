@@ -15,7 +15,11 @@ pub fn build_koth(
     hill_count: usize,
     mut rng: Random,
 ) -> KothRuntime {
-    let kothpel: Vec<usize> = config.kothpel.iter().map(|&v| v as usize).collect();
+    let kothpel: Vec<usize> = config
+        .kothpel
+        .iter()
+        .map(|&v| v as usize)
+        .collect();
 
     let jump_rounds_per_elimination = config.kothrounds.max(1).min(2) as u8;
     let pack = config.kothpack.max(1).min(6) as u8;

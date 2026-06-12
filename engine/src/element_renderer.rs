@@ -4,8 +4,110 @@ use std::collections::HashMap;
 use crate::color::Rgba;
 use crate::consts::PATTERN_SPRITE;
 use crate::sprite::{SpriteColorRecolor, SpriteData};
-use crate::ui::{Element, Font};
+use crate::ui::{Element, Font, ImageRegion};
 use crate::video::{Renderer, TextureId};
+
+enum RenderCommand<'a> {
+    Fillbox {
+        x: i32,
+        y: i32,
+        w: i32,
+        h: i32,
+        color: Rgba,
+    },
+    Box {
+        x: i32,
+        y: i32,
+        w: i32,
+        h: i32,
+        color: Rgba,
+    },
+    FillArea {
+        thing: u8,
+    },
+    Text {
+        text: &'a str,
+        x: i32,
+        y: i32,
+        color: Rgba,
+        right: bool,
+        center: bool,
+    },
+    Sprite {
+        idx: u16,
+        x: i32,
+        y: i32,
+    },
+    SpriteRemapped {
+        idx: u16,
+        x: i32,
+        y: i32,
+        recolor: &'a SpriteColorRecolor,
+    },
+    Image {
+        pixels: &'a [u8],
+        w: u32,
+        h: u32,
+    },
+    ImageRegion(&'a ImageRegion),
+}
+
+fn flatten_elements<'a>(elements: &'a [Element], out: &mut Vec<RenderCommand<'a>>) {
+    for element in elements {
+        match element {
+            Element::Fillbox { x, y, w, h, color } => out.push(RenderCommand::Fillbox {
+                x: *x,
+                y: *y,
+                w: *w,
+                h: *h,
+                color: *color,
+            }),
+            Element::Box { x, y, w, h, color } => out.push(RenderCommand::Box {
+                x: *x,
+                y: *y,
+                w: *w,
+                h: *h,
+                color: *color,
+            }),
+            Element::FillArea { thing } => out.push(RenderCommand::FillArea { thing: *thing }),
+            Element::Text {
+                text,
+                x,
+                y,
+                color,
+                right,
+                center,
+            } => out.push(RenderCommand::Text {
+                text,
+                x: *x,
+                y: *y,
+                color: *color,
+                right: *right,
+                center: *center,
+            }),
+            Element::Sprite(idx, x, y) => out.push(RenderCommand::Sprite {
+                idx: *idx,
+                x: *x,
+                y: *y,
+            }),
+            Element::SpriteRemapped(idx, x, y, recolor) => {
+                out.push(RenderCommand::SpriteRemapped {
+                    idx: *idx,
+                    x: *x,
+                    y: *y,
+                    recolor,
+                })
+            }
+            Element::Image(pixels, w, h) => out.push(RenderCommand::Image {
+                pixels: pixels.as_ref(),
+                w: *w,
+                h: *h,
+            }),
+            Element::ImageRegion(region) => out.push(RenderCommand::ImageRegion(region)),
+            Element::Container(children) => flatten_elements(children, out),
+        }
+    }
+}
 
 struct DitherRect {
     x: i32,
@@ -16,9 +118,8 @@ struct DitherRect {
     is_box: bool,
 }
 
-// Dither-eligible fill colours — precomputed from the original Pascal
-// STANDARD_UI_PALETTE entries for palette indices 243/244/245 plus any
-// MuutaMenu-remapped equivalents (e.g. Team Cup bishop's purple).
+// Dither-eligible fill colours, including screen backgrounds and menu-remapped
+// equivalents that should receive the original patterned fill overlay.
 const DITHER_FILL_COLORS: [Rgba; 5] = [
     Rgba::from_rgb6(18, 13, 34), // 243 default (BG_LEFT)
     Rgba::from_rgb6(34, 13, 18), // 244 default (BG_RIGHT)
@@ -32,6 +133,78 @@ fn is_fill_area_dither_color(color: Rgba) -> bool {
 }
 
 const TEXT_SHADOW: Rgba = Rgba::rgb(0, 0, 0);
+
+struct DitherFillCollector {
+    pending: Vec<DitherRect>,
+    remaining_fill_areas: usize,
+}
+
+impl DitherFillCollector {
+    fn new(mut pending: Vec<DitherRect>, fill_area_count: usize) -> Self {
+        pending.clear();
+        Self {
+            pending,
+            remaining_fill_areas: fill_area_count,
+        }
+    }
+
+    const fn has_pending_fill_area(&self) -> bool {
+        self.remaining_fill_areas > 0
+    }
+
+    fn track_fillbox(&mut self, x: i32, y: i32, w: i32, h: i32, color: Rgba) {
+        self.track_rect(x, y, w, h, color, false);
+    }
+
+    fn track_box(&mut self, x: i32, y: i32, w: i32, h: i32, color: Rgba) {
+        self.track_rect(x, y, w, h, color, true);
+    }
+
+    fn track_rect(&mut self, x: i32, y: i32, w: i32, h: i32, color: Rgba, is_box: bool) {
+        if self.has_pending_fill_area() && is_fill_area_dither_color(color) {
+            self.pending.push(DitherRect {
+                x,
+                y,
+                w,
+                h,
+                color,
+                is_box,
+            });
+        }
+    }
+
+    fn apply_fill_area(
+        &mut self,
+        renderer: &mut Renderer,
+        sprites: &[SpriteData],
+        thing: u8,
+    ) -> Result<(), String> {
+        if let Some(pattern) = sprites.get(PATTERN_SPRITE) {
+            for rect in self.pending.iter() {
+                renderer.dither_overlay_rect(
+                    rect.x,
+                    rect.y,
+                    rect.w,
+                    rect.h,
+                    rect.color,
+                    rect.is_box,
+                    thing,
+                    &pattern.data,
+                )?;
+            }
+        }
+        if !self.pending.is_empty() {
+            renderer.flush_dither_overlay()?;
+            self.pending.clear();
+        }
+        self.remaining_fill_areas = self.remaining_fill_areas.saturating_sub(1);
+        Ok(())
+    }
+
+    fn into_pending(self) -> Vec<DitherRect> {
+        self.pending
+    }
+}
 
 // ---------------------------------------------------------------------------
 // Remapped sprite RGBA cache
@@ -51,6 +224,74 @@ struct RemappedSpriteCacheEntry {
     height: u16,
 }
 
+#[derive(Default)]
+struct RemappedSpriteCache {
+    entries: HashMap<RemappedSpriteCacheKey, RemappedSpriteCacheEntry>,
+    rgba_scratch: Vec<u8>,
+}
+
+impl RemappedSpriteCache {
+    fn draw(
+        &mut self,
+        renderer: &mut Renderer,
+        sprite_idx: u16,
+        x: i32,
+        y: i32,
+        recolor: &SpriteColorRecolor,
+        sprite: &SpriteData,
+    ) -> Result<(), String> {
+        let key = RemappedSpriteCacheKey {
+            sprite_idx,
+            recolor: recolor.clone(),
+        };
+
+        match self.entries.entry(key) {
+            Entry::Occupied(o) => draw_remapped_sprite_entry(renderer, o.get(), x, y),
+            Entry::Vacant(v) => {
+                sprite.render_recolored_rgba(recolor, &mut self.rgba_scratch);
+
+                if self.rgba_scratch.iter().any(|&b| b != 0) {
+                    let tex_id = renderer.create_rgba_texture(
+                        &self.rgba_scratch,
+                        u32::from(sprite.width),
+                        u32::from(sprite.height),
+                    )?;
+                    let entry = RemappedSpriteCacheEntry {
+                        texture_id: tex_id,
+                        center_x: sprite.center_x,
+                        center_y: sprite.center_y,
+                        width: sprite.width,
+                        height: sprite.height,
+                    };
+                    draw_remapped_sprite_entry(renderer, &entry, x, y)?;
+                    v.insert(entry);
+                }
+                Ok(())
+            }
+        }
+    }
+}
+
+fn draw_remapped_sprite_entry(
+    renderer: &mut Renderer,
+    entry: &RemappedSpriteCacheEntry,
+    x: i32,
+    y: i32,
+) -> Result<(), String> {
+    let dst_x = x - i32::from(entry.center_x);
+    let dst_y = y - i32::from(entry.center_y);
+    renderer.draw_texture(
+        entry.texture_id,
+        None,
+        Some(sdl2::rect::Rect::new(
+            dst_x,
+            dst_y,
+            u32::from(entry.width),
+            u32::from(entry.height),
+        )),
+    )
+}
+
 // ---------------------------------------------------------------------------
 // Text RGBA cache
 // ---------------------------------------------------------------------------
@@ -61,8 +302,6 @@ struct TextCacheKey {
     x: i32,
     y: i32,
     color: Rgba,
-    right: bool,
-    center: bool,
 }
 
 struct TextCacheEntry {
@@ -73,14 +312,88 @@ struct TextCacheEntry {
     height: u32,
 }
 
+#[derive(Default)]
+struct TextCache {
+    entries: HashMap<TextCacheKey, TextCacheEntry>,
+    rgba_scratch: Vec<u8>,
+}
+
+impl TextCache {
+    fn draw(
+        &mut self,
+        renderer: &mut Renderer,
+        font: &Font,
+        text: &str,
+        x: i32,
+        y: i32,
+        color: Rgba,
+        right: bool,
+        center: bool,
+    ) -> Result<(), String> {
+        let text_w = font.string_width(text) as i32;
+        let fx = if center {
+            x - text_w / 2
+        } else if right {
+            x - text_w
+        } else {
+            x
+        };
+
+        let key = TextCacheKey {
+            text: text.to_owned(),
+            x: fx,
+            y,
+            color,
+        };
+
+        match self.entries.entry(key) {
+            Entry::Occupied(o) => draw_text_entry(renderer, o.get()),
+            Entry::Vacant(v) => {
+                if let Some(bitmap) =
+                    font.render_string_rgba(text, fx, y, color, TEXT_SHADOW, &mut self.rgba_scratch)
+                {
+                    if bitmap.pixels.iter().any(|&b| b != 0) {
+                        let tex_id = renderer.create_rgba_texture(
+                            &bitmap.pixels,
+                            bitmap.width,
+                            bitmap.height,
+                        )?;
+                        let entry = TextCacheEntry {
+                            texture_id: tex_id,
+                            x: bitmap.x,
+                            y: bitmap.y,
+                            width: bitmap.width,
+                            height: bitmap.height,
+                        };
+                        draw_text_entry(renderer, &entry)?;
+                        v.insert(entry);
+                    }
+                }
+                Ok(())
+            }
+        }
+    }
+}
+
+fn draw_text_entry(renderer: &mut Renderer, entry: &TextCacheEntry) -> Result<(), String> {
+    renderer.draw_texture(
+        entry.texture_id,
+        None,
+        Some(sdl2::rect::Rect::new(
+            entry.x,
+            entry.y,
+            entry.width,
+            entry.height,
+        )),
+    )
+}
+
 /// Persistent context for element rendering.  Owns reusable per-frame
 /// scratch state so temporary allocations do not escape each frame.
 pub struct ElementRenderContext {
     pending_dither_rects: Vec<DitherRect>,
-    remapped_sprite_cache: HashMap<RemappedSpriteCacheKey, RemappedSpriteCacheEntry>,
-    remapped_rgba_scratch: Vec<u8>,
-    text_cache: HashMap<TextCacheKey, TextCacheEntry>,
-    text_rgba_scratch: Vec<u8>,
+    remapped_sprite_cache: RemappedSpriteCache,
+    text_cache: TextCache,
 }
 
 impl Default for ElementRenderContext {
@@ -94,10 +407,8 @@ impl ElementRenderContext {
     pub fn new() -> Self {
         Self {
             pending_dither_rects: Vec::new(),
-            remapped_sprite_cache: HashMap::new(),
-            remapped_rgba_scratch: Vec::new(),
-            text_cache: HashMap::new(),
-            text_rgba_scratch: Vec::new(),
+            remapped_sprite_cache: RemappedSpriteCache::default(),
+            text_cache: TextCache::default(),
         }
     }
 
@@ -109,18 +420,18 @@ impl ElementRenderContext {
         elements: &[Element],
         background: Option<TextureId>,
     ) -> Result<(), String> {
-        self.pending_dither_rects.clear();
+        let mut commands = Vec::with_capacity(elements.len());
+        flatten_elements(elements, &mut commands);
+
         let mut ew = ElementWorker {
             renderer,
             font,
             sprites,
             pending_dither_rects: &mut self.pending_dither_rects,
-            remapped_sprite_cache: &mut self.remapped_sprite_cache,
-            remapped_rgba_scratch: &mut self.remapped_rgba_scratch,
             text_cache: &mut self.text_cache,
-            text_rgba_scratch: &mut self.text_rgba_scratch,
+            remapped_sprite_cache: &mut self.remapped_sprite_cache,
         };
-        ew.render_frame(elements, background)
+        ew.render_frame(&commands, background)
     }
 }
 
@@ -133,16 +444,14 @@ struct ElementWorker<'a> {
     font: &'a Font,
     sprites: &'a [SpriteData],
     pending_dither_rects: &'a mut Vec<DitherRect>,
-    remapped_sprite_cache: &'a mut HashMap<RemappedSpriteCacheKey, RemappedSpriteCacheEntry>,
-    remapped_rgba_scratch: &'a mut Vec<u8>,
-    text_cache: &'a mut HashMap<TextCacheKey, TextCacheEntry>,
-    text_rgba_scratch: &'a mut Vec<u8>,
+    text_cache: &'a mut TextCache,
+    remapped_sprite_cache: &'a mut RemappedSpriteCache,
 }
 
 impl ElementWorker<'_> {
     fn render_frame(
         &mut self,
-        elements: &[Element],
+        commands: &[RenderCommand<'_>],
         background: Option<TextureId>,
     ) -> Result<(), String> {
         self.renderer.begin_frame();
@@ -150,81 +459,38 @@ impl ElementWorker<'_> {
             self.renderer.draw_texture(bg, None, None)?;
         }
 
-        let mut remaining_fill_areas = count_fill_areas(elements);
+        let fill_area_count = count_fill_area_commands(commands);
+        let pending_dither_rects = std::mem::take(self.pending_dither_rects);
+        let mut dither = DitherFillCollector::new(pending_dither_rects, fill_area_count);
 
-        for el in elements {
-            self.render_element(el, &mut remaining_fill_areas)?;
+        for command in commands {
+            self.render_command(command, &mut dither)?;
         }
+
+        *self.pending_dither_rects = dither.into_pending();
 
         self.renderer.end_frame();
         Ok(())
     }
 
-    fn render_element(
+    fn render_command(
         &mut self,
-        element: &Element,
-        remaining_fill_areas: &mut usize,
+        command: &RenderCommand<'_>,
+        dither: &mut DitherFillCollector,
     ) -> Result<(), String> {
-        match element {
-            Element::Fillbox { x, y, w, h, color } if *remaining_fill_areas > 0 => {
+        match command {
+            RenderCommand::Fillbox { x, y, w, h, color } => {
                 self.renderer.draw_fill_rect(*x, *y, *w, *h, *color)?;
-                if is_fill_area_dither_color(*color) {
-                    self.pending_dither_rects.push(DitherRect {
-                        x: *x,
-                        y: *y,
-                        w: *w,
-                        h: *h,
-                        color: *color,
-                        is_box: false,
-                    });
-                }
+                dither.track_fillbox(*x, *y, *w, *h, *color);
             }
-            Element::Box { x, y, w, h, color } if *remaining_fill_areas > 0 => {
+            RenderCommand::Box { x, y, w, h, color } => {
                 self.renderer.draw_box(*x, *y, *w, *h, *color)?;
-                if is_fill_area_dither_color(*color) {
-                    self.pending_dither_rects.push(DitherRect {
-                        x: *x,
-                        y: *y,
-                        w: *w,
-                        h: *h,
-                        color: *color,
-                        is_box: true,
-                    });
-                }
+                dither.track_box(*x, *y, *w, *h, *color);
             }
-            Element::Fillbox { x, y, w, h, color } => {
-                self.renderer.draw_fill_rect(*x, *y, *w, *h, *color)?;
+            RenderCommand::FillArea { thing } => {
+                dither.apply_fill_area(self.renderer, self.sprites, *thing)?;
             }
-            Element::Box { x, y, w, h, color } => {
-                self.renderer.draw_box(*x, *y, *w, *h, *color)?;
-            }
-            Element::FillArea { thing } => {
-                if let Some(pattern) = self.sprites.get(PATTERN_SPRITE) {
-                    for dr in self.pending_dither_rects.iter() {
-                        self.renderer.dither_overlay_rect(
-                            dr.x,
-                            dr.y,
-                            dr.w,
-                            dr.h,
-                            dr.color,
-                            dr.is_box,
-                            *thing,
-                            &pattern.data,
-                        )?;
-                    }
-                }
-                if !self.pending_dither_rects.is_empty() {
-                    self.renderer.flush_dither_overlay()?;
-                    self.pending_dither_rects.clear();
-                }
-                *remaining_fill_areas = remaining_fill_areas.saturating_sub(1);
-            }
-            Element::Container(children) => {
-                for child in children {
-                    self.render_element(child, remaining_fill_areas)?;
-                }
-            }
-            Element::Text {
+            RenderCommand::Text {
                 text,
                 x,
                 y,
@@ -232,67 +498,18 @@ impl ElementWorker<'_> {
                 right,
                 center,
             } => {
-                let text_w = self.font.string_width(text) as i32;
-                let fx = if *center {
-                    x - text_w / 2
-                } else if *right {
-                    x - text_w
-                } else {
-                    *x
-                };
-
-                let key = TextCacheKey {
-                    text: text.clone(),
-                    x: fx,
-                    y: *y,
-                    color: *color,
-                    right: *right,
-                    center: *center,
-                };
-
-                match self.text_cache.entry(key) {
-                    Entry::Occupied(o) => {
-                        let e = o.get();
-                        self.renderer.draw_texture(
-                            e.texture_id,
-                            None,
-                            Some(sdl2::rect::Rect::new(e.x, e.y, e.width, e.height)),
-                        )?;
-                    }
-                    Entry::Vacant(v) => {
-                        if let Some(bitmap) = self.font.render_string_rgba(
-                            text,
-                            fx,
-                            *y,
-                            *color,
-                            TEXT_SHADOW,
-                            self.text_rgba_scratch,
-                        ) {
-                            if bitmap.pixels.iter().any(|&b| b != 0) {
-                                let tex_id = self.renderer.create_rgba_texture(
-                                    &bitmap.pixels,
-                                    bitmap.width,
-                                    bitmap.height,
-                                )?;
-                                let e = TextCacheEntry {
-                                    texture_id: tex_id,
-                                    x: bitmap.x,
-                                    y: bitmap.y,
-                                    width: bitmap.width,
-                                    height: bitmap.height,
-                                };
-                                self.renderer.draw_texture(
-                                    e.texture_id,
-                                    None,
-                                    Some(sdl2::rect::Rect::new(e.x, e.y, e.width, e.height)),
-                                )?;
-                                v.insert(e);
-                            }
-                        }
-                    }
-                }
+                self.text_cache.draw(
+                    self.renderer,
+                    self.font,
+                    text,
+                    *x,
+                    *y,
+                    *color,
+                    *right,
+                    *center,
+                )?;
             }
-            Element::Sprite(idx, x, y) => {
+            RenderCommand::Sprite { idx, x, y } => {
                 if let Some(sprite) = self.sprites.get(*idx as usize) {
                     if let Some(bitmap) = sprite.render_rgba_bitmap(*x, *y) {
                         self.renderer.draw_rgba_region_pixels(
@@ -309,71 +526,23 @@ impl ElementWorker<'_> {
                     }
                 }
             }
-            Element::SpriteRemapped(idx, x, y, recolor) => {
+            RenderCommand::SpriteRemapped { idx, x, y, recolor } => {
                 if let Some(sprite) = self.sprites.get(*idx as usize) {
-                    let key = RemappedSpriteCacheKey {
-                        sprite_idx: *idx,
-                        recolor: recolor.clone(),
-                    };
-
-                    match self.remapped_sprite_cache.entry(key) {
-                        Entry::Occupied(o) => {
-                            let e = o.get();
-                            let dst_x = *x - i32::from(e.center_x);
-                            let dst_y = *y - i32::from(e.center_y);
-                            self.renderer.draw_texture(
-                                e.texture_id,
-                                None,
-                                Some(sdl2::rect::Rect::new(
-                                    dst_x,
-                                    dst_y,
-                                    u32::from(e.width),
-                                    u32::from(e.height),
-                                )),
-                            )?;
-                        }
-                        Entry::Vacant(v) => {
-                            sprite.render_recolored_rgba(recolor, self.remapped_rgba_scratch);
-
-                            // Only create a texture when at least one opaque
-                            // pixel exists (saves a GPU upload for invisible
-                            // animation frames / fully-transparent sprites).
-                            if self.remapped_rgba_scratch.iter().any(|&b| b != 0) {
-                                let tex_id = self.renderer.create_rgba_texture(
-                                    self.remapped_rgba_scratch,
-                                    u32::from(sprite.width),
-                                    u32::from(sprite.height),
-                                )?;
-                                let e = RemappedSpriteCacheEntry {
-                                    texture_id: tex_id,
-                                    center_x: sprite.center_x,
-                                    center_y: sprite.center_y,
-                                    width: sprite.width,
-                                    height: sprite.height,
-                                };
-                                let dst_x = *x - i32::from(e.center_x);
-                                let dst_y = *y - i32::from(e.center_y);
-                                self.renderer.draw_texture(
-                                    e.texture_id,
-                                    None,
-                                    Some(sdl2::rect::Rect::new(
-                                        dst_x,
-                                        dst_y,
-                                        u32::from(e.width),
-                                        u32::from(e.height),
-                                    )),
-                                )?;
-                                v.insert(e);
-                            }
-                        }
-                    }
+                    self.remapped_sprite_cache.draw(
+                        self.renderer,
+                        *idx,
+                        *x,
+                        *y,
+                        recolor,
+                        sprite,
+                    )?;
                 }
             }
-            Element::Image(pixels, w, h) => {
+            RenderCommand::Image { pixels, w, h } => {
                 self.renderer
                     .draw_rgba_region_pixels(pixels, *w, *h, 0, 0, 0, 0, *w, *h)?;
             }
-            Element::ImageRegion(region) => {
+            RenderCommand::ImageRegion(region) => {
                 self.renderer.draw_rgba_region_pixels(
                     &region.pixels,
                     region.src_w,
@@ -391,10 +560,19 @@ impl ElementWorker<'_> {
     }
 }
 
+#[cfg(test)]
 fn count_fill_areas(elements: &[Element]) -> usize {
     elements.iter().map(count_fill_areas_in_element).sum()
 }
 
+fn count_fill_area_commands(commands: &[RenderCommand<'_>]) -> usize {
+    commands
+        .iter()
+        .filter(|command| matches!(command, RenderCommand::FillArea { .. }))
+        .count()
+}
+
+#[cfg(test)]
 fn count_fill_areas_in_element(element: &Element) -> usize {
     match element {
         Element::FillArea { .. } => 1,

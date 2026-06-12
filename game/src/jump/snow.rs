@@ -1,14 +1,26 @@
-use crate::gfx::palette;
 use crate::rng::Random;
+use engine::color::Rgba;
 use engine::consts::{HEIGHT, WIDTH};
 
 const SNOW_MAX: usize = 256;
 const SINE_LENGTH: usize = 512;
 const BG_MIN: u8 = 64;
 const BG_MAX: u8 = 215;
+const SNOW_COLOR_BASE: u8 = 232;
+const SNOW_COLORS: [Rgba; 4] = [
+    Rgba::from_rgb6(40, 40, 41),
+    Rgba::from_rgb6(48, 48, 49),
+    Rgba::from_rgb6(55, 55, 56),
+    Rgba::from_rgb6(63, 63, 63),
+];
 
 fn snow_index_to_rgba(idx: u8) -> [u8; 4] {
-    palette::standard_ui_rgba_bytes(idx).unwrap_or([255, 255, 255, 255])
+    let offset = idx.saturating_sub(SNOW_COLOR_BASE) as usize;
+    let rgba = SNOW_COLORS
+        .get(offset)
+        .copied()
+        .unwrap_or(Rgba::rgb(255, 255, 255));
+    [rgba.r, rgba.g, rgba.b, rgba.a]
 }
 
 #[derive(Debug, Clone)]
@@ -230,8 +242,7 @@ mod tests {
         let (mut rgba, mask) = make_buffer_and_mask();
         snow.update(&mut rgba, &mask, 0, 0, 0, false);
 
-        // Snow index 233 maps through the standard UI RGBA colors to gray.
-        let expected_rgba = palette::standard_ui_rgba_bytes(233).unwrap();
+        let expected_rgba = snow_index_to_rgba(233);
         let pixel_start = 64 * 4;
         assert_eq!(&rgba[pixel_start..pixel_start + 4], &expected_rgba);
     }
@@ -248,7 +259,7 @@ mod tests {
         let (mut rgba, mask) = make_buffer_and_mask();
         snow.update(&mut rgba, &mask, 0, 0, 0, false);
 
-        let expected_233 = palette::standard_ui_rgba_bytes(233).unwrap();
+        let expected_233 = snow_index_to_rgba(233);
         let pixel0 = (10 + 10 * WIDTH as usize) * 4;
         assert_eq!(&rgba[pixel0..pixel0 + 4], &expected_233);
 
