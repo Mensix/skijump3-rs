@@ -57,7 +57,6 @@ pub(super) enum Mode {
         selector: NumericSelector,
         color_x: i32,
         color_y: i32,
-        color_width: i32,
         color_max: usize,
         color_suit: bool,
     },

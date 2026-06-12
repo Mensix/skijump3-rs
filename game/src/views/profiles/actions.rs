@@ -104,7 +104,6 @@ pub(super) fn handle_edit_enter(view: &mut ProfilesView, profile: usize, selecte
                 selector: NumericSelector::new(x, 24, 31, NUM_SUITS - 1, value, BLACK, FONT_DEFAULT, ""),
                 color_x: x,
                 color_y: 24,
-                color_width: 31,
                 color_max: NUM_SUITS - 1,
                 color_suit: true,
             };
@@ -125,7 +124,6 @@ pub(super) fn handle_edit_enter(view: &mut ProfilesView, profile: usize, selecte
                 selector: NumericSelector::new(x, 32, 31, NUM_SKIS - 1, value, BLACK, FONT_DEFAULT, ""),
                 color_x: x,
                 color_y: 32,
-                color_width: 31,
                 color_max: NUM_SKIS - 1,
                 color_suit: false,
             };

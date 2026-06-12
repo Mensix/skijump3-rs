@@ -1,17 +1,18 @@
 use crate::competition::factory;
-use crate::components::menu::{Menu, MenuItem};
 use crate::gfx::palette::{BG_LEFT, BLACK, FILL_DIM, FONT_DEFAULT, FONT_GOLD, FONT_GREET};
 use crate::gfx::sprites;
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::format;
-use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent};
-use engine::ui::{Component, Event, Key};
+use engine::oxide::input::Key;
+use engine::oxide::widget::EventCx;
+use engine::oxide::widgets::menu::{MenuItem as OxideMenuItem, PixelMenu};
+use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent, Widget};
 
 pub struct TrainingSetupView {
     resources: ResourcesRef,
     store: StoreRef,
-    menu: Menu,
+    menu: PixelMenu,
     start: usize,
     total: usize,
 }
@@ -43,20 +44,19 @@ impl TrainingSetupView {
         let start = if total > 20 { selected / 20 * 20 } else { 0 };
         let page_n = (total.saturating_sub(start)).min(20);
         let n = page_n + usize::from(total > 20);
-        let items = (0..n).map(|_| MenuItem::new(0, 0)).collect();
-        let mut menu = Menu::new(
+        let items = (0..n).map(|_| OxideMenuItem::new(0, "")).collect();
+        let mut menu = PixelMenu::new(
             110,
             11,
             170,
             8,
             items,
-            &resources.langbase,
             FONT_DEFAULT,
             FONT_DEFAULT,
         )
         .with_labels(false)
         .with_box(false)
-        .with_exit(154, 16);
+        .with_exit("", 16);
         menu.set_selected(selected.saturating_sub(start).min(page_n.saturating_sub(1)));
 
         Self {
@@ -68,23 +68,22 @@ impl TrainingSetupView {
         }
     }
 
-    fn rebuild_menu(&self) -> Menu {
+    fn rebuild_menu(&self) -> PixelMenu {
         let page_n = self.page_items();
         let n = page_n + usize::from(self.has_more());
-        let items = (0..n).map(|_| MenuItem::new(0, 0)).collect();
-        Menu::new(
+        let items = (0..n).map(|_| OxideMenuItem::new(0, "")).collect();
+        PixelMenu::new(
             110,
             11,
             170,
             8,
             items,
-            &self.resources.langbase,
             FONT_DEFAULT,
             FONT_DEFAULT,
         )
         .with_labels(false)
         .with_box(false)
-        .with_exit(154, 16)
+        .with_exit("", 16)
     }
 
     fn confirm(&mut self) -> Option<RouteTarget> {
@@ -152,13 +151,13 @@ impl TrainingSetupView {
         cx.stroke((bx, by, 171, 9), FONT_DEFAULT);
     }
 
-    fn handle_input(&mut self, event: Event) -> Option<RouteTarget> {
-        match &event {
-            Event::Keyboard(Key::Escape) => {
+    fn handle_input(&mut self, ecx: &mut EventCx, event: UiEvent) -> Option<RouteTarget> {
+        match event {
+            UiEvent::KeyDown(Key::Escape) => {
                 return Some(RouteTarget::Back);
             }
-            Event::Keyboard(Key::Char(ch)) if '1' <= *ch && *ch <= '9' => {
-                let n = *ch as usize - '0' as usize;
+            UiEvent::Text(ch) if ch.is_ascii_digit() && ch != '0' => {
+                let n = ch as usize - '0' as usize;
                 let menu_n = self.menu.item_count();
                 if n <= menu_n {
                     self.menu.set_selected(n - 1);
@@ -166,33 +165,32 @@ impl TrainingSetupView {
                 }
                 return None;
             }
-            Event::Keyboard(_) => {}
+            _ => {}
         }
-        self.menu
-            .handle_event(&event)
-            .and_then(|_idx| self.confirm())
+        if let Some(_idx) = self.menu.event(ecx, event) {
+            self.confirm()
+        } else {
+            None
+        }
     }
 }
 
 impl Screen<RouteTarget> for TrainingSetupView {
     fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
-        let Some(event) = input_from_ui(event) else {
-            return;
-        };
-        if let Some(route) = self.handle_input(event) {
+        match event {
+            UiEvent::Quit | UiEvent::Tick => return,
+            _ => {}
+        }
+        let mut ecx = EventCx::default();
+        if let Some(route) = self.handle_input(&mut ecx, event) {
             cx.navigate(route);
+        }
+        if ecx.is_consumed() {
+            cx.consume();
         }
     }
 
     fn paint(&self, cx: &mut PaintCx<'_>) {
         self.paint_content(cx);
-    }
-}
-
-fn input_from_ui(event: UiEvent) -> Option<Event> {
-    match event {
-        UiEvent::KeyDown(key) => Some(Event::Keyboard(key)),
-        UiEvent::Text(c) => Some(Event::Keyboard(Key::Char(c))),
-        UiEvent::Quit | UiEvent::Tick => None,
     }
 }
