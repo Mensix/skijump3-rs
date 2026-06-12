@@ -1,6 +1,6 @@
 use crate::competition::factory;
 use crate::components::screen;
-use crate::gfx::palette::{FONT_DEFAULT, FONT_GOLD, FONT_HELP, FILL_DIM};
+use crate::gfx::palette::{FILL_DIM, FONT_DEFAULT, FONT_GOLD, FONT_HELP};
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::layout::shorten_name;
@@ -26,10 +26,7 @@ pub struct KothSetupView {
 impl KothSetupView {
     pub fn new(resources: ResourcesRef, store: StoreRef) -> Self {
         let pack = resources.save_manager.config.borrow().kothpack;
-        crate::competition::koth::builder::apply_koth_pack(
-            &resources.save_manager,
-            pack as u8,
-        );
+        crate::competition::koth::builder::apply_koth_pack(&resources.save_manager, pack as u8);
         Self {
             resources,
             store,
@@ -49,12 +46,20 @@ impl KothSetupView {
 
     fn col1(&self) -> engine::color::Rgba {
         let cfg = self.config();
-        if cfg.kothpack > 0 { FONT_HELP } else { FONT_DEFAULT }
+        if cfg.kothpack > 0 {
+            FONT_HELP
+        } else {
+            FONT_DEFAULT
+        }
     }
 
     fn col2(&self) -> engine::color::Rgba {
         let cfg = self.config();
-        if cfg.kothpack > 0 { FONT_HELP } else { FONT_GOLD }
+        if cfg.kothpack > 0 {
+            FONT_HELP
+        } else {
+            FONT_GOLD
+        }
     }
 }
 
@@ -68,12 +73,20 @@ impl View<RouteTarget> for KothSetupView {
         if cfg.koth_count > 0 {
             for i in 0..cfg.koth_count.min(20) as usize {
                 let idx = cfg.kothpel.get(i).copied().unwrap_or(1) as usize;
-                let name = self.resources.player_names()
+                let name = self
+                    .resources
+                    .player_names()
                     .get(idx - 1)
                     .map(|s| shorten_name(s, &self.resources.font, 110))
                     .unwrap_or_else(|| "?".to_string());
                 let y = (20 + (i + 1) * 8) as i32;
-                els.push(Element::text(&format!("{} #{}", name, idx), 180, y, FONT_GOLD, false));
+                els.push(Element::text(
+                    &format!("{} #{}", name, idx),
+                    180,
+                    y,
+                    FONT_GOLD,
+                    false,
+                ));
             }
         } else {
             els.push(Element::text(lang.lstr(9), 180, 30, FONT_GOLD, false));
@@ -87,24 +100,78 @@ impl View<RouteTarget> for KothSetupView {
         els.push(Element::fill_area(63));
 
         // --- left panel: menu items ---
-        els.push(Element::text(&format!("1 - {}", lang.lstr(121)), 10, 10, FONT_DEFAULT, false));
-        els.push(Element::text(&format!("2 - {}", lang.lstr(122)), 10, 20, FONT_DEFAULT, false));
-        els.push(Element::text(&format!("3 - {}", lang.lstr(123)), 10, 30, self.col1(), false));
-        els.push(Element::text(&format!("4 - {}", lang.lstr(124)), 10, 40, self.col1(), false));
+        els.push(Element::text(
+            &format!("1 - {}", lang.lstr(121)),
+            10,
+            10,
+            FONT_DEFAULT,
+            false,
+        ));
+        els.push(Element::text(
+            &format!("2 - {}", lang.lstr(122)),
+            10,
+            20,
+            FONT_DEFAULT,
+            false,
+        ));
+        els.push(Element::text(
+            &format!("3 - {}", lang.lstr(123)),
+            10,
+            30,
+            self.col1(),
+            false,
+        ));
+        els.push(Element::text(
+            &format!("4 - {}", lang.lstr(124)),
+            10,
+            40,
+            self.col1(),
+            false,
+        ));
         let hill_name = if cfg.kothmaki == 0 {
             lang.lstr(155)
         } else {
-            self.resources.hills.hill(cfg.kothmaki as usize - 1)
+            self.resources
+                .hills
+                .hill(cfg.kothmaki as usize - 1)
                 .map(|h| h.name.as_str())
                 .unwrap_or("?")
         };
         els.push(Element::text(hill_name, 80, 40, self.col2(), false));
-        els.push(Element::text(&format!("5 - {}", lang.lstr(125)), 10, 50, self.col1(), false));
-        let wind_str = if cfg.kothwind != 0 { lang.lstr(6) } else { lang.lstr(7) };
+        els.push(Element::text(
+            &format!("5 - {}", lang.lstr(125)),
+            10,
+            50,
+            self.col1(),
+            false,
+        ));
+        let wind_str = if cfg.kothwind != 0 {
+            lang.lstr(6)
+        } else {
+            lang.lstr(7)
+        };
         els.push(Element::text(wind_str, 80, 50, self.col2(), false));
-        els.push(Element::text(&format!("6 - {}", lang.lstr(126)), 10, 60, self.col1(), false));
-        els.push(Element::text(lang.lstr(cfg.kothrounds as usize), 80, 60, self.col2(), false));
-        els.push(Element::text(&format!("0 - {}", lang.lstr(127)), 10, 80, FONT_DEFAULT, false));
+        els.push(Element::text(
+            &format!("6 - {}", lang.lstr(126)),
+            10,
+            60,
+            self.col1(),
+            false,
+        ));
+        els.push(Element::text(
+            lang.lstr(cfg.kothrounds as usize),
+            80,
+            60,
+            self.col2(),
+            false,
+        ));
+        els.push(Element::text(
+            &format!("0 - {}", lang.lstr(127)),
+            10,
+            80,
+            FONT_DEFAULT,
+            false,
+        ));
 
         // --- left panel bottom: K.O.T.H Challenge Level (gold, Pascal 246) ---
         els.push(Element::text(lang.lstr(130), 10, 110, FONT_GOLD, false));
@@ -115,13 +182,25 @@ impl View<RouteTarget> for KothSetupView {
         for pack in 1..=7u8 {
             let title = koth_pack_title(pack, lang);
             // In pack mode all items are white (Pascal kothchallenge(x,255))
-            let color = if is_pack_mode { FONT_DEFAULT } else {
-                let selected_pack = if cfg.kothpack == 0 { 7u8 } else { cfg.kothpack as u8 };
-                if selected_pack == pack { FONT_DEFAULT } else { FONT_HELP }
+            let color = if is_pack_mode {
+                FONT_DEFAULT
+            } else {
+                let selected_pack = if cfg.kothpack == 0 {
+                    7u8
+                } else {
+                    cfg.kothpack as u8
+                };
+                if selected_pack == pack {
+                    FONT_DEFAULT
+                } else {
+                    FONT_HELP
+                }
             };
             els.push(Element::text(&title, 10, py, color, false));
             py += 8;
-            if pack == 6 { py += 8; }
+            if pack == 6 {
+                py += 8;
+            }
         }
 
         match self.mode.get() {
@@ -228,7 +307,8 @@ impl KothSetupView {
             2 => {
                 let cfg = self.config();
                 let pack = cfg.kothpack;
-                self.pack_cursor.set(if pack == 0 { 0 } else { pack as usize });
+                self.pack_cursor
+                    .set(if pack == 0 { 0 } else { pack as usize });
                 self.mode.set(KothMode::Packs);
                 None
             }
@@ -252,7 +332,13 @@ impl KothSetupView {
         let config = self.config();
         let hill_count = self.resources.hills.len();
         let comp = self.store.with_jump_rng_wind_mut(|rng, _| {
-            factory::koth(&config, &profiles, self.resources.player_names(), hill_count, rng.clone())
+            factory::koth(
+                &config,
+                &profiles,
+                self.resources.player_names(),
+                hill_count,
+                rng.clone(),
+            )
         });
         drop(profiles);
         self.store.start_active(comp);
@@ -261,7 +347,11 @@ impl KothSetupView {
 }
 
 fn pack_cursor_y(cur: usize) -> i32 {
-    if cur == 0 { 176 } else { 120 + (cur as i32 - 1) * 8 }
+    if cur == 0 {
+        176
+    } else {
+        120 + (cur as i32 - 1) * 8
+    }
 }
 
 fn koth_pack_title(pack: u8, lang: &LangBase) -> String {

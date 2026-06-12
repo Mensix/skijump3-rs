@@ -25,10 +25,7 @@ impl KothJumpView {
         }
     }
 
-    fn apply_command(
-        &mut self,
-        command: CompetitionFlowCommand<KothJumpContext, KothResultsKind>,
-    ) {
+    fn apply_command(&mut self, command: CompetitionFlowCommand<KothJumpContext, KothResultsKind>) {
         match command {
             CompetitionFlowCommand::HumanJump {
                 participant,
@@ -65,7 +62,8 @@ impl KothJumpView {
     }
 
     fn dismiss_results_and_advance(&mut self) {
-        self.controller.dismiss_results_and_advance(KothResultsKind::Results);
+        self.controller
+            .dismiss_results_and_advance(KothResultsKind::Results);
     }
 }
 
@@ -119,7 +117,10 @@ impl View<RouteTarget> for KothJumpView {
         }
 
         if self.is_result_display_state() {
-            if matches!(event, Event::Keyboard(Key::Right | Key::Char(' ') | Key::Enter | Key::Escape)) {
+            if matches!(
+                event,
+                Event::Keyboard(Key::Right | Key::Char(' ') | Key::Enter | Key::Escape)
+            ) {
                 self.dismiss_results_and_advance();
             }
             return None;

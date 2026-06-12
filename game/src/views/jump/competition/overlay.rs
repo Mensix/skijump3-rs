@@ -95,10 +95,7 @@ impl OverlayData {
         }
     }
 
-    fn from_koth(
-        c: &crate::competition::koth::types::KothRuntime,
-        coach_style: u8,
-    ) -> Self {
+    fn from_koth(c: &crate::competition::koth::types::KothRuntime, coach_style: u8) -> Self {
         let alive = c.participants.iter().filter(|p| p.is_alive()).count();
         Self {
             phase: crate::competition::types::CompetitionPhase::Round1,
@@ -225,7 +222,10 @@ impl CompetitionOverlay {
                     .current_participant
                     .as_ref()
                     .is_some_and(|p| !p.is_computer)
-                && matches!(scene_phase, JumpPhase::Info | JumpPhase::OnBar | JumpPhase::Result)
+                && matches!(
+                    scene_phase,
+                    JumpPhase::Info | JumpPhase::OnBar | JumpPhase::Result
+                )
             {
                 return OverlayKind::Coach;
             }
@@ -300,7 +300,12 @@ impl CompetitionOverlay {
         } else {
             self.coach_range(lang, base + 10, t.grade / 10, &[5, 8, 9, 10, 11, 20])
         };
-        let cstr2 = self.coach_range(lang, base + 18, t.takeoff_timing, &[5, 9, 12, 15, 16, 19, 23, 50]);
+        let cstr2 = self.coach_range(
+            lang,
+            base + 18,
+            t.takeoff_timing,
+            &[5, 9, 12, 15, 16, 19, 23, 50],
+        );
         let cstr3 = self.coach_range(lang, base + 28, t.height, &[49, 55, 60, 64, 70, 90, 200]);
 
         let cstr0 = if t.grade < 10 { cstr1.clone() } else { cstr0 };
