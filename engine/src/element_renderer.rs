@@ -1,11 +1,38 @@
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
+use std::rc::Rc;
 
 use crate::color::Rgba;
 use crate::consts::PATTERN_SPRITE;
 use crate::sprite::{SpriteColorRecolor, SpriteData};
-use crate::ui::{Element, Font, ImageRegion};
+use crate::ui::Font;
 use crate::video::{Renderer, TextureId};
+
+#[derive(Debug, Clone)]
+struct ImageRegion {
+    pixels: Rc<[u8]>,
+    src_w: u32,
+    src_h: u32,
+    src_x: i32,
+    src_y: i32,
+    dst_x: i32,
+    dst_y: i32,
+    w: u32,
+    h: u32,
+}
+
+#[derive(Debug, Clone)]
+enum Element {
+    Image(Rc<[u8]>, u32, u32),
+    ImageRegion(ImageRegion),
+    Text { text: String, x: i32, y: i32, color: Rgba, right: bool, center: bool },
+    Sprite(u16, i32, i32),
+    Fillbox { x: i32, y: i32, w: i32, h: i32, color: Rgba },
+    FillArea { thing: u8 },
+    Box { x: i32, y: i32, w: i32, h: i32, color: Rgba },
+    SpriteRemapped(u16, i32, i32, SpriteColorRecolor),
+    Container(Vec<Element>),
+}
 
 enum RenderCommand<'a> {
     Fillbox {

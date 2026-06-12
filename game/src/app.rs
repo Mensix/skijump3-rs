@@ -86,7 +86,7 @@ impl Game {
 
     fn handle_input(&mut self) {
         for event in self.input.drain_events() {
-            self.router.handle_event(event.into());
+            self.router.handle_event(event);
         }
     }
 

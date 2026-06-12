@@ -1,4 +1,4 @@
-use crate::ui::{Event, Key};
+use crate::oxide::input::{Key, UiEvent};
 use sdl2::EventPump;
 use std::collections::HashSet;
 
@@ -18,13 +18,16 @@ impl Input {
         })
     }
 
-    pub fn drain_events(&mut self) -> Vec<Event> {
+    pub fn drain_events(&mut self) -> Vec<UiEvent> {
         use sdl2::event::Event as SdlEvent;
         use sdl2::keyboard::Keycode;
         let mut events = Vec::new();
         for event in self.event_pump.poll_iter() {
             match event {
-                SdlEvent::Quit { .. } => self.running = false,
+                SdlEvent::Quit { .. } => {
+                    self.running = false;
+                    events.push(UiEvent::Quit);
+                }
                 SdlEvent::KeyDown {
                     keycode: Some(k),
                     keymod,
@@ -48,16 +51,16 @@ impl Input {
                         Keycode::Backspace => Key::Backspace,
                         Keycode::Delete => Key::Delete,
                         Keycode::F5 => Key::F5,
-                        Keycode::Space => Key::Char(' '),
-                        Keycode::Minus | Keycode::KpMinus => Key::Char('-'),
-                        Keycode::Equals if shifted => Key::Char('+'),
-                        Keycode::KpPlus => Key::Char('+'),
-                        Keycode::Period => Key::Char('.'),
-                        Keycode::Comma => Key::Char(','),
-                        Keycode::Hash => Key::Char('#'),
-                        Keycode::Exclaim => Key::Char('!'),
-                        Keycode::LeftParen => Key::Char('('),
-                        Keycode::RightParen => Key::Char(')'),
+                        Keycode::Space => { events.push(UiEvent::Text(' ')); continue; }
+                        Keycode::Minus | Keycode::KpMinus => { events.push(UiEvent::Text('-')); continue; }
+                        Keycode::Equals if shifted => { events.push(UiEvent::Text('+')); continue; }
+                        Keycode::KpPlus => { events.push(UiEvent::Text('+')); continue; }
+                        Keycode::Period => { events.push(UiEvent::Text('.')); continue; }
+                        Keycode::Comma => { events.push(UiEvent::Text(',')); continue; }
+                        Keycode::Hash => { events.push(UiEvent::Text('#')); continue; }
+                        Keycode::Exclaim => { events.push(UiEvent::Text('!')); continue; }
+                        Keycode::LeftParen => { events.push(UiEvent::Text('(')); continue; }
+                        Keycode::RightParen => { events.push(UiEvent::Text(')')); continue; }
                         Keycode::A => Key::Char(if shifted { 'A' } else { 'a' }),
                         Keycode::B => Key::Char(if shifted { 'B' } else { 'b' }),
                         Keycode::C => Key::Char(if shifted { 'C' } else { 'c' }),
@@ -96,7 +99,7 @@ impl Input {
                         Keycode::Num9 => Key::Char('9'),
                         _ => continue,
                     };
-                    events.push(Event::Keyboard(mapped));
+                    events.push(UiEvent::KeyDown(mapped));
                 }
                 SdlEvent::KeyUp {
                     keycode: Some(k), ..

@@ -8,7 +8,7 @@ use crate::jump::replay::ReplayTrace;
 use crate::route::RouteTarget;
 use crate::store::{Resources, ResourcesRef, StoreRef};
 use engine::oxide::{PaintCx, Screen, ScreenBackground, ScreenEventCx, UiEvent};
-use engine::ui::Key;
+use engine::oxide::input::Key;
 use std::path::Path;
 
 #[derive(Debug, Clone)]

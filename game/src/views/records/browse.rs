@@ -8,7 +8,7 @@ use crate::store::{ResourcesRef, StoreRef};
 use crate::text::format::{format_decimal, ordinal_dot};
 use crate::text::layout::{is_computer_name, lstr, shorten_name};
 use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent};
-use engine::ui::Key;
+use engine::oxide::input::Key;
 
 const HALL_PAGES: usize = 3;
 const PAGE_SIZE: usize = 20;
