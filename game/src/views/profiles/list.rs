@@ -8,8 +8,7 @@ use crate::route::RouteTarget;
 use crate::save::SaveRef;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::layout::{lstr, replace_display_name};
-use engine::oxide::legacy::{event_from_ui, paint_elements};
-use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent};
+use engine::oxide::{ImageRegionDraw, PaintCx, Screen, ScreenEventCx, UiEvent};
 use engine::ui::{Component, Element, Event, Key};
 
 use super::actions::{
@@ -147,30 +146,29 @@ impl ProfilesView {
         }
     }
 
-    fn legacy_elements(&self) -> Vec<Element> {
-        let mut els = Vec::new();
-        draw_screen_base(self, &mut els);
+    fn paint_content(&self, cx: &mut PaintCx<'_>) {
+        draw_screen_base(self, cx);
 
         if let Some(profile) = self.active_profile() {
             let edit_phase = !matches!(self.mode, Mode::List | Mode::Question { .. });
-            draw_profile(self, &mut els, profile, edit_phase);
+            draw_profile(self, cx, profile, edit_phase);
             if matches!(self.mode, Mode::List) {
-                draw_help(self, &mut els, Some(profile));
+                draw_help(self, cx, Some(profile));
             }
         } else {
-            draw_empty_edit(&mut els);
-            draw_help(self, &mut els, None);
+            draw_empty_edit(cx);
+            draw_help(self, cx, None);
         }
 
-        draw_list(self, &mut els);
+        draw_list(self, cx);
 
         match &self.mode {
-            Mode::TextInput { input, .. } => els.extend(input.elements()),
-            Mode::ColorSelect { selector, .. } => els.extend(selector.elements()),
+            Mode::TextInput { input, .. } => paint_component(cx, &input.elements()),
+            Mode::ColorSelect { selector, .. } => paint_component(cx, &selector.elements()),
             Mode::ReplaceSelect { selector, .. } => {
                 let value = selector.value();
                 let x = self.resources.font.string_width("Replace:") as i32 + 170;
-                els.push(Element::fillbox(x - 2, 43, 320 - x, 8, FILL_DIM));
+                cx.fill((x - 2, 43, 320 - x, 8), FILL_DIM);
                 if value > 0 {
                     if value <= self.resources.player_names().len() {
                         let n = replace_display_name(
@@ -179,41 +177,25 @@ impl ProfilesView {
                             &self.resources.font,
                             x,
                         );
-                        els.push(Element::text(n, x, 44, FONT_DEFAULT, false));
-                        els.push(Element::text(
-                            format!("#{value}"),
-                            316,
-                            44,
-                            FONT_DEFAULT,
-                            true,
-                        ));
+                        cx.text((x, 44), FONT_DEFAULT, n);
+                        cx.right_text((316, 44), FONT_DEFAULT, format!("#{value}"));
                     } else {
-                        els.push(Element::text(
-                            format!("#{value}"),
-                            x,
-                            44,
-                            FONT_DEFAULT,
-                            false,
-                        ));
+                        cx.text((x, 44), FONT_DEFAULT, format!("#{value}"));
                     }
                 } else {
-                    els.push(Element::text(
-                        lstr(&self.resources.langbase, 9, "None"),
-                        x,
-                        44,
+                    cx.text(
+                        (x, 44),
                         FONT_DEFAULT,
-                        false,
-                    ));
+                        lstr(&self.resources.langbase, 9, "None"),
+                    );
                 }
             }
-            Mode::Question { dialog, .. } => els.extend(dialog.elements()),
+            Mode::Question { dialog, .. } => paint_component(cx, &dialog.elements()),
             _ => {}
         }
-
-        els
     }
 
-    fn legacy_handle_event(&mut self, event: Event) -> Option<RouteTarget> {
+    fn handle_input(&mut self, event: Event) -> Option<RouteTarget> {
         if matches!(self.mode, Mode::List) {
             return match event {
                 Event::Keyboard(Key::Up) => {
@@ -385,10 +367,10 @@ impl ProfilesView {
 
 impl Screen<RouteTarget> for ProfilesView {
     fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
-        let Some(event) = event_from_ui(event) else {
+        let Some(event) = input_from_ui(event) else {
             return;
         };
-        if let Some(route) = self.legacy_handle_event(event) {
+        if let Some(route) = self.handle_input(event) {
             if route == RouteTarget::Back {
                 cx.back();
             } else {
@@ -400,6 +382,57 @@ impl Screen<RouteTarget> for ProfilesView {
     }
 
     fn paint(&self, cx: &mut PaintCx<'_>) {
-        paint_elements(cx, &self.legacy_elements());
+        self.paint_content(cx);
+    }
+}
+
+fn input_from_ui(event: UiEvent) -> Option<Event> {
+    match event {
+        UiEvent::KeyDown(key) => Some(Event::Keyboard(key)),
+        UiEvent::Text(c) => Some(Event::Keyboard(Key::Char(c))),
+        UiEvent::Quit | UiEvent::Tick => None,
+    }
+}
+
+fn paint_component(cx: &mut PaintCx<'_>, elements: &[Element]) {
+    for element in elements {
+        match element {
+            Element::Image(pixels, w, h) => cx.image(pixels.clone(), *w, *h),
+            Element::ImageRegion(region) => cx.image_region(ImageRegionDraw {
+                pixels: region.pixels.clone(),
+                src_w: region.src_w,
+                src_h: region.src_h,
+                src_x: region.src_x,
+                src_y: region.src_y,
+                dst_x: region.dst_x,
+                dst_y: region.dst_y,
+                w: region.w,
+                h: region.h,
+            }),
+            Element::Text {
+                text,
+                x,
+                y,
+                color,
+                right,
+                center,
+            } => {
+                if *center {
+                    cx.center_text((*x, *y), *color, text);
+                } else if *right {
+                    cx.right_text((*x, *y), *color, text);
+                } else {
+                    cx.text((*x, *y), *color, text);
+                }
+            }
+            Element::Sprite(idx, x, y) => cx.sprite(*idx, (*x, *y)),
+            Element::Fillbox { x, y, w, h, color } => cx.fill((*x, *y, *w, *h), *color),
+            Element::FillArea { thing } => cx.dither_fill(*thing),
+            Element::Box { x, y, w, h, color } => cx.stroke((*x, *y, *w, *h), *color),
+            Element::SpriteRemapped(idx, x, y, recolor) => {
+                cx.sprite_remapped(*idx, (*x, *y), recolor.clone());
+            }
+            Element::Container(children) => paint_component(cx, children),
+        }
     }
 }

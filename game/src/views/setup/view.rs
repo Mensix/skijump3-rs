@@ -5,8 +5,8 @@ use crate::save::config::Config;
 use crate::save::SaveManager;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::lang::LangBase;
-use engine::oxide::legacy::{event_from_ui, paint_elements};
 use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent};
+use engine::ui::{Event, Key};
 use std::cell::Cell;
 use std::rc::Rc;
 
@@ -70,7 +70,7 @@ impl SetupView {
 
 impl Screen<RouteTarget> for SetupView {
     fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
-        let Some(event) = event_from_ui(event) else {
+        let Some(event) = input_from_ui(event) else {
             return;
         };
         if let Some(route) = super::actions::handle_event(self, event) {
@@ -81,6 +81,14 @@ impl Screen<RouteTarget> for SetupView {
     }
 
     fn paint(&self, cx: &mut PaintCx<'_>) {
-        paint_elements(cx, &super::render::elements(self));
+        super::render::paint_content(self, cx);
+    }
+}
+
+fn input_from_ui(event: UiEvent) -> Option<Event> {
+    match event {
+        UiEvent::KeyDown(key) => Some(Event::Keyboard(key)),
+        UiEvent::Text(c) => Some(Event::Keyboard(Key::Char(c))),
+        UiEvent::Quit | UiEvent::Tick => None,
     }
 }

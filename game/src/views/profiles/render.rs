@@ -1,65 +1,52 @@
-use engine::ui::Element;
-
 use crate::gfx::palette::{
     ski_color, suit_color_shade, BG_LEFT, BG_ORDER, BG_RIGHT, BLACK, FONT_BACK, FONT_DEFAULT,
     FONT_HELP, FONT_NAME, FONT_NEW,
 };
 use crate::text::layout::lstr;
 use crate::views::profiles::format::format_profile_value;
+use engine::oxide::PaintCx;
 
 use super::list::{Mode, ProfilesView};
 
-pub(super) fn draw_screen_base(view: &ProfilesView, els: &mut Vec<Element>) {
-    els.push(Element::fillbox(0, 0, 320, 200, BLACK));
-    els.push(Element::fillbox(0, 0, 159, 200, BG_LEFT));
-    els.push(Element::fillbox(160, 0, 160, 200, BG_RIGHT));
-    els.push(Element::fill_area(63));
-    els.push(Element::text(
-        lstr(&view.resources.langbase, 34, "Jumpers:"),
-        40,
-        3,
+pub(super) fn draw_screen_base(view: &ProfilesView, cx: &mut PaintCx<'_>) {
+    cx.fill((0, 0, 320, 200), BLACK);
+    cx.fill((0, 0, 159, 200), BG_LEFT);
+    cx.fill((160, 0, 160, 200), BG_RIGHT);
+    cx.dither_fill(63);
+    cx.text(
+        (40, 3),
         FONT_HELP,
-        false,
-    ));
+        lstr(&view.resources.langbase, 34, "Jumpers:"),
+    );
 }
 
-pub(super) fn draw_list(view: &ProfilesView, els: &mut Vec<Element>) {
+pub(super) fn draw_list(view: &ProfilesView, cx: &mut PaintCx<'_>) {
     let store = view.store.profiles();
     let np = store.num_profiles();
 
     for (i, profile) in store.profiles.iter().enumerate() {
         let y = ProfilesView::y_for(i + 1);
-        els.push(Element::fillbox(10, y - 1, 21, 8, BG_ORDER));
+        cx.fill((10, y - 1, 21, 8), BG_ORDER);
         if let Some(order_pos) = store.order_pos(i) {
-            els.push(Element::text(
-                format!("{}.", order_pos + 1),
-                18,
-                y,
-                FONT_NEW,
-                false,
-            ));
+            cx.text((18, y), FONT_NEW, format!("{}.", order_pos + 1));
         }
-        els.push(Element::text(&profile.name, 40, y, FONT_NAME, false));
+        cx.text((40, y), FONT_NAME, &profile.name);
     }
 
     if store.has_slot() {
-        els.push(Element::text(
-            lstr(&view.resources.langbase, 302, "*Create New Jumper*"),
-            40,
-            ProfilesView::y_for(np + 1),
+        cx.text(
+            (40, ProfilesView::y_for(np + 1)),
             FONT_NEW,
-            false,
-        ));
+            lstr(&view.resources.langbase, 302, "*Create New Jumper*"),
+        );
     }
 
     let back_temp = if store.has_slot() { np + 3 } else { np + 2 };
-    els.push(Element::text(
-        lstr(&view.resources.langbase, 33, "Back to Main Menu"),
-        40,
-        ProfilesView::y_for(back_temp),
+    cx.text(
+        (40, ProfilesView::y_for(back_temp)),
         FONT_BACK,
-        false,
-    ));
+        lstr(&view.resources.langbase, 33, "Back to Main Menu"),
+    );
 
     if matches!(view.mode, Mode::List) {
         let entries = if store.has_slot() { np + 1 } else { np };
@@ -68,70 +55,60 @@ pub(super) fn draw_list(view: &ProfilesView, els: &mut Vec<Element>) {
         } else {
             10 + (entries as i32 + 1) * 8
         };
-        els.push(Element::box_(34, box_y, 123, 9, FONT_DEFAULT));
+        cx.stroke((34, box_y, 123, 9), FONT_DEFAULT);
     }
 }
 
-pub(super) fn draw_help(view: &ProfilesView, els: &mut Vec<Element>, profile: Option<usize>) {
+pub(super) fn draw_help(view: &ProfilesView, cx: &mut PaintCx<'_>, profile: Option<usize>) {
     let store = view.store.profiles();
     if store.num_profiles() >= 16 {
         return;
     }
 
-    els.push(Element::fillbox(1, 175, 158, 25, BG_LEFT));
-    els.push(Element::fill_area(63));
+    cx.fill((1, 175, 158, 25), BG_LEFT);
+    cx.dither_fill(63);
 
     if let Some(profile) = profile {
         let in_order = store.order_pos(profile).is_some();
-        els.push(Element::text(
-            lstr(&view.resources.langbase, 322, "(Use arrows,"),
-            8,
-            175,
+        cx.text(
+            (8, 175),
             FONT_HELP,
-            false,
-        ));
+            lstr(&view.resources.langbase, 322, "(Use arrows,"),
+        );
         if in_order {
-            els.push(Element::text(
+            cx.text(
+                (11, 183),
+                FONT_HELP,
                 lstr(&view.resources.langbase, 323, "ENTER edits jumper,"),
-                11,
-                183,
+            );
+            cx.text(
+                (11, 191),
                 FONT_HELP,
-                false,
-            ));
-            els.push(Element::text(
                 lstr(&view.resources.langbase, 324, "DEL removes from order)"),
-                11,
-                191,
-                FONT_HELP,
-                false,
-            ));
+            );
         } else {
-            els.push(Element::text(
+            cx.text(
+                (11, 183),
+                FONT_HELP,
                 lstr(&view.resources.langbase, 325, "ENTER adds jumper,"),
-                11,
-                183,
+            );
+            cx.text(
+                (11, 191),
                 FONT_HELP,
-                false,
-            ));
-            els.push(Element::text(
                 lstr(&view.resources.langbase, 326, "DEL deletes jumper)"),
-                11,
-                191,
-                FONT_HELP,
-                false,
-            ));
+            );
         }
     }
 }
 
-pub(super) fn draw_empty_edit(els: &mut Vec<Element>) {
-    els.push(Element::fillbox(166, 4, 154, 195, BG_RIGHT));
-    els.push(Element::fill_area(63));
+pub(super) fn draw_empty_edit(cx: &mut PaintCx<'_>) {
+    cx.fill((166, 4, 154, 195), BG_RIGHT);
+    cx.dither_fill(63);
 }
 
 pub(super) fn draw_suit_ski(
     view: &ProfilesView,
-    els: &mut Vec<Element>,
+    cx: &mut PaintCx<'_>,
     suit_idx: usize,
     ski_idx: usize,
 ) {
@@ -142,27 +119,9 @@ pub(super) fn draw_suit_ski(
     let x = 178 + suit_w.max(ski_w);
     let xl = (x + 18).min(318);
 
-    els.push(Element::fillbox(
-        x,
-        28,
-        xl - x + 1,
-        5,
-        suit_color_shade(suit_idx, 1),
-    ));
-    els.push(Element::box_(
-        x,
-        28,
-        xl - x + 1,
-        5,
-        suit_color_shade(suit_idx, 3),
-    ));
-    els.push(Element::fillbox(
-        x + 1,
-        37,
-        xl - x - 1,
-        3,
-        ski_color(ski_idx),
-    ));
+    cx.fill((x, 28, xl - x + 1, 5), suit_color_shade(suit_idx, 1));
+    cx.stroke((x, 28, xl - x + 1, 5), suit_color_shade(suit_idx, 3));
+    cx.fill((x + 1, 37, xl - x - 1, 3), ski_color(ski_idx));
 }
 
 pub(super) fn profile_label(view: &ProfilesView, field: usize) -> String {
@@ -195,11 +154,11 @@ pub(super) fn profile_label(view: &ProfilesView, field: usize) -> String {
 
 pub(super) fn draw_profile(
     view: &ProfilesView,
-    els: &mut Vec<Element>,
+    cx: &mut PaintCx<'_>,
     profile_index: usize,
     edit_phase: bool,
 ) {
-    draw_empty_edit(els);
+    draw_empty_edit(cx);
 
     let store = view.store.profiles();
     let Some(profile) = store.profiles.get(profile_index) else {
@@ -209,10 +168,10 @@ pub(super) fn draw_profile(
     let value_color = FONT_NEW;
 
     if edit_phase {
-        els.push(Element::fillbox(175, 85, 131, 1, FONT_HELP));
+        cx.fill((175, 85, 131, 1), FONT_HELP);
     }
 
-    draw_suit_ski(view, els, profile.suit_color, profile.ski_color);
+    draw_suit_ski(view, cx, profile.suit_color, profile.ski_color);
 
     for field in 1..=18 {
         if !edit_phase && field > 7 && field < 10 {
@@ -225,13 +184,7 @@ pub(super) fn draw_profile(
             } else {
                 label_color
             };
-            els.push(Element::text(
-                label,
-                166,
-                ProfilesView::col_y(field),
-                lc,
-                false,
-            ));
+            cx.text((166, ProfilesView::col_y(field)), lc, label);
         }
     }
 
@@ -254,17 +207,11 @@ pub(super) fn draw_profile(
             &view.resources.langbase,
         );
         if !value.is_empty() {
-            els.push(Element::text(value, x, y, value_color, false));
+            cx.text((x, y), value_color, value);
         }
     }
 
     if let Some(selected) = view.menu_selected() {
-        els.push(Element::box_(
-            162,
-            10 + (selected as i32 * 8),
-            155,
-            9,
-            FONT_DEFAULT,
-        ));
+        cx.stroke((162, 10 + (selected as i32 * 8), 155, 9), FONT_DEFAULT);
     }
 }

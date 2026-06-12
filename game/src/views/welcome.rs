@@ -4,9 +4,8 @@ use crate::gfx::sprites;
 use crate::route::RouteTarget;
 use crate::save::SaveRef;
 use crate::text::lang::LangBase;
-use engine::oxide::legacy::{event_from_ui, paint_elements};
 use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent};
-use engine::ui::{Component, Element};
+use engine::ui::{Component, Event, Key};
 use std::rc::Rc;
 
 pub struct WelcomeScreenView {
@@ -31,34 +30,32 @@ impl WelcomeScreenView {
         }
     }
 
-    fn legacy_elements(&self) -> Vec<Element> {
-        let mut els = vec![
-            Element::fillbox(0, 0, 320, 200, BLACK),
-            Element::fillbox(0, 0, 51, 200, FILL_DIM),
-            Element::fillbox(52, 0, 216, 200, BG_LEFT),
-            Element::fillbox(269, 0, 51, 200, FILL_DIM),
-            Element::fill_area(63),
-            Element::sprite(sprites::Sprite::Logo as u16, 80, 6),
-            Element::right_text("WELCOME!", 240, 6, FONT_DEFAULT),
-            Element::right_text("TERVETULOA!", 240, 16, FONT_GOLD),
-            Element::right_text("WILLKOMMEN!", 240, 26, FONT_GREET),
-            Element::right_text("VALKOMMEN!", 240, 36, FONT_DEFAULT),
-            Element::text("PLEASE CHOOSE A LANGUAGE:", 100, 50, FONT_DEFAULT, false),
-        ];
+    fn paint_content(&self, cx: &mut PaintCx<'_>) {
+        cx.fill((0, 0, 320, 200), BLACK);
+        cx.fill((0, 0, 51, 200), FILL_DIM);
+        cx.fill((52, 0, 216, 200), BG_LEFT);
+        cx.fill((269, 0, 51, 200), FILL_DIM);
+        cx.dither_fill(63);
+        cx.sprite(sprites::Sprite::Logo as u16, (80, 6));
+        cx.right_text((240, 6), FONT_DEFAULT, "WELCOME!");
+        cx.right_text((240, 16), FONT_GOLD, "TERVETULOA!");
+        cx.right_text((240, 26), FONT_GREET, "WILLKOMMEN!");
+        cx.right_text((240, 36), FONT_DEFAULT, "VALKOMMEN!");
+        cx.text((100, 50), FONT_DEFAULT, "PLEASE CHOOSE A LANGUAGE:");
 
         for (i, name) in self.languages.iter().enumerate() {
             let y = ((i + 1) * 8 + 55) as i32;
-            els.push(Element::center_text(name.clone(), 155, y, FONT_GOLD));
+            cx.center_text((155, y), FONT_GOLD, name);
         }
 
-        els.extend(self.menu.elements());
-        els
+        let y = 61 + (self.menu.selected() as i32) * 8;
+        cx.stroke((106, y, 101, 9), FONT_DEFAULT);
     }
 }
 
 impl Screen<RouteTarget> for WelcomeScreenView {
     fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
-        let Some(event) = event_from_ui(event) else {
+        let Some(event) = input_event(event) else {
             return;
         };
         match self.menu.handle_event(&event) {
@@ -72,6 +69,14 @@ impl Screen<RouteTarget> for WelcomeScreenView {
     }
 
     fn paint(&self, cx: &mut PaintCx<'_>) {
-        paint_elements(cx, &self.legacy_elements());
+        self.paint_content(cx);
+    }
+}
+
+fn input_event(event: UiEvent) -> Option<Event> {
+    match event {
+        UiEvent::KeyDown(key) => Some(Event::Keyboard(key)),
+        UiEvent::Text(ch) => Some(Event::Keyboard(Key::Char(ch))),
+        UiEvent::Quit | UiEvent::Tick => None,
     }
 }

@@ -11,8 +11,8 @@ pub enum Background {
 }
 
 pub struct OxideRenderer {
-    legacy: ElementRenderContext,
-    legacy_elements: Vec<Element>,
+    element_renderer: ElementRenderContext,
+    element_buffer: Vec<Element>,
 }
 
 impl Default for OxideRenderer {
@@ -25,8 +25,8 @@ impl OxideRenderer {
     #[must_use]
     pub fn new() -> Self {
         Self {
-            legacy: ElementRenderContext::new(),
-            legacy_elements: Vec::new(),
+            element_renderer: ElementRenderContext::new(),
+            element_buffer: Vec::new(),
         }
     }
 
@@ -38,18 +38,18 @@ impl OxideRenderer {
         commands: &CommandBuffer,
         background: Background,
     ) -> Result<(), String> {
-        self.legacy_elements.clear();
-        self.legacy_elements.extend(
+        self.element_buffer.clear();
+        self.element_buffer.extend(
             commands
                 .commands()
                 .iter()
                 .cloned()
                 .map(draw_command_to_element),
         );
-        self.render_legacy_elements(renderer, font, sprites, background)
+        self.render_element_buffer(renderer, font, sprites, background)
     }
 
-    fn render_legacy_elements(
+    fn render_element_buffer(
         &mut self,
         renderer: &mut Renderer,
         font: &Font,
@@ -60,15 +60,15 @@ impl OxideRenderer {
             Background::None => None,
             Background::Texture(texture) => Some(texture),
         };
-        self.legacy
-            .render_frame(renderer, font, sprites, &self.legacy_elements, texture)
+        self.element_renderer
+            .render_frame(renderer, font, sprites, &self.element_buffer, texture)
     }
 }
 
 fn draw_command_to_element(command: DrawCommand) -> Element {
     match command {
         DrawCommand::Image { pixels, w, h } => Element::Image(pixels, w, h),
-        DrawCommand::ImageRegion(region) => Element::ImageRegion(image_region_to_legacy(region)),
+        DrawCommand::ImageRegion(region) => Element::ImageRegion(image_region_to_element(region)),
         DrawCommand::Text(run) => Element::Text {
             text: run.text,
             x: run.position.x,
@@ -101,7 +101,7 @@ fn draw_command_to_element(command: DrawCommand) -> Element {
     }
 }
 
-fn image_region_to_legacy(region: ImageRegionDraw) -> ImageRegion {
+fn image_region_to_element(region: ImageRegionDraw) -> ImageRegion {
     ImageRegion {
         pixels: region.pixels,
         src_w: region.src_w,

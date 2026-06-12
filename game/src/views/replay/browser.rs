@@ -1,5 +1,4 @@
-use crate::components::layout::{self, MainLayout};
-use crate::components::menu::{Menu, MenuItem};
+use crate::components::layout::MainLayout;
 use crate::components::page_nav::cycle_index;
 use crate::files::FileStore;
 use crate::gfx::palette::{
@@ -8,9 +7,8 @@ use crate::gfx::palette::{
 use crate::jump::replay::ReplayTrace;
 use crate::route::RouteTarget;
 use crate::store::{Resources, ResourcesRef, StoreRef};
-use engine::oxide::legacy::{event_from_ui, paint_elements};
 use engine::oxide::{PaintCx, Screen, ScreenBackground, ScreenEventCx, UiEvent};
-use engine::ui::{Component, Element, Event, Key};
+use engine::ui::{Element, Key};
 use std::path::Path;
 
 #[derive(Debug, Clone)]
@@ -24,7 +22,6 @@ pub struct ReplayBrowserView {
     resources: ResourcesRef,
     store: StoreRef,
     layout: MainLayout,
-    menu: Menu,
     entries: Vec<ReplayEntry>,
     selected: usize,
 }
@@ -32,31 +29,10 @@ pub struct ReplayBrowserView {
 impl ReplayBrowserView {
     pub fn new(resources: ResourcesRef, store: StoreRef, layout: MainLayout) -> Self {
         let entries = load_replays(&resources.files);
-        let items = vec![
-            MenuItem::new(1, 20),
-            MenuItem::new(2, 21),
-            MenuItem::new(3, 22),
-            MenuItem::new(4, 23),
-            MenuItem::new(5, 24),
-            MenuItem::new(6, 25),
-            MenuItem::with_y(0, 26, 12),
-        ];
-        let menu = Menu::new(
-            11,
-            97,
-            108,
-            12,
-            items,
-            &layout.langbase,
-            FONT_DEFAULT,
-            FONT_DEFAULT,
-        )
-        .with_box(false);
         Self {
             resources,
             store,
             layout,
-            menu,
             entries,
             selected: 0,
         }
@@ -74,56 +50,42 @@ impl ReplayBrowserView {
         self.selected = cycle_index(self.selected, self.entries.len(), -1);
     }
 
-    fn legacy_elements(&self) -> Vec<Element> {
-        let mut els = vec![];
-        els.extend(layout::header_elements(
-            self.layout.langbase.lstr(17),
-            11,
-            80,
-            FONT_HEADER,
-            BG_ERASE,
-        ));
-        els.extend(self.menu.elements());
-        els.extend(self.layout.footer());
-        els.extend(replay_panel_elements(
-            &self.resources,
-            &self.entries,
-            self.selected,
-        ));
-        els
+    fn paint_content(&self, cx: &mut PaintCx<'_>) {
+        cx.fill((11, 80, 100, 6), BG_ERASE);
+        cx.text((11, 80), FONT_HEADER, self.layout.langbase.lstr(17));
+        paint_replay_menu(cx, &self.layout);
+        paint_component_output(cx, self.layout.footer());
+        paint_replay_panel(cx, &self.resources, &self.entries, self.selected);
     }
 }
 
 impl Screen<RouteTarget> for ReplayBrowserView {
     fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
-        let Some(event) = event_from_ui(event) else {
-            return;
-        };
         match event {
-            Event::Keyboard(Key::Escape) => {
+            UiEvent::KeyDown(Key::Escape) => {
                 self.store.set_selected_main_menu(5);
                 cx.back();
             }
-            Event::Keyboard(Key::Right | Key::Down | Key::Char(' ' | '+')) => {
+            UiEvent::KeyDown(Key::Right | Key::Down) | UiEvent::Text(' ' | '+') => {
                 self.move_next();
                 cx.consume();
             }
-            Event::Keyboard(Key::Left | Key::Up | Key::Char('-')) => {
+            UiEvent::KeyDown(Key::Left | Key::Up) | UiEvent::Text('-') => {
                 self.move_prev();
                 cx.consume();
             }
-            Event::Keyboard(Key::Enter) => {
+            UiEvent::KeyDown(Key::Enter) => {
                 if let Some(trace) = self.selected_entry().and_then(|entry| entry.trace.clone()) {
                     self.store.select_replay(trace);
                     cx.navigate(RouteTarget::ReplayPlayback);
                 }
             }
-            Event::Keyboard(_) => {}
+            UiEvent::KeyDown(_) | UiEvent::Text(_) | UiEvent::Quit | UiEvent::Tick => {}
         }
     }
 
     fn paint(&self, cx: &mut PaintCx<'_>) {
-        paint_elements(cx, &self.legacy_elements());
+        self.paint_content(cx);
     }
 
     fn background(&self) -> ScreenBackground {
@@ -131,113 +93,104 @@ impl Screen<RouteTarget> for ReplayBrowserView {
     }
 }
 
-fn replay_panel_elements(
+fn paint_replay_panel(
+    cx: &mut PaintCx<'_>,
     resources: &Resources,
     entries: &[ReplayEntry],
     selected: usize,
-) -> Vec<Element> {
+) {
     let langbase = &resources.langbase;
 
-    let mut els = Vec::new();
-
     // Pascal clearscreen: right panel background with dither + labels
-    els.push(Element::fillbox(145, 50, 174, 149, BG_LEFT));
-    els.push(Element::fillbox(128, 70, 17, 129, BG_LEFT));
-    els.push(Element::fill_area(64));
-    els.push(Element::text(
-        format!("{}:", langbase.lstr(25)),
-        170,
-        51,
-        FONT_HELP,
-        false,
-    ));
-    els.push(Element::text(
-        langbase.lstr(146),
-        150,
-        185,
-        FONT_HELP,
-        false,
-    ));
+    cx.fill((145, 50, 174, 149), BG_LEFT);
+    cx.fill((128, 70, 17, 129), BG_LEFT);
+    cx.dither_fill(64);
+    cx.text((170, 51), FONT_HELP, format!("{}:", langbase.lstr(25)));
+    cx.text((150, 185), FONT_HELP, langbase.lstr(146));
 
     if entries.is_empty() {
-        els.push(Element::text(langbase.lstr(290), 170, 80, FONT_GOLD, false));
-        return els;
+        cx.text((170, 80), FONT_GOLD, langbase.lstr(290));
+        return;
     }
 
     let entry = &entries[selected];
-    els.push(Element::text(
+    cx.text(
+        (272, 85),
+        FONT_HELP,
         format!("{}/{}", selected + 1, entries.len()),
-        272,
-        85,
-        FONT_HELP,
-        false,
-    ));
-    els.push(Element::text(langbase.lstr(293), 150, 71, FONT_HELP, false));
-    els.push(Element::text(
-        langbase.lstr(291),
-        150,
-        106,
-        FONT_HELP,
-        false,
-    ));
-    els.push(Element::text(
-        langbase.lstr(292),
-        150,
-        126,
-        FONT_HELP,
-        false,
-    ));
-    els.push(Element::text(
-        langbase.lstr(294),
-        150,
-        146,
-        FONT_HELP,
-        false,
-    ));
-    els.push(Element::fillbox(163, 78, 95, 21, FILL_BORDER));
-    els.push(Element::fillbox(164, 79, 93, 19, BG_LEFT));
-    els.push(Element::text(&entry.filename, 170, 85, FONT_GOLD, false));
+    );
+    cx.text((150, 71), FONT_HELP, langbase.lstr(293));
+    cx.text((150, 106), FONT_HELP, langbase.lstr(291));
+    cx.text((150, 126), FONT_HELP, langbase.lstr(292));
+    cx.text((150, 146), FONT_HELP, langbase.lstr(294));
+    cx.fill((163, 78, 95, 21), FILL_BORDER);
+    cx.fill((164, 79, 93, 19), BG_LEFT);
+    cx.text((170, 85), FONT_GOLD, &entry.filename);
 
     if let Some(trace) = &entry.trace {
         let hill = resources.hills.hill(trace.meta.hill_idx).map_or_else(
             || "?".to_string(),
             |hill| format!("{} K{}", hill.name, hill.kr),
         );
-        els.push(Element::text(
-            &trace.meta.author,
-            170,
-            115,
-            FONT_DEFAULT,
-            false,
-        ));
-        els.push(Element::text(
-            &trace.meta.name,
-            170,
-            135,
-            FONT_DEFAULT,
-            false,
-        ));
-        els.push(Element::text(hill, 170, 155, FONT_DEFAULT, false));
-        els.push(Element::text(
-            &trace.meta.saved_at,
-            170,
-            163,
-            FONT_HELP,
-            false,
-        ));
+        cx.text((170, 115), FONT_DEFAULT, &trace.meta.author);
+        cx.text((170, 135), FONT_DEFAULT, &trace.meta.name);
+        cx.text((170, 155), FONT_DEFAULT, hill);
+        cx.text((170, 163), FONT_HELP, &trace.meta.saved_at);
     } else if let Some(error) = &entry.error {
-        els.push(Element::text("Unknown", 170, 115, FONT_HELP, false));
-        els.push(Element::text(
-            "Not a valid replay.",
-            170,
-            135,
-            FONT_HELP,
-            false,
-        ));
-        els.push(Element::text(error, 170, 155, FONT_HELP, false));
+        cx.text((170, 115), FONT_HELP, "Unknown");
+        cx.text((170, 135), FONT_HELP, "Not a valid replay.");
+        cx.text((170, 155), FONT_HELP, error);
     }
+}
 
-    els
+fn paint_replay_menu(cx: &mut PaintCx<'_>, layout: &MainLayout) {
+    for (i, label) in [20, 21, 22, 23, 24, 25, 26].iter().enumerate() {
+        let num = if i == 6 { 0 } else { i + 1 };
+        let y = 98 + (i as i32) * 12 + if i == 6 { 12 } else { 0 };
+        cx.text(
+            (11, y),
+            FONT_DEFAULT,
+            format!("{} - {}", num, layout.langbase.lstr(*label)),
+        );
+    }
+}
+
+fn paint_component_output(cx: &mut PaintCx<'_>, elements: Vec<Element>) {
+    for element in elements {
+        match element {
+            Element::Text {
+                text,
+                x,
+                y,
+                color,
+                center: true,
+                ..
+            } => {
+                cx.center_text((x, y), color, text);
+            }
+            Element::Text {
+                text,
+                x,
+                y,
+                color,
+                right: true,
+                ..
+            } => {
+                cx.right_text((x, y), color, text);
+            }
+            Element::Text {
+                text, x, y, color, ..
+            } => cx.text((x, y), color, text),
+            Element::Sprite(idx, x, y) => cx.sprite(idx, (x, y)),
+            Element::Fillbox { x, y, w, h, color } => cx.fill((x, y, w, h), color),
+            Element::FillArea { thing } => cx.dither_fill(thing),
+            Element::Box { x, y, w, h, color } => cx.stroke((x, y, w, h), color),
+            Element::Container(children) => paint_component_output(cx, children),
+            Element::SpriteRemapped(_, _, _, _)
+            | Element::Image(_, _, _)
+            | Element::ImageRegion(_) => {}
+        }
+    }
 }
 
 fn load_replays(files: &FileStore) -> Vec<ReplayEntry> {

@@ -1,15 +1,14 @@
-use crate::components::page_nav;
-use crate::components::screen::{new_screen, new_screen_with_bg, page_hints};
 use crate::data::records::{HillRecord, Hiscore};
-use crate::gfx::palette::{BG_KOTH, FONT_DEFAULT, FONT_GREET, FONT_HELP, FONT_NEW};
+use crate::gfx::palette::{
+    BG_KOTH, BG_LEFT, BLACK, FILL_DIM, FONT_DEFAULT, FONT_GREET, FONT_HELP, FONT_NEW,
+};
+use crate::gfx::sprites;
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::format::{format_decimal, ordinal_dot};
 use crate::text::layout::{is_computer_name, lstr, shorten_name};
-use engine::oxide::legacy::{event_from_ui, paint_elements};
 use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent};
-use engine::ui::Element;
-use engine::ui::{Cell, Table};
+use engine::ui::Key;
 
 const HALL_PAGES: usize = 3;
 const PAGE_SIZE: usize = 20;
@@ -30,36 +29,36 @@ impl HallOfFameView {
         }
     }
 
-    fn legacy_elements(&self) -> Vec<Element> {
-        let mut els = if self.page >= 2 {
-            new_screen_with_bg(1, BG_KOTH)
+    fn paint_content(&self, cx: &mut PaintCx<'_>) {
+        if self.page >= 2 {
+            paint_screen(cx, 1, BG_KOTH);
         } else {
             match self.page {
-                1 => new_screen(4),
-                _ => new_screen(1),
-            }
-        };
-
-        match self.page {
-            0 => self.draw_list(&mut els, 0),
-            1 => {
-                self.draw_list(&mut els, 1);
-                self.draw_list(&mut els, 2);
-            }
-            _ => self.draw_koth_records(&mut els),
+                1 => paint_screen(cx, 4, BG_LEFT),
+                _ => paint_screen(cx, 1, BG_LEFT),
+            };
         }
 
-        els.extend(page_hints(
+        match self.page {
+            0 => self.paint_list(cx, 0),
+            1 => {
+                self.paint_list(cx, 1);
+                self.paint_list(cx, 2);
+            }
+            _ => self.paint_koth_records(cx),
+        }
+
+        paint_page_hints(
+            cx,
             self.page,
             HALL_PAGES,
             &lstr(&self.resources.langbase, 246, "Back"),
             &lstr(&self.resources.langbase, 247, "Next"),
             &lstr(&self.resources.langbase, 248, "End"),
-        ));
-        els
+        );
     }
 
-    fn draw_list(&self, els: &mut Vec<Element>, phase: usize) {
+    fn paint_list(&self, cx: &mut PaintCx<'_>, phase: usize) {
         let mut yy = 6;
         let col = [30, 146, 173, 215];
         let (title, entries, start, sortby) = match phase {
@@ -86,34 +85,29 @@ impl HallOfFameView {
             }
         };
 
-        let mut table = Table::new();
-        table.push(Cell::left(title, 30, yy, FONT_DEFAULT));
+        cx.text((30, yy), FONT_DEFAULT, title);
         yy += 17;
 
-        table.push(Cell::left(
+        cx.text(
+            (col[0], yy),
+            FONT_NEW,
             lstr(&self.resources.langbase, 166, "Name"),
-            col[0],
-            yy,
+        );
+        cx.text(
+            (col[1], yy),
             FONT_NEW,
-        ));
-        table.push(Cell::left(
             lstr(&self.resources.langbase, 167, "Pos"),
-            col[1],
-            yy,
+        );
+        cx.text(
+            (col[2], yy),
             FONT_NEW,
-        ));
-        table.push(Cell::left(
             lstr(&self.resources.langbase, 168, "Points"),
-            col[2],
-            yy,
+        );
+        cx.text(
+            (col[3], yy),
             FONT_NEW,
-        ));
-        table.push(Cell::left(
             lstr(&self.resources.langbase, 169, "Date"),
-            col[3],
-            yy,
-            FONT_NEW,
-        ));
+        );
 
         let records = self.store.records();
         for idx in start..start + entries {
@@ -121,15 +115,13 @@ impl HallOfFameView {
             let Some(hi) = records.top(idx) else {
                 continue;
             };
-            self.push_hiscore_row(&mut table, hi, idx - start + 1, yy, col, sortby);
+            self.paint_hiscore_row(cx, hi, idx - start + 1, yy, col, sortby);
         }
-
-        els.extend(table.into_elements());
     }
 
-    fn push_hiscore_row(
+    fn paint_hiscore_row(
         &self,
-        table: &mut Table,
+        cx: &mut PaintCx<'_>,
         hi: &Hiscore,
         place: usize,
         y: i32,
@@ -141,78 +133,67 @@ impl HallOfFameView {
         } else {
             FONT_DEFAULT
         };
-        table.push(Cell::right(ordinal_dot(place), 24, y, FONT_NEW));
-        table.push(Cell::left(
-            shorten_name(&hi.name, &self.resources.font, 110),
-            col[0],
-            y,
+        cx.right_text((24, y), FONT_NEW, ordinal_dot(place));
+        cx.text(
+            (col[0], y),
             name_color,
-        ));
-        table.push(Cell::right(ordinal_dot(hi.pos), col[1] + 14, y, name_color));
+            shorten_name(&hi.name, &self.resources.font, 110),
+        );
+        cx.right_text((col[1] + 14, y), name_color, ordinal_dot(hi.pos));
         let score = if sortby_points {
             format_decimal(hi.score)
         } else {
             format!("{:.0}", hi.score)
         };
-        table.push(Cell::right(score, col[2] + 24, y, name_color));
-        table.push(Cell::left(&hi.time, col[3], y, FONT_HELP));
+        cx.right_text((col[2] + 24, y), name_color, score);
+        cx.text((col[3], y), FONT_HELP, &hi.time);
     }
 
-    fn draw_koth_records(&self, els: &mut Vec<Element>) {
+    fn paint_koth_records(&self, cx: &mut PaintCx<'_>) {
         let col = [30, 55, 175, 290];
         let mut yy = 12;
-        let mut table = Table::new();
-        table.push(Cell::left(
-            lstr(&self.resources.langbase, 160, "King of the Hill"),
-            30,
-            6,
+        cx.text(
+            (30, 6),
             FONT_DEFAULT,
-        ));
+            lstr(&self.resources.langbase, 160, "King of the Hill"),
+        );
 
         let records = self.store.records();
         for idx in 1..=6 {
             yy += 18;
-            table.push(Cell::left(
+            cx.text(
+                (col[0], yy),
+                FONT_NEW,
                 format!(
                     "{}. {}",
                     idx,
                     lstr(&self.resources.langbase, 130 + idx, "Challenge")
                 ),
-                col[0],
-                yy,
-                FONT_NEW,
-            ));
+            );
             yy += 10;
 
             let name = lstr(&self.resources.langbase, 161, "Nobody");
             let Some(hi) = records.top(idx + 35) else {
-                table.push(Cell::left(name, col[1], yy, FONT_HELP));
+                cx.text((col[1], yy), FONT_HELP, name);
                 continue;
             };
             if hi.score > 0.0 {
-                table.push(Cell::left(&hi.time, col[2], yy, FONT_HELP));
-                table.push(Cell::left(
-                    format!("{:.0} X", hi.score),
-                    col[3],
-                    yy,
-                    FONT_DEFAULT,
-                ));
-                table.push(Cell::left(&hi.name, col[1], yy, FONT_DEFAULT));
+                cx.text((col[2], yy), FONT_HELP, &hi.time);
+                cx.text((col[3], yy), FONT_DEFAULT, format!("{:.0} X", hi.score));
+                cx.text((col[1], yy), FONT_DEFAULT, &hi.name);
             } else {
-                table.push(Cell::left(name, col[1], yy, FONT_HELP));
+                cx.text((col[1], yy), FONT_HELP, name);
             }
         }
-
-        els.extend(table.into_elements());
     }
 }
 
 impl Screen<RouteTarget> for HallOfFameView {
     fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
-        let Some(event) = event_from_ui(event) else {
+        if matches!(event, UiEvent::Quit | UiEvent::Tick) {
             return;
-        };
-        if let Some(route) = page_nav::handle_paged_event(event, &mut self.page, HALL_PAGES) {
+        }
+        if let Some(route) = handle_paged_ui_event(event, &mut self.page, HALL_PAGES) {
             cx.navigate(route);
         } else {
             cx.consume();
@@ -220,7 +201,7 @@ impl Screen<RouteTarget> for HallOfFameView {
     }
 
     fn paint(&self, cx: &mut PaintCx<'_>) {
-        paint_elements(cx, &self.legacy_elements());
+        self.paint_content(cx);
     }
 }
 
@@ -244,21 +225,21 @@ impl HillRecordsView {
         self.resources.hills.len().div_ceil(PAGE_SIZE).max(1)
     }
 
-    fn legacy_elements(&self) -> Vec<Element> {
+    fn paint_content(&self, cx: &mut PaintCx<'_>) {
         let pages = self.pages();
-        let mut els = new_screen(1);
-        self.draw_hill_records(&mut els);
-        els.extend(page_hints(
+        paint_screen(cx, 1, BG_LEFT);
+        self.paint_hill_records(cx);
+        paint_page_hints(
+            cx,
             self.page,
             pages,
             &lstr(&self.resources.langbase, 246, "Back"),
             &lstr(&self.resources.langbase, 247, "Next"),
             &lstr(&self.resources.langbase, 248, "End"),
-        ));
-        els
+        );
     }
 
-    fn draw_hill_records(&self, els: &mut Vec<Element>) {
+    fn paint_hill_records(&self, cx: &mut PaintCx<'_>) {
         let col = [3, 71, 183, 200, 216];
         let phase = self.page;
         let start = phase * PAGE_SIZE;
@@ -268,33 +249,28 @@ impl HillRecordsView {
         } else {
             lstr(&self.resources.langbase, 156, "Extra Hill Records")
         };
-        let mut table = Table::new();
-        table.push(Cell::left(title, 30, 6, FONT_DEFAULT));
-        table.push(Cell::left(
+        cx.text((30, 6), FONT_DEFAULT, title);
+        cx.text(
+            (col[0], 23),
+            FONT_DEFAULT,
             lstr(&self.resources.langbase, 106, "Hill"),
-            col[0],
-            23,
+        );
+        cx.text(
+            (col[1], 23),
             FONT_DEFAULT,
-        ));
-        table.push(Cell::left(
             lstr(&self.resources.langbase, 171, "Who"),
-            col[1],
-            23,
+        );
+        cx.right_text(
+            (col[2], 23),
             FONT_DEFAULT,
-        ));
-        table.push(Cell::right(
             lstr(&self.resources.langbase, 172, "Length"),
-            col[2],
-            23,
+        );
+        cx.text((col[3], 23), FONT_DEFAULT, "(K)");
+        cx.text(
+            (col[4], 23),
             FONT_DEFAULT,
-        ));
-        table.push(Cell::left("(K)", col[3], 23, FONT_DEFAULT));
-        table.push(Cell::left(
             lstr(&self.resources.langbase, 169, "Date"),
-            col[4],
-            23,
-            FONT_DEFAULT,
-        ));
+        );
 
         let records = self.store.records();
         let mut ahi_sum = 0.0;
@@ -310,41 +286,29 @@ impl HillRecordsView {
                 ahi_sum += display_len;
             }
 
-            table.push(Cell::left(
-                shorten_name(&hill.name, &self.resources.font, 64),
-                col[0],
-                y,
+            cx.text(
+                (col[0], y),
                 FONT_NEW,
-            ));
+                shorten_name(&hill.name, &self.resources.font, 64),
+            );
             let record_color = if is_computer_name(&record.name) {
                 FONT_GREET
             } else {
                 FONT_DEFAULT
             };
-            table.push(Cell::left(
-                shorten_name(&record.name, &self.resources.font, 80),
-                col[1],
-                y,
+            cx.text(
+                (col[1], y),
                 record_color,
-            ));
+                shorten_name(&record.name, &self.resources.font, 80),
+            );
             let length_color = if is_computer_name(&record.name) {
                 FONT_GREET
             } else {
                 FONT_NEW
             };
-            table.push(Cell::right(
-                format_decimal(record.len),
-                col[2],
-                y,
-                length_color,
-            ));
-            table.push(Cell::right(
-                format!("({})", hill.kr),
-                col[3] + 11,
-                y,
-                length_color,
-            ));
-            table.push(Cell::left(record.time, col[4], y, FONT_HELP));
+            cx.right_text((col[2], y), length_color, format_decimal(record.len));
+            cx.right_text((col[3] + 11, y), length_color, format!("({})", hill.kr));
+            cx.text((col[4], y), FONT_HELP, record.time);
         }
 
         if phase == 0 {
@@ -352,12 +316,10 @@ impl HillRecordsView {
                 .filter_map(|idx| self.resources.hills.hill(idx).map(|hill| hill.kr as f64))
                 .sum();
             if total > 0.0 {
-                table.push(Cell::left("A.H.I.", 130, 192, FONT_HELP));
-                table.push(Cell::right(format_ahi(ahi_sum, total), 197, 192, FONT_HELP));
+                cx.text((130, 192), FONT_HELP, "A.H.I.");
+                cx.right_text((197, 192), FONT_HELP, format_ahi(ahi_sum, total));
             }
         }
-
-        els.extend(table.into_elements());
     }
 }
 
@@ -379,11 +341,11 @@ fn format_ahi(sum: f64, total: f64) -> String {
 
 impl Screen<RouteTarget> for HillRecordsView {
     fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
-        let Some(event) = event_from_ui(event) else {
+        if matches!(event, UiEvent::Quit | UiEvent::Tick) {
             return;
-        };
+        }
         let pages = self.pages();
-        if let Some(route) = page_nav::handle_paged_event(event, &mut self.page, pages) {
+        if let Some(route) = handle_paged_ui_event(event, &mut self.page, pages) {
             cx.navigate(route);
         } else {
             cx.consume();
@@ -391,6 +353,73 @@ impl Screen<RouteTarget> for HillRecordsView {
     }
 
     fn paint(&self, cx: &mut PaintCx<'_>) {
-        paint_elements(cx, &self.legacy_elements());
+        self.paint_content(cx);
+    }
+}
+
+fn paint_screen(cx: &mut PaintCx<'_>, style: u8, bg: engine::color::Rgba) {
+    cx.fill((0, 0, 320, 200), BLACK);
+    match style {
+        1 => {
+            cx.fill((0, 0, 320, 19), FILL_DIM);
+            cx.fill((0, 20, 320, 180), bg);
+        }
+        4 => {
+            cx.fill((0, 0, 320, 19), FILL_DIM);
+            cx.fill((0, 20, 320, 99), bg);
+            cx.fill((0, 120, 320, 19), FILL_DIM);
+            cx.fill((0, 140, 320, 60), bg);
+        }
+        _ => {}
+    }
+    cx.dither_fill(63);
+    match style {
+        1 => cx.sprite(sprites::Sprite::Logo as u16, (5, 2)),
+        4 => {
+            cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
+            cx.sprite(sprites::Sprite::Logo as u16, (5, 122));
+        }
+        _ => {}
+    }
+}
+
+fn paint_page_hints(
+    cx: &mut PaintCx<'_>,
+    page: usize,
+    pages: usize,
+    prev: &str,
+    next: &str,
+    end: &str,
+) {
+    if page > 0 {
+        cx.right_text((319, 5), FONT_HELP, format!("(-{prev}"));
+    }
+    let text = if page + 1 == pages { end } else { next };
+    cx.right_text((319, 13), FONT_HELP, format!("{text}-)"));
+}
+
+fn handle_paged_ui_event(event: UiEvent, page: &mut usize, pages: usize) -> Option<RouteTarget> {
+    if *page >= pages {
+        *page = pages.saturating_sub(1);
+    }
+    match event {
+        UiEvent::KeyDown(Key::Escape) => Some(RouteTarget::Back),
+        UiEvent::KeyDown(Key::Home) => {
+            *page = 0;
+            None
+        }
+        UiEvent::KeyDown(Key::Left | Key::PageUp) if *page > 0 => {
+            *page = (*page).saturating_sub(1);
+            None
+        }
+        UiEvent::KeyDown(Key::Right | Key::PageDown | Key::Enter) | UiEvent::Text(' ') => {
+            *page += 1;
+            if *page >= pages {
+                Some(RouteTarget::MainMenu)
+            } else {
+                None
+            }
+        }
+        UiEvent::KeyDown(_) | UiEvent::Text(_) | UiEvent::Quit | UiEvent::Tick => None,
     }
 }

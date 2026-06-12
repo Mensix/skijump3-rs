@@ -1,12 +1,11 @@
 use crate::competition::factory;
-use crate::components::screen::new_screen;
 use crate::gfx::palette::{FILL_BORDER, FONT_DEFAULT, FONT_GREET, FONT_HEADER, FONT_HELP};
+use crate::gfx::sprites;
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::format;
-use engine::oxide::legacy::{event_from_ui, paint_elements};
 use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent};
-use engine::ui::{Element, Event, Key};
+use engine::ui::{Event, Key};
 
 const MAX_HILLS: usize = 40;
 
@@ -30,77 +29,55 @@ impl CustomCupSetupView {
         }
     }
 
-    fn hill_elements(&self, slot: usize, hill_idx: usize, is_preview: bool) -> Vec<Element> {
+    fn paint_hill(&self, cx: &mut PaintCx<'_>, slot: usize, hill_idx: usize, is_preview: bool) {
         let (x, y) = if slot < 20 {
             (17, slot as i32 * 7 + 39)
         } else {
             (162, (slot as i32 - 20) * 7 + 39)
         };
-        let mut els = vec![Element::fillbox(x, y - 1, 143, 9, FILL_BORDER)];
+        cx.fill((x, y - 1, 143, 9), FILL_BORDER);
         if let Some(h) = self.resources.hills.hill(hill_idx) {
             if is_preview {
-                els.push(Element::text(&h.name, x + 15, y, FONT_HELP, false));
+                cx.text((x + 15, y), FONT_HELP, &h.name);
                 let name_w = self.resources.font.string_width(&h.name) as i32;
                 let kr_str = format!("K{}", h.kr);
-                els.push(Element::text(&kr_str, x + 18 + name_w, y, FONT_HELP, false));
+                cx.text((x + 18 + name_w, y), FONT_HELP, kr_str);
             } else {
                 let num_str = format::ordinal_dot(slot + 1);
-                els.push(Element::right_text(&num_str, x + 14, y, FONT_HEADER));
-                els.push(Element::text(&h.name, x + 15, y, FONT_DEFAULT, false));
+                cx.right_text((x + 14, y), FONT_HEADER, num_str);
+                cx.text((x + 15, y), FONT_DEFAULT, &h.name);
                 let name_w = self.resources.font.string_width(&h.name) as i32;
                 let kr_str = format!("K{}", h.kr);
-                els.push(Element::text(
-                    &kr_str,
-                    x + 18 + name_w,
-                    y,
-                    FONT_GREET,
-                    false,
-                ));
+                cx.text((x + 18 + name_w, y), FONT_GREET, kr_str);
             }
         }
-        els
     }
 
-    fn legacy_elements(&self) -> Vec<Element> {
+    fn paint_content(&self, cx: &mut PaintCx<'_>) {
         let lang = &self.resources.langbase;
         let help_line = format!("{}, {}, {}", lang.lstr(285), lang.lstr(286), lang.lstr(287));
-        let mut els = new_screen(2);
-        els.push(Element::text(
-            lang.lstr(118).to_string(),
-            68,
-            8,
-            FONT_DEFAULT,
-            false,
-        ));
-        els.push(Element::text(
-            lang.lstr(119).to_string(),
-            78,
-            16,
-            FONT_HELP,
-            false,
-        ));
-        els.push(Element::text(help_line, 78, 23, FONT_HELP, false));
-        els.push(Element::text(
-            lang.lstr(288).to_string(),
-            78,
-            30,
-            FONT_HELP,
-            false,
-        ));
+        cx.fill((0, 0, 320, 200), crate::gfx::palette::BLACK);
+        cx.fill((0, 0, 11, 200), crate::gfx::palette::FILL_DIM);
+        cx.fill((12, 0, 296, 200), crate::gfx::palette::BG_LEFT);
+        cx.fill((309, 0, 11, 200), crate::gfx::palette::FILL_DIM);
+        cx.dither_fill(63);
+        cx.sprite(sprites::Sprite::Logo as u16, (30, 8));
+        cx.text((68, 8), FONT_DEFAULT, lang.lstr(118));
+        cx.text((78, 16), FONT_HELP, lang.lstr(119));
+        cx.text((78, 23), FONT_HELP, help_line);
+        cx.text((78, 30), FONT_HELP, lang.lstr(288));
 
         for (i, &hill_idx) in self.selected.iter().enumerate() {
-            els.extend(self.hill_elements(i, hill_idx, false));
+            self.paint_hill(cx, i, hill_idx, false);
         }
 
         let preview_slot = self.selected.len();
         if preview_slot < MAX_HILLS && self.preview < self.all_hill_count {
-            els.extend(self.hill_elements(preview_slot, self.preview, true));
+            self.paint_hill(cx, preview_slot, self.preview, true);
         }
-
-        els
     }
 
-    fn legacy_handle_event(&mut self, event: Event) -> Option<RouteTarget> {
+    fn handle_input(&mut self, event: Event) -> Option<RouteTarget> {
         match event {
             Event::Keyboard(Key::Escape) => Some(RouteTarget::Back),
             Event::Keyboard(Key::Enter) => {
@@ -163,10 +140,10 @@ impl CustomCupSetupView {
 
 impl Screen<RouteTarget> for CustomCupSetupView {
     fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
-        let Some(event) = event_from_ui(event) else {
+        let Some(event) = input_from_ui(event) else {
             return;
         };
-        if let Some(route) = self.legacy_handle_event(event) {
+        if let Some(route) = self.handle_input(event) {
             if route == RouteTarget::Back {
                 cx.back();
             } else {
@@ -178,6 +155,14 @@ impl Screen<RouteTarget> for CustomCupSetupView {
     }
 
     fn paint(&self, cx: &mut PaintCx<'_>) {
-        paint_elements(cx, &self.legacy_elements());
+        self.paint_content(cx);
+    }
+}
+
+fn input_from_ui(event: UiEvent) -> Option<Event> {
+    match event {
+        UiEvent::KeyDown(key) => Some(Event::Keyboard(key)),
+        UiEvent::Text(c) => Some(Event::Keyboard(Key::Char(c))),
+        UiEvent::Quit | UiEvent::Tick => None,
     }
 }

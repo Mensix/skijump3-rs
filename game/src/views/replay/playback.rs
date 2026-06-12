@@ -15,8 +15,7 @@ use crate::store::{ResourcesRef, StoreRef};
 use crate::text::lang::LangBase;
 use crate::views::replay::playback_controls::{PlaybackMode, PlaybackSpeed, ReplayPlayback};
 use engine::consts::{HEIGHT, WIDTH};
-use engine::oxide::legacy::{event_from_ui, paint_elements};
-use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent, UpdateCx};
+use engine::oxide::{ImageRegionDraw, PaintCx, Screen, ScreenEventCx, UiEvent, UpdateCx};
 use engine::ui::{Blinker, Element, Event, Key};
 use std::cell::{Cell, RefCell};
 use std::collections::VecDeque;
@@ -108,16 +107,25 @@ impl ReplayView {
         }
     }
 
-    fn legacy_elements(&self) -> Vec<Element> {
+    fn paint_content(&self, cx: &mut PaintCx<'_>) {
         let Ok(terrain) = &self.terrain else {
-            return screen::message_screen("Replay hill not found", "PRESS ESC");
+            draw_items(
+                cx,
+                &screen::message_screen("Replay hill not found", "PRESS ESC"),
+            );
+            return;
         };
         let mut session_ref = self.session.borrow_mut();
         let Some(session) = session_ref.as_mut() else {
-            return screen::message_screen("No replay selected", "PRESS ESC");
+            draw_items(
+                cx,
+                &screen::message_screen("No replay selected", "PRESS ESC"),
+            );
+            return;
         };
         let Some(frame) = session.render_frame() else {
-            return screen::black_screen();
+            draw_items(cx, &screen::black_screen());
+            return;
         };
         let (x, y) = frame.position;
         let (sx, sy) = frame.scroll;
@@ -248,7 +256,7 @@ impl ReplayView {
                 );
             }
         }
-        els
+        draw_items(cx, &els);
     }
 }
 
@@ -269,7 +277,7 @@ impl Screen<RouteTarget> for ReplayView {
     }
 
     fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
-        let Some(event) = event_from_ui(event) else {
+        let Some(event) = input_event(event) else {
             return;
         };
         if self.active_intro_box.borrow().is_some() {
@@ -331,7 +339,62 @@ impl Screen<RouteTarget> for ReplayView {
     }
 
     fn paint(&self, cx: &mut PaintCx<'_>) {
-        paint_elements(cx, &self.legacy_elements());
+        self.paint_content(cx);
+    }
+}
+
+fn input_event(event: UiEvent) -> Option<Event> {
+    match event {
+        UiEvent::KeyDown(key) => Some(Event::Keyboard(key)),
+        UiEvent::Text(c) => Some(Event::Keyboard(Key::Char(c))),
+        UiEvent::Quit | UiEvent::Tick => None,
+    }
+}
+
+fn draw_items(cx: &mut PaintCx<'_>, items: &[Element]) {
+    for item in items {
+        draw_item(cx, item);
+    }
+}
+
+fn draw_item(cx: &mut PaintCx<'_>, item: &Element) {
+    match item {
+        Element::Image(pixels, w, h) => cx.image(pixels.clone(), *w, *h),
+        Element::ImageRegion(region) => cx.image_region(ImageRegionDraw {
+            pixels: region.pixels.clone(),
+            src_w: region.src_w,
+            src_h: region.src_h,
+            src_x: region.src_x,
+            src_y: region.src_y,
+            dst_x: region.dst_x,
+            dst_y: region.dst_y,
+            w: region.w,
+            h: region.h,
+        }),
+        Element::Text {
+            text,
+            x,
+            y,
+            color,
+            right,
+            center,
+        } => {
+            if *center {
+                cx.center_text((*x, *y), *color, text);
+            } else if *right {
+                cx.right_text((*x, *y), *color, text);
+            } else {
+                cx.text((*x, *y), *color, text);
+            }
+        }
+        Element::Sprite(idx, x, y) => cx.sprite(*idx, (*x, *y)),
+        Element::Fillbox { x, y, w, h, color } => cx.fill((*x, *y, *w, *h), *color),
+        Element::FillArea { thing } => cx.dither_fill(*thing),
+        Element::Box { x, y, w, h, color } => cx.stroke((*x, *y, *w, *h), *color),
+        Element::SpriteRemapped(idx, x, y, recolor) => {
+            cx.sprite_remapped(*idx, (*x, *y), recolor.clone());
+        }
+        Element::Container(children) => draw_items(cx, children),
     }
 }
 

@@ -1,13 +1,12 @@
 use crate::competition::factory;
 use crate::components::menu::{Menu, MenuItem};
-use crate::components::screen;
-use crate::gfx::palette::{FONT_DEFAULT, FONT_GOLD, FONT_GREET};
+use crate::gfx::palette::{BG_LEFT, BLACK, FILL_DIM, FONT_DEFAULT, FONT_GOLD, FONT_GREET};
+use crate::gfx::sprites;
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::format;
-use engine::oxide::legacy::{event_from_ui, paint_elements};
 use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent};
-use engine::ui::{Component, Element, Event, Key};
+use engine::ui::{Component, Event, Key};
 
 pub struct TrainingSetupView {
     resources: ResourcesRef,
@@ -106,73 +105,37 @@ impl TrainingSetupView {
         }
     }
 
-    fn legacy_elements(&self) -> Vec<Element> {
-        let mut els = screen::new_screen(2);
-        els.push(Element::text(
-            self.resources.langbase.lstr(151),
-            30,
-            31,
-            FONT_DEFAULT,
-            false,
-        ));
-        els.push(Element::text(
-            self.resources.langbase.lstr(152),
-            30,
-            41,
-            FONT_DEFAULT,
-            false,
-        ));
-        els.push(Element::text(
-            self.resources.langbase.lstr(153),
-            30,
-            51,
-            FONT_DEFAULT,
-            false,
-        ));
+    fn paint_content(&self, cx: &mut PaintCx<'_>) {
+        cx.fill((0, 0, 320, 200), BLACK);
+        cx.fill((0, 0, 11, 200), FILL_DIM);
+        cx.fill((12, 0, 296, 200), BG_LEFT);
+        cx.fill((309, 0, 11, 200), FILL_DIM);
+        cx.dither_fill(63);
+        cx.sprite(sprites::Sprite::Logo as u16, (30, 8));
+        cx.text((30, 31), FONT_DEFAULT, self.resources.langbase.lstr(151));
+        cx.text((30, 41), FONT_DEFAULT, self.resources.langbase.lstr(152));
+        cx.text((30, 51), FONT_DEFAULT, self.resources.langbase.lstr(153));
 
         let page_n = self.page_items();
         for i in 0..page_n {
             let idx = self.start + i;
             let y = self.item_row(i) as i32 * 8 + 10;
-            els.push(Element::right_text(
-                format::ordinal_dot(i + 1),
-                130,
-                y,
-                FONT_GOLD,
-            ));
+            cx.right_text((130, y), FONT_GOLD, format::ordinal_dot(i + 1));
             if let Some(hill) = self.resources.hills.hill(idx) {
-                els.push(Element::text(&hill.name, 140, y, FONT_DEFAULT, false));
+                cx.text((140, y), FONT_DEFAULT, &hill.name);
                 let name_w = self.resources.font.string_width(&hill.name) as i32;
-                els.push(Element::text(
-                    format!("K{}", hill.kr),
-                    145 + name_w,
-                    y,
-                    FONT_GREET,
-                    false,
-                ));
+                cx.text((145 + name_w, y), FONT_GREET, format!("K{}", hill.kr));
             }
         }
 
         if self.has_more() {
             let y = self.item_row(page_n) as i32 * 8 + 10;
-            els.push(Element::text(
-                self.resources.langbase.lstr(156),
-                140,
-                y,
-                FONT_GREET,
-                false,
-            ));
+            cx.text((140, y), FONT_GREET, self.resources.langbase.lstr(156));
         }
 
         let y = (self.exit_row() - 1) as i32 * 8 + 10;
-        els.push(Element::right_text("0.", 130, y, FONT_DEFAULT));
-        els.push(Element::text(
-            self.resources.langbase.lstr(154),
-            140,
-            y,
-            FONT_DEFAULT,
-            false,
-        ));
+        cx.right_text((130, y), FONT_DEFAULT, "0.");
+        cx.text((140, y), FONT_DEFAULT, self.resources.langbase.lstr(154));
 
         // Selection box at the correct screen row.
         // Pascal MakeMenu positions EXIT box at index items+2 (1-based)
@@ -186,12 +149,10 @@ impl TrainingSetupView {
             self.item_row(sel)
         };
         let by = 8 + sel_row as i32 * 8;
-        els.push(Element::box_(bx, by, 171, 9, FONT_DEFAULT));
-
-        els
+        cx.stroke((bx, by, 171, 9), FONT_DEFAULT);
     }
 
-    fn legacy_handle_event(&mut self, event: Event) -> Option<RouteTarget> {
+    fn handle_input(&mut self, event: Event) -> Option<RouteTarget> {
         match &event {
             Event::Keyboard(Key::Escape) => {
                 return Some(RouteTarget::Back);
@@ -215,15 +176,23 @@ impl TrainingSetupView {
 
 impl Screen<RouteTarget> for TrainingSetupView {
     fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
-        let Some(event) = event_from_ui(event) else {
+        let Some(event) = input_from_ui(event) else {
             return;
         };
-        if let Some(route) = self.legacy_handle_event(event) {
+        if let Some(route) = self.handle_input(event) {
             cx.navigate(route);
         }
     }
 
     fn paint(&self, cx: &mut PaintCx<'_>) {
-        paint_elements(cx, &self.legacy_elements());
+        self.paint_content(cx);
+    }
+}
+
+fn input_from_ui(event: UiEvent) -> Option<Event> {
+    match event {
+        UiEvent::KeyDown(key) => Some(Event::Keyboard(key)),
+        UiEvent::Text(c) => Some(Event::Keyboard(Key::Char(c))),
+        UiEvent::Quit | UiEvent::Tick => None,
     }
 }

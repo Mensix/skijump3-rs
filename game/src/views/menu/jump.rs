@@ -1,15 +1,15 @@
 use std::cell::Cell;
 
 use crate::competition::factory;
-use crate::components::layout::{self, MainLayout};
+use crate::components::layout::MainLayout;
 use crate::components::menu::{Menu, MenuItem};
-use crate::components::screen;
-use crate::gfx::palette::{BG_ERASE, BG_LIST, FONT_DEFAULT, FONT_GOLD, FONT_HEADER};
+use crate::gfx::palette::{
+    BG_ERASE, BG_LIST, BG_RIGHT, BLACK, FONT_DEFAULT, FONT_GOLD, FONT_HEADER,
+};
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
-use engine::oxide::legacy::{event_from_ui, paint_elements};
 use engine::oxide::{PaintCx, Screen, ScreenBackground, ScreenEventCx, UiEvent};
-use engine::ui::{Component, Element, Event};
+use engine::ui::{Component, Element, Event, Key};
 
 pub struct JumpMenuView {
     menu: Menu,
@@ -59,32 +59,24 @@ impl JumpMenuView {
         }
     }
 
-    fn legacy_elements(&self) -> Vec<Element> {
-        let mut els = self.layout.background();
-        els.extend(self.layout.jumpers());
-        els.extend(self.layout.registration());
-        els.push(Element::fillbox(1, 94, 116, 106, BG_LIST));
-        els.extend(layout::header_elements(
-            self.layout.langbase.lstr(18),
-            11,
-            80,
-            FONT_HEADER,
-            BG_ERASE,
-        ));
-        els.extend(self.menu.elements());
-        els.extend(self.layout.footer());
-
+    fn paint_content(&self, cx: &mut PaintCx<'_>) {
+        paint_component_output(cx, self.layout.background());
+        paint_component_output(cx, self.layout.jumpers());
+        paint_component_output(cx, self.layout.registration());
+        cx.fill((1, 94, 116, 106), BG_LIST);
+        cx.fill((11, 80, 100, 6), BG_ERASE);
+        cx.text((11, 80), FONT_HEADER, self.layout.langbase.lstr(18));
+        paint_jump_menu(cx, &self.menu, &self.layout);
+        paint_component_output(cx, self.layout.footer());
         if self.show_team_warning.get() {
-            els.extend(Self::team_warning_elements(&self.layout));
+            Self::paint_team_warning(cx, &self.layout);
         }
-
-        els
     }
 }
 
 impl Screen<RouteTarget> for JumpMenuView {
     fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
-        let Some(event) = event_from_ui(event) else {
+        let Some(event) = input_event(event) else {
             return;
         };
 
@@ -122,7 +114,7 @@ impl Screen<RouteTarget> for JumpMenuView {
     }
 
     fn paint(&self, cx: &mut PaintCx<'_>) {
-        paint_elements(cx, &self.legacy_elements());
+        self.paint_content(cx);
     }
 
     fn background(&self) -> ScreenBackground {
@@ -187,14 +179,77 @@ impl JumpMenuView {
         RouteTarget::CompetitionJump
     }
 
-    fn team_warning_elements(layout: &MainLayout) -> Vec<Element> {
-        let mut els = screen::modal_background(59, 59, 203, 83);
+    fn paint_team_warning(cx: &mut PaintCx<'_>, layout: &MainLayout) {
         let lang = &layout.langbase;
-        els.push(Element::text(lang.lstr(261), 80, 72, FONT_GOLD, false));
-        els.push(Element::text(lang.lstr(262), 80, 82, FONT_GOLD, false));
-        els.push(Element::text(lang.lstr(263), 80, 92, FONT_GOLD, false));
-        els.push(Element::text(lang.lstr(264), 80, 112, FONT_GOLD, false));
-        els.push(Element::text(lang.lstr(265), 80, 122, FONT_GOLD, false));
-        els
+        cx.fill((59, 59, 203, 83), BLACK);
+        cx.fill((60, 60, 201, 81), BG_RIGHT);
+        cx.dither_fill(63);
+        cx.text((80, 72), FONT_GOLD, lang.lstr(261));
+        cx.text((80, 82), FONT_GOLD, lang.lstr(262));
+        cx.text((80, 92), FONT_GOLD, lang.lstr(263));
+        cx.text((80, 112), FONT_GOLD, lang.lstr(264));
+        cx.text((80, 122), FONT_GOLD, lang.lstr(265));
+    }
+}
+
+fn input_event(event: UiEvent) -> Option<Event> {
+    match event {
+        UiEvent::KeyDown(key) => Some(Event::Keyboard(key)),
+        UiEvent::Text(ch) => Some(Event::Keyboard(Key::Char(ch))),
+        UiEvent::Quit | UiEvent::Tick => None,
+    }
+}
+
+fn paint_jump_menu(cx: &mut PaintCx<'_>, menu: &Menu, layout: &MainLayout) {
+    let y_offsets = [0, 0, 0, 0, 0, 0, 12];
+    for (i, label) in [27, 28, 29, 30, 31, 32, 33].iter().enumerate() {
+        let num = if i == 6 { 0 } else { i + 1 };
+        let y = 98 + (i as i32) * 12 + y_offsets[i];
+        cx.text(
+            (11, y),
+            FONT_DEFAULT,
+            format!("{} - {}", num, layout.langbase.lstr(*label)),
+        );
+    }
+    let selected = menu.selected().min(y_offsets.len().saturating_sub(1));
+    let y = 94 + (selected as i32) * 12 + y_offsets[selected];
+    cx.stroke((5, y, 109, 13), FONT_DEFAULT);
+}
+
+fn paint_component_output(cx: &mut PaintCx<'_>, elements: Vec<Element>) {
+    for element in elements {
+        match element {
+            Element::Text {
+                text,
+                x,
+                y,
+                color,
+                center: true,
+                ..
+            } => {
+                cx.center_text((x, y), color, text);
+            }
+            Element::Text {
+                text,
+                x,
+                y,
+                color,
+                right: true,
+                ..
+            } => {
+                cx.right_text((x, y), color, text);
+            }
+            Element::Text {
+                text, x, y, color, ..
+            } => cx.text((x, y), color, text),
+            Element::Sprite(idx, x, y) => cx.sprite(idx, (x, y)),
+            Element::Fillbox { x, y, w, h, color } => cx.fill((x, y, w, h), color),
+            Element::FillArea { thing } => cx.dither_fill(thing),
+            Element::Box { x, y, w, h, color } => cx.stroke((x, y, w, h), color),
+            Element::Container(children) => paint_component_output(cx, children),
+            Element::SpriteRemapped(_, _, _, _)
+            | Element::Image(_, _, _)
+            | Element::ImageRegion(_) => {}
+        }
     }
 }

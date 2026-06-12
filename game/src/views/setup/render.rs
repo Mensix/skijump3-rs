@@ -1,31 +1,20 @@
-use crate::components::screen;
-use crate::gfx::palette::{BG_LEFT, FILL_BORDER, FILL_DIM, FONT_DEFAULT, FONT_HEADER, FONT_HELP};
-use engine::ui::Element;
+use crate::gfx::palette::{
+    BG_LEFT, BLACK, FILL_BORDER, FILL_DIM, FONT_DEFAULT, FONT_HEADER, FONT_HELP,
+};
+use crate::gfx::sprites;
+use engine::oxide::PaintCx;
 
 use super::state::{hex_char, wind_place_name, SetupModal};
 use super::view::SetupView;
 
-pub(crate) fn elements(view: &SetupView) -> Vec<Element> {
-    let mut els = Vec::new();
-    render_screen(view, &mut els);
+pub(crate) fn paint_content(view: &SetupView, cx: &mut PaintCx<'_>) {
+    render_screen(view, cx);
 
     match view.modal.get() {
         Some(SetupModal::WindPlace(pos)) => {
-            els.extend(screen::panel_background(
-                54,
-                19,
-                222,
-                162,
-                FILL_BORDER,
-                BG_LEFT,
-            ));
-            els.push(Element::text(
-                view.langbase().lstr(221),
-                75,
-                30,
-                FONT_HEADER,
-                false,
-            ));
+            cx.fill((54, 19, 222, 162), FILL_BORDER);
+            cx.fill((55, 20, 220, 160), BG_LEFT);
+            cx.text((75, 30), FONT_HEADER, view.langbase().lstr(221));
 
             let winds = 11;
             for apu1 in 1..=winds {
@@ -35,118 +24,74 @@ pub(crate) fn elements(view: &SetupView) -> Vec<Element> {
                 } else {
                     wind_place_name(view.langbase(), apu1 + 2)
                 };
-                els.push(Element::text(format!("{apu1}."), 85, yy, FONT_HEADER, true));
+                cx.right_text((85, yy), FONT_HEADER, format!("{apu1}."));
                 let color = if (apu1 - 1) == pos {
                     FONT_HEADER
                 } else {
                     FONT_DEFAULT
                 };
-                els.push(Element::text(name, 90, yy, color, false));
+                cx.text((90, yy), color, name);
             }
 
             let yy = (winds * 10 + 34 + 20) as i32;
-            els.push(Element::text(
-                format!("0.{}", view.langbase().lstr(154)),
-                85,
-                yy,
+            cx.text(
+                (85, yy),
                 FONT_DEFAULT,
-                false,
-            ));
-            els.push(Element::text(
-                view.langbase().lstr(150),
-                75,
-                175,
-                FONT_HELP,
-                false,
-            ));
+                format!("0.{}", view.langbase().lstr(154)),
+            );
+            cx.text((75, 175), FONT_HELP, view.langbase().lstr(150));
         }
         Some(SetupModal::SeeComps(val)) => {
-            els.extend(screen::panel_background(
-                74,
-                79,
-                172,
-                54,
-                FILL_BORDER,
-                BG_LEFT,
-            ));
-            els.push(Element::text(
-                view.langbase().lstr(220),
-                85,
-                85,
-                FONT_DEFAULT,
-                false,
-            ));
-            els.push(Element::text(
-                view.langbase().lstr(150),
-                85,
-                95,
-                FONT_HELP,
-                false,
-            ));
+            cx.fill((74, 79, 172, 54), FILL_BORDER);
+            cx.fill((75, 80, 170, 52), BG_LEFT);
+            cx.text((85, 85), FONT_DEFAULT, view.langbase().lstr(220));
+            cx.text((85, 95), FONT_HELP, view.langbase().lstr(150));
             let display = if val > 240 {
                 view.langbase().lstr(val).to_string()
             } else {
                 format!("#{val}")
             };
-            els.push(Element::fillbox(85, 105, 150, 20, FILL_DIM));
-            els.push(Element::text(display, 95, 112, FONT_HEADER, false));
+            cx.fill((85, 105, 150, 20), FILL_DIM);
+            cx.text((95, 112), FONT_HEADER, display);
         }
         Some(SetupModal::ConfirmReset(kind)) => {
-            els.extend(screen::panel_background(
-                69,
-                79,
-                182,
-                52,
-                FILL_BORDER,
-                BG_LEFT,
-            ));
+            cx.fill((69, 79, 182, 52), FILL_BORDER);
+            cx.fill((70, 80, 180, 50), BG_LEFT);
             let label = if kind == 1 {
                 view.langbase().lstr(190)
             } else {
                 view.langbase().lstr(191)
             };
-            els.push(Element::text(
+            cx.text(
+                (80, 90),
+                FONT_DEFAULT,
                 format!("{} {}", label, view.langbase().lstr(192)),
-                80,
-                90,
-                FONT_DEFAULT,
-                false,
-            ));
-            els.push(Element::text(
-                view.langbase().lstr(193),
-                80,
-                110,
-                FONT_DEFAULT,
-                false,
-            ));
+            );
+            cx.text((80, 110), FONT_DEFAULT, view.langbase().lstr(193));
         }
         Some(SetupModal::LanguagePicker(sel)) => {
             let langs = &view.langbase().languages;
-            els.push(Element::fillbox(74, 41, 173, 146, FILL_BORDER));
-            els.push(Element::fillbox(75, 42, 171, 144, BG_LEFT));
-            els.push(Element::text(
-                "PLEASE CHOOSE A LANGUAGE:",
-                100,
-                50,
-                FONT_DEFAULT,
-                false,
-            ));
+            cx.fill((74, 41, 173, 146), FILL_BORDER);
+            cx.fill((75, 42, 171, 144), BG_LEFT);
+            cx.text((100, 50), FONT_DEFAULT, "PLEASE CHOOSE A LANGUAGE:");
             for (i, name) in langs.iter().enumerate() {
                 let yy = ((i + 1) as i32) * 8 + 55;
-                els.push(Element::center_text(name, 155, yy, FONT_HEADER));
+                cx.center_text((155, yy), FONT_HEADER, name);
             }
             let bx = 112 - 6;
             let by = 64 - 3 + (sel as i32) * 8;
-            els.push(Element::box_(bx, by, 100 + 1, 8 + 1, FONT_DEFAULT));
+            cx.stroke((bx, by, 100 + 1, 8 + 1), FONT_DEFAULT);
         }
         None => {}
     }
-
-    els
 }
 
-fn render_screen(view: &SetupView, els: &mut Vec<Element>) {
-    els.extend(screen::new_screen(1));
+fn render_screen(view: &SetupView, cx: &mut PaintCx<'_>) {
+    cx.fill((0, 0, 320, 200), BLACK);
+    cx.fill((0, 0, 320, 19), FILL_DIM);
+    cx.fill((0, 20, 320, 180), BG_LEFT);
+    cx.dither_fill(63);
+    cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
 
     let title_id = match view.screen.get() {
         0 => 175,
@@ -155,13 +100,7 @@ fn render_screen(view: &SetupView, els: &mut Vec<Element>) {
         3 => 178,
         _ => return,
     };
-    els.push(Element::text(
-        view.langbase().lstr(title_id),
-        30,
-        6,
-        FONT_DEFAULT,
-        false,
-    ));
+    cx.text((30, 6), FONT_DEFAULT, view.langbase().lstr(title_id));
 
     let cfg = view.config();
     let screen = view.screen.get();
@@ -196,7 +135,7 @@ fn render_screen(view: &SetupView, els: &mut Vec<Element>) {
                 (1, 3) => {
                     let n = cfg.namenumber;
                     let hint = view.resources.namesets.title_for_config(n);
-                    els.push(Element::text(hint.to_string(), 40, 78, FONT_HELP, false));
+                    cx.text((40, 78), FONT_HELP, hint);
                     format!("{n}")
                 }
                 (2, 0) => {
@@ -289,7 +228,7 @@ fn render_screen(view: &SetupView, els: &mut Vec<Element>) {
         } else {
             String::new()
         };
-        setup_item(view, els, temp, entries, &value_str);
+        setup_item(view, cx, temp, entries, &value_str);
     }
 
     let sel = view.menu.selected();
@@ -299,13 +238,13 @@ fn render_screen(view: &SetupView, els: &mut Vec<Element>) {
         } else {
             (entries as i32) * 10 + 50 - 3
         };
-        els.push(Element::box_(35 - 6, by, 221 + 1, 10 + 1, FONT_DEFAULT));
+        cx.stroke((35 - 6, by, 221 + 1, 10 + 1), FONT_DEFAULT);
     }
 }
 
 fn setup_item(
     view: &SetupView,
-    els: &mut Vec<Element>,
+    cx: &mut PaintCx<'_>,
     index: usize,
     entries: usize,
     value_str: &str,
@@ -318,7 +257,7 @@ fn setup_item(
     };
 
     let row_label = format!("{}.", hex_char(index));
-    els.push(Element::text(row_label, xx, yy, FONT_HEADER, true));
+    cx.right_text((xx, yy), FONT_HEADER, row_label);
 
     let label_id = match (view.screen.get(), index) {
         (0, 0) => 195,
@@ -354,15 +293,9 @@ fn setup_item(
         _ => return,
     };
 
-    els.push(Element::text(
-        view.langbase().lstr(label_id),
-        35,
-        yy,
-        FONT_DEFAULT,
-        false,
-    ));
+    cx.text((35, yy), FONT_DEFAULT, view.langbase().lstr(label_id));
 
     if !value_str.is_empty() {
-        els.push(Element::text(value_str, 255, yy, FONT_HEADER, false));
+        cx.text((255, yy), FONT_HEADER, value_str);
     }
 }

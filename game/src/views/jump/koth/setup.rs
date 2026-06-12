@@ -1,12 +1,10 @@
 use crate::competition::factory;
-use crate::components::screen;
-use crate::gfx::palette::{FILL_DIM, FONT_DEFAULT, FONT_GOLD, FONT_HELP};
+use crate::gfx::palette::{BG_LEFT, BG_RIGHT, BLACK, FILL_DIM, FONT_DEFAULT, FONT_GOLD, FONT_HELP};
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::layout::shorten_name;
-use engine::oxide::legacy::{event_from_ui, paint_elements};
 use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent};
-use engine::ui::{Element, Event, Key};
+use engine::ui::{Event, Key};
 use std::cell::Cell;
 
 use crate::text::lang::LangBase;
@@ -64,8 +62,12 @@ impl KothSetupView {
         }
     }
 
-    fn legacy_elements(&self) -> Vec<Element> {
-        let mut els = screen::new_screen(3);
+    fn paint_content(&self, cx: &mut PaintCx<'_>) {
+        cx.fill((0, 0, 320, 200), BLACK);
+        cx.fill((0, 0, 169, 99), FILL_DIM);
+        cx.fill((0, 100, 169, 100), BG_RIGHT);
+        cx.fill((170, 0, 150, 200), BG_LEFT);
+        cx.dither_fill(63);
         let lang = &self.resources.langbase;
         let cfg = self.config();
 
@@ -80,54 +82,24 @@ impl KothSetupView {
                     .map(|s| shorten_name(s, &self.resources.font, 110))
                     .unwrap_or_else(|| "?".to_string());
                 let y = (20 + (i + 1) * 8) as i32;
-                els.push(Element::text(
-                    &format!("{} #{}", name, idx),
-                    180,
-                    y,
-                    FONT_GOLD,
-                    false,
-                ));
+                cx.text((180, y), FONT_GOLD, format!("{} #{}", name, idx));
             }
         } else {
-            els.push(Element::text(lang.lstr(9), 180, 30, FONT_GOLD, false));
+            cx.text((180, 30), FONT_GOLD, lang.lstr(9));
         }
 
         // --- right panel: "Computer Jumpers:" (white, Pascal 240) ---
-        els.push(Element::text(lang.lstr(120), 180, 10, FONT_DEFAULT, false));
+        cx.text((180, 10), FONT_DEFAULT, lang.lstr(120));
 
         // --- left panel: menu background (Pascal MakeMenu bgcolor=245) ---
-        els.push(Element::fillbox(4, 7, 160, 63, FILL_DIM));
-        els.push(Element::fill_area(63));
+        cx.fill((4, 7, 160, 63), FILL_DIM);
+        cx.dither_fill(63);
 
         // --- left panel: menu items ---
-        els.push(Element::text(
-            &format!("1 - {}", lang.lstr(121)),
-            10,
-            10,
-            FONT_DEFAULT,
-            false,
-        ));
-        els.push(Element::text(
-            &format!("2 - {}", lang.lstr(122)),
-            10,
-            20,
-            FONT_DEFAULT,
-            false,
-        ));
-        els.push(Element::text(
-            &format!("3 - {}", lang.lstr(123)),
-            10,
-            30,
-            self.col1(),
-            false,
-        ));
-        els.push(Element::text(
-            &format!("4 - {}", lang.lstr(124)),
-            10,
-            40,
-            self.col1(),
-            false,
-        ));
+        cx.text((10, 10), FONT_DEFAULT, format!("1 - {}", lang.lstr(121)));
+        cx.text((10, 20), FONT_DEFAULT, format!("2 - {}", lang.lstr(122)));
+        cx.text((10, 30), self.col1(), format!("3 - {}", lang.lstr(123)));
+        cx.text((10, 40), self.col1(), format!("4 - {}", lang.lstr(124)));
         let hill_name = if cfg.kothmaki == 0 {
             lang.lstr(155)
         } else {
@@ -137,44 +109,20 @@ impl KothSetupView {
                 .map(|h| h.name.as_str())
                 .unwrap_or("?")
         };
-        els.push(Element::text(hill_name, 80, 40, self.col2(), false));
-        els.push(Element::text(
-            &format!("5 - {}", lang.lstr(125)),
-            10,
-            50,
-            self.col1(),
-            false,
-        ));
+        cx.text((80, 40), self.col2(), hill_name);
+        cx.text((10, 50), self.col1(), format!("5 - {}", lang.lstr(125)));
         let wind_str = if cfg.kothwind != 0 {
             lang.lstr(6)
         } else {
             lang.lstr(7)
         };
-        els.push(Element::text(wind_str, 80, 50, self.col2(), false));
-        els.push(Element::text(
-            &format!("6 - {}", lang.lstr(126)),
-            10,
-            60,
-            self.col1(),
-            false,
-        ));
-        els.push(Element::text(
-            lang.lstr(cfg.kothrounds as usize),
-            80,
-            60,
-            self.col2(),
-            false,
-        ));
-        els.push(Element::text(
-            &format!("0 - {}", lang.lstr(127)),
-            10,
-            80,
-            FONT_DEFAULT,
-            false,
-        ));
+        cx.text((80, 50), self.col2(), wind_str);
+        cx.text((10, 60), self.col1(), format!("6 - {}", lang.lstr(126)));
+        cx.text((80, 60), self.col2(), lang.lstr(cfg.kothrounds as usize));
+        cx.text((10, 80), FONT_DEFAULT, format!("0 - {}", lang.lstr(127)));
 
         // --- left panel bottom: K.O.T.H Challenge Level (gold, Pascal 246) ---
-        els.push(Element::text(lang.lstr(130), 10, 110, FONT_GOLD, false));
+        cx.text((10, 110), FONT_GOLD, lang.lstr(130));
 
         // --- left panel bottom: pack list (Pascal kothchallenge) ---
         let is_pack_mode = self.mode.get() == KothMode::Packs;
@@ -196,7 +144,7 @@ impl KothSetupView {
                     FONT_HELP
                 }
             };
-            els.push(Element::text(&title, 10, py, color, false));
+            cx.text((10, py), color, title);
             py += 8;
             if pack == 6 {
                 py += 8;
@@ -208,20 +156,18 @@ impl KothSetupView {
                 let sel = self.selected.get();
                 if sel >= 1 && sel <= 6 {
                     let sy = (10 + (sel - 1) * 10) as i32;
-                    els.push(Element::box_(4, sy - 3, 160, 10, FONT_DEFAULT));
+                    cx.stroke((4, sy - 3, 160, 10), FONT_DEFAULT);
                 }
             }
             KothMode::Packs => {
                 let cur = self.pack_cursor.get();
                 let pcy = pack_cursor_y(cur);
-                els.push(Element::box_(4, pcy - 2, 160, 8, FONT_DEFAULT));
+                cx.stroke((4, pcy - 2, 160, 8), FONT_DEFAULT);
             }
         }
-
-        els
     }
 
-    fn legacy_handle_event(&mut self, event: Event) -> Option<RouteTarget> {
+    fn handle_input(&mut self, event: Event) -> Option<RouteTarget> {
         match self.mode.get() {
             KothMode::Main => self.handle_main(event),
             KothMode::Packs => self.handle_packs(event),
@@ -231,16 +177,24 @@ impl KothSetupView {
 
 impl Screen<RouteTarget> for KothSetupView {
     fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
-        let Some(event) = event_from_ui(event) else {
+        let Some(event) = input_from_ui(event) else {
             return;
         };
-        if let Some(route) = self.legacy_handle_event(event) {
+        if let Some(route) = self.handle_input(event) {
             cx.navigate(route);
         }
     }
 
     fn paint(&self, cx: &mut PaintCx<'_>) {
-        paint_elements(cx, &self.legacy_elements());
+        self.paint_content(cx);
+    }
+}
+
+fn input_from_ui(event: UiEvent) -> Option<Event> {
+    match event {
+        UiEvent::KeyDown(key) => Some(Event::Keyboard(key)),
+        UiEvent::Text(c) => Some(Event::Keyboard(Key::Char(c))),
+        UiEvent::Quit | UiEvent::Tick => None,
     }
 }
 
