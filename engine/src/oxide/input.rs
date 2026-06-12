@@ -13,7 +13,6 @@ pub enum Key {
     Backspace,
     Delete,
     F5,
-    Char(char),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
