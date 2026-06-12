@@ -8,6 +8,8 @@ use crate::gfx::palette::{
 use crate::jump::replay::ReplayTrace;
 use crate::route::RouteTarget;
 use crate::store::{Resources, ResourcesRef, StoreRef};
+use engine::oxide::legacy::{commands_to_elements, event_from_ui, paint_elements};
+use engine::oxide::{CommandBuffer, NavAction, PaintCx, Screen, ScreenEventCx, UiEvent};
 use engine::ui::{Component, Element, Event, Key, View};
 use std::path::Path;
 
@@ -71,10 +73,8 @@ impl ReplayBrowserView {
     fn move_prev(&mut self) {
         self.selected = cycle_index(self.selected, self.entries.len(), -1);
     }
-}
 
-impl View<RouteTarget> for ReplayBrowserView {
-    fn elements(&self) -> Vec<Element> {
+    fn legacy_elements(&self) -> Vec<Element> {
         let mut els = vec![];
         els.extend(layout::header_elements(
             self.layout.langbase.lstr(17),
@@ -92,32 +92,62 @@ impl View<RouteTarget> for ReplayBrowserView {
         ));
         els
     }
+}
+
+impl View<RouteTarget> for ReplayBrowserView {
+    fn elements(&self) -> Vec<Element> {
+        let mut commands = CommandBuffer::new();
+        let mut cx = PaintCx::new(&mut commands);
+        Screen::paint(self, &mut cx);
+        commands_to_elements(&commands)
+    }
 
     fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {
-        match event {
-            Event::Keyboard(Key::Escape) => {
-                self.store.set_selected_main_menu(5);
-                Some(RouteTarget::Back)
-            }
-            Event::Keyboard(Key::Right | Key::Down | Key::Char(' ' | '+')) => {
-                self.move_next();
-                None
-            }
-            Event::Keyboard(Key::Left | Key::Up | Key::Char('-')) => {
-                self.move_prev();
-                None
-            }
-            Event::Keyboard(Key::Enter) => {
-                let trace = self.selected_entry()?.trace.clone()?;
-                self.store.select_replay(trace);
-                Some(RouteTarget::ReplayPlayback)
-            }
-            Event::Keyboard(_) => None,
+        let mut cx = ScreenEventCx::default();
+        Screen::event(self, &mut cx, event.into());
+        match cx.take_action() {
+            NavAction::Navigate(route) => Some(route),
+            NavAction::Back => Some(RouteTarget::Back),
+            NavAction::Quit => Some(RouteTarget::Quit),
+            NavAction::None => None,
         }
     }
 
     fn gpu_background(&self) -> engine::ui::BackgroundMode {
         engine::ui::BackgroundMode::MainPng
+    }
+}
+
+impl Screen<RouteTarget> for ReplayBrowserView {
+    fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
+        let Some(event) = event_from_ui(event) else {
+            return;
+        };
+        match event {
+            Event::Keyboard(Key::Escape) => {
+                self.store.set_selected_main_menu(5);
+                cx.back();
+            }
+            Event::Keyboard(Key::Right | Key::Down | Key::Char(' ' | '+')) => {
+                self.move_next();
+                cx.consume();
+            }
+            Event::Keyboard(Key::Left | Key::Up | Key::Char('-')) => {
+                self.move_prev();
+                cx.consume();
+            }
+            Event::Keyboard(Key::Enter) => {
+                if let Some(trace) = self.selected_entry().and_then(|entry| entry.trace.clone()) {
+                    self.store.select_replay(trace);
+                    cx.navigate(RouteTarget::ReplayPlayback);
+                }
+            }
+            Event::Keyboard(_) => {}
+        }
+    }
+
+    fn paint(&self, cx: &mut PaintCx<'_>) {
+        paint_elements(cx, &self.legacy_elements());
     }
 }
 

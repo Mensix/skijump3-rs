@@ -1,6 +1,15 @@
 use crate::oxide::draw::{CommandBuffer, DrawCommand, ImageRegionDraw, TextAlign};
+use crate::oxide::input::UiEvent;
 use crate::oxide::paint::PaintCx;
-use crate::ui::{Element, ImageRegion};
+use crate::ui::{Element, Event, ImageRegion, Key};
+
+pub fn event_from_ui(event: UiEvent) -> Option<Event> {
+    match event {
+        UiEvent::KeyDown(key) => Some(Event::Keyboard(key)),
+        UiEvent::Text(c) => Some(Event::Keyboard(Key::Char(c))),
+        UiEvent::Quit | UiEvent::Tick => None,
+    }
+}
 
 pub fn paint_elements(cx: &mut PaintCx<'_>, elements: &[Element]) {
     for element in elements {

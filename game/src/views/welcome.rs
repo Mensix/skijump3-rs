@@ -4,7 +4,7 @@ use crate::gfx::sprites;
 use crate::route::RouteTarget;
 use crate::save::SaveRef;
 use crate::text::lang::LangBase;
-use engine::oxide::legacy::{commands_to_elements, paint_elements};
+use engine::oxide::legacy::{commands_to_elements, event_from_ui, paint_elements};
 use engine::oxide::{CommandBuffer, NavAction, PaintCx, Screen, ScreenEventCx, UiEvent};
 use engine::ui::{Component, Element, Event, View};
 use std::rc::Rc;
@@ -54,14 +54,6 @@ impl WelcomeScreenView {
         els.extend(self.menu.elements());
         els
     }
-
-    fn legacy_event(event: UiEvent) -> Option<Event> {
-        match event {
-            UiEvent::KeyDown(key) => Some(Event::Keyboard(key)),
-            UiEvent::Text(c) => Some(Event::Keyboard(engine::oxide::Key::Char(c))),
-            UiEvent::Quit | UiEvent::Tick => None,
-        }
-    }
 }
 
 impl View<RouteTarget> for WelcomeScreenView {
@@ -86,7 +78,7 @@ impl View<RouteTarget> for WelcomeScreenView {
 
 impl Screen<RouteTarget> for WelcomeScreenView {
     fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
-        let Some(event) = Self::legacy_event(event) else {
+        let Some(event) = event_from_ui(event) else {
             return;
         };
         match self.menu.handle_event(&event) {
