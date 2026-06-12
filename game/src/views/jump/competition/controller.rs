@@ -11,8 +11,8 @@ use crate::views::jump::competition::overlay::CompetitionOverlay;
 use crate::views::jump::competition::session::CompetitionSession;
 use crate::views::jump::competition::ui_state::{CompetitionUiState, RenderMode};
 use crate::views::jump::scene::JumpScene;
+use engine::oxide::input::UiEvent;
 use engine::oxide::PaintCx;
-use engine::ui::Event;
 
 pub(crate) struct CompetitionJumpController<R>
 where
@@ -96,7 +96,7 @@ where
 
     pub(crate) fn handle_jump_scene_event(
         &self,
-        event: Event,
+        event: UiEvent,
         consume_other_actions: bool,
         accepts_only_enter_escape: bool,
         acknowledge_only_unrecorded: bool,

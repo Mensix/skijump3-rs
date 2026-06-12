@@ -3,6 +3,8 @@ use crate::components::{prompt, screen};
 use crate::gfx::palette::{BG_LEFT, BLACK, FONT_DEFAULT, FONT_GOLD};
 use crate::jump::replay::ReplayTrace;
 use crate::store::ResourcesRef;
+use engine::oxide::input::UiEvent;
+use engine::oxide::{ImageRegionDraw, PaintCx};
 use engine::ui::{Blinker, Component, Element, Event, Key, TextEditState};
 
 #[derive(Debug, Clone, Copy)]
@@ -257,6 +259,21 @@ impl SaveReplayDialog {
         }
     }
 
+    pub fn paint_on(&self, cx: &mut PaintCx<'_>) {
+        for el in self.elements() {
+            paint_elem(cx, &el);
+        }
+    }
+
+    pub fn handle_ui_event(&mut self, event: &UiEvent) -> Option<SaveAction> {
+        let old_event = match event {
+            UiEvent::KeyDown(key) => Event::Keyboard(*key),
+            UiEvent::Text(c) => Event::Keyboard(Key::Char(*c)),
+            UiEvent::Quit | UiEvent::Tick => return None,
+        };
+        Component::handle_event(self, &old_event)
+    }
+
     fn render_overwrite(&self, els: &mut Vec<Element>, filename: &str) {
         els.extend(screen::modal_background(59, 79, 203, 53));
 
@@ -369,6 +386,44 @@ impl Component for SaveReplayDialog {
                 _ => Some(SaveAction::Consumed),
             },
             SaveDialogState::Inactive => Some(SaveAction::Consumed),
+        }
+    }
+}
+
+fn paint_elem(cx: &mut PaintCx<'_>, el: &Element) {
+    match el {
+        Element::Image(pixels, w, h) => cx.image(pixels.clone(), *w, *h),
+        Element::ImageRegion(region) => cx.image_region(ImageRegionDraw {
+            pixels: region.pixels.clone(),
+            src_w: region.src_w,
+            src_h: region.src_h,
+            src_x: region.src_x,
+            src_y: region.src_y,
+            dst_x: region.dst_x,
+            dst_y: region.dst_y,
+            w: region.w,
+            h: region.h,
+        }),
+        Element::Text { text, x, y, color, right, center } => {
+            if *center {
+                cx.center_text((*x, *y), *color, text);
+            } else if *right {
+                cx.right_text((*x, *y), *color, text);
+            } else {
+                cx.text((*x, *y), *color, text);
+            }
+        }
+        Element::Sprite(idx, x, y) => cx.sprite(*idx, (*x, *y)),
+        Element::Fillbox { x, y, w, h, color } => cx.fill((*x, *y, *w, *h), *color),
+        Element::FillArea { thing } => cx.dither_fill(*thing),
+        Element::Box { x, y, w, h, color } => cx.stroke((*x, *y, *w, *h), *color),
+        Element::SpriteRemapped(idx, x, y, recolor) => {
+            cx.sprite_remapped(*idx, (*x, *y), recolor.clone());
+        }
+        Element::Container(children) => {
+            for child in children {
+                paint_elem(cx, child);
+            }
         }
     }
 }

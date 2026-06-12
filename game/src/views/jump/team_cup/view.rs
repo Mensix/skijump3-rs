@@ -9,7 +9,7 @@ use crate::views::jump::competition::flow::{
 use crate::views::jump::team_cup::results as team_cup_results;
 use crate::views::jump::competition::ui_state::RenderMode;
 use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent, UpdateCx};
-use engine::ui::{Blinker, Event, Key};
+use engine::ui::Blinker;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ViewPhase {
@@ -122,12 +122,7 @@ impl TeamCupJumpView {
     }
 
     fn handle_input(&mut self, event: UiEvent) -> Option<RouteTarget> {
-        let legacy = input_event(event);
-        let Some(legacy) = legacy else {
-            return None;
-        };
-
-        if let Some(route) = route_error_back(self.controller.ui_state(), legacy) {
+        if let Some(route) = route_error_back(self.controller.ui_state(), event) {
             return Some(route);
         }
         if self.controller.render_mode() == RenderMode::Error {
@@ -154,7 +149,7 @@ impl TeamCupJumpView {
         if self.phase == ViewPhase::Jumping {
             match self
                 .controller
-                .handle_jump_scene_event(legacy, false, false, true)
+                .handle_jump_scene_event(event, false, false, true)
             {
                 JumpInputResult::Route(route) => return Some(route),
                 JumpInputResult::Consumed => return None,
@@ -163,7 +158,7 @@ impl TeamCupJumpView {
         }
 
         if self.controller.render_mode() == RenderMode::Results {
-            if matches!(legacy, Event::Keyboard(_)) {
+            if matches!(event, UiEvent::KeyDown(_) | UiEvent::Text(_)) {
                 if let Some(cmd) = self
                     .controller
                     .dismiss_results_and_advance(self.results_kind)
@@ -214,14 +209,6 @@ impl Screen<RouteTarget> for TeamCupJumpView {
 
     fn paint(&self, cx: &mut PaintCx<'_>) {
         self.paint_content(cx);
-    }
-}
-
-fn input_event(event: UiEvent) -> Option<Event> {
-    match event {
-        UiEvent::KeyDown(key) => Some(Event::Keyboard(key)),
-        UiEvent::Text(c) => Some(Event::Keyboard(Key::Char(c))),
-        UiEvent::Quit | UiEvent::Tick => None,
     }
 }
 

@@ -1,5 +1,5 @@
 use crate::jump::{JumpInput, JumpPhase, JumpSession};
-use engine::ui::{Event, Key};
+use engine::oxide::input::{Key, UiEvent};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum JumpInputAction {
@@ -15,52 +15,52 @@ pub enum JumpInputAction {
 pub struct JumpInputController;
 
 impl JumpInputController {
-    pub(crate) fn handle_event(self, event: Event, session: &mut JumpSession) -> JumpInputAction {
+    pub(crate) fn handle_event(self, event: UiEvent, session: &mut JumpSession) -> JumpInputAction {
         match event {
-            Event::Keyboard(Key::Escape) => JumpInputAction::RouteBack,
-            Event::Keyboard(Key::F5) => {
+            UiEvent::KeyDown(Key::Escape) => JumpInputAction::RouteBack,
+            UiEvent::KeyDown(Key::F5) => {
                 if session.policy().allow_wind_reset {
                     JumpInputAction::ResetWind
                 } else {
                     JumpInputAction::None
                 }
             }
-            Event::Keyboard(Key::Enter) => Self::enter(session),
-            Event::Keyboard(Key::Right) => Self::right(session),
-            Event::Keyboard(Key::Char('+')) => Self::adjust_gate(session, 1),
-            Event::Keyboard(Key::Char('-')) => Self::adjust_gate(session, -1),
-            Event::Keyboard(Key::Left) => {
+            UiEvent::KeyDown(Key::Enter) => Self::enter(session),
+            UiEvent::KeyDown(Key::Right) => Self::right(session),
+            UiEvent::Text('+') => Self::adjust_gate(session, 1),
+            UiEvent::Text('-') => Self::adjust_gate(session, -1),
+            UiEvent::KeyDown(Key::Left) => {
                 if session.phase() == Some(JumpPhase::Flight) {
                     session.handle_input(JumpInput::LeanBack);
                 }
                 JumpInputAction::None
             }
-            Event::Keyboard(Key::Up) => {
+            UiEvent::KeyDown(Key::Up) => {
                 if session.phase() == Some(JumpPhase::Inrun) {
                     session.handle_input(JumpInput::Takeoff);
                 }
                 JumpInputAction::None
             }
-            Event::Keyboard(Key::Char('t' | 'T')) => {
+            UiEvent::Text('t' | 'T') => {
                 if session.phase() == Some(JumpPhase::Flight) {
                     session.handle_input(JumpInput::Telemark);
                 }
                 JumpInputAction::None
             }
-            Event::Keyboard(Key::Char('r' | 'R')) => {
+            UiEvent::Text('r' | 'R') => {
                 if session.phase() == Some(JumpPhase::Flight) {
                     session.handle_input(JumpInput::TwoFooted);
                 }
                 JumpInputAction::None
             }
-            Event::Keyboard(Key::Char('s' | 'S')) => {
+            UiEvent::Text('s' | 'S') => {
                 if session.phase() == Some(JumpPhase::Result) {
                     JumpInputAction::SaveReplay
                 } else {
                     JumpInputAction::None
                 }
             }
-            Event::Keyboard(_) => JumpInputAction::None,
+            _ => JumpInputAction::None,
         }
     }
 

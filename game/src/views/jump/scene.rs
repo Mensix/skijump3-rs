@@ -7,9 +7,8 @@ use crate::jump::types::{JumpOutcome, JumpPhase, JumpTelemetry};
 use crate::jump::{JumpParticipant, JumpPolicy, JumpRunner, JumpRunnerRenderEnv, JumpSession};
 use crate::store::{ResourcesRef, StoreRef};
 use crate::views::replay::save_dialog::{SaveAction, SaveReplayDialog};
-use engine::oxide::draw::ImageRegionDraw;
+use engine::oxide::input::UiEvent;
 use engine::oxide::PaintCx;
-use engine::ui::{Component, Element, Event};
 use std::cell::RefCell;
 
 #[derive(Debug, thiserror::Error)]
@@ -214,8 +213,8 @@ impl JumpScene {
         );
     }
 
-    pub fn handle_save_dialog_event(&self, event: &Event) -> Option<bool> {
-        let action = Component::handle_event(&mut *self.save_dialog.borrow_mut(), event);
+    pub fn handle_save_dialog_event(&self, event: &UiEvent) -> Option<bool> {
+        let action = self.save_dialog.borrow_mut().handle_ui_event(event);
         match action {
             Some(SaveAction::SaveReplay) => {
                 if let Some(trace) = self.replay_trace() {
@@ -264,9 +263,7 @@ impl JumpScene {
 
     pub fn render(&self, cx: &mut PaintCx<'_>) {
         if self.is_save_dialog_active() {
-            for el in Component::elements(&*self.save_dialog.borrow()) {
-                paint_element(cx, &el);
-            }
+            self.save_dialog.borrow().paint_on(cx);
             return;
         }
         let records = self.store.records();
@@ -323,38 +320,4 @@ impl JumpScene {
     }
 }
 
-fn paint_element(cx: &mut PaintCx<'_>, el: &Element) {
-    match el {
-        Element::Image(pixels, w, h) => cx.image(pixels.clone(), *w, *h),
-        Element::ImageRegion(region) => cx.image_region(ImageRegionDraw {
-            pixels: region.pixels.clone(),
-            src_w: region.src_w,
-            src_h: region.src_h,
-            src_x: region.src_x,
-            src_y: region.src_y,
-            dst_x: region.dst_x,
-            dst_y: region.dst_y,
-            w: region.w,
-            h: region.h,
-        }),
-        Element::Text { text, x, y, color, right, center } => {
-            if *center {
-                cx.center_text((*x, *y), *color, text);
-            } else if *right {
-                cx.right_text((*x, *y), *color, text);
-            } else {
-                cx.text((*x, *y), *color, text);
-            }
-        }
-        Element::Sprite(idx, x, y) => cx.sprite(*idx, (*x, *y)),
-        Element::Fillbox { x, y, w, h, color } => cx.fill((*x, *y, *w, *h), *color),
-        Element::FillArea { thing } => cx.dither_fill(*thing),
-        Element::Box { x, y, w, h, color } => cx.stroke((*x, *y, *w, *h), *color),
-        Element::SpriteRemapped(idx, x, y, recolor) => cx.sprite_remapped(*idx, (*x, *y), recolor.clone()),
-        Element::Container(children) => {
-            for child in children {
-                paint_element(cx, child);
-            }
-        }
-    }
-}
+

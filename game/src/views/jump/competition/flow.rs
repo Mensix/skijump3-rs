@@ -9,8 +9,8 @@ use crate::views::jump::competition::session::{CompetitionSession, SessionError}
 use crate::views::jump::competition::ui_state::CompetitionUiState;
 use crate::views::jump::input::{JumpInputAction, JumpInputController};
 use crate::views::jump::scene::JumpScene;
+use engine::oxide::input::{Key, UiEvent};
 use engine::oxide::PaintCx;
-use engine::ui::{Event, Key};
 
 #[derive(Debug)]
 pub(crate) enum CompetitionFlowCommand<C, R> {
@@ -193,16 +193,16 @@ pub(crate) fn render_jump_scene_with_overlay(
 pub(crate) fn acknowledge_finished_jump(
     scene: &JumpScene,
     ui_state: &CompetitionUiState,
-    event: Event,
+    event: UiEvent,
     accepts_only_enter_escape: bool,
 ) -> bool {
     if scene.outcome().is_none() || ui_state.is_result_acknowledged() {
         return false;
     }
     let accepted = if accepts_only_enter_escape {
-        matches!(event, Event::Keyboard(Key::Enter | Key::Escape))
+        matches!(event, UiEvent::KeyDown(Key::Enter | Key::Escape))
     } else {
-        matches!(event, Event::Keyboard(_))
+        matches!(event, UiEvent::KeyDown(_) | UiEvent::Text(_))
     };
     if accepted {
         ui_state.acknowledge_outcome();
@@ -210,7 +210,7 @@ pub(crate) fn acknowledge_finished_jump(
     true
 }
 
-pub(crate) fn handle_save_dialog(scene: &JumpScene, event: &Event) -> bool {
+pub(crate) fn handle_save_dialog(scene: &JumpScene, event: &UiEvent) -> bool {
     if !scene.is_save_dialog_active() {
         return false;
     }
@@ -226,7 +226,7 @@ pub(crate) enum JumpInputResult {
 
 pub(crate) fn handle_competition_jump_input(
     scene: &JumpScene,
-    event: Event,
+    event: UiEvent,
     consume_other_actions: bool,
 ) -> JumpInputResult {
     let action = {
@@ -248,7 +248,7 @@ pub(crate) fn handle_competition_jump_input(
 pub(crate) fn handle_jump_scene_event(
     scene: &JumpScene,
     ui_state: &CompetitionUiState,
-    event: Event,
+    event: UiEvent,
     consume_other_actions: bool,
     accepts_only_enter_escape: bool,
     acknowledge_only_unrecorded: bool,
@@ -271,9 +271,9 @@ pub(crate) fn handle_jump_scene_event(
     JumpInputResult::None
 }
 
-pub(crate) fn route_error_back(ui_state: &CompetitionUiState, event: Event) -> Option<RouteTarget> {
+pub(crate) fn route_error_back(ui_state: &CompetitionUiState, event: UiEvent) -> Option<RouteTarget> {
     if ui_state.render_mode() != crate::views::jump::competition::ui_state::RenderMode::Error {
         return None;
     }
-    matches!(event, Event::Keyboard(_)).then_some(RouteTarget::Back)
+    matches!(event, UiEvent::KeyDown(_) | UiEvent::Text(_)).then_some(RouteTarget::Back)
 }

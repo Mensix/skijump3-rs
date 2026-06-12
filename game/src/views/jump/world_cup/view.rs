@@ -19,8 +19,8 @@ use crate::views::jump::competition::results::{
 };
 use crate::views::jump::competition::ui_state::{RenderMode, ResultScreen};
 use crate::views::jump::scene::JumpScene;
-use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent, UpdateCx};
-use engine::ui::{Blinker, Event, Key};
+use engine::oxide::{Key, PaintCx, Screen, ScreenEventCx, UiEvent, UpdateCx};
+use engine::ui::Blinker;
 
 pub struct WorldCupJumpView {
     controller: CompetitionJumpController<Competition>,
@@ -155,7 +155,7 @@ impl WorldCupJumpView {
         }
     }
 
-    fn handle_input(&mut self, event: Event) -> Option<RouteTarget> {
+    fn handle_input(&mut self, event: UiEvent) -> Option<RouteTarget> {
         // Error screen: any key navigates back to main menu
         if let Some(route) = route_error_back(self.controller.ui_state(), event) {
             return Some(route);
@@ -199,9 +199,6 @@ impl Screen<RouteTarget> for WorldCupJumpView {
     }
 
     fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
-        let Some(event) = input_event(event) else {
-            return;
-        };
         if let Some(route) = self.handle_input(event) {
             cx.navigate(route);
         } else {
@@ -211,14 +208,6 @@ impl Screen<RouteTarget> for WorldCupJumpView {
 
     fn paint(&self, cx: &mut PaintCx<'_>) {
         self.paint_content(cx);
-    }
-}
-
-fn input_event(event: UiEvent) -> Option<Event> {
-    match event {
-        UiEvent::KeyDown(key) => Some(Event::Keyboard(key)),
-        UiEvent::Text(c) => Some(Event::Keyboard(Key::Char(c))),
-        UiEvent::Quit | UiEvent::Tick => None,
     }
 }
 
@@ -297,9 +286,9 @@ impl WorldCupJumpView {
         }
     }
 
-    fn handle_result_event(&mut self, event: Event) -> Option<RouteTarget> {
+    fn handle_result_event(&mut self, event: UiEvent) -> Option<RouteTarget> {
         match event {
-            Event::Keyboard(Key::Right | Key::Char(' ')) => {
+            UiEvent::KeyDown(Key::Right) | UiEvent::Text(' ') => {
                 let total = match self.controller.ui_state().current_screen() {
                     ResultScreen::Stats => self
                         .controller
@@ -332,15 +321,15 @@ impl WorldCupJumpView {
                 self.dismiss_results_and_advance();
                 None
             }
-            Event::Keyboard(Key::Char('c' | 'C')) => {
+            UiEvent::Text('c' | 'C') => {
                 self.controller.ui_state().toggle_compact();
                 None
             }
-            Event::Keyboard(Key::Char('s' | 'S')) => {
+            UiEvent::Text('s' | 'S') => {
                 self.controller.ui_state().toggle_stats();
                 None
             }
-            Event::Keyboard(Key::Char('k' | 'K')) => {
+            UiEvent::Text('k' | 'K') => {
                 let ko = self
                     .controller
                     .store()
@@ -372,11 +361,11 @@ impl WorldCupJumpView {
                 }
                 None
             }
-            Event::Keyboard(Key::Left) => {
+            UiEvent::KeyDown(Key::Left) => {
                 self.controller.ui_state().prev_page();
                 None
             }
-            Event::Keyboard(Key::Escape | Key::Enter) => {
+            UiEvent::KeyDown(Key::Escape | Key::Enter) => {
                 let is_season_complete = self
                     .controller
                     .store()

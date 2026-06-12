@@ -7,8 +7,7 @@ use crate::views::jump::competition::flow::{
 };
 
 use crate::views::jump::competition::ui_state::RenderMode;
-use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent, UpdateCx};
-use engine::ui::{Event, Key};
+use engine::oxide::{Key, PaintCx, Screen, ScreenEventCx, UiEvent, UpdateCx};
 
 pub struct KothJumpView {
     controller: CompetitionJumpController<KothRuntime>,
@@ -87,7 +86,7 @@ impl KothJumpView {
         }
     }
 
-    fn handle_input(&mut self, event: Event) -> Option<RouteTarget> {
+    fn handle_input(&mut self, event: UiEvent) -> Option<RouteTarget> {
         if let Some(route) = route_error_back(self.controller.ui_state(), event) {
             return Some(route);
         }
@@ -97,7 +96,7 @@ impl KothJumpView {
 
         if self.controller.render_mode() == RenderMode::Done {
             // KOTH complete, any key returns
-            if matches!(event, Event::Keyboard(_)) {
+            if matches!(event, UiEvent::KeyDown(_) | UiEvent::Text(_)) {
                 return Some(RouteTarget::Back);
             }
             return None;
@@ -106,7 +105,7 @@ impl KothJumpView {
         if self.is_result_display_state() {
             if matches!(
                 event,
-                Event::Keyboard(Key::Right | Key::Char(' ') | Key::Enter | Key::Escape)
+                UiEvent::KeyDown(Key::Right | Key::Enter | Key::Escape) | UiEvent::Text(' ')
             ) {
                 self.dismiss_results_and_advance();
             }
@@ -141,9 +140,6 @@ impl Screen<RouteTarget> for KothJumpView {
     }
 
     fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
-        let Some(event) = input_event(event) else {
-            return;
-        };
         if let Some(route) = self.handle_input(event) {
             cx.navigate(route);
         } else {
@@ -153,14 +149,6 @@ impl Screen<RouteTarget> for KothJumpView {
 
     fn paint(&self, cx: &mut PaintCx<'_>) {
         self.paint_content(cx);
-    }
-}
-
-fn input_event(event: UiEvent) -> Option<Event> {
-    match event {
-        UiEvent::KeyDown(key) => Some(Event::Keyboard(key)),
-        UiEvent::Text(c) => Some(Event::Keyboard(Key::Char(c))),
-        UiEvent::Quit | UiEvent::Tick => None,
     }
 }
 
