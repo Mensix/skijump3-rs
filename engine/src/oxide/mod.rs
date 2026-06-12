@@ -1,6 +1,7 @@
 pub mod app;
 pub mod draw;
 pub mod input;
+pub mod legacy;
 pub mod paint;
 pub mod render;
 pub mod route;

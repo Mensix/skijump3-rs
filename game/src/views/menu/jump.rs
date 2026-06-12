@@ -7,6 +7,8 @@ use crate::components::screen;
 use crate::gfx::palette::{BG_ERASE, BG_LIST, FONT_DEFAULT, FONT_GOLD, FONT_HEADER};
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
+use engine::oxide::legacy::{commands_to_elements, paint_elements};
+use engine::oxide::{CommandBuffer, NavAction, PaintCx, Screen, ScreenEventCx, UiEvent};
 use engine::ui::{Component, Element, Event, View};
 
 pub struct JumpMenuView {
@@ -56,10 +58,8 @@ impl JumpMenuView {
             show_team_warning: Cell::new(false),
         }
     }
-}
 
-impl View<RouteTarget> for JumpMenuView {
-    fn elements(&self) -> Vec<Element> {
+    fn legacy_elements(&self) -> Vec<Element> {
         let mut els = self.layout.background();
         els.extend(self.layout.jumpers());
         els.extend(self.layout.registration());
@@ -81,37 +81,80 @@ impl View<RouteTarget> for JumpMenuView {
         els
     }
 
-    fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {
-        if self.show_team_warning.get() {
-            if matches!(event, Event::Keyboard(_)) {
-                self.show_team_warning.set(false);
-                self.menu.set_show_box(true);
-            }
-            return None;
+    fn legacy_event(event: UiEvent) -> Option<Event> {
+        match event {
+            UiEvent::KeyDown(key) => Some(Event::Keyboard(key)),
+            UiEvent::Text(c) => Some(Event::Keyboard(engine::oxide::Key::Char(c))),
+            UiEvent::Quit | UiEvent::Tick => None,
         }
+    }
+}
 
-        match self.menu.handle_event(&event) {
-            Some(1) => Some(self.start_world_cup()),
-            Some(2) => Some(RouteTarget::CustomCupSetup),
-            Some(3) => Some(self.start_four_hills()),
-            Some(4) => {
-                let num_players = self.store.profiles().active_order.len();
-                if num_players == 4 || num_players == 8 {
-                    Some(self.start_team_cup())
-                } else {
-                    self.menu.set_show_box(false);
-                    self.show_team_warning.set(true);
-                    None
-                }
-            }
-            Some(0) => Some(RouteTarget::MainMenu),
-            Some(n) => JUMP_MENU_ACTIONS.get(n - 1).and_then(|&a| a),
-            _ => None,
+impl View<RouteTarget> for JumpMenuView {
+    fn elements(&self) -> Vec<Element> {
+        let mut commands = CommandBuffer::new();
+        let mut cx = PaintCx::new(&mut commands);
+        Screen::paint(self, &mut cx);
+        commands_to_elements(&commands)
+    }
+
+    fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {
+        let mut cx = ScreenEventCx::default();
+        Screen::event(self, &mut cx, event.into());
+        match cx.take_action() {
+            NavAction::Navigate(route) => Some(route),
+            NavAction::Back => Some(RouteTarget::Back),
+            NavAction::Quit => Some(RouteTarget::Quit),
+            NavAction::None => None,
         }
     }
 
     fn gpu_background(&self) -> engine::ui::BackgroundMode {
         engine::ui::BackgroundMode::MainPng
+    }
+}
+
+impl Screen<RouteTarget> for JumpMenuView {
+    fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
+        let Some(event) = Self::legacy_event(event) else {
+            return;
+        };
+
+        if self.show_team_warning.get() {
+            if matches!(event, Event::Keyboard(_)) {
+                self.show_team_warning.set(false);
+                self.menu.set_show_box(true);
+                cx.consume();
+            }
+            return;
+        }
+
+        match self.menu.handle_event(&event) {
+            Some(1) => cx.navigate(self.start_world_cup()),
+            Some(2) => cx.navigate(RouteTarget::CustomCupSetup),
+            Some(3) => cx.navigate(self.start_four_hills()),
+            Some(4) => {
+                let num_players = self.store.profiles().active_order.len();
+                if num_players == 4 || num_players == 8 {
+                    cx.navigate(self.start_team_cup());
+                } else {
+                    self.menu.set_show_box(false);
+                    self.show_team_warning.set(true);
+                    cx.consume();
+                }
+            }
+            Some(0) => cx.navigate(RouteTarget::MainMenu),
+            Some(n) => {
+                if let Some(route) = JUMP_MENU_ACTIONS.get(n - 1).and_then(|&a| a) {
+                    cx.navigate(route);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    fn paint(&self, cx: &mut PaintCx<'_>) {
+        paint_elements(cx, &self.legacy_elements());
     }
 }
 
