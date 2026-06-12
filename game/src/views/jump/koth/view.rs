@@ -6,9 +6,7 @@ use crate::views::jump::competition::controller::CompetitionJumpController;
 use crate::views::jump::competition::flow::{
     route_error_back, CompetitionFlowCommand, JumpInputResult,
 };
-use crate::views::jump::competition::results::{
-    self as competition_results, CompetitionResultsRequest,
-};
+
 use crate::views::jump::competition::ui_state::RenderMode;
 use engine::oxide::{ImageRegionDraw, PaintCx, Screen, ScreenEventCx, UiEvent, UpdateCx};
 use engine::ui::{Element, Event, Key};
@@ -68,12 +66,14 @@ impl KothJumpView {
     fn paint_content(&self, cx: &mut PaintCx<'_>) {
         let items = match self.controller.render_mode() {
             RenderMode::Jump => self.controller.render_jump_elements(),
-            RenderMode::Results => competition_results::render(
-                self.controller.resources(),
-                self.controller.store(),
-                self.controller.ui_state(),
-                CompetitionResultsRequest::Koth,
-            ),
+            RenderMode::Results => {
+                crate::views::jump::koth::results::render(
+                    cx,
+                    self.controller.resources(),
+                    self.controller.store(),
+                );
+                return;
+            }
             RenderMode::Done | RenderMode::Error => {
                 let msg = if self.controller.render_mode() == RenderMode::Error {
                     self.controller.ui_state().error_message()

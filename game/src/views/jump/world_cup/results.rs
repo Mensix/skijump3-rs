@@ -1,14 +1,15 @@
 use crate::competition::machine::Competition;
 use crate::competition::types::{CompetitionPhase, CupStyle, Participant, QualificationStatus};
-use crate::components::screen::{list_background, new_screen_with_bg, page_hints};
+use crate::components::screen::list_background;
 use crate::gfx::palette::{
-    BG_RIGHT_BRIGHT, FILL_HIGHLIGHT, FILL_TURQUOISE, FONT_DEFAULT, FONT_GREET, FONT_HEADER,
-    FONT_HELP,
+    BG_RIGHT_BRIGHT, BLACK, FILL_DIM, FILL_HIGHLIGHT, FILL_TURQUOISE, FONT_DEFAULT, FONT_GREET,
+    FONT_HEADER, FONT_HELP,
 };
+use crate::gfx::sprites;
 use crate::store::ResourcesRef;
 use crate::text::format::{format_decimal, ordinal_dot};
 use engine::color::Rgba;
-use engine::ui::Element;
+use engine::oxide::PaintCx;
 
 pub const QUALIFICATION_ITEMS_PER_PAGE: usize = 25;
 
@@ -242,7 +243,7 @@ fn standings_for_phase(competition: &Competition) -> Vec<&Participant> {
     }
 }
 
-pub fn render_header(competition: &Competition, resources: &ResourcesRef) -> Vec<Element> {
+pub fn render_header(cx: &mut PaintCx<'_>, competition: &Competition, resources: &ResourcesRef) {
     let lang = &resources.langbase;
     let event = competition.current_event + 1;
     let total = competition.total_events().max(1);
@@ -330,7 +331,7 @@ pub fn render_header(competition: &Competition, resources: &ResourcesRef) -> Vec
         _ => String::new(),
     };
 
-    vec![Element::text(header, 30, 6, FONT_DEFAULT, false)]
+    cx.text((30, 6), FONT_DEFAULT, header);
 }
 
 fn round_header(
@@ -345,7 +346,7 @@ fn round_header(
 }
 
 fn render_results_entry(
-    els: &mut Vec<Element>,
+    cx: &mut PaintCx<'_>,
     entry: &ResultsEntry,
     phase: CompetitionPhase,
     y: i32,
@@ -362,87 +363,74 @@ fn render_results_entry(
     };
 
     if entry.rank != *last_rank {
-        els.push(Element::text(
-            ordinal_dot(entry.rank),
-            rank_x,
-            y,
-            col_rank,
-            true,
-        ));
+        cx.right_text((rank_x, y), col_rank, ordinal_dot(entry.rank));
     }
     *last_rank = entry.rank;
 
-    els.push(Element::text(
-        truncate_name(&entry.name),
-        name_x,
-        y,
-        col_text,
-        false,
-    ));
+    cx.text((name_x, y), col_text, truncate_name(&entry.name));
 
-    let points = if entry.use_tenths {
-        format_decimal(entry.points)
+    if entry.use_tenths {
+        cx.right_text((points_x, y), col_text, format_decimal(entry.points));
     } else {
-        format!("{:.0}", entry.points)
-    };
-    els.push(Element::right_text(points, points_x, y, col_text));
+        cx.right_text((points_x, y), col_text, format!("{:.0}", entry.points));
+    }
 
     if show_extra && entry.distance > 0.0 {
-        els.push(Element::text(
-            format_distance(entry.distance, entry.distance2),
-            COL_DISTANCE,
-            y,
+        cx.text(
+            (COL_DISTANCE, y),
             col_dist,
-            false,
-        ));
+            format_distance(entry.distance, entry.distance2),
+        );
     }
 
     if show_extra {
         if phase == CompetitionPhase::QualificationResults {
             match entry.qual {
                 QualificationStatus::Qualified => {
-                    els.push(Element::text("Q", COL_QUAL, y, col_rank, false));
+                    cx.text((COL_QUAL, y), col_rank, "Q");
                 }
                 QualificationStatus::PreQualified => {
-                    els.push(Element::text("Q WC", COL_QUAL, y, col_dist, false));
+                    cx.text((COL_QUAL, y), col_dist, "Q WC");
                 }
                 _ => {}
             }
         } else if phase == CompetitionPhase::Round1Results && entry.rank <= 30 {
-            els.push(Element::text("Q", COL_QUAL, y, col_rank, false));
+            cx.text((COL_QUAL, y), col_rank, "Q");
         }
 
         if entry.injury > 0 {
-            els.push(Element::text(
-                format!("INJ-{}", entry.injury.saturating_sub(1)),
-                COL_EXTRA,
-                y,
+            cx.text(
+                (COL_EXTRA, y),
                 INJURY_COLOR,
-                false,
-            ));
+                format!("INJ-{}", entry.injury.saturating_sub(1)),
+            );
         }
     }
 }
 
-pub fn render_results_page(page: &ResultsPage, resources: &ResourcesRef) -> Vec<Element> {
-    let mut els = new_screen_with_bg(1, list_background(page.phase, page.style));
+pub fn render_results_page(cx: &mut PaintCx<'_>, page: &ResultsPage, resources: &ResourcesRef) {
+    let bg = list_background(page.phase, page.style);
+    cx.fill((0, 0, 320, 200), BLACK);
+    cx.fill((0, 0, 320, 19), FILL_DIM);
+    cx.fill((0, 20, 320, 180), bg);
+    cx.dither_fill(63);
+    cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
 
-    els.extend(page_hints(
-        page.page,
-        page.total_pages,
-        resources.langbase.lstr(246),
-        resources.langbase.lstr(247),
-        resources.langbase.lstr(248),
-    ));
+    let prev = resources.langbase.lstr(246);
+    let next = resources.langbase.lstr(247);
+    let end = resources.langbase.lstr(248);
+    if page.page > 0 {
+        cx.right_text((319, 5), FONT_HELP, format!("(-{prev}"));
+    }
+    let hint_text = if page.page + 1 == page.total_pages {
+        end
+    } else {
+        next
+    };
+    cx.right_text((319, 13), FONT_HELP, format!("{hint_text}-)"));
 
     if page.total_pages == 1 && page.items.len() <= 20 {
-        els.push(Element::text(
-            resources.langbase.lstr(86),
-            30,
-            190,
-            FONT_GREET,
-            false,
-        ));
+        cx.text((30, 190), FONT_GREET, resources.langbase.lstr(86));
     }
 
     let is_wc = page.phase == CompetitionPhase::FourHillsStandings
@@ -465,7 +453,7 @@ pub fn render_results_page(page: &ResultsPage, resources: &ResourcesRef) -> Vec<
             let col_off = col * WC_COL2_OFFSET;
             let y = START_Y + (i % WC_COL_SPLIT) as i32 * row_step;
             render_results_entry(
-                &mut els,
+                cx,
                 entry,
                 page.phase,
                 y,
@@ -492,13 +480,7 @@ pub fn render_results_page(page: &ResultsPage, resources: &ResourcesRef) -> Vec<
                 && (i > 0 && page.items[i - 1].rank <= 30 || i == 0 && page.prev_last_rank <= 30)
             {
                 let half = row_step / 2;
-                els.push(Element::text(
-                    "- - -",
-                    COL_NAME,
-                    y + half,
-                    FONT_HEADER,
-                    false,
-                ));
+                cx.text((COL_NAME, y + half), FONT_HEADER, "- - -");
                 y += half + row_step + half;
                 if y > 191 {
                     break;
@@ -506,7 +488,7 @@ pub fn render_results_page(page: &ResultsPage, resources: &ResourcesRef) -> Vec<
             }
 
             render_results_entry(
-                &mut els,
+                cx,
                 entry,
                 page.phase,
                 y,
@@ -519,15 +501,14 @@ pub fn render_results_page(page: &ResultsPage, resources: &ResourcesRef) -> Vec<
             y += row_step;
         }
     }
-
-    els
 }
 
 pub fn render_stats_page(
+    cx: &mut PaintCx<'_>,
     competition: &Competition,
     resources: &ResourcesRef,
     page: usize,
-) -> Vec<Element> {
+) {
     let mut humans: Vec<_> = competition
         .overall_standings()
         .into_iter()
@@ -542,61 +523,35 @@ pub fn render_stats_page(
     }
     let idx = page.min(humans.len().saturating_sub(1));
     let Some(player) = humans.get(idx) else {
-        return new_screen_with_bg(1, list_background(competition.phase(), competition.style()));
+        let bg = list_background(competition.phase(), competition.style());
+        cx.fill((0, 0, 320, 200), BLACK);
+        cx.fill((0, 0, 320, 19), FILL_DIM);
+        cx.fill((0, 20, 320, 180), bg);
+        cx.dither_fill(63);
+        cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
+        return;
     };
 
-    let mut els = new_screen_with_bg(1, list_background(competition.phase(), competition.style()));
-    els.push(Element::text(
-        resources.langbase.lstr(89),
-        30,
-        6,
+    let bg = list_background(competition.phase(), competition.style());
+    cx.fill((0, 0, 320, 200), BLACK);
+    cx.fill((0, 0, 320, 19), FILL_DIM);
+    cx.fill((0, 20, 320, 180), bg);
+    cx.dither_fill(63);
+    cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
+
+    cx.text((30, 6), FONT_DEFAULT, resources.langbase.lstr(89));
+    cx.text(
+        (36 + resources.langbase.lstr(89).len() as i32 * 6, 6),
         FONT_DEFAULT,
-        false,
-    ));
-    els.push(Element::text(
         player.display_name(),
-        36 + resources.langbase.lstr(89).len() as i32 * 6,
-        6,
-        FONT_DEFAULT,
-        false,
-    ));
-    els.push(Element::text(
-        resources.langbase.lstr(106),
-        16,
-        23,
-        FONT_GREET,
-        false,
-    ));
-    els.push(Element::text(
-        resources.langbase.lstr(108),
-        70,
-        23,
-        FONT_GREET,
-        true,
-    ));
-    els.push(Element::text(
-        resources.langbase.lstr(109),
-        90,
-        23,
-        FONT_GREET,
-        true,
-    ));
-    els.push(Element::text(
-        resources.langbase.lstr(98),
-        110,
-        23,
-        FONT_GREET,
-        true,
-    ));
-    els.push(Element::text(
-        resources.langbase.lstr(97),
-        140,
-        23,
-        FONT_GREET,
-        true,
-    ));
-    els.push(Element::right_text("R 1", 170, 23, FONT_GREET));
-    els.push(Element::right_text("R 2", 268, 23, FONT_GREET));
+    );
+    cx.text((16, 23), FONT_GREET, resources.langbase.lstr(106));
+    cx.right_text((70, 23), FONT_GREET, resources.langbase.lstr(108));
+    cx.right_text((90, 23), FONT_GREET, resources.langbase.lstr(109));
+    cx.right_text((110, 23), FONT_GREET, resources.langbase.lstr(98));
+    cx.right_text((140, 23), FONT_GREET, resources.langbase.lstr(97));
+    cx.right_text((170, 23), FONT_GREET, "R 1");
+    cx.right_text((268, 23), FONT_GREET, "R 2");
 
     let y = 37;
     let hill_name = resources
@@ -604,75 +559,44 @@ pub fn render_stats_page(
         .hill(competition.current_hill())
         .map(|h| format!("{} {}", h.name.chars().take(3).collect::<String>(), h.kr))
         .unwrap_or_default();
-    els.push(Element::text(
-        ordinal_dot(competition.current_event + 1),
-        15,
-        y,
-        FONT_DEFAULT,
-        true,
-    ));
-    els.push(Element::text(hill_name, 16, y, FONT_DEFAULT, false));
-    els.push(Element::text(
-        ordinal_dot(player.rank),
-        70,
-        y,
-        FONT_DEFAULT,
-        true,
-    ));
-    els.push(Element::text(
-        player.wc_points.to_string(),
-        90,
-        y,
-        FONT_DEFAULT,
-        true,
-    ));
-    els.push(Element::text(
-        ordinal_dot(player.rank),
-        110,
-        y,
-        FONT_DEFAULT,
-        true,
-    ));
-    els.push(Element::text(
-        format_decimal(player.points.unwrap_or(0.0)),
-        140,
-        y,
-        FONT_DEFAULT,
-        true,
-    ));
+    cx.right_text((15, y), FONT_DEFAULT, ordinal_dot(competition.current_event + 1));
+    cx.text((16, y), FONT_DEFAULT, hill_name);
+    cx.right_text((70, y), FONT_DEFAULT, ordinal_dot(player.rank));
+    cx.right_text((90, y), FONT_DEFAULT, player.wc_points.to_string());
+    cx.right_text((110, y), FONT_DEFAULT, ordinal_dot(player.rank));
+    cx.right_text((140, y), FONT_DEFAULT, format_decimal(player.points.unwrap_or(0.0)));
     if player.round1_len > 0.0 {
-        els.push(Element::text(
-            format_decimal(player.points.unwrap_or(0.0) - player.round2_len),
-            170,
-            y,
+        cx.right_text(
+            (170, y),
             FONT_DEFAULT,
-            true,
-        ));
-        els.push(Element::text(
-            format!("({}µ)", format_decimal(player.round1_len)),
-            210,
-            y,
+            format_decimal(player.points.unwrap_or(0.0) - player.round2_len),
+        );
+        cx.right_text(
+            (210, y),
             FONT_GREET,
-            true,
-        ));
+            format!("({}µ)", format_decimal(player.round1_len)),
+        );
     }
     if player.round2_len > 0.0 {
-        els.push(Element::text(
-            format!("({}µ)", format_decimal(player.round2_len)),
-            308,
-            y,
+        cx.right_text(
+            (308, y),
             FONT_GREET,
-            true,
-        ));
+            format!("({}µ)", format_decimal(player.round2_len)),
+        );
     }
-    els.extend(page_hints(
-        idx,
-        humans.len().max(1),
-        resources.langbase.lstr(246),
-        resources.langbase.lstr(247),
-        resources.langbase.lstr(248),
-    ));
-    els
+
+    let prev = resources.langbase.lstr(246);
+    let next = resources.langbase.lstr(247);
+    let end = resources.langbase.lstr(248);
+    if idx > 0 {
+        cx.right_text((319, 5), FONT_HELP, format!("(-{prev}"));
+    }
+    let hint_text = if idx + 1 == humans.len().max(1) {
+        end
+    } else {
+        next
+    };
+    cx.right_text((319, 13), FONT_HELP, format!("{hint_text}-)"));
 }
 
 fn truncate_name(name: &str) -> String {

@@ -1,12 +1,11 @@
 use super::{truncate_name, OTHER_DISTANCE, OTHER_NAME, OTHER_RANK};
 use crate::competition::machine::Competition;
 use crate::competition::types::{Participant, QualificationStatus};
-use crate::components::prompt;
-use crate::components::screen::new_screen;
-use crate::gfx::palette::{BG_LEFT, FONT_DEFAULT};
+use crate::gfx::palette::{BG_LEFT, BLACK, FILL_DIM, FONT_DEFAULT};
+use crate::gfx::sprites;
 use crate::store::ResourcesRef;
 use crate::text::format::format_decimal;
-use engine::ui::Element;
+use engine::oxide::PaintCx;
 
 const KO_LEFT_POINTS: i32 = 40;
 const KO_LEFT_NAME: i32 = 145;
@@ -16,21 +15,20 @@ const KO_LEFT_STATUS: i32 = 12;
 const KO_RIGHT_STATUS: i32 = 308;
 
 pub fn render_ko_pairs(
+    cx: &mut PaintCx<'_>,
     competition: &Competition,
     resources: &ResourcesRef,
     show_results: bool,
     show_cursor: bool,
-) -> Vec<Element> {
-    let mut els = new_screen(1);
-    els.push(Element::text(
-        resources.langbase.lstr(94),
-        30,
-        6,
-        FONT_DEFAULT,
-        false,
-    ));
+) {
+    cx.fill((0, 0, 320, 200), BLACK);
+    cx.fill((0, 0, 320, 19), FILL_DIM);
+    cx.fill((0, 20, 320, 180), BG_LEFT);
+    cx.dither_fill(63);
+    cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
 
-    // Pascal showpairs uses luett/mcluett (saved seed-pairing order).
+    cx.text((30, 6), FONT_DEFAULT, resources.langbase.lstr(94));
+
     let standings = if show_results {
         competition.ko_pairing_standings()
     } else {
@@ -42,26 +40,20 @@ pub fn render_ko_pairs(
         let y = 24 + pair as i32 * 7;
         let left = standings[half + pair];
         let right = standings[half - 1 - pair];
-        render_ko_side(&mut els, left, y, true, show_results, resources);
-        els.push(Element::text("vs.", 154, y, OTHER_NAME, false));
-        render_ko_side(&mut els, right, y, false, show_results, resources);
+        render_ko_side(cx, left, y, true, show_results, resources);
+        cx.text((154, y), OTHER_NAME, "vs.");
+        render_ko_side(cx, right, y, false, show_results, resources);
     }
 
-    prompt::push_wait_for_key(
-        &mut els,
-        &resources.langbase,
-        305,
-        6,
-        BG_LEFT,
-        FONT_DEFAULT,
-        FONT_DEFAULT,
-        show_cursor,
-    );
-    els
+    cx.right_text((305, 6), FONT_DEFAULT, resources.langbase.lstr(15).to_string());
+    cx.fill((304, 4, 9, 11), BG_LEFT);
+    if show_cursor {
+        cx.fill((306, 12, 5, 1), FONT_DEFAULT);
+    }
 }
 
 fn render_ko_side(
-    els: &mut Vec<Element>,
+    cx: &mut PaintCx<'_>,
     p: &Participant,
     y: i32,
     left: bool,
@@ -98,68 +90,20 @@ fn render_ko_side(
     let plus = (name_px_width + 5).min(105);
 
     if left {
-        els.push(Element::text(
-            truncate_name(name),
-            KO_LEFT_NAME,
-            y,
-            element_color,
-            true,
-        ));
+        cx.right_text((KO_LEFT_NAME, y), element_color, truncate_name(name));
         if show_results {
-            els.push(Element::text(
-                format_decimal(p.points.unwrap_or(0.0)),
-                KO_LEFT_POINTS,
-                y,
-                element_color,
-                true,
-            ));
-            els.push(Element::text(
-                status,
-                KO_LEFT_STATUS,
-                y,
-                element_color,
-                true,
-            ));
+            cx.right_text((KO_LEFT_POINTS, y), element_color, format_decimal(p.points.unwrap_or(0.0)));
+            cx.right_text((KO_LEFT_STATUS, y), element_color, status);
         } else {
-            els.push(Element::text(
-                format!("({seed_str})"),
-                KO_LEFT_NAME - plus,
-                y,
-                element_color,
-                true,
-            ));
+            cx.right_text((KO_LEFT_NAME - plus, y), element_color, format!("({seed_str})"));
         }
     } else {
-        els.push(Element::text(
-            truncate_name(name),
-            KO_RIGHT_NAME,
-            y,
-            element_color,
-            false,
-        ));
+        cx.text((KO_RIGHT_NAME, y), element_color, truncate_name(name));
         if show_results {
-            els.push(Element::text(
-                format_decimal(p.points.unwrap_or(0.0)),
-                KO_RIGHT_POINTS,
-                y,
-                element_color,
-                true,
-            ));
-            els.push(Element::text(
-                status,
-                KO_RIGHT_STATUS,
-                y,
-                element_color,
-                false,
-            ));
+            cx.right_text((KO_RIGHT_POINTS, y), element_color, format_decimal(p.points.unwrap_or(0.0)));
+            cx.text((KO_RIGHT_STATUS, y), element_color, status);
         } else {
-            els.push(Element::text(
-                format!("({seed_str})"),
-                KO_RIGHT_NAME + plus,
-                y,
-                element_color,
-                false,
-            ));
+            cx.text((KO_RIGHT_NAME + plus, y), element_color, format!("({seed_str})"));
         }
     }
 }

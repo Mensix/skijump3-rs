@@ -7,9 +7,7 @@ use crate::views::jump::competition::controller::CompetitionJumpController;
 use crate::views::jump::competition::flow::{
     route_error_back, CompetitionFlowCommand, JumpInputResult,
 };
-use crate::views::jump::competition::results::{
-    self as competition_results, CompetitionResultsRequest,
-};
+use crate::views::jump::team_cup::results as team_cup_results;
 use crate::views::jump::competition::ui_state::RenderMode;
 use engine::oxide::{ImageRegionDraw, PaintCx, Screen, ScreenEventCx, UiEvent, UpdateCx};
 use engine::ui::{Blinker, Element, Event, Key};
@@ -87,13 +85,11 @@ impl TeamCupJumpView {
 
     fn paint_content(&self, cx: &mut PaintCx<'_>) {
         if self.phase == ViewPhase::Setup {
-            draw_items(
+            self.setup.paint(
                 cx,
-                &self.setup.elements(
-                    self.controller.resources(),
-                    self.controller.store(),
-                    self.cursor_visible,
-                ),
+                self.controller.resources(),
+                self.controller.store(),
+                self.cursor_visible,
             );
             return;
         }
@@ -101,30 +97,38 @@ impl TeamCupJumpView {
             return;
         }
 
-        let items = match self.controller.render_mode() {
-            RenderMode::Jump => self.controller.render_jump_elements(),
-            RenderMode::Results => competition_results::render(
-                self.controller.resources(),
-                self.controller.store(),
-                self.controller.ui_state(),
-                CompetitionResultsRequest::TeamCup {
-                    kind: self.results_kind,
-                },
-            ),
+        match self.controller.render_mode() {
+            RenderMode::Jump => {
+                let items = self.controller.render_jump_elements();
+                draw_items(cx, &items);
+            }
+            RenderMode::Results => {
+                let els = team_cup_results::render(
+                    self.controller.resources(),
+                    self.controller.store(),
+                    self.results_kind,
+                );
+                draw_items(cx, &els);
+            }
             RenderMode::Done | RenderMode::Error => {
                 let msg = if self.controller.render_mode() == RenderMode::Error {
                     self.controller.ui_state().error_message()
                 } else {
                     String::new()
                 };
-                screen::message_screen(&msg, self.controller.resources().langbase.lstr(15))
+                let items = screen::message_screen(&msg, self.controller.resources().langbase.lstr(15));
+                draw_items(cx, &items);
             }
-        };
-        draw_items(cx, &items);
+        }
     }
 
-    fn handle_input(&mut self, event: Event) -> Option<RouteTarget> {
-        if let Some(route) = route_error_back(self.controller.ui_state(), event) {
+    fn handle_input(&mut self, event: UiEvent) -> Option<RouteTarget> {
+        let legacy = input_event(event);
+        let Some(legacy) = legacy else {
+            return None;
+        };
+
+        if let Some(route) = route_error_back(self.controller.ui_state(), legacy) {
             return Some(route);
         }
         if self.controller.render_mode() == RenderMode::Error {
@@ -151,7 +155,7 @@ impl TeamCupJumpView {
         if self.phase == ViewPhase::Jumping {
             match self
                 .controller
-                .handle_jump_scene_event(event, false, false, true)
+                .handle_jump_scene_event(legacy, false, false, true)
             {
                 JumpInputResult::Route(route) => return Some(route),
                 JumpInputResult::Consumed => return None,
@@ -160,7 +164,7 @@ impl TeamCupJumpView {
         }
 
         if self.controller.render_mode() == RenderMode::Results {
-            if matches!(event, Event::Keyboard(_)) {
+            if matches!(legacy, Event::Keyboard(_)) {
                 if let Some(cmd) = self
                     .controller
                     .dismiss_results_and_advance(self.results_kind)
@@ -202,9 +206,6 @@ impl Screen<RouteTarget> for TeamCupJumpView {
     }
 
     fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
-        let Some(event) = input_event(event) else {
-            return;
-        };
         if let Some(route) = self.handle_input(event) {
             cx.navigate(route);
         } else {

@@ -93,8 +93,9 @@ impl WorldCupJumpView {
         }
     }
 
-    fn results_page(&self) -> Vec<Element> {
+    fn results_page(&self, cx: &mut PaintCx<'_>) {
         competition_results::render(
+            cx,
             self.controller.resources(),
             self.controller.store(),
             self.controller.ui_state(),
@@ -140,23 +141,22 @@ impl WorldCupJumpView {
     }
 
     fn paint_content(&self, cx: &mut PaintCx<'_>) {
-        let items = match self.controller.render_mode() {
+        match self.controller.render_mode() {
             RenderMode::Jump => {
                 let mut els = self.controller.render_jump_elements();
-                // Pascal: show rank ($X.) left of score at (255,45) during Result phase
                 if let Some(rank_el) = self.rank_element() {
                     els.push(rank_el);
                 }
-                els
+                draw_items(cx, &els);
             }
-            RenderMode::Results => self.results_page(),
-            RenderMode::Done => vec![],
+            RenderMode::Results => self.results_page(cx),
+            RenderMode::Done => {}
             RenderMode::Error => {
                 let msg = self.controller.ui_state().error_message();
-                screen::message_screen(&msg, "Press any key to return")
+                let items = screen::message_screen(&msg, "Press any key to return");
+                draw_items(cx, &items);
             }
-        };
-        draw_items(cx, &items);
+        }
     }
 
     fn handle_input(&mut self, event: Event) -> Option<RouteTarget> {
