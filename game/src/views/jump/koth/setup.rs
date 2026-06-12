@@ -4,7 +4,7 @@ use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::layout::shorten_name;
 use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent};
-use engine::ui::{Event, Key};
+use engine::oxide::input::Key;
 use std::cell::Cell;
 
 use crate::text::lang::LangBase;
@@ -167,7 +167,7 @@ impl KothSetupView {
         }
     }
 
-    fn handle_input(&mut self, event: Event) -> Option<RouteTarget> {
+    fn handle_input(&mut self, event: UiEvent) -> Option<RouteTarget> {
         match self.mode.get() {
             KothMode::Main => self.handle_main(event),
             KothMode::Packs => self.handle_packs(event),
@@ -177,9 +177,6 @@ impl KothSetupView {
 
 impl Screen<RouteTarget> for KothSetupView {
     fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
-        let Some(event) = input_from_ui(event) else {
-            return;
-        };
         if let Some(route) = self.handle_input(event) {
             cx.navigate(route);
         }
@@ -190,70 +187,62 @@ impl Screen<RouteTarget> for KothSetupView {
     }
 }
 
-fn input_from_ui(event: UiEvent) -> Option<Event> {
-    match event {
-        UiEvent::KeyDown(key) => Some(Event::Keyboard(key)),
-        UiEvent::Text(c) => Some(Event::Keyboard(Key::Char(c))),
-        UiEvent::Quit | UiEvent::Tick => None,
-    }
-}
-
 impl KothSetupView {
-    fn handle_main(&mut self, event: Event) -> Option<RouteTarget> {
+    fn handle_main(&mut self, event: UiEvent) -> Option<RouteTarget> {
         match &event {
-            Event::Keyboard(Key::Escape) => return Some(RouteTarget::MainMenu),
-            Event::Keyboard(Key::Up | Key::Left) => {
+            UiEvent::KeyDown(Key::Escape) => return Some(RouteTarget::MainMenu),
+            UiEvent::KeyDown(Key::Up | Key::Left) => {
                 let s = self.selected.get();
                 self.selected.set(if s <= 1 { 6 } else { s - 1 });
                 return None;
             }
-            Event::Keyboard(Key::Down | Key::Right) => {
+            UiEvent::KeyDown(Key::Down | Key::Right) => {
                 let s = self.selected.get();
                 self.selected.set(if s >= 6 { 1 } else { s + 1 });
                 return None;
             }
-            Event::Keyboard(Key::Enter | Key::Char(' ')) => {
+            UiEvent::KeyDown(Key::Enter) | UiEvent::Text(' ') => {
                 return self.activate(self.selected.get());
             }
-            Event::Keyboard(Key::Char(ch)) if *ch >= '1' && *ch <= '6' => {
+            UiEvent::Text(ch) if *ch >= '1' && *ch <= '6' => {
                 let n = *ch as usize - '0' as usize;
                 self.selected.set(n);
                 return self.activate(n);
             }
-            Event::Keyboard(Key::Char('0')) => return Some(RouteTarget::MainMenu),
+            UiEvent::Text('0') => return Some(RouteTarget::MainMenu),
             _ => {}
         }
         None
     }
 
-    fn handle_packs(&mut self, event: Event) -> Option<RouteTarget> {
+    fn handle_packs(&mut self, event: UiEvent) -> Option<RouteTarget> {
         match &event {
-            Event::Keyboard(Key::Escape) => {
+            UiEvent::KeyDown(Key::Escape) => {
                 self.mode.set(KothMode::Main);
                 None
             }
-            Event::Keyboard(Key::Up | Key::Left) => {
+            UiEvent::KeyDown(Key::Up | Key::Left) => {
                 let c = self.pack_cursor.get();
                 self.pack_cursor.set(if c == 0 { 6 } else { c - 1 });
                 None
             }
-            Event::Keyboard(Key::Down | Key::Right) => {
+            UiEvent::KeyDown(Key::Down | Key::Right) => {
                 let c = self.pack_cursor.get();
                 self.pack_cursor.set(if c >= 6 { 0 } else { c + 1 });
                 None
             }
-            Event::Keyboard(Key::Enter | Key::Char(' ')) => {
+            UiEvent::KeyDown(Key::Enter) | UiEvent::Text(' ') => {
                 let cur = self.pack_cursor.get();
                 let pack = if cur == 0 { 0 } else { cur as i32 };
                 self.apply_pack(pack);
                 None
             }
-            Event::Keyboard(Key::Char(ch)) if *ch >= '1' && *ch <= '6' => {
+            UiEvent::Text(ch) if *ch >= '1' && *ch <= '6' => {
                 let n = *ch as usize - '0' as usize;
                 self.pack_cursor.set(n);
                 None
             }
-            Event::Keyboard(Key::Char('0')) => {
+            UiEvent::Text('0') => {
                 self.pack_cursor.set(0);
                 None
             }

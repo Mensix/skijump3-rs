@@ -10,7 +10,7 @@ use crate::store::{ResourcesRef, StoreRef};
 use engine::oxide::widgets::menu::PixelMenu;
 use engine::oxide::Widget;
 use engine::oxide::{PaintCx, Screen, ScreenBackground, ScreenEventCx, UiEvent};
-use engine::ui::Element;
+
 
 pub struct JumpMenuView {
     menu: PixelMenu,
@@ -56,14 +56,14 @@ impl JumpMenuView {
     }
 
     fn paint_content(&self, cx: &mut PaintCx<'_>) {
-        paint_component_output(cx, self.layout.background());
-        paint_component_output(cx, self.layout.jumpers());
-        paint_component_output(cx, self.layout.registration());
+        self.layout.background(cx);
+        self.layout.jumpers(cx);
+        self.layout.registration(cx);
         cx.fill((1, 94, 116, 106), BG_LIST);
         cx.fill((11, 80, 100, 6), BG_ERASE);
         cx.text((11, 80), FONT_HEADER, self.layout.langbase.lstr(18));
         paint_jump_menu(cx, &self.menu, &self.layout);
-        paint_component_output(cx, self.layout.footer());
+        self.layout.footer(cx);
         if self.show_team_warning.get() {
             Self::paint_team_warning(cx, &self.layout);
         }
@@ -205,40 +205,3 @@ fn paint_jump_menu(cx: &mut PaintCx<'_>, menu: &PixelMenu, layout: &MainLayout) 
     cx.stroke((5, y, 109, 13), FONT_DEFAULT);
 }
 
-fn paint_component_output(cx: &mut PaintCx<'_>, elements: Vec<Element>) {
-    for element in elements {
-        match element {
-            Element::Text {
-                text,
-                x,
-                y,
-                color,
-                center: true,
-                ..
-            } => {
-                cx.center_text((x, y), color, text);
-            }
-            Element::Text {
-                text,
-                x,
-                y,
-                color,
-                right: true,
-                ..
-            } => {
-                cx.right_text((x, y), color, text);
-            }
-            Element::Text {
-                text, x, y, color, ..
-            } => cx.text((x, y), color, text),
-            Element::Sprite(idx, x, y) => cx.sprite(idx, (x, y)),
-            Element::Fillbox { x, y, w, h, color } => cx.fill((x, y, w, h), color),
-            Element::FillArea { thing } => cx.dither_fill(thing),
-            Element::Box { x, y, w, h, color } => cx.stroke((x, y, w, h), color),
-            Element::Container(children) => paint_component_output(cx, children),
-            Element::SpriteRemapped(_, _, _, _)
-            | Element::Image(_, _, _)
-            | Element::ImageRegion(_) => {}
-        }
-    }
-}

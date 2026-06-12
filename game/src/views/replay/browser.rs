@@ -8,7 +8,7 @@ use crate::jump::replay::ReplayTrace;
 use crate::route::RouteTarget;
 use crate::store::{Resources, ResourcesRef, StoreRef};
 use engine::oxide::{PaintCx, Screen, ScreenBackground, ScreenEventCx, UiEvent};
-use engine::ui::{Element, Key};
+use engine::ui::Key;
 use std::path::Path;
 
 #[derive(Debug, Clone)]
@@ -54,7 +54,7 @@ impl ReplayBrowserView {
         cx.fill((11, 80, 100, 6), BG_ERASE);
         cx.text((11, 80), FONT_HEADER, self.layout.langbase.lstr(17));
         paint_replay_menu(cx, &self.layout);
-        paint_component_output(cx, self.layout.footer());
+        self.layout.footer(cx);
         paint_replay_panel(cx, &self.resources, &self.entries, self.selected);
     }
 }
@@ -155,43 +155,6 @@ fn paint_replay_menu(cx: &mut PaintCx<'_>, layout: &MainLayout) {
     }
 }
 
-fn paint_component_output(cx: &mut PaintCx<'_>, elements: Vec<Element>) {
-    for element in elements {
-        match element {
-            Element::Text {
-                text,
-                x,
-                y,
-                color,
-                center: true,
-                ..
-            } => {
-                cx.center_text((x, y), color, text);
-            }
-            Element::Text {
-                text,
-                x,
-                y,
-                color,
-                right: true,
-                ..
-            } => {
-                cx.right_text((x, y), color, text);
-            }
-            Element::Text {
-                text, x, y, color, ..
-            } => cx.text((x, y), color, text),
-            Element::Sprite(idx, x, y) => cx.sprite(idx, (x, y)),
-            Element::Fillbox { x, y, w, h, color } => cx.fill((x, y, w, h), color),
-            Element::FillArea { thing } => cx.dither_fill(thing),
-            Element::Box { x, y, w, h, color } => cx.stroke((x, y, w, h), color),
-            Element::Container(children) => paint_component_output(cx, children),
-            Element::SpriteRemapped(_, _, _, _)
-            | Element::Image(_, _, _)
-            | Element::ImageRegion(_) => {}
-        }
-    }
-}
 
 fn load_replays(files: &FileStore) -> Vec<ReplayEntry> {
     let Ok(names) = files.list_by_ext_all("SJR") else {

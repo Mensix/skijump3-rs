@@ -4,8 +4,8 @@ use crate::gfx::sprites;
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::format;
+use engine::oxide::input::Key;
 use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent};
-use engine::ui::{Event, Key};
 
 const MAX_HILLS: usize = 40;
 
@@ -77,10 +77,10 @@ impl CustomCupSetupView {
         }
     }
 
-    fn handle_input(&mut self, event: Event) -> Option<RouteTarget> {
+    fn handle_input(&mut self, event: UiEvent) -> Option<RouteTarget> {
         match event {
-            Event::Keyboard(Key::Escape) => Some(RouteTarget::Back),
-            Event::Keyboard(Key::Enter) => {
+            UiEvent::KeyDown(Key::Escape) => Some(RouteTarget::Back),
+            UiEvent::KeyDown(Key::Enter) => {
                 if self.selected.is_empty() {
                     return None;
                 }
@@ -95,41 +95,41 @@ impl CustomCupSetupView {
                 self.store.start_active(comp);
                 Some(RouteTarget::CompetitionJump)
             }
-            Event::Keyboard(Key::Left) => {
+            UiEvent::KeyDown(Key::Left) => {
                 if self.preview > 0 {
                     self.preview -= 1;
                 }
                 None
             }
-            Event::Keyboard(Key::Right) => {
+            UiEvent::KeyDown(Key::Right) => {
                 if self.preview + 1 < self.all_hill_count {
                     self.preview += 1;
                 }
                 None
             }
-            Event::Keyboard(Key::Home | Key::Delete) => {
+            UiEvent::KeyDown(Key::Home | Key::Delete) => {
                 self.preview = 0;
                 None
             }
-            Event::Keyboard(Key::End) => {
+            UiEvent::KeyDown(Key::End) => {
                 self.preview = self.all_hill_count - 1;
                 None
             }
-            Event::Keyboard(Key::PageUp) => {
+            UiEvent::KeyDown(Key::PageUp) => {
                 self.preview = self.preview.saturating_sub(5);
                 None
             }
-            Event::Keyboard(Key::PageDown) => {
+            UiEvent::KeyDown(Key::PageDown) => {
                 self.preview = (self.preview + 5).min(self.all_hill_count - 1);
                 None
             }
-            Event::Keyboard(Key::Down | Key::Char(' ')) => {
+            UiEvent::KeyDown(Key::Down) | UiEvent::Text(' ') => {
                 if self.selected.len() < MAX_HILLS {
                     self.selected.push(self.preview);
                 }
                 None
             }
-            Event::Keyboard(Key::Up | Key::Backspace) => {
+            UiEvent::KeyDown(Key::Up | Key::Backspace) => {
                 self.selected.pop();
                 None
             }
@@ -140,9 +140,6 @@ impl CustomCupSetupView {
 
 impl Screen<RouteTarget> for CustomCupSetupView {
     fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
-        let Some(event) = input_from_ui(event) else {
-            return;
-        };
         if let Some(route) = self.handle_input(event) {
             if route == RouteTarget::Back {
                 cx.back();
@@ -159,10 +156,3 @@ impl Screen<RouteTarget> for CustomCupSetupView {
     }
 }
 
-fn input_from_ui(event: UiEvent) -> Option<Event> {
-    match event {
-        UiEvent::KeyDown(key) => Some(Event::Keyboard(key)),
-        UiEvent::Text(c) => Some(Event::Keyboard(Key::Char(c))),
-        UiEvent::Quit | UiEvent::Tick => None,
-    }
-}
