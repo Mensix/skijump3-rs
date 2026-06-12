@@ -16,7 +16,7 @@ use crate::views::replay::playback_controls::{PlaybackMode, PlaybackSpeed, Repla
 use engine::consts::{HEIGHT, WIDTH};
 use engine::oxide::input::Key;
 use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent, UpdateCx};
-use engine::ui::Blinker;
+use engine::oxide::Blinker;
 use std::cell::{Cell, RefCell};
 use std::collections::VecDeque;
 use std::rc::Rc;

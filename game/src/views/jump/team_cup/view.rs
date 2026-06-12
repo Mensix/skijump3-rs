@@ -9,7 +9,7 @@ use crate::views::jump::competition::flow::{
 use crate::views::jump::team_cup::results as team_cup_results;
 use crate::views::jump::competition::ui_state::RenderMode;
 use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent, UpdateCx};
-use engine::ui::Blinker;
+use engine::oxide::Blinker;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ViewPhase {

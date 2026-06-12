@@ -3,7 +3,7 @@ use crate::files::FileStore;
 use crate::gfx::palette::Rgb6Palette;
 use crate::gfx::png::load_png;
 use engine::sprite::SpriteData;
-use engine::ui::Font;
+use engine::oxide::Font;
 use engine::video::{Renderer, TextureId};
 
 const MAIN_PNG: &str = "MAIN.png";

@@ -8,7 +8,7 @@ use crate::files::FileStore;
 use crate::route::RouteTarget;
 use engine::input::Input;
 use engine::sprite::SpriteData;
-use engine::ui::Font;
+use engine::oxide::Font;
 use engine::video::{Renderer, TextureId};
 use std::rc::Rc;
 

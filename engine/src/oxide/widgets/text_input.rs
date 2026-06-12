@@ -2,7 +2,7 @@ use crate::color::Rgba;
 use crate::oxide::input::{Key, UiEvent};
 use crate::oxide::paint::PaintCx;
 use crate::oxide::widget::{EventCx, Widget};
-use crate::ui::{Blinker, Font, TextEditState};
+use crate::oxide::{Blinker, Font, TextEditState};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TextInputMessage {

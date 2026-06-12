@@ -1,7 +1,7 @@
 use crate::oxide::draw::CommandBuffer;
 use crate::oxide::draw_renderer::DrawCommandRenderer;
 use crate::sprite::SpriteData;
-use crate::ui::Font;
+use crate::oxide::Font;
 use crate::video::{Renderer, TextureId};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

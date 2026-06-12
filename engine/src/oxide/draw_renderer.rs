@@ -5,7 +5,7 @@ use crate::color::Rgba;
 use crate::consts::PATTERN_SPRITE;
 use crate::oxide::draw::{DrawCommand, SpriteDraw, TextAlign};
 use crate::sprite::{SpriteColorRecolor, SpriteData};
-use crate::ui::Font;
+use crate::oxide::Font;
 use crate::video::{Renderer, TextureId};
 
 const TEXT_SHADOW: Rgba = Rgba::rgb(0, 0, 0);

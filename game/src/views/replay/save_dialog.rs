@@ -5,7 +5,7 @@ use crate::jump::replay::ReplayTrace;
 use crate::store::ResourcesRef;
 use engine::oxide::input::{Key, UiEvent};
 use engine::oxide::PaintCx;
-use engine::ui::{Blinker, TextEditState};
+use engine::oxide::{Blinker, TextEditState};
 
 #[derive(Debug, Clone, Copy)]
 enum SaveField {

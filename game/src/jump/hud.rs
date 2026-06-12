@@ -4,7 +4,7 @@ use crate::gfx::sprites;
 use crate::text::lang::LangBase;
 use engine::color::Rgba;
 use engine::oxide::PaintCx;
-use engine::ui::Font;
+use engine::oxide::Font;
 
 const KEY_NAMES: [&str; 5] = ["ARROW UP", "ARROW RIGHT", "ARROW LEFT", "T", "R"];
 

@@ -20,7 +20,7 @@ use crate::views::jump::competition::results::{
 use crate::views::jump::competition::ui_state::{RenderMode, ResultScreen};
 use crate::views::jump::scene::JumpScene;
 use engine::oxide::{Key, PaintCx, Screen, ScreenEventCx, UiEvent, UpdateCx};
-use engine::ui::Blinker;
+use engine::oxide::Blinker;
 
 pub struct WorldCupJumpView {
     controller: CompetitionJumpController<Competition>,

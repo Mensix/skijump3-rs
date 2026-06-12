@@ -8,7 +8,7 @@ use crate::jump::visuals::{self, JumperSpriteSpec};
 use crate::text::lang::LangBase;
 use engine::color::Rgba;
 use engine::oxide::PaintCx;
-use engine::ui::Font;
+use engine::oxide::Font;
 
 const FONT_DIM_TURQUOISE: Rgba = Rgba::from_rgb6(0, 47, 52);
 

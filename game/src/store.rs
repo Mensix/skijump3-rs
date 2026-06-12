@@ -11,7 +11,7 @@ use crate::jump::wind::Wind;
 use crate::rng::Random;
 use crate::save::{SaveManager, SaveRef};
 use crate::text::lang::LangBase;
-use engine::ui::Font;
+use engine::oxide::Font;
 use std::cell::{Cell, Ref, RefCell, RefMut};
 use std::collections::HashMap;
 use std::rc::Rc;

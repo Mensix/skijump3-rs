@@ -2,7 +2,7 @@ use crate::app::router::AppRouter;
 use crate::gfx::palette::FONT_HELP;
 use engine::oxide::{Background, CommandBuffer, OxideRenderer, PaintCx, ScreenBackground};
 use engine::sprite::SpriteData;
-use engine::ui::Font;
+use engine::oxide::Font;
 use engine::video::{Renderer, TextureId};
 use std::time::Instant;
 

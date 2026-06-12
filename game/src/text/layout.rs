@@ -1,5 +1,5 @@
 use crate::text::lang::LangBase;
-use engine::ui::Font;
+use engine::oxide::Font;
 
 const RIGHT_EDGE: i32 = 316;
 

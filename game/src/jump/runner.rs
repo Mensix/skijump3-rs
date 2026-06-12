@@ -15,7 +15,7 @@ use crate::rng::Random;
 use crate::text::lang::LangBase;
 use engine::consts::{HEIGHT, WIDTH};
 use engine::oxide::PaintCx;
-use engine::ui::Font;
+use engine::oxide::Font;
 use std::cell::Cell;
 
 pub(crate) struct JumpRunnerRenderEnv<'a> {

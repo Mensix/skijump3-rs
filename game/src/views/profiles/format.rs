@@ -1,7 +1,7 @@
 use crate::data::profile::Profile;
 use crate::text::lang::LangBase;
 use crate::text::layout::{lstr, shorten_name};
-use engine::ui::Font;
+use engine::oxide::Font;
 
 pub fn format_profile_value(
     profile: &Profile,

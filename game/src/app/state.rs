@@ -3,7 +3,7 @@ use crate::data::records::RecordStore;
 use crate::files::FileStore;
 use crate::save::{SaveManager, SaveRef};
 use crate::store::{Resources, ResourcesRef, Store, StoreRef};
-use engine::ui::Font;
+use engine::oxide::Font;
 use std::rc::Rc;
 
 const HISCORES_TOML: &str = "hiscores.toml";
