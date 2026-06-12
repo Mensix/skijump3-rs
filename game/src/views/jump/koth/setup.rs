@@ -1,5 +1,5 @@
 use crate::competition::factory;
-use crate::gfx::palette::{BG_LEFT, BG_RIGHT, BLACK, FILL_DIM, FONT_DEFAULT, FONT_GOLD, FONT_HELP};
+use crate::gfx::palette::{BG_LEFT, BG_RIGHT, BLACK, FILL_DIM, FONT_DEFAULT, FONT_GOLD, FONT_GREET, FONT_HELP};
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::layout::shorten_name;
@@ -76,17 +76,22 @@ impl KothSetupView {
         let cfg = self.config();
 
         if self.mode.get() == KothMode::Opponents {
-            cx.text((180, 10), FONT_DEFAULT, lang.lstr(138));
+            cx.fill((170, 0, 150, 200), BG_LEFT);
+            cx.dither_fill(63);
+            cx.text((180, 2), FONT_DEFAULT, lang.lstr(138));
+            cx.text((180, 9), FONT_HELP, lang.lstr(139));
+            cx.text((180, 16), FONT_HELP, lang.lstr(140));
+            cx.text((180, 24), FONT_GREET, lang.lstr(141));
+            cx.right_text((310, 24), FONT_GREET, lang.lstr(142));
             let names = self.resources.player_names();
-            let max_show = names.len().min(20);
-            for i in 0..max_show {
-                let idx = i + 1;
-                let in_pel = cfg.kothpel.iter().any(|&p| p == idx as i32);
-                let color = if in_pel { FONT_GOLD } else { FONT_HELP };
-                let name = names.get(i).map(|s| s.as_str()).unwrap_or("?");
-                let y = (20 + (i + 1) * 8) as i32;
-                let marker = if in_pel { "*" } else { " " };
-                cx.text((180, y), color, format!("{}{}", marker, name));
+            for i in 0..cfg.koth_count.min(20) as usize {
+                let idx = cfg.kothpel.get(i).copied().unwrap_or(1) as usize;
+                let name = names.get(idx - 1).map(|s| s.as_str()).unwrap_or("?");
+                let y = (i as i32 + 1) * 8 + 25;
+                let color = if i == self.opponent_cursor.get() { FONT_GOLD } else { FONT_DEFAULT };
+                cx.fill((178, y - 2, 315 - 178, 10), BG_LEFT);
+                cx.text((180, y), color, shorten_name(name, &self.resources.font, 110));
+                cx.right_text((310, y), color, format!("#{}", idx));
             }
         } else {
             // --- right panel: "Computer Jumpers:" (white, Pascal 240) ---
