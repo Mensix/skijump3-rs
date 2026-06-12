@@ -4,8 +4,8 @@ use crate::save::SaveRef;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::views::{
     CompetitionJumpView, CustomCupSetupView, HallOfFameView, HillRecordsView, JumpMenuView,
-    KothSetupView, MainMenuView, ProfilesView, ReplayBrowserView, ReplayView, SetupView,
-    TrainingSetupView, WelcomeScreenView,
+    KothHillPickerView, KothSetupView, MainMenuView, ProfilesView, ReplayBrowserView, ReplayView,
+    SetupView, TrainingSetupView, WelcomeScreenView,
 };
 use engine::oxide::{
     NavAction, PaintCx, Screen, ScreenBackground, ScreenEventCx, UiEvent,
@@ -230,6 +230,12 @@ impl RouteRegistry {
             (
                 RouteTarget::OptionsMenu,
                 self.resources_store(|resources, store| Box::new(SetupView::new(resources, store))),
+            ),
+            (
+                RouteTarget::KothHillPicker,
+                self.resources_store(|resources, store| {
+                    Box::new(KothHillPickerView::new(resources, store))
+                }),
             ),
             (
                 RouteTarget::KothSetup,

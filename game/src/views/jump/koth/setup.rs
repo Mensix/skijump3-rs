@@ -164,7 +164,7 @@ impl KothSetupView {
             KothMode::Packs => {
                 let cur = self.pack_cursor.get();
                 let pcy = pack_cursor_y(cur);
-                cx.stroke((4, pcy - 2, 160, 8), FONT_DEFAULT);
+                cx.stroke((4, pcy - 3, 160, 10), FONT_DEFAULT);
             }
         }
     }
@@ -262,7 +262,13 @@ impl KothSetupView {
     fn activate(&self, n: usize) -> Option<RouteTarget> {
         match n {
             0 => Some(RouteTarget::MainMenu),
-            1 => self.start_koth(),
+            1 => {
+                if self.config().kothpack == 0 {
+                    Some(RouteTarget::KothHillPicker)
+                } else {
+                    self.start_koth()
+                }
+            }
             2 => {
                 let cfg = self.config();
                 let pack = cfg.kothpack;
@@ -271,7 +277,8 @@ impl KothSetupView {
                 self.mode.set(KothMode::Packs);
                 None
             }
-            3 | 4 => None,
+            4 => Some(RouteTarget::KothHillPicker),
+            3 => None,
             5 => {
                 self.update_config(|cfg| cfg.kothwind = if cfg.kothwind != 0 { 0 } else { 1 });
                 None

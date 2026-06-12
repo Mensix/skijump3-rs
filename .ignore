@@ -1,2 +1,9 @@
 *.ski
 *.SKI
+.DS_Store
+.opencode/
+.vscode/
+.agents/
+.cargo/
+TEMP.SJR
+TEMP2.SJR

@@ -8,5 +8,5 @@ pub mod training_setup;
 pub(crate) mod world_cup;
 
 pub(crate) use competition::CompetitionJumpView;
-pub use koth::KothSetupView;
+pub use koth::{KothHillPickerView, KothSetupView};
 pub use training_setup::TrainingSetupView;

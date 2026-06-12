@@ -15,5 +15,6 @@ pub enum RouteTarget {
     OptionsMenu,
     ProfilesList,
     KothSetup,
+    KothHillPicker,
     Back,
 }
