@@ -75,10 +75,8 @@ impl KothSetupView {
         let lang = &self.resources.langbase;
         let cfg = self.config();
 
-        // --- right panel: "Computer Jumpers:" (white, Pascal 240) ---
-        cx.text((180, 10), FONT_DEFAULT, lang.lstr(120));
-
         if self.mode.get() == KothMode::Opponents {
+            cx.text((180, 10), FONT_DEFAULT, lang.lstr(138));
             let names = self.resources.player_names();
             let max_show = names.len().min(20);
             for i in 0..max_show {
@@ -87,23 +85,27 @@ impl KothSetupView {
                 let color = if in_pel { FONT_GOLD } else { FONT_HELP };
                 let name = names.get(i).map(|s| s.as_str()).unwrap_or("?");
                 let y = (20 + (i + 1) * 8) as i32;
-                let marker = if in_pel { "#" } else { " " };
+                let marker = if in_pel { "*" } else { " " };
                 cx.text((180, y), color, format!("{}{}", marker, name));
             }
-        } else if cfg.koth_count > 0 {
-            for i in 0..cfg.koth_count.min(20) as usize {
-                let idx = cfg.kothpel.get(i).copied().unwrap_or(1) as usize;
-                let name = self
-                    .resources
-                    .player_names()
-                    .get(idx - 1)
-                    .map(|s| shorten_name(s, &self.resources.font, 110))
-                    .unwrap_or_else(|| "?".to_string());
-                let y = (20 + (i + 1) * 8) as i32;
-                cx.text((180, y), FONT_GOLD, format!("{} #{}", name, idx));
-            }
         } else {
-            cx.text((180, 30), FONT_GOLD, lang.lstr(9));
+            // --- right panel: "Computer Jumpers:" (white, Pascal 240) ---
+            cx.text((180, 10), FONT_DEFAULT, lang.lstr(120));
+            if cfg.koth_count > 0 {
+                for i in 0..cfg.koth_count.min(20) as usize {
+                    let idx = cfg.kothpel.get(i).copied().unwrap_or(1) as usize;
+                    let name = self
+                        .resources
+                        .player_names()
+                        .get(idx - 1)
+                        .map(|s| shorten_name(s, &self.resources.font, 110))
+                        .unwrap_or_else(|| "?".to_string());
+                    let y = (20 + (i + 1) * 8) as i32;
+                    cx.text((180, y), FONT_GOLD, format!("{} #{}", name, idx));
+                }
+            } else {
+                cx.text((180, 30), FONT_GOLD, lang.lstr(9));
+            }
         }
 
         // --- left panel: menu background (Pascal MakeMenu bgcolor=245) ---
