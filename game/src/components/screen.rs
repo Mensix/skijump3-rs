@@ -25,6 +25,11 @@ pub fn new_screen_with_bg(style: u8, bg: Rgba) -> Vec<Element> {
             els.push(Element::fillbox(12, 0, 296, 200, bg));
             els.push(Element::fillbox(309, 0, 11, 200, FILL_DIM));
         }
+        3 => {
+            els.push(Element::fillbox(0, 0, 168, 98, FILL_DIM));
+            els.push(Element::fillbox(0, 100, 168, 199, BG_RIGHT));
+            els.push(Element::fillbox(170, 0, 319, 199, bg));
+        }
         4 => {
             els.push(Element::fillbox(0, 0, 320, 19, FILL_DIM));
             els.push(Element::fillbox(0, 20, 320, 99, bg));

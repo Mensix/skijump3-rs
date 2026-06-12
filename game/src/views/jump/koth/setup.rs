@@ -64,7 +64,7 @@ impl KothSetupView {
 
 impl View<RouteTarget> for KothSetupView {
     fn elements(&self) -> Vec<Element> {
-        let mut els = screen::new_screen(2);
+        let mut els = screen::new_screen(3);
         let lang = &self.resources.langbase;
         let cfg = self.config();
 
