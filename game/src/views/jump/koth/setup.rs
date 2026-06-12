@@ -84,14 +84,13 @@ impl KothSetupView {
             cx.text((180, 24), FONT_GREET, lang.lstr(141));
             cx.right_text((310, 24), FONT_GREET, lang.lstr(142));
             let names = self.resources.player_names();
-            for i in 0..cfg.koth_count.min(20) as usize {
-                let idx = cfg.kothpel.get(i).copied().unwrap_or(1) as usize;
+            if let Some(&idx) = cfg.kothpel.first() {
+                let idx = idx as usize;
                 let name = names.get(idx - 1).map(|s| s.as_str()).unwrap_or("?");
-                let y = (i as i32 + 1) * 8 + 25;
-                let color = if i == self.opponent_cursor.get() { FONT_GOLD } else { FONT_DEFAULT };
-                cx.fill((178, y - 2, 315 - 178, 10), BG_LEFT);
-                cx.text((180, y), color, shorten_name(name, &self.resources.font, 110));
-                cx.right_text((310, y), color, format!("#{}", idx));
+                let y = 33;
+                cx.fill((178, y - 2, 137, 10), BG_LEFT);
+                cx.text((180, y), FONT_DEFAULT, shorten_name(name, &self.resources.font, 110));
+                cx.right_text((310, y), FONT_DEFAULT, format!("#{}", idx));
             }
         } else {
             // --- right panel: "Computer Jumpers:" (white, Pascal 240) ---
