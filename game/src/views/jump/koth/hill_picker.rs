@@ -1,4 +1,3 @@
-use crate::competition::factory;
 use crate::gfx::palette::{BG_LEFT, BLACK, FILL_DIM, FONT_DEFAULT, FONT_GOLD, FONT_GREET};
 use crate::gfx::sprites;
 use crate::route::RouteTarget;
@@ -69,52 +68,38 @@ impl KothHillPickerView {
             .with_exit("", 16)
     }
 
-    fn confirm(&mut self) -> Option<RouteTarget> {
+    fn select_hill(&mut self) {
         let sel = self.menu.selected();
         if self.has_more() && sel == self.page_items() {
             self.start = (self.start + 20) % self.total;
             self.menu = self.rebuild_menu();
-            None
         } else if sel == self.menu.item_count() {
             self.resources.save_manager.update_config(|cfg| cfg.kothmaki = 0);
-            self.start_koth()
         } else {
             let hill_idx = self.start + sel;
             self.resources.save_manager.update_config(|cfg| cfg.kothmaki = hill_idx as i32 + 1);
-            self.start_koth()
         }
     }
 
-    fn start_koth(&self) -> Option<RouteTarget> {
-        let profiles = self.store.profiles();
-        let config = self.resources.save_manager.config.borrow();
-        let hill_count = self.resources.hills.len();
-        let comp = self.store.with_jump_rng_wind_mut(|rng, _| {
-            factory::koth(&config, &profiles, self.resources.player_names(), hill_count, rng.clone())
-        });
-        drop(profiles);
-        drop(config);
-        self.store.start_active(comp);
-        Some(RouteTarget::CompetitionJump)
-    }
-
-    fn confirm_event(&mut self, ecx: &mut EventCx, event: UiEvent) -> Option<RouteTarget> {
+    fn confirm_event(&mut self, ecx: &mut EventCx, event: UiEvent) -> bool {
         match event {
             UiEvent::Text(ch) if ch.is_ascii_digit() && ch != '0' => {
                 let n = ch as usize - '0' as usize;
                 let menu_n = self.menu.item_count();
                 if n <= menu_n {
                     self.menu.set_selected(n - 1);
-                    return self.confirm();
+                    self.select_hill();
+                    return true;
                 }
-                return None;
+                return false;
             }
             _ => {}
         }
         if let Some(_idx) = self.menu.event(ecx, event) {
-            self.confirm()
+            self.select_hill();
+            true
         } else {
-            None
+            false
         }
     }
 }
@@ -130,8 +115,8 @@ impl Screen<RouteTarget> for KothHillPickerView {
             _ => {}
         }
         let mut ecx = EventCx::default();
-        if let Some(route) = self.confirm_event(&mut ecx, event) {
-            cx.navigate(route);
+        if self.confirm_event(&mut ecx, event) {
+            cx.back();
         }
         if ecx.is_consumed() {
             cx.consume();
