@@ -18,8 +18,13 @@ pub struct KothHillPickerView {
 
 impl KothHillPickerView {
     pub fn new(resources: ResourcesRef, store: StoreRef) -> Self {
+        let kothmaki = resources.save_manager.config.borrow().kothmaki;
         let total = resources.hills.len();
-        let start = 0;
+        let start = if kothmaki > 0 {
+            ((kothmaki as usize - 1) / 20) * 20
+        } else {
+            0
+        };
         let page_n = (total.saturating_sub(start)).min(20);
         let n = page_n + usize::from(total > 20);
         let items = (0..n).map(|_| OxideMenuItem::new(0, "")).collect();
@@ -27,7 +32,11 @@ impl KothHillPickerView {
             .with_labels(false)
             .with_box(false)
             .with_exit("", 16);
-        menu.set_selected(0);
+        if kothmaki == 0 {
+            menu.set_selected(menu.item_count());
+        } else if kothmaki as usize - 1 < start + page_n {
+            menu.set_selected(kothmaki as usize - 1 - start);
+        }
 
         Self {
             resources,

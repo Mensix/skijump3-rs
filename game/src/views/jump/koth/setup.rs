@@ -27,10 +27,11 @@ impl KothSetupView {
     pub fn new(resources: ResourcesRef, store: StoreRef) -> Self {
         let pack = resources.save_manager.config.borrow().kothpack;
         crate::competition::koth::builder::apply_koth_pack(&resources.save_manager, pack as u8);
+        let initial = if pack == 0 { 4 } else { 1 };
         Self {
             resources,
             store,
-            selected: Cell::new(1),
+            selected: Cell::new(initial),
             mode: Cell::new(KothMode::Main),
             pack_cursor: Cell::new(0),
         }
