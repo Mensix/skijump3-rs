@@ -1,0 +1,2 @@
+watch = ["src/"]
+ignore = ["target/", ".git/"]
