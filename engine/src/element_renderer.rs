@@ -560,11 +560,6 @@ impl ElementWorker<'_> {
     }
 }
 
-#[cfg(test)]
-fn count_fill_areas(elements: &[Element]) -> usize {
-    elements.iter().map(count_fill_areas_in_element).sum()
-}
-
 fn count_fill_area_commands(commands: &[RenderCommand<'_>]) -> usize {
     commands
         .iter()
@@ -573,63 +568,8 @@ fn count_fill_area_commands(commands: &[RenderCommand<'_>]) -> usize {
 }
 
 #[cfg(test)]
-fn count_fill_areas_in_element(element: &Element) -> usize {
-    match element {
-        Element::FillArea { .. } => 1,
-        Element::Container(children) => count_fill_areas(children),
-        _ => 0,
-    }
-}
-
-#[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn count_fill_areas_empty() {
-        assert_eq!(count_fill_areas(&[]), 0);
-    }
-
-    #[test]
-    fn count_fill_areas_no_fillareas() {
-        let els = vec![
-            Element::fillbox(0, 0, 10, 10, Rgba::rgb(1, 1, 1)),
-            Element::text("hi", 0, 0, Rgba::rgb(2, 2, 2), false),
-        ];
-        assert_eq!(count_fill_areas(&els), 0);
-    }
-
-    #[test]
-    fn count_fill_areas_single() {
-        let els = vec![Element::fill_area(64)];
-        assert_eq!(count_fill_areas(&els), 1);
-    }
-
-    #[test]
-    fn count_fill_areas_nested_in_containers() {
-        let els = vec![
-            Element::container(vec![
-                Element::fill_area(63),
-                Element::container(vec![
-                    Element::fill_area(63),
-                    Element::fillbox(0, 0, 10, 10, Rgba::rgb(1, 1, 1)),
-                ]),
-            ]),
-            Element::fill_area(64),
-        ];
-        assert_eq!(count_fill_areas(&els), 3);
-    }
-
-    #[test]
-    fn count_fill_areas_mixed() {
-        let els = vec![
-            Element::fillbox(0, 0, 10, 10, Rgba::rgb(1, 1, 1)),
-            Element::text("test", 0, 0, Rgba::rgb(2, 2, 2), false),
-            Element::fill_area(63),
-            Element::sprite(0, 0, 0),
-        ];
-        assert_eq!(count_fill_areas(&els), 1);
-    }
 
     #[test]
     fn dither_rect_tracks_eligible_rects_in_pending() {
