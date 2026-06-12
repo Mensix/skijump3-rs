@@ -154,7 +154,9 @@ impl KothSetupView {
         match self.mode.get() {
             KothMode::Main => {
                 let sel = self.selected.get();
-                if sel >= 1 && sel <= 6 {
+                if sel == 0 {
+                    cx.stroke((4, 77, 160, 10), FONT_DEFAULT);
+                } else if sel <= 6 {
                     let sy = (10 + (sel - 1) * 10) as i32;
                     cx.stroke((4, sy - 3, 160, 10), FONT_DEFAULT);
                 }
@@ -190,29 +192,27 @@ impl Screen<RouteTarget> for KothSetupView {
 impl KothSetupView {
     fn handle_main(&mut self, event: UiEvent) -> Option<RouteTarget> {
         match &event {
-            UiEvent::KeyDown(Key::Escape) => return Some(RouteTarget::MainMenu),
+            UiEvent::KeyDown(Key::Escape) => Some(RouteTarget::MainMenu),
             UiEvent::KeyDown(Key::Up | Key::Left) => {
                 let s = self.selected.get();
-                self.selected.set(if s <= 1 { 6 } else { s - 1 });
-                return None;
+                self.selected.set(if s == 0 { 6 } else { s - 1 });
+                None
             }
             UiEvent::KeyDown(Key::Down | Key::Right) => {
                 let s = self.selected.get();
-                self.selected.set(if s >= 6 { 1 } else { s + 1 });
-                return None;
+                self.selected.set(if s >= 6 { 0 } else { s + 1 });
+                None
             }
             UiEvent::KeyDown(Key::Enter) | UiEvent::Text(' ') => {
-                return self.activate(self.selected.get());
+                self.activate(self.selected.get())
             }
-            UiEvent::Text(ch) if *ch >= '1' && *ch <= '6' => {
+            UiEvent::Text(ch) if *ch >= '0' && *ch <= '6' => {
                 let n = *ch as usize - '0' as usize;
                 self.selected.set(n);
-                return self.activate(n);
+                None
             }
-            UiEvent::Text('0') => return Some(RouteTarget::MainMenu),
-            _ => {}
+            _ => None,
         }
-        None
     }
 
     fn handle_packs(&mut self, event: UiEvent) -> Option<RouteTarget> {
@@ -261,6 +261,7 @@ impl KothSetupView {
 
     fn activate(&self, n: usize) -> Option<RouteTarget> {
         match n {
+            0 => Some(RouteTarget::MainMenu),
             1 => self.start_koth(),
             2 => {
                 let cfg = self.config();

@@ -114,7 +114,7 @@ pub fn render(cx: &mut PaintCx<'_>, resources: &ResourcesRef, store: &crate::sto
     store.with_active(|active| {
         let c = active.koth_runtime()?;
         let (entries, remaining, _is_final) = build_entries(c);
-        let total_pages = (entries.len() + ITEMS_PER_PAGE - 1) / ITEMS_PER_PAGE;
+        let total_pages = entries.len().div_ceil(ITEMS_PER_PAGE);
         let page = 1;
 
         let title = if remaining <= 1 {

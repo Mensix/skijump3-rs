@@ -57,7 +57,7 @@ impl KothRuntime {
         }
 
         // sort by points descending (best first), Pascal kothjarj
-        let mut sorted = alive.clone();
+        let mut sorted = alive;
         sorted.sort_by(|(_, a), (_, b)| b.total_cmp(a));
 
         // Pascal: random swap for consecutive ties

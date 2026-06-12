@@ -68,7 +68,7 @@ impl TeamCupJumpView {
                     participant,
                     hill_idx,
                     phase_label,
-                    Some(context.team_name.clone()),
+                    Some(context.team_name),
                 );
             }
             CompetitionFlowCommand::ShowResults(kind) => {

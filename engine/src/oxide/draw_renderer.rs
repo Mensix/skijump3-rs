@@ -74,7 +74,7 @@ impl DitherFillCollector {
         thing: u8,
     ) -> Result<(), String> {
         if let Some(pattern) = sprites.get(PATTERN_SPRITE) {
-            for rect in self.pending.iter() {
+            for rect in &self.pending {
                 renderer.dither_overlay_rect(
                     rect.x, rect.y, rect.w, rect.h, rect.color, rect.is_box, thing, &pattern.data,
                 )?;

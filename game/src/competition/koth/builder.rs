@@ -53,7 +53,7 @@ pub fn build_koth(
     }
 
     // human profiles
-    for (_list_idx, (profile_idx, p)) in active.iter().enumerate() {
+    for (profile_idx, p) in &active {
         let idx = participants.len();
         let competitor = Competitor::from_profile(idx, *profile_idx, p, None);
         participants.push(KothParticipant {
