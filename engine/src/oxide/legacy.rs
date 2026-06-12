@@ -1,4 +1,4 @@
-use crate::oxide::draw::{CommandBuffer, DrawCommand, ImageRegionDraw, TextAlign};
+use crate::oxide::draw::ImageRegionDraw;
 use crate::oxide::input::UiEvent;
 use crate::oxide::paint::PaintCx;
 use crate::ui::{Element, Event, ImageRegion, Key};
@@ -14,51 +14,6 @@ pub fn event_from_ui(event: UiEvent) -> Option<Event> {
 pub fn paint_elements(cx: &mut PaintCx<'_>, elements: &[Element]) {
     for element in elements {
         paint_element(cx, element);
-    }
-}
-
-pub fn commands_to_elements(commands: &CommandBuffer) -> Vec<Element> {
-    commands
-        .commands()
-        .iter()
-        .cloned()
-        .map(draw_command_to_element)
-        .collect()
-}
-
-pub(crate) fn draw_command_to_element(command: DrawCommand) -> Element {
-    match command {
-        DrawCommand::Image { pixels, w, h } => Element::Image(pixels, w, h),
-        DrawCommand::ImageRegion(region) => Element::ImageRegion(image_region_to_legacy(region)),
-        DrawCommand::Text(run) => Element::Text {
-            text: run.text,
-            x: run.position.x,
-            y: run.position.y,
-            color: run.color,
-            right: run.align == TextAlign::Right,
-            center: run.align == TextAlign::Center,
-        },
-        DrawCommand::Sprite(sprite) => {
-            Element::Sprite(sprite.idx, sprite.position.x, sprite.position.y)
-        }
-        DrawCommand::SpriteRemapped { sprite, recolor } => {
-            Element::SpriteRemapped(sprite.idx, sprite.position.x, sprite.position.y, recolor)
-        }
-        DrawCommand::Fill(rect, color) => Element::Fillbox {
-            x: rect.x,
-            y: rect.y,
-            w: rect.w,
-            h: rect.h,
-            color,
-        },
-        DrawCommand::Stroke(rect, color) => Element::Box {
-            x: rect.x,
-            y: rect.y,
-            w: rect.w,
-            h: rect.h,
-            color,
-        },
-        DrawCommand::DitherFill(thing) => Element::FillArea { thing },
     }
 }
 
@@ -90,20 +45,6 @@ fn paint_element(cx: &mut PaintCx<'_>, element: &Element) {
             cx.sprite_remapped(*idx, (*x, *y), recolor.clone());
         }
         Element::Container(children) => paint_elements(cx, children),
-    }
-}
-
-fn image_region_to_legacy(region: ImageRegionDraw) -> ImageRegion {
-    ImageRegion {
-        pixels: region.pixels,
-        src_w: region.src_w,
-        src_h: region.src_h,
-        src_x: region.src_x,
-        src_y: region.src_y,
-        dst_x: region.dst_x,
-        dst_y: region.dst_y,
-        w: region.w,
-        h: region.h,
     }
 }
 
