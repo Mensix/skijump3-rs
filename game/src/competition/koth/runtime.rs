@@ -10,7 +10,6 @@ impl KothRuntime {
         human_indices: Vec<usize>,
         hill_idx: usize,
         jump_rounds_per_elimination: u8,
-        pack: u8,
         rng: Random,
     ) -> Self {
         Self {
@@ -18,7 +17,6 @@ impl KothRuntime {
             human_indices,
             hill_idx,
             jump_rounds_per_elimination,
-            pack,
             phase: KothPhase::Setup,
             current_elimination_round: 0,
             current_jump_round: 0,

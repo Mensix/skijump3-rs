@@ -19,8 +19,10 @@ pub struct ConfirmDialog {
     border: Rgba,
     fg: Rgba,
     message: String,
+    subtitle: Option<String>,
     yes: String,
     no: String,
+    dither: bool,
 }
 
 impl ConfirmDialog {
@@ -45,9 +47,21 @@ impl ConfirmDialog {
             border,
             fg,
             message: message.into(),
+            subtitle: None,
             yes: yes.into(),
             no: no.into(),
+            dither: true,
         }
+    }
+
+    #[must_use]
+    pub fn with_subtitle(mut self, subtitle: impl Into<String>) -> Self {
+        self.subtitle = Some(subtitle.into());
+        self
+    }
+
+    pub fn set_dither(&mut self, dither: bool) {
+        self.dither = dither;
     }
 }
 
@@ -69,11 +83,17 @@ impl Widget for ConfirmDialog {
     fn paint(&self, cx: &mut PaintCx<'_>) {
         cx.fill((self.x, self.y, self.w, self.h), self.border);
         cx.fill((self.x + 1, self.y + 1, self.w - 2, self.h - 2), self.bg);
+        if self.dither {
+            cx.dither_fill(63);
+        }
         cx.text((self.x + 8, self.y + 8), self.fg, &self.message);
+        if let Some(sub) = &self.subtitle {
+            cx.text((self.x + 8, self.y + self.h - 22), self.fg, sub);
+        }
         cx.text(
             (self.x + 8, self.y + self.h - 14),
             self.fg,
-            format!("{} / {}", self.yes, self.no),
+            format!("{}/{}", self.yes, self.no),
         );
     }
 }

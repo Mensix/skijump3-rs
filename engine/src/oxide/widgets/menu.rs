@@ -78,6 +78,14 @@ impl PixelMenu {
         self.selected = selected.min(self.total_items().saturating_sub(1));
     }
 
+    pub fn set_show_box(&mut self, show: bool) {
+        self.show_box = show;
+    }
+
+    pub fn set_show_labels(&mut self, show: bool) {
+        self.show_labels = show;
+    }
+
     #[must_use]
     pub const fn item_count(&self) -> usize {
         self.items.len()

@@ -1,11 +1,11 @@
 use crate::components::page_nav::cycle_index;
 use crate::route::RouteTarget;
-use engine::ui::{Event, Key};
+use engine::oxide::input::{Key, UiEvent};
 
 use super::state::SetupModal;
 use super::view::SetupView;
 
-pub(crate) fn handle_event(view: &mut SetupView, event: Event) -> Option<RouteTarget> {
+pub(crate) fn handle_event(view: &mut SetupView, event: UiEvent) -> Option<RouteTarget> {
     match view.modal.get() {
         Some(SetupModal::WindPlace(pos)) => handle_wind_place(view, event, pos),
         Some(SetupModal::SeeComps(val)) => handle_see_comps(view, event, val),
@@ -15,25 +15,25 @@ pub(crate) fn handle_event(view: &mut SetupView, event: Event) -> Option<RouteTa
     }
 }
 
-fn handle_wind_place(view: &mut SetupView, event: Event, pos: usize) -> Option<RouteTarget> {
+fn handle_wind_place(view: &mut SetupView, event: UiEvent, pos: usize) -> Option<RouteTarget> {
     let winds = 11;
     match event {
-        Event::Keyboard(Key::Up) => {
+        UiEvent::KeyDown(Key::Up) => {
             let new_pos = if pos == 0 { winds - 1 } else { pos - 1 };
             view.modal.set(Some(SetupModal::WindPlace(new_pos)));
         }
-        Event::Keyboard(Key::Down) => {
+        UiEvent::KeyDown(Key::Down) => {
             let new_pos = if pos >= winds - 1 { 0 } else { pos + 1 };
             view.modal.set(Some(SetupModal::WindPlace(new_pos)));
         }
-        Event::Keyboard(Key::Enter | Key::Char(' ')) => {
+        UiEvent::KeyDown(Key::Enter) | UiEvent::Text(' ') => {
             let place = if pos < 8 { pos + 1 } else { pos + 3 };
             view.save_manager()
                 .update_config(|cfg| cfg.windplace = place as i32);
             view.store.set_wind_place(place as u8);
             view.modal.set(None);
         }
-        Event::Keyboard(Key::Escape) => {
+        UiEvent::KeyDown(Key::Escape) => {
             view.modal.set(None);
         }
         _ => {}
@@ -41,10 +41,10 @@ fn handle_wind_place(view: &mut SetupView, event: Event, pos: usize) -> Option<R
     None
 }
 
-fn handle_see_comps(view: &mut SetupView, event: Event, mut val: usize) -> Option<RouteTarget> {
+fn handle_see_comps(view: &mut SetupView, event: UiEvent, mut val: usize) -> Option<RouteTarget> {
     let num_players: i32 = 250;
     match event {
-        Event::Keyboard(Key::Up | Key::Left) => {
+        UiEvent::KeyDown(Key::Up | Key::Left) => {
             if val > 1 {
                 val -= 1
             } else {
@@ -55,7 +55,7 @@ fn handle_see_comps(view: &mut SetupView, event: Event, mut val: usize) -> Optio
             }
             view.modal.set(Some(SetupModal::SeeComps(val)));
         }
-        Event::Keyboard(Key::Down | Key::Right) => {
+        UiEvent::KeyDown(Key::Down | Key::Right) => {
             if val >= 240 {
                 val = 1;
             } else {
@@ -66,12 +66,12 @@ fn handle_see_comps(view: &mut SetupView, event: Event, mut val: usize) -> Optio
             }
             view.modal.set(Some(SetupModal::SeeComps(val)));
         }
-        Event::Keyboard(Key::Enter) => {
+        UiEvent::KeyDown(Key::Enter) => {
             view.save_manager()
                 .update_config(|cfg| cfg.seecomps = val as i32);
             view.modal.set(None);
         }
-        Event::Keyboard(Key::Escape) => {
+        UiEvent::KeyDown(Key::Escape) => {
             view.modal.set(None);
         }
         _ => {}
@@ -79,13 +79,16 @@ fn handle_see_comps(view: &mut SetupView, event: Event, mut val: usize) -> Optio
     None
 }
 
-fn handle_confirm_reset(view: &mut SetupView, event: Event, _kind: u8) -> Option<RouteTarget> {
+fn handle_confirm_reset(view: &mut SetupView, event: UiEvent, _kind: u8) -> Option<RouteTarget> {
     match event {
-        Event::Keyboard(Key::Char(c)) if c == 'y' || c == 'Y' => {
+        UiEvent::Text(c) if c == 'y' || c == 'Y' => {
             let _ = _kind;
             view.modal.set(None);
         }
-        Event::Keyboard(Key::Escape | Key::Enter | Key::Char('n' | 'N')) => {
+        UiEvent::KeyDown(Key::Escape | Key::Enter) => {
+            view.modal.set(None);
+        }
+        UiEvent::Text(c) if c == 'n' || c == 'N' => {
             view.modal.set(None);
         }
         _ => {}
@@ -93,22 +96,22 @@ fn handle_confirm_reset(view: &mut SetupView, event: Event, _kind: u8) -> Option
     None
 }
 
-fn handle_language_picker(view: &mut SetupView, event: Event, sel: usize) -> Option<RouteTarget> {
+fn handle_language_picker(view: &mut SetupView, event: UiEvent, sel: usize) -> Option<RouteTarget> {
     let langs = &view.langbase().languages;
     match event {
-        Event::Keyboard(Key::Up) => {
+        UiEvent::KeyDown(Key::Up) => {
             let new_sel = cycle_index(sel, langs.len(), -1);
             view.modal.set(Some(SetupModal::LanguagePicker(new_sel)));
         }
-        Event::Keyboard(Key::Down) => {
+        UiEvent::KeyDown(Key::Down) => {
             let new_sel = cycle_index(sel, langs.len(), 1);
             view.modal.set(Some(SetupModal::LanguagePicker(new_sel)));
         }
-        Event::Keyboard(Key::Enter | Key::Char(' ')) => {
+        UiEvent::KeyDown(Key::Enter) | UiEvent::Text(' ') => {
             view.save_manager().set_language(sel);
             view.modal.set(None);
         }
-        Event::Keyboard(Key::Escape) => {
+        UiEvent::KeyDown(Key::Escape) => {
             view.modal.set(None);
         }
         _ => {}
@@ -116,26 +119,26 @@ fn handle_language_picker(view: &mut SetupView, event: Event, sel: usize) -> Opt
     None
 }
 
-fn handle_screen_event(view: &mut SetupView, event: Event) -> Option<RouteTarget> {
+fn handle_screen_event(view: &mut SetupView, event: UiEvent) -> Option<RouteTarget> {
     let screen = view.screen.get();
     let entries = view.menu.item_count();
 
     match event {
-        Event::Keyboard(Key::Up) => {
+        UiEvent::KeyDown(Key::Up) => {
             let sel = view.menu.selected();
             view.menu.set_selected(cycle_index(sel, entries + 1, -1));
         }
-        Event::Keyboard(Key::Down) => {
+        UiEvent::KeyDown(Key::Down) => {
             let sel = view.menu.selected();
             view.menu.set_selected(cycle_index(sel, entries + 1, 1));
         }
-        Event::Keyboard(Key::Escape) => {
+        UiEvent::KeyDown(Key::Escape) => {
             if screen == 0 {
                 return Some(RouteTarget::MainMenu);
             }
             view.switch_screen(0);
         }
-        Event::Keyboard(Key::Enter | Key::Char(' ')) => {
+        UiEvent::KeyDown(Key::Enter) | UiEvent::Text(' ') => {
             let sel = view.menu.selected();
             if sel >= entries {
                 if screen == 0 {
@@ -146,7 +149,7 @@ fn handle_screen_event(view: &mut SetupView, event: Event) -> Option<RouteTarget
                 activate_item(view, screen, sel);
             }
         }
-        Event::Keyboard(Key::Char(c)) if c.is_ascii_digit() => {
+        UiEvent::Text(c) if c.is_ascii_digit() => {
             if let Some(d) = c.to_digit(10) {
                 let n = d as usize;
                 if n >= 1 && n <= entries {

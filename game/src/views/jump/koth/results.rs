@@ -83,7 +83,7 @@ fn build_entries(c: &KothRuntime) -> (Vec<KothEntry>, usize, bool) {
                 }
             };
 
-            let is_last_eliminated =
+            let _is_last_eliminated =
                 !p.is_alive() && p.eliminated_in_round == c.current_elimination_round;
             let is_king = is_final && pos == 0;
 

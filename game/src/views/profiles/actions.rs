@@ -1,12 +1,10 @@
-use std::rc::Rc;
-
-use crate::components::confirm_dialog::ConfirmDialog;
-use crate::components::text_input::TextInput;
-use crate::components::value_selector::ValueSelector;
 use crate::data::profile::{Profile, NUM_SKIS, NUM_SUITS};
-use crate::gfx::palette::{BG_RIGHT, BLACK, FILL_DIM, FONT_DEFAULT, FONT_NEW};
+use crate::gfx::palette::{BG_RIGHT, BLACK, FILL_DIM, FONT_DEFAULT, FONT_HEADER, FONT_NEW};
 use crate::route::RouteTarget;
 use crate::text::layout::{lstr, replace_display_name};
+use engine::oxide::widgets::confirm::ConfirmDialog as OxideConfirmDialog;
+use engine::oxide::widgets::selector::NumericSelector;
+use engine::oxide::widgets::text_input::TextInput as OxideTextInput;
 
 use super::list::{ColorField, Mode, ProfilesView, QuestionAction, TextField, REPLACE_MAX};
 use super::render::profile_label;
@@ -64,21 +62,26 @@ pub(super) fn handle_list_delete(view: &mut ProfilesView) {
     if view.store.profiles().order_pos(view.selected).is_some() {
         view.store.profiles_mut().remove_from_order(view.selected);
         save_players(view);
-    } else {
-        let name = view.store.profiles().profiles[view.selected].name.clone();
-        view.mode = Mode::Question {
-            action: QuestionAction::DeleteProfile(view.selected),
-            dialog: ConfirmDialog::new(
-                format!(
-                    "{}: {}",
-                    lstr(&view.resources.langbase, 328, "Delete"),
-                    name
-                ),
-                Rc::clone(&view.resources.langbase),
-                view.resources.font.clone(),
-            ),
-        };
-    }
+        } else {
+            let name = view.store.profiles().profiles[view.selected].name.clone();
+            view.mode = Mode::Question {
+                action: QuestionAction::DeleteProfile(view.selected),
+                dialog: OxideConfirmDialog::new(
+                    (59, 79, 203, 53),
+                    BG_RIGHT,
+                    BLACK,
+                    FONT_HEADER,
+                    format!(
+                        "{}: {}",
+                        lstr(&view.resources.langbase, 328, "Delete"),
+                        name
+                    ),
+                    "Y",
+                    "N",
+                )
+                .with_subtitle(lstr(&view.resources.langbase, 193, "Are you sure?")),
+            };
+        }
 }
 
 pub(super) fn handle_edit_enter(view: &mut ProfilesView, profile: usize, selected: usize) {
@@ -98,15 +101,12 @@ pub(super) fn handle_edit_enter(view: &mut ProfilesView, profile: usize, selecte
             view.mode = Mode::ColorSelect {
                 profile,
                 field: ColorField::Suit,
-                selector: ValueSelector::color_bars(
-                    x,
-                    24,
-                    NUM_SUITS - 1,
-                    value,
-                    BLACK,
-                    BG_RIGHT,
-                    true,
-                ),
+                selector: NumericSelector::new(x, 24, 31, NUM_SUITS - 1, value, BLACK, FONT_DEFAULT, ""),
+                color_x: x,
+                color_y: 24,
+                color_width: 31,
+                color_max: NUM_SUITS - 1,
+                color_suit: true,
             };
         }
         3 => {
@@ -122,15 +122,12 @@ pub(super) fn handle_edit_enter(view: &mut ProfilesView, profile: usize, selecte
             view.mode = Mode::ColorSelect {
                 profile,
                 field: ColorField::Ski,
-                selector: ValueSelector::color_bars(
-                    x,
-                    32,
-                    NUM_SKIS - 1,
-                    value,
-                    BLACK,
-                    BG_RIGHT,
-                    false,
-                ),
+                selector: NumericSelector::new(x, 32, 31, NUM_SKIS - 1, value, BLACK, FONT_DEFAULT, ""),
+                color_x: x,
+                color_y: 32,
+                color_width: 31,
+                color_max: NUM_SKIS - 1,
+                color_suit: false,
             };
         }
         4 => {
@@ -148,7 +145,7 @@ pub(super) fn handle_edit_enter(view: &mut ProfilesView, profile: usize, selecte
             } else {
                 String::new()
             };
-            let mut selector = ValueSelector::numeric(
+            let mut selector = NumericSelector::new(
                 x,
                 44,
                 320 - x,
@@ -158,9 +155,6 @@ pub(super) fn handle_edit_enter(view: &mut ProfilesView, profile: usize, selecte
                 FONT_DEFAULT,
                 display,
             );
-            if value > 0 {
-                selector.set_right_text(&format!("#{value}"));
-            }
             selector.set_wrap(false);
             view.mode = Mode::ReplaceSelect { profile, selector };
         }
@@ -188,11 +182,16 @@ pub(super) fn handle_edit_enter(view: &mut ProfilesView, profile: usize, selecte
         7 => {
             view.mode = Mode::Question {
                 action: QuestionAction::ResetProfile(profile),
-                dialog: ConfirmDialog::new(
+                dialog: OxideConfirmDialog::new(
+                    (59, 79, 203, 53),
+                    BG_RIGHT,
+                    BLACK,
+                    FONT_HEADER,
                     lstr(&view.resources.langbase, 329, "Reset jumper?"),
-                    Rc::clone(&view.resources.langbase),
-                    view.resources.font.clone(),
-                ),
+                    "Y",
+                    "N",
+                )
+                .with_subtitle(lstr(&view.resources.langbase, 193, "Are you sure?")),
             };
         }
         _ => {}
@@ -220,13 +219,15 @@ pub(super) fn start_text_input(view: &mut ProfilesView, profile: usize, field: T
     view.mode = Mode::TextInput {
         profile,
         field,
-        input: TextInput::new(
+        input: OxideTextInput::new(
             x,
             y,
             max_width,
             old,
+            130,
             FILL_DIM,
             FONT_NEW,
+            FONT_DEFAULT,
             view.resources.font.clone(),
         ),
     };

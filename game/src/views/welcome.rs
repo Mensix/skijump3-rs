@@ -1,30 +1,30 @@
-use crate::components::menu::{Menu, MenuItem};
 use crate::gfx::palette::{BG_LEFT, BLACK, FILL_DIM, FONT_DEFAULT, FONT_GOLD, FONT_GREET};
 use crate::gfx::sprites;
 use crate::route::RouteTarget;
 use crate::save::SaveRef;
 use crate::text::lang::LangBase;
-use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent};
-use engine::ui::{Component, Event, Key};
+use engine::oxide::widgets::menu::MenuItem as OxideMenuItem;
+use engine::oxide::widgets::menu::PixelMenu;
+use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent, Widget};
 use std::rc::Rc;
 
 pub struct WelcomeScreenView {
-    menu: Menu,
+    menu: PixelMenu,
     languages: Vec<String>,
     save_manager: SaveRef,
 }
 
 impl WelcomeScreenView {
     #[must_use]
-    pub fn new(languages: Vec<String>, langbase: &Rc<LangBase>, save_manager: SaveRef) -> Self {
+    pub fn new(languages: Vec<String>, _langbase: &Rc<LangBase>, save_manager: SaveRef) -> Self {
         let count = languages.len();
-        let mut items = Vec::with_capacity(count);
-        for (i, _) in languages.iter().enumerate() {
-            items.push(MenuItem::new((i + 1) as u8, 0));
-        }
+        let items: Vec<OxideMenuItem> = (0..count)
+            .map(|i| OxideMenuItem::new((i + 1) as u8, format!("{}", i)))
+            .collect();
         Self {
-            menu: Menu::new(112, 64, 100, 8, items, langbase, FONT_DEFAULT, FONT_DEFAULT)
-                .with_labels(false),
+            menu: PixelMenu::new(112, 64, 100, 8, items, FONT_DEFAULT, FONT_DEFAULT)
+                .with_labels(false)
+                .with_box(false),
             languages,
             save_manager,
         }
@@ -55,16 +55,17 @@ impl WelcomeScreenView {
 
 impl Screen<RouteTarget> for WelcomeScreenView {
     fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
-        let Some(event) = input_event(event) else {
-            return;
-        };
-        match self.menu.handle_event(&event) {
+        let mut ecx = engine::oxide::widget::EventCx::default();
+        match self.menu.event(&mut ecx, event) {
             Some(0) => cx.navigate(RouteTarget::MainMenu),
             Some(n) => {
                 self.save_manager.set_language(n - 1);
                 cx.navigate(RouteTarget::MainMenu);
             }
             _ => {}
+        }
+        if ecx.is_consumed() {
+            cx.consume();
         }
     }
 
@@ -73,10 +74,3 @@ impl Screen<RouteTarget> for WelcomeScreenView {
     }
 }
 
-fn input_event(event: UiEvent) -> Option<Event> {
-    match event {
-        UiEvent::KeyDown(key) => Some(Event::Keyboard(key)),
-        UiEvent::Text(ch) => Some(Event::Keyboard(Key::Char(ch))),
-        UiEvent::Quit | UiEvent::Tick => None,
-    }
-}

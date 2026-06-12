@@ -2,17 +2,18 @@ use std::cell::Cell;
 
 use crate::competition::factory;
 use crate::components::layout::MainLayout;
-use crate::components::menu::{Menu, MenuItem};
 use crate::gfx::palette::{
     BG_ERASE, BG_LIST, BG_RIGHT, BLACK, FONT_DEFAULT, FONT_GOLD, FONT_HEADER,
 };
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
+use engine::oxide::widgets::menu::PixelMenu;
+use engine::oxide::Widget;
 use engine::oxide::{PaintCx, Screen, ScreenBackground, ScreenEventCx, UiEvent};
-use engine::ui::{Component, Element, Event, Key};
+use engine::ui::Element;
 
 pub struct JumpMenuView {
-    menu: Menu,
+    menu: PixelMenu,
     layout: MainLayout,
     store: StoreRef,
     resources: ResourcesRef,
@@ -32,26 +33,21 @@ const JUMP_MENU_ACTIONS: &[Option<RouteTarget>] = &[
 impl JumpMenuView {
     #[must_use]
     pub fn new(layout: MainLayout, store: StoreRef, resources: ResourcesRef) -> Self {
+        use engine::oxide::widgets::menu::MenuItem as OxideMenuItem;
+
         let items = vec![
-            MenuItem::new(1, 27),
-            MenuItem::new(2, 28),
-            MenuItem::new(3, 29),
-            MenuItem::new(4, 30),
-            MenuItem::new(5, 31),
-            MenuItem::new(6, 32),
-            MenuItem::with_y(0, 33, 12),
+            OxideMenuItem::new(1, ""),
+            OxideMenuItem::new(2, ""),
+            OxideMenuItem::new(3, ""),
+            OxideMenuItem::new(4, ""),
+            OxideMenuItem::new(5, ""),
+            OxideMenuItem::new(6, ""),
+            OxideMenuItem::new(0, "").with_y(12),
         ];
         Self {
-            menu: Menu::new(
-                11,
-                97,
-                108,
-                12,
-                items,
-                &layout.langbase,
-                FONT_DEFAULT,
-                FONT_DEFAULT,
-            ),
+            menu: PixelMenu::new(11, 97, 108, 12, items, FONT_DEFAULT, FONT_DEFAULT)
+                .with_labels(false)
+                .with_box(false),
             layout,
             store,
             resources,
@@ -76,12 +72,10 @@ impl JumpMenuView {
 
 impl Screen<RouteTarget> for JumpMenuView {
     fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
-        let Some(event) = input_event(event) else {
-            return;
-        };
+        let mut ecx = engine::oxide::widget::EventCx::default();
 
         if self.show_team_warning.get() {
-            if matches!(event, Event::Keyboard(_)) {
+            if matches!(event, UiEvent::KeyDown(_)) {
                 self.show_team_warning.set(false);
                 self.menu.set_show_box(true);
                 cx.consume();
@@ -89,7 +83,7 @@ impl Screen<RouteTarget> for JumpMenuView {
             return;
         }
 
-        match self.menu.handle_event(&event) {
+        match self.menu.event(&mut ecx, event) {
             Some(1) => cx.navigate(self.start_world_cup()),
             Some(2) => cx.navigate(RouteTarget::CustomCupSetup),
             Some(3) => cx.navigate(self.start_four_hills()),
@@ -110,6 +104,9 @@ impl Screen<RouteTarget> for JumpMenuView {
                 }
             }
             _ => {}
+        }
+        if ecx.is_consumed() {
+            cx.consume();
         }
     }
 
@@ -192,15 +189,7 @@ impl JumpMenuView {
     }
 }
 
-fn input_event(event: UiEvent) -> Option<Event> {
-    match event {
-        UiEvent::KeyDown(key) => Some(Event::Keyboard(key)),
-        UiEvent::Text(ch) => Some(Event::Keyboard(Key::Char(ch))),
-        UiEvent::Quit | UiEvent::Tick => None,
-    }
-}
-
-fn paint_jump_menu(cx: &mut PaintCx<'_>, menu: &Menu, layout: &MainLayout) {
+fn paint_jump_menu(cx: &mut PaintCx<'_>, menu: &PixelMenu, layout: &MainLayout) {
     let y_offsets = [0, 0, 0, 0, 0, 0, 12];
     for (i, label) in [27, 28, 29, 30, 31, 32, 33].iter().enumerate() {
         let num = if i == 6 { 0 } else { i + 1 };

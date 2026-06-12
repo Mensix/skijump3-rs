@@ -1,13 +1,14 @@
 use crate::components::layout::MainLayout;
-use crate::components::menu::{Menu, MenuItem};
+use engine::oxide::widgets::menu::PixelMenu;
+use engine::oxide::Widget;
 use crate::gfx::palette::{BG_ERASE, FONT_DEFAULT, FONT_HEADER};
 use crate::route::RouteTarget;
 use crate::store::StoreRef;
 use engine::oxide::{PaintCx, Screen, ScreenBackground, ScreenEventCx, UiEvent};
-use engine::ui::{Component, Element, Event, Key};
+use engine::ui::Element;
 
 pub struct MainMenuView {
-    menu: Menu,
+    menu: PixelMenu,
     layout: MainLayout,
 }
 
@@ -24,28 +25,23 @@ const MENU_ACTIONS: &[Option<RouteTarget>] = &[
 impl MainMenuView {
     #[allow(clippy::needless_pass_by_value)]
     pub fn new(layout: MainLayout, store: StoreRef) -> Self {
+        use engine::oxide::widgets::menu::MenuItem as OxideMenuItem;
+
         let items = vec![
-            MenuItem::new(1, 20),
-            MenuItem::new(2, 21),
-            MenuItem::new(3, 22),
-            MenuItem::new(4, 23),
-            MenuItem::new(5, 24),
-            MenuItem::new(6, 25),
-            MenuItem::with_y(0, 26, 12),
+            OxideMenuItem::new(1, ""),
+            OxideMenuItem::new(2, ""),
+            OxideMenuItem::new(3, ""),
+            OxideMenuItem::new(4, ""),
+            OxideMenuItem::new(5, ""),
+            OxideMenuItem::new(6, ""),
+            OxideMenuItem::new(0, "").with_y(12),
         ];
         let selection = store
             .selected_main_menu()
             .min(items.len().saturating_sub(1));
-        let mut menu = Menu::new(
-            11,
-            97,
-            108,
-            12,
-            items,
-            &layout.langbase,
-            FONT_DEFAULT,
-            FONT_DEFAULT,
-        );
+        let mut menu = PixelMenu::new(11, 97, 108, 12, items, FONT_DEFAULT, FONT_DEFAULT)
+            .with_labels(false)
+            .with_box(false);
         menu.set_selected(selection);
         Self { menu, layout }
     }
@@ -63,10 +59,8 @@ impl MainMenuView {
 
 impl Screen<RouteTarget> for MainMenuView {
     fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
-        let Some(event) = input_event(event) else {
-            return;
-        };
-        match self.menu.handle_event(&event) {
+        let mut ecx = engine::oxide::widget::EventCx::default();
+        match self.menu.event(&mut ecx, event) {
             Some(0 | 7) => cx.quit(),
             Some(n) => {
                 if let Some(route) = MENU_ACTIONS.get(n - 1).and_then(|&a| a) {
@@ -74,6 +68,9 @@ impl Screen<RouteTarget> for MainMenuView {
                 }
             }
             _ => {}
+        }
+        if ecx.is_consumed() {
+            cx.consume();
         }
     }
 
@@ -86,15 +83,7 @@ impl Screen<RouteTarget> for MainMenuView {
     }
 }
 
-fn input_event(event: UiEvent) -> Option<Event> {
-    match event {
-        UiEvent::KeyDown(key) => Some(Event::Keyboard(key)),
-        UiEvent::Text(ch) => Some(Event::Keyboard(Key::Char(ch))),
-        UiEvent::Quit | UiEvent::Tick => None,
-    }
-}
-
-fn paint_main_menu(cx: &mut PaintCx<'_>, menu: &Menu, layout: &MainLayout) {
+fn paint_main_menu(cx: &mut PaintCx<'_>, menu: &PixelMenu, layout: &MainLayout) {
     let y_offsets = [0, 0, 0, 0, 0, 0, 12];
     for (i, label) in [20, 21, 22, 23, 24, 25, 26].iter().enumerate() {
         let num = if i == 6 { 0 } else { i + 1 };

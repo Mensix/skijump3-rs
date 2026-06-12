@@ -1,12 +1,11 @@
-use crate::components::menu::{Menu, MenuItem};
 use crate::gfx::palette::FONT_DEFAULT;
 use crate::route::RouteTarget;
 use crate::save::config::Config;
 use crate::save::SaveManager;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::lang::LangBase;
+use engine::oxide::widgets::menu::{PixelMenu, MenuItem as OxideMenuItem};
 use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent};
-use engine::ui::{Event, Key};
 use std::cell::Cell;
 use std::rc::Rc;
 
@@ -16,7 +15,7 @@ pub struct SetupView {
     pub(crate) resources: ResourcesRef,
     pub(crate) store: StoreRef,
     pub(crate) screen: Cell<usize>,
-    pub(crate) menu: Menu,
+    pub(crate) menu: PixelMenu,
     pub(crate) modal: Cell<Option<SetupModal>>,
 }
 
@@ -32,7 +31,7 @@ impl SetupView {
         }
     }
 
-    pub(crate) fn make_menu(screen: usize, langbase: &Rc<LangBase>, selected: usize) -> Menu {
+    pub(crate) fn make_menu(screen: usize, _langbase: &Rc<LangBase>, selected: usize) -> PixelMenu {
         let entries = match screen {
             0 => 6,
             1 => 4,
@@ -40,11 +39,11 @@ impl SetupView {
             3 => 5,
             _ => 0,
         };
-        let items = (0..entries).map(|_| MenuItem::new(0, 0)).collect();
-        let mut m = Menu::new(35, 40, 221, 10, items, langbase, FONT_DEFAULT, FONT_DEFAULT)
+        let items = (0..entries).map(|_| OxideMenuItem::new(0, "")).collect();
+        let mut m = PixelMenu::new(35, 40, 221, 10, items, FONT_DEFAULT, FONT_DEFAULT)
             .with_labels(false)
             .with_box(false)
-            .with_exit(154, 0);
+            .with_exit("", 0);
         m.set_selected(selected.min(entries));
         m
     }
@@ -85,10 +84,9 @@ impl Screen<RouteTarget> for SetupView {
     }
 }
 
-fn input_from_ui(event: UiEvent) -> Option<Event> {
+fn input_from_ui(event: UiEvent) -> Option<UiEvent> {
     match event {
-        UiEvent::KeyDown(key) => Some(Event::Keyboard(key)),
-        UiEvent::Text(c) => Some(Event::Keyboard(Key::Char(c))),
+        UiEvent::KeyDown(_) | UiEvent::Text(_) => Some(event),
         UiEvent::Quit | UiEvent::Tick => None,
     }
 }
