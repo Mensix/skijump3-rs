@@ -7,7 +7,7 @@ use crate::views::jump::competition::flow::{
 };
 
 use crate::views::jump::competition::ui_state::RenderMode;
-use engine::oxide::{Key, PaintCx, Screen, ScreenEventCx, UiEvent, UpdateCx};
+use engine::oxide::{Key, PaintCx, Screen, ScreenEventCx, UiEvent};
 
 pub struct KothJumpView {
     controller: CompetitionJumpController<KothRuntime>,
@@ -127,7 +127,7 @@ impl KothJumpView {
 }
 
 impl Screen<RouteTarget> for KothJumpView {
-    fn update(&mut self, _cx: &mut UpdateCx) {
+    fn update(&mut self) {
         self.controller.record_acknowledged_human_jump();
 
         if let Some(command) = self.controller.drive() {

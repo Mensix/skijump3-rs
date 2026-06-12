@@ -15,7 +15,7 @@ use crate::text::lang::LangBase;
 use crate::views::replay::playback_controls::{PlaybackMode, PlaybackSpeed, ReplayPlayback};
 use engine::consts::{HEIGHT, WIDTH};
 use engine::oxide::input::Key;
-use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent, UpdateCx};
+use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent};
 use engine::oxide::Blinker;
 use std::cell::{Cell, RefCell};
 use std::collections::VecDeque;
@@ -244,7 +244,7 @@ impl ReplayView {
 }
 
 impl Screen<RouteTarget> for ReplayView {
-    fn update(&mut self, _cx: &mut UpdateCx) {
+    fn update(&mut self) {
         let mut session_ref = self.session.borrow_mut();
         let Some(session) = session_ref.as_mut() else {
             return;

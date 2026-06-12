@@ -8,7 +8,7 @@ use crate::views::jump::competition::flow::{
 };
 use crate::views::jump::team_cup::results as team_cup_results;
 use crate::views::jump::competition::ui_state::RenderMode;
-use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent, UpdateCx};
+use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent};
 use engine::oxide::Blinker;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -174,7 +174,7 @@ impl TeamCupJumpView {
 }
 
 impl Screen<RouteTarget> for TeamCupJumpView {
-    fn update(&mut self, _cx: &mut UpdateCx) {
+    fn update(&mut self) {
         self.cursor_visible = self.blinker.visible(10, 10);
 
         if self.phase == ViewPhase::Setup {

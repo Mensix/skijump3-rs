@@ -9,6 +9,7 @@ use crate::oxide::Font;
 use crate::video::{Renderer, TextureId};
 
 const TEXT_SHADOW: Rgba = Rgba::rgb(0, 0, 0);
+const MAX_CACHE_SIZE: usize = 256;
 
 const DITHER_FILL_COLORS: [Rgba; 5] = [
     Rgba::from_rgb6(18, 13, 34),
@@ -122,6 +123,9 @@ impl RemappedSpriteCache {
         recolor: &SpriteColorRecolor,
         sprite: &SpriteData,
     ) -> Result<(), String> {
+        if self.entries.len() >= MAX_CACHE_SIZE {
+            self.entries.clear();
+        }
         let key = RemappedSpriteCacheKey { sprite_idx, recolor: recolor.clone() };
         match self.entries.entry(key) {
             Entry::Occupied(o) => draw_remapped_texture(renderer, o.get(), x, y),
@@ -197,6 +201,9 @@ impl TextCache {
         color: Rgba,
         align: TextAlign,
     ) -> Result<(), String> {
+        if self.entries.len() >= MAX_CACHE_SIZE {
+            self.entries.clear();
+        }
         let text_w = font.string_width(text) as i32;
         let fx = match align {
             TextAlign::Center => x - text_w / 2,

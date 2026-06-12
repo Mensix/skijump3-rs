@@ -8,7 +8,7 @@ use crate::views::{
     TrainingSetupView, WelcomeScreenView,
 };
 use engine::oxide::{
-    NavAction, PaintCx, Screen, ScreenBackground, ScreenEventCx, UiEvent, UpdateCx,
+    NavAction, PaintCx, Screen, ScreenBackground, ScreenEventCx, UiEvent,
 };
 use std::rc::Rc;
 
@@ -52,8 +52,7 @@ impl AppRouter {
     }
 
     pub fn update(&mut self) {
-        let mut cx = UpdateCx;
-        self.current.update(&mut cx);
+        self.current.update();
     }
 
     pub fn handle_event(&mut self, event: UiEvent) {

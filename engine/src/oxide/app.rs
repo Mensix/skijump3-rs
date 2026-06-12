@@ -1,7 +1,6 @@
 use crate::oxide::input::UiEvent;
 use crate::oxide::paint::PaintCx;
 use crate::oxide::route::NavAction;
-use crate::oxide::widget::UpdateCx;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ScreenBackground {
@@ -54,7 +53,7 @@ impl<R> ScreenEventCx<R> {
 }
 
 pub trait Screen<R> {
-    fn update(&mut self, _cx: &mut UpdateCx) {}
+    fn update(&mut self) {}
     fn event(&mut self, cx: &mut ScreenEventCx<R>, event: UiEvent);
     fn paint(&self, cx: &mut PaintCx<'_>);
     fn background(&self) -> ScreenBackground {

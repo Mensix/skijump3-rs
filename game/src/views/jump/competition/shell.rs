@@ -5,7 +5,7 @@ use crate::views::jump::koth::KothJumpView;
 use crate::views::jump::team_cup::TeamCupJumpView;
 use crate::views::jump::training_jump::TrainingJumpView;
 use crate::views::jump::world_cup::WorldCupJumpView;
-use engine::oxide::{PaintCx, Screen, ScreenBackground, ScreenEventCx, UiEvent, UpdateCx};
+use engine::oxide::{PaintCx, Screen, ScreenBackground, ScreenEventCx, UiEvent};
 
 pub(crate) enum CompetitionJumpView {
     Training(TrainingJumpView),
@@ -33,12 +33,12 @@ impl CompetitionJumpView {
 }
 
 impl Screen<RouteTarget> for CompetitionJumpView {
-    fn update(&mut self, cx: &mut UpdateCx) {
+    fn update(&mut self) {
         match self {
-            Self::Training(view) => Screen::update(view, cx),
-            Self::Individual(view) => Screen::update(view, cx),
-            Self::TeamCup(view) => Screen::update(view, cx),
-            Self::Koth(view) => Screen::update(view, cx),
+            Self::Training(view) => Screen::update(view),
+            Self::Individual(view) => Screen::update(view),
+            Self::TeamCup(view) => Screen::update(view),
+            Self::Koth(view) => Screen::update(view),
         }
     }
 

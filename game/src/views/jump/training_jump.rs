@@ -3,7 +3,7 @@ use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::views::jump::input::{JumpInputAction, JumpInputController};
 use crate::views::jump::scene::JumpScene;
-use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent, UpdateCx};
+use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent};
 use std::cell::RefCell;
 
 pub struct TrainingJumpView {
@@ -81,7 +81,7 @@ impl TrainingJumpView {
 }
 
 impl Screen<RouteTarget> for TrainingJumpView {
-    fn update(&mut self, _cx: &mut UpdateCx) {
+    fn update(&mut self) {
         self.scene.borrow_mut().update();
     }
 

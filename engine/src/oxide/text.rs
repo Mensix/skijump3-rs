@@ -8,6 +8,15 @@ pub struct Font {
     glyphs: Vec<Option<SpriteData>>,
 }
 
+struct GlyphPos {
+    idx: usize,
+    screen_px: i32,
+    width: u16,
+    height: u16,
+    center_x: i8,
+    center_y: i8,
+}
+
 impl Font {
     #[must_use]
     pub fn new() -> Self {
@@ -62,15 +71,6 @@ impl Font {
         color: u8,
     ) -> Option<IndexedBitmap> {
         // First pass: compute bounding box of all glyphs
-        struct GlyphPos {
-            idx: usize,
-            screen_px: i32,
-            width: u16,
-            height: u16,
-            center_x: i8,
-            center_y: i8,
-        }
-
         let mut min_x = i32::MAX;
         let mut min_y = i32::MAX;
         let mut max_x = i32::MIN;
@@ -192,15 +192,6 @@ impl Font {
         out: &mut Vec<u8>,
     ) -> Option<RgbaBitmap> {
         // First pass: compute bounding box of all glyphs
-        struct GlyphPos {
-            idx: usize,
-            screen_px: i32,
-            width: u16,
-            height: u16,
-            center_x: i8,
-            center_y: i8,
-        }
-
         let mut min_x = i32::MAX;
         let mut min_y = i32::MAX;
         let mut max_x = i32::MIN;

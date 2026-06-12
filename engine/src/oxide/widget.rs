@@ -2,9 +2,6 @@ use crate::oxide::input::UiEvent;
 use crate::oxide::paint::PaintCx;
 
 #[derive(Default)]
-pub struct UpdateCx;
-
-#[derive(Default)]
 pub struct EventCx {
     consumed: bool,
 }

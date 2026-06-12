@@ -19,7 +19,7 @@ use crate::views::jump::competition::results::{
 };
 use crate::views::jump::competition::ui_state::{RenderMode, ResultScreen};
 use crate::views::jump::scene::JumpScene;
-use engine::oxide::{Key, PaintCx, Screen, ScreenEventCx, UiEvent, UpdateCx};
+use engine::oxide::{Key, PaintCx, Screen, ScreenEventCx, UiEvent};
 use engine::oxide::Blinker;
 
 pub struct WorldCupJumpView {
@@ -185,7 +185,7 @@ impl WorldCupJumpView {
 }
 
 impl Screen<RouteTarget> for WorldCupJumpView {
-    fn update(&mut self, _cx: &mut UpdateCx) {
+    fn update(&mut self) {
         self.controller.record_acknowledged_human_jump();
 
         // Drive competition and dispatch any resulting command
