@@ -187,11 +187,7 @@ impl KothSetupView {
                 let pcy = pack_cursor_y(cur);
                 cx.stroke((4, pcy - 3, 160, 10), FONT_DEFAULT);
             }
-            KothMode::Opponents => {
-                let cur = self.opponent_cursor.get();
-                let oy = 20 + (cur as i32 + 1) * 8;
-                cx.stroke((176, oy - 2, 140, 9), FONT_DEFAULT);
-            }
+            _ => {}
         }
     }
 
