@@ -7,8 +7,9 @@ use crate::views::{
     KothSetupView, MainMenuView, ProfilesView, ReplayBrowserView, ReplayView, SetupView,
     TrainingSetupView, WelcomeScreenView,
 };
-use engine::oxide::{NavAction, PaintCx, Screen, ScreenEventCx, UiEvent, UpdateCx};
-use engine::ui::{BackgroundMode, View};
+use engine::oxide::{
+    NavAction, PaintCx, Screen, ScreenBackground, ScreenEventCx, UiEvent, UpdateCx,
+};
 use std::rc::Rc;
 
 const VERSION: &str = "3.12";
@@ -17,15 +18,15 @@ type ScreenFactory = Box<dyn Fn() -> Box<dyn AppScreen>>;
 type RouteEntry = (RouteTarget, ScreenFactory);
 
 pub trait AppScreen: Screen<RouteTarget> {
-    fn gpu_background(&self) -> BackgroundMode;
+    fn screen_background(&self) -> ScreenBackground;
 }
 
 impl<T> AppScreen for T
 where
-    T: Screen<RouteTarget> + View<RouteTarget>,
+    T: Screen<RouteTarget>,
 {
-    fn gpu_background(&self) -> BackgroundMode {
-        View::gpu_background(self)
+    fn screen_background(&self) -> ScreenBackground {
+        self.background()
     }
 }
 
@@ -70,8 +71,8 @@ impl AppRouter {
         self.current.paint(cx);
     }
 
-    pub fn gpu_background(&self) -> BackgroundMode {
-        self.current.gpu_background()
+    pub fn screen_background(&self) -> ScreenBackground {
+        self.current.screen_background()
     }
 
     fn navigate(&mut self, target: RouteTarget) {

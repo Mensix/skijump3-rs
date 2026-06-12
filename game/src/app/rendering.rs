@@ -1,8 +1,8 @@
 use crate::app::router::AppRouter;
 use crate::gfx::palette::FONT_HELP;
-use engine::oxide::{Background, CommandBuffer, OxideRenderer, PaintCx};
+use engine::oxide::{Background, CommandBuffer, OxideRenderer, PaintCx, ScreenBackground};
 use engine::sprite::SpriteData;
-use engine::ui::{BackgroundMode, Font};
+use engine::ui::Font;
 use engine::video::{Renderer, TextureId};
 use std::time::Instant;
 
@@ -34,9 +34,9 @@ impl FrameRenderer {
             self.add_debug_overlay(&mut cx);
         }
 
-        let background = match router.gpu_background() {
-            BackgroundMode::MainPng => Background::Texture(main_background),
-            BackgroundMode::NoneBlack => Background::None,
+        let background = match router.screen_background() {
+            ScreenBackground::MainPng => Background::Texture(main_background),
+            ScreenBackground::NoneBlack => Background::None,
         };
 
         self.renderer

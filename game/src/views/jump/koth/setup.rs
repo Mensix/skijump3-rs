@@ -4,9 +4,9 @@ use crate::gfx::palette::{FILL_DIM, FONT_DEFAULT, FONT_GOLD, FONT_HELP};
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::layout::shorten_name;
-use engine::oxide::legacy::{commands_to_elements, event_from_ui, paint_elements};
-use engine::oxide::{CommandBuffer, NavAction, PaintCx, Screen, ScreenEventCx, UiEvent};
-use engine::ui::{Element, Event, Key, View};
+use engine::oxide::legacy::{event_from_ui, paint_elements};
+use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent};
+use engine::ui::{Element, Event, Key};
 use std::cell::Cell;
 
 use crate::text::lang::LangBase;
@@ -225,26 +225,6 @@ impl KothSetupView {
         match self.mode.get() {
             KothMode::Main => self.handle_main(event),
             KothMode::Packs => self.handle_packs(event),
-        }
-    }
-}
-
-impl View<RouteTarget> for KothSetupView {
-    fn elements(&self) -> Vec<Element> {
-        let mut commands = CommandBuffer::new();
-        let mut cx = PaintCx::new(&mut commands);
-        Screen::paint(self, &mut cx);
-        commands_to_elements(&commands)
-    }
-
-    fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {
-        let mut cx = ScreenEventCx::default();
-        Screen::event(self, &mut cx, event.into());
-        match cx.take_action() {
-            NavAction::Navigate(route) => Some(route),
-            NavAction::Back => Some(RouteTarget::Back),
-            NavAction::Quit => Some(RouteTarget::Quit),
-            NavAction::None => None,
         }
     }
 }

@@ -8,7 +8,7 @@ pub mod route;
 pub mod widget;
 pub mod widgets;
 
-pub use app::{Screen, ScreenEventCx};
+pub use app::{Screen, ScreenBackground, ScreenEventCx};
 pub use draw::{
     CommandBuffer, DrawCommand, ImageRegionDraw, Point, Rect, SpriteDraw, TextAlign, TextRun,
 };
