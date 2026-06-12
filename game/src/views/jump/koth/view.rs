@@ -141,7 +141,11 @@ impl Screen<RouteTarget> for KothJumpView {
 
     fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
         if let Some(route) = self.handle_input(event) {
-            cx.navigate(route);
+            if route == RouteTarget::Back {
+                cx.back();
+            } else {
+                cx.navigate(route);
+            }
         } else {
             cx.consume();
         }

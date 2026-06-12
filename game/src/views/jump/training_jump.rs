@@ -91,7 +91,11 @@ impl Screen<RouteTarget> for TrainingJumpView {
             _ => {}
         }
         if let Some(route) = self.handle_input(event) {
-            cx.navigate(route);
+            if route == RouteTarget::Back {
+                cx.back();
+            } else {
+                cx.navigate(route);
+            }
         } else {
             cx.consume();
         }
