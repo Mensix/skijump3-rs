@@ -158,7 +158,6 @@ dependencies = [
  "engine",
  "image",
  "rust-embed",
- "sdl2",
  "serde",
  "tempfile",
  "thiserror",
