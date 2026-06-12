@@ -1,8 +1,8 @@
+use crate::app::router::AppRouter;
 use crate::gfx::palette::FONT_HELP;
-use crate::route::RouteTarget;
-use engine::oxide::{Background, OxideRenderer};
+use engine::oxide::{Background, CommandBuffer, OxideRenderer, PaintCx};
 use engine::sprite::SpriteData;
-use engine::ui::{BackgroundMode, Element, Font, Router};
+use engine::ui::{BackgroundMode, Font};
 use engine::video::{Renderer, TextureId};
 use std::time::Instant;
 
@@ -24,32 +24,31 @@ impl FrameRenderer {
         renderer: &mut Renderer,
         font: &Font,
         sprites: &[SpriteData],
-        router: &Router<RouteTarget>,
+        router: &AppRouter,
         main_background: TextureId,
     ) -> Result<(), String> {
-        let mut elements = router.current_view().elements();
-        self.add_debug_overlay(&mut elements);
+        let mut commands = CommandBuffer::new();
+        {
+            let mut cx = PaintCx::new(&mut commands);
+            router.paint(&mut cx);
+            self.add_debug_overlay(&mut cx);
+        }
 
-        let background = match router.current_view().gpu_background() {
+        let background = match router.gpu_background() {
             BackgroundMode::MainPng => Background::Texture(main_background),
             BackgroundMode::NoneBlack => Background::None,
         };
 
         self.renderer
-            .render_legacy(renderer, font, sprites, elements, background)?;
+            .render_commands(renderer, font, sprites, &commands, background)?;
         renderer.wait_frame();
         Ok(())
     }
 
-    fn add_debug_overlay(&mut self, elements: &mut Vec<Element>) {
+    fn add_debug_overlay(&mut self, cx: &mut PaintCx<'_>) {
         let fps = self.fps.tick();
         if cfg!(debug_assertions) {
-            elements.push(Element::right_text(
-                format!("{fps:.0} fps"),
-                319,
-                192,
-                FONT_HELP,
-            ));
+            cx.right_text((319, 192), FONT_HELP, format!("{fps:.0} fps"));
         }
     }
 }

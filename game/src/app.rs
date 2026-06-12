@@ -3,12 +3,12 @@ mod rendering;
 mod router;
 mod state;
 
-use crate::app::router::create_router;
+use crate::app::router::{create_router, AppRouter};
 use crate::files::FileStore;
 use crate::route::RouteTarget;
 use engine::input::Input;
 use engine::sprite::SpriteData;
-use engine::ui::{Font, Router};
+use engine::ui::Font;
 use engine::video::{Renderer, TextureId};
 use std::rc::Rc;
 
@@ -21,7 +21,7 @@ pub struct Game {
     renderer: Renderer,
     input: Input,
     font: Font,
-    router: Router<RouteTarget>,
+    router: AppRouter,
     sprites: Vec<SpriteData>,
     main_background: TextureId,
     frame_renderer: FrameRenderer,
@@ -86,18 +86,12 @@ impl Game {
 
     fn handle_input(&mut self) {
         for event in self.input.drain_events() {
-            if let Some(target) = self.router.current_view_mut().handle_event(event) {
-                if target == RouteTarget::Back {
-                    self.router.back();
-                } else {
-                    self.router.navigate(target);
-                }
-            }
+            self.router.handle_event(event.into());
         }
     }
 
     fn render_frame(&mut self) -> Result<(), String> {
-        self.router.current_view_mut().update();
+        self.router.update();
         self.frame_renderer.render(
             &mut self.renderer,
             &self.font,
