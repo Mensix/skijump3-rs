@@ -1,3 +1,4 @@
+use crate::competition::koth::types::KothRuntime;
 use crate::competition::machine::Competition;
 use crate::competition::team_cup::types::TeamCupRuntime;
 
@@ -6,6 +7,7 @@ pub enum ActiveCompetition {
     Training,
     Individual(Competition),
     TeamCup(TeamCupRuntime),
+    Koth(KothRuntime),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -13,6 +15,7 @@ pub enum ActiveCompetitionKind {
     Training,
     Individual,
     TeamCup,
+    Koth,
 }
 
 impl ActiveCompetition {
@@ -28,11 +31,16 @@ impl ActiveCompetition {
         Self::TeamCup(comp)
     }
 
+    pub fn from_koth(comp: KothRuntime) -> Self {
+        Self::Koth(comp)
+    }
+
     pub const fn kind(&self) -> ActiveCompetitionKind {
         match self {
             Self::Training => ActiveCompetitionKind::Training,
             Self::Individual(_) => ActiveCompetitionKind::Individual,
             Self::TeamCup(_) => ActiveCompetitionKind::TeamCup,
+            Self::Koth(_) => ActiveCompetitionKind::Koth,
         }
     }
 
@@ -41,6 +49,7 @@ impl ActiveCompetition {
             Self::Training => None,
             Self::Individual(comp) => Some(comp),
             Self::TeamCup(_) => None,
+            Self::Koth(_) => None,
         }
     }
 
@@ -49,6 +58,7 @@ impl ActiveCompetition {
             Self::Training => None,
             Self::Individual(comp) => Some(comp),
             Self::TeamCup(_) => None,
+            Self::Koth(_) => None,
         }
     }
 
@@ -57,6 +67,7 @@ impl ActiveCompetition {
             Self::Training => None,
             Self::Individual(_) => None,
             Self::TeamCup(comp) => Some(comp),
+            Self::Koth(_) => None,
         }
     }
 
@@ -65,6 +76,21 @@ impl ActiveCompetition {
             Self::Training => None,
             Self::Individual(_) => None,
             Self::TeamCup(comp) => Some(comp),
+            Self::Koth(_) => None,
+        }
+    }
+
+    pub const fn koth_runtime(&self) -> Option<&KothRuntime> {
+        match self {
+            Self::Koth(comp) => Some(comp),
+            _ => None,
+        }
+    }
+
+    pub const fn koth_runtime_mut(&mut self) -> Option<&mut KothRuntime> {
+        match self {
+            Self::Koth(comp) => Some(comp),
+            _ => None,
         }
     }
 }

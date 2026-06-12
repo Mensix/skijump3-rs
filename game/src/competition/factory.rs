@@ -1,10 +1,12 @@
 use crate::competition::builder::{build_competition, build_custom_competition};
+use crate::competition::koth::builder::build_koth;
 use crate::competition::team_cup::builder::build_team_cup;
 use crate::competition::types::CupStyle;
 use crate::competition::ActiveCompetition;
 use crate::content::names::TeamDef;
 use crate::data::profile::ProfileStore;
 use crate::rng::Random;
+use crate::save::config::Config;
 
 pub fn world_cup(
     profiles: &ProfileStore,
@@ -52,6 +54,22 @@ pub fn custom_cup(
 
 pub const fn training() -> ActiveCompetition {
     ActiveCompetition::training()
+}
+
+pub fn koth(
+    config: &Config,
+    profiles: &ProfileStore,
+    computer_names: &[String],
+    hill_count: usize,
+    rng: Random,
+) -> ActiveCompetition {
+    ActiveCompetition::from_koth(build_koth(
+        config,
+        profiles,
+        computer_names,
+        hill_count,
+        rng,
+    ))
 }
 
 pub fn team_cup(

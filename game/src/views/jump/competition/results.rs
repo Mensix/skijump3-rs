@@ -9,6 +9,7 @@ use engine::ui::Element;
 pub(crate) enum CompetitionResultsRequest {
     Individual { ko_cursor_visible: bool },
     TeamCup { kind: TeamCupResultsKind },
+    Koth,
 }
 
 pub(crate) fn render(
@@ -23,6 +24,9 @@ pub(crate) fn render(
         }
         CompetitionResultsRequest::TeamCup { kind } => {
             team_cup::results::render(resources, store, kind)
+        }
+        CompetitionResultsRequest::Koth => {
+            crate::views::jump::koth::results::render(resources, store)
         }
     }
 }

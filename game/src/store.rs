@@ -399,3 +399,13 @@ impl HasRuntime<crate::competition::team_cup::types::TeamCupRuntime> for Store {
             .flatten()
     }
 }
+
+impl HasRuntime<crate::competition::koth::types::KothRuntime> for Store {
+    fn with_runtime_mut<T>(
+        &self,
+        f: impl FnOnce(&mut crate::competition::koth::types::KothRuntime) -> T,
+    ) -> Option<T> {
+        self.with_active_mut(|active| active.koth_runtime_mut().map(f))
+            .flatten()
+    }
+}

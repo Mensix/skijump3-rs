@@ -4,8 +4,8 @@ use crate::save::SaveRef;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::views::{
     CompetitionJumpView, CustomCupSetupView, HallOfFameView, HillRecordsView, JumpMenuView,
-    MainMenuView, ProfilesView, ReplayBrowserView, ReplayView, SetupView, TrainingSetupView,
-    WelcomeScreenView,
+    KothSetupView, MainMenuView, ProfilesView, ReplayBrowserView, ReplayView, SetupView,
+    TrainingSetupView, WelcomeScreenView,
 };
 use engine::ui::{RouteEntry, Router, View, ViewFactory};
 use std::rc::Rc;
@@ -148,6 +148,12 @@ impl RouteRegistry {
             (
                 RouteTarget::OptionsMenu,
                 self.resources_store(|resources, store| Box::new(SetupView::new(resources, store))),
+            ),
+            (
+                RouteTarget::KothSetup,
+                self.resources_store(|resources, store| {
+                    Box::new(KothSetupView::new(resources, store))
+                }),
             ),
             (
                 RouteTarget::Quit,

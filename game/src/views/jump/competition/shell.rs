@@ -1,6 +1,7 @@
 use crate::competition::active::ActiveCompetitionKind;
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
+use crate::views::jump::koth::KothJumpView;
 use crate::views::jump::team_cup::TeamCupJumpView;
 use crate::views::jump::training_jump::TrainingJumpView;
 use crate::views::jump::world_cup::WorldCupJumpView;
@@ -10,6 +11,7 @@ pub(crate) enum CompetitionJumpView {
     Training(TrainingJumpView),
     Individual(WorldCupJumpView),
     TeamCup(TeamCupJumpView),
+    Koth(KothJumpView),
 }
 
 impl CompetitionJumpView {
@@ -25,6 +27,7 @@ impl CompetitionJumpView {
                 Self::Individual(WorldCupJumpView::new(resources, store))
             }
             ActiveCompetitionKind::TeamCup => Self::TeamCup(TeamCupJumpView::new(resources, store)),
+            ActiveCompetitionKind::Koth => Self::Koth(KothJumpView::new(resources, store)),
         }
     }
 }
@@ -35,6 +38,7 @@ impl View<RouteTarget> for CompetitionJumpView {
             Self::Training(view) => view.update(),
             Self::Individual(view) => view.update(),
             Self::TeamCup(view) => view.update(),
+            Self::Koth(view) => view.update(),
         }
     }
 
@@ -43,6 +47,7 @@ impl View<RouteTarget> for CompetitionJumpView {
             Self::Training(view) => view.elements(),
             Self::Individual(view) => view.elements(),
             Self::TeamCup(view) => view.elements(),
+            Self::Koth(view) => view.elements(),
         }
     }
 
@@ -51,6 +56,7 @@ impl View<RouteTarget> for CompetitionJumpView {
             Self::Training(view) => view.handle_event(event),
             Self::Individual(view) => view.handle_event(event),
             Self::TeamCup(view) => view.handle_event(event),
+            Self::Koth(view) => view.handle_event(event),
         }
     }
 
@@ -59,6 +65,7 @@ impl View<RouteTarget> for CompetitionJumpView {
             Self::Training(view) => view.gpu_background(),
             Self::Individual(view) => view.gpu_background(),
             Self::TeamCup(view) => view.gpu_background(),
+            Self::Koth(view) => view.gpu_background(),
         }
     }
 }

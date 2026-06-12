@@ -22,7 +22,7 @@ const JUMP_MENU_ACTIONS: &[Option<RouteTarget>] = &[
     None,                        // 2 - CustomCup (opens setup)
     None,                        // 3 - FourHills (starts shared competition shell)
     None,                        // 4 - TeamCup (starts shared competition shell)
-    Some(RouteTarget::MainMenu), // 5 - SeasonComplete (not implemented)
+    Some(RouteTarget::KothSetup), // 5 - King of the Hill
     Some(RouteTarget::Practice), // 6 - Practice
     Some(RouteTarget::MainMenu), // 7 - MainMenu
 ];
