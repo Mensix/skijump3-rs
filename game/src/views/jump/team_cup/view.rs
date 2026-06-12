@@ -11,6 +11,8 @@ use crate::views::jump::competition::results::{
     self as competition_results, CompetitionResultsRequest,
 };
 use crate::views::jump::competition::ui_state::RenderMode;
+use engine::oxide::legacy::{commands_to_elements, event_from_ui, paint_elements};
+use engine::oxide::{CommandBuffer, NavAction, PaintCx, Screen, ScreenEventCx, UiEvent};
 use engine::ui::{Blinker, Element, Event, View};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -83,35 +85,8 @@ impl TeamCupJumpView {
             }
         }
     }
-}
 
-impl View<RouteTarget> for TeamCupJumpView {
-    fn update(&mut self) {
-        self.cursor_visible = self.blinker.visible(10, 10);
-
-        if self.phase == ViewPhase::Setup {
-            return;
-        }
-        if self.phase != ViewPhase::Jumping {
-            return;
-        }
-
-        self.controller.record_acknowledged_human_jump();
-
-        // Drive competition only after human jump outcome is recorded,
-        // not every frame during the jump (avoids recreating the scene).
-        if self.controller.ui_state().is_outcome_recorded()
-            && self.controller.render_mode() != RenderMode::Results
-        {
-            if let Some(cmd) = self.controller.drive() {
-                self.apply_command(cmd);
-            }
-        }
-
-        self.controller.update_scene();
-    }
-
-    fn elements(&self) -> Vec<Element> {
+    fn legacy_elements(&self) -> Vec<Element> {
         if self.phase == ViewPhase::Setup {
             return self.setup.elements(
                 self.controller.resources(),
@@ -144,7 +119,7 @@ impl View<RouteTarget> for TeamCupJumpView {
         }
     }
 
-    fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {
+    fn handle_legacy_event(&mut self, event: Event) -> Option<RouteTarget> {
         if let Some(route) = route_error_back(self.controller.ui_state(), event) {
             return Some(route);
         }
@@ -193,5 +168,67 @@ impl View<RouteTarget> for TeamCupJumpView {
         }
 
         None
+    }
+}
+
+impl View<RouteTarget> for TeamCupJumpView {
+    fn update(&mut self) {
+        self.cursor_visible = self.blinker.visible(10, 10);
+
+        if self.phase == ViewPhase::Setup {
+            return;
+        }
+        if self.phase != ViewPhase::Jumping {
+            return;
+        }
+
+        self.controller.record_acknowledged_human_jump();
+
+        // Drive competition only after human jump outcome is recorded,
+        // not every frame during the jump (avoids recreating the scene).
+        if self.controller.ui_state().is_outcome_recorded()
+            && self.controller.render_mode() != RenderMode::Results
+        {
+            if let Some(cmd) = self.controller.drive() {
+                self.apply_command(cmd);
+            }
+        }
+
+        self.controller.update_scene();
+    }
+
+    fn elements(&self) -> Vec<Element> {
+        let mut commands = CommandBuffer::new();
+        let mut cx = PaintCx::new(&mut commands);
+        Screen::paint(self, &mut cx);
+        commands_to_elements(&commands)
+    }
+
+    fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {
+        let mut cx = ScreenEventCx::default();
+        Screen::event(self, &mut cx, event.into());
+        match cx.take_action() {
+            NavAction::Navigate(route) => Some(route),
+            NavAction::Back => Some(RouteTarget::Back),
+            NavAction::Quit => Some(RouteTarget::Quit),
+            NavAction::None => None,
+        }
+    }
+}
+
+impl Screen<RouteTarget> for TeamCupJumpView {
+    fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
+        let Some(event) = event_from_ui(event) else {
+            return;
+        };
+        if let Some(route) = self.handle_legacy_event(event) {
+            cx.navigate(route);
+        } else {
+            cx.consume();
+        }
+    }
+
+    fn paint(&self, cx: &mut PaintCx<'_>) {
+        paint_elements(cx, &self.legacy_elements());
     }
 }

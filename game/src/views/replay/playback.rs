@@ -15,6 +15,8 @@ use crate::store::{ResourcesRef, StoreRef};
 use crate::text::lang::LangBase;
 use crate::views::replay::playback_controls::{PlaybackMode, PlaybackSpeed, ReplayPlayback};
 use engine::consts::{HEIGHT, WIDTH};
+use engine::oxide::legacy::{commands_to_elements, event_from_ui, paint_elements};
+use engine::oxide::{CommandBuffer, NavAction, PaintCx, Screen, ScreenEventCx, UiEvent};
 use engine::ui::{Blinker, Element, Event, Key, View};
 use std::cell::{Cell, RefCell};
 use std::collections::VecDeque;
@@ -105,25 +107,8 @@ impl ReplayView {
             None
         }
     }
-}
 
-impl View<RouteTarget> for ReplayView {
-    fn update(&mut self) {
-        let mut session_ref = self.session.borrow_mut();
-        let Some(session) = session_ref.as_mut() else {
-            return;
-        };
-
-        if session.trace().meta.intro {
-            if self.active_intro_box.borrow().is_none() && self.intro_boxes.borrow().is_empty() {
-                session.auto_step_forward();
-            }
-        } else if self.playback.advance(session) {
-            self.snow_advance.set(true);
-        }
-    }
-
-    fn elements(&self) -> Vec<Element> {
+    fn legacy_elements(&self) -> Vec<Element> {
         let Ok(terrain) = &self.terrain else {
             return screen::message_screen("Replay hill not found", "PRESS ESC");
         };
@@ -265,13 +250,58 @@ impl View<RouteTarget> for ReplayView {
         }
         els
     }
+}
+
+impl View<RouteTarget> for ReplayView {
+    fn update(&mut self) {
+        let mut session_ref = self.session.borrow_mut();
+        let Some(session) = session_ref.as_mut() else {
+            return;
+        };
+
+        if session.trace().meta.intro {
+            if self.active_intro_box.borrow().is_none() && self.intro_boxes.borrow().is_empty() {
+                session.auto_step_forward();
+            }
+        } else if self.playback.advance(session) {
+            self.snow_advance.set(true);
+        }
+    }
+
+    fn elements(&self) -> Vec<Element> {
+        let mut commands = CommandBuffer::new();
+        let mut cx = PaintCx::new(&mut commands);
+        Screen::paint(self, &mut cx);
+        commands_to_elements(&commands)
+    }
 
     fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {
+        let mut cx = ScreenEventCx::default();
+        Screen::event(self, &mut cx, event.into());
+        match cx.take_action() {
+            NavAction::Navigate(route) => Some(route),
+            NavAction::Back => Some(RouteTarget::Back),
+            NavAction::Quit => Some(RouteTarget::Quit),
+            NavAction::None => None,
+        }
+    }
+}
+
+impl Screen<RouteTarget> for ReplayView {
+    fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
+        let Some(event) = event_from_ui(event) else {
+            return;
+        };
         if self.active_intro_box.borrow().is_some() {
-            return self.dismiss_intro_box();
+            if let Some(route) = self.dismiss_intro_box() {
+                cx.navigate(route);
+            } else {
+                cx.consume();
+            }
+            return;
         }
         match event {
-            Event::Keyboard(Key::Escape | Key::Delete) => Some(RouteTarget::Back),
+            Event::Keyboard(Key::Escape | Key::Delete) => cx.back(),
             Event::Keyboard(Key::Char('+') | Key::Up) => {
                 if let Some(s) = self.playback.speed().next_up() {
                     self.playback.set_speed(s);
@@ -279,7 +309,7 @@ impl View<RouteTarget> for ReplayView {
                         self.playback.set_mode(PlaybackMode::SpeedChange);
                     }
                 }
-                None
+                cx.consume();
             }
             Event::Keyboard(Key::Char('-') | Key::Down) => {
                 if let Some(s) = self.playback.speed().next_down() {
@@ -288,7 +318,7 @@ impl View<RouteTarget> for ReplayView {
                         self.playback.set_mode(PlaybackMode::SpeedChange);
                     }
                 }
-                None
+                cx.consume();
             }
             Event::Keyboard(Key::Right) => {
                 self.playback
@@ -297,7 +327,7 @@ impl View<RouteTarget> for ReplayView {
                     } else {
                         PlaybackMode::Forward
                     });
-                None
+                cx.consume();
             }
             Event::Keyboard(Key::Left) => {
                 self.playback
@@ -306,18 +336,22 @@ impl View<RouteTarget> for ReplayView {
                     } else {
                         PlaybackMode::Rewind
                     });
-                None
+                cx.consume();
             }
             Event::Keyboard(Key::Char(' ')) if self.playback.mode() == PlaybackMode::Pause => {
                 self.playback.set_mode(PlaybackMode::OneStep);
-                None
+                cx.consume();
             }
             Event::Keyboard(Key::Char('p' | 'P')) => {
                 self.playback.set_mode(PlaybackMode::PlayOnceThenPause);
-                None
+                cx.consume();
             }
-            Event::Keyboard(_) => None,
+            Event::Keyboard(_) => {}
         }
+    }
+
+    fn paint(&self, cx: &mut PaintCx<'_>) {
+        paint_elements(cx, &self.legacy_elements());
     }
 }
 

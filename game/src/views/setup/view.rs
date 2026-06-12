@@ -5,6 +5,8 @@ use crate::save::config::Config;
 use crate::save::SaveManager;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::lang::LangBase;
+use engine::oxide::legacy::{commands_to_elements, event_from_ui, paint_elements};
+use engine::oxide::{CommandBuffer, NavAction, PaintCx, Screen, ScreenEventCx, UiEvent};
 use engine::ui::{Element, Event, View};
 use std::cell::Cell;
 use std::rc::Rc;
@@ -69,10 +71,37 @@ impl SetupView {
 
 impl View<RouteTarget> for SetupView {
     fn elements(&self) -> Vec<Element> {
-        super::render::elements(self)
+        let mut commands = CommandBuffer::new();
+        let mut cx = PaintCx::new(&mut commands);
+        Screen::paint(self, &mut cx);
+        commands_to_elements(&commands)
     }
 
     fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {
-        super::actions::handle_event(self, event)
+        let mut cx = ScreenEventCx::default();
+        Screen::event(self, &mut cx, event.into());
+        match cx.take_action() {
+            NavAction::Navigate(route) => Some(route),
+            NavAction::Back => Some(RouteTarget::Back),
+            NavAction::Quit => Some(RouteTarget::Quit),
+            NavAction::None => None,
+        }
+    }
+}
+
+impl Screen<RouteTarget> for SetupView {
+    fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
+        let Some(event) = event_from_ui(event) else {
+            return;
+        };
+        if let Some(route) = super::actions::handle_event(self, event) {
+            cx.navigate(route);
+        } else {
+            cx.consume();
+        }
+    }
+
+    fn paint(&self, cx: &mut PaintCx<'_>) {
+        paint_elements(cx, &super::render::elements(self));
     }
 }

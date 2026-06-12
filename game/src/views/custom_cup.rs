@@ -4,6 +4,8 @@ use crate::gfx::palette::{FILL_BORDER, FONT_DEFAULT, FONT_GREET, FONT_HEADER, FO
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::format;
+use engine::oxide::legacy::{commands_to_elements, event_from_ui, paint_elements};
+use engine::oxide::{CommandBuffer, NavAction, PaintCx, Screen, ScreenEventCx, UiEvent};
 use engine::ui::{Element, Event, Key, View};
 
 const MAX_HILLS: usize = 40;
@@ -58,10 +60,8 @@ impl CustomCupSetupView {
         }
         els
     }
-}
 
-impl View<RouteTarget> for CustomCupSetupView {
-    fn elements(&self) -> Vec<Element> {
+    fn legacy_elements(&self) -> Vec<Element> {
         let lang = &self.resources.langbase;
         let help_line = format!("{}, {}, {}", lang.lstr(285), lang.lstr(286), lang.lstr(287));
         let mut els = new_screen(2);
@@ -100,7 +100,7 @@ impl View<RouteTarget> for CustomCupSetupView {
         els
     }
 
-    fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {
+    fn legacy_handle_event(&mut self, event: Event) -> Option<RouteTarget> {
         match event {
             Event::Keyboard(Key::Escape) => Some(RouteTarget::Back),
             Event::Keyboard(Key::Enter) => {
@@ -158,5 +158,46 @@ impl View<RouteTarget> for CustomCupSetupView {
             }
             _ => None,
         }
+    }
+}
+
+impl View<RouteTarget> for CustomCupSetupView {
+    fn elements(&self) -> Vec<Element> {
+        let mut commands = CommandBuffer::new();
+        let mut cx = PaintCx::new(&mut commands);
+        Screen::paint(self, &mut cx);
+        commands_to_elements(&commands)
+    }
+
+    fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {
+        let mut cx = ScreenEventCx::default();
+        Screen::event(self, &mut cx, event.into());
+        match cx.take_action() {
+            NavAction::Navigate(route) => Some(route),
+            NavAction::Back => Some(RouteTarget::Back),
+            NavAction::Quit => Some(RouteTarget::Quit),
+            NavAction::None => None,
+        }
+    }
+}
+
+impl Screen<RouteTarget> for CustomCupSetupView {
+    fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
+        let Some(event) = event_from_ui(event) else {
+            return;
+        };
+        if let Some(route) = self.legacy_handle_event(event) {
+            if route == RouteTarget::Back {
+                cx.back();
+            } else {
+                cx.navigate(route);
+            }
+        } else {
+            cx.consume();
+        }
+    }
+
+    fn paint(&self, cx: &mut PaintCx<'_>) {
+        paint_elements(cx, &self.legacy_elements());
     }
 }

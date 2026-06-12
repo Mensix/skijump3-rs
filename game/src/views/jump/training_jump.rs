@@ -3,6 +3,8 @@ use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::views::jump::input::{JumpInputAction, JumpInputController};
 use crate::views::jump::scene::JumpScene;
+use engine::oxide::legacy::{commands_to_elements, event_from_ui, paint_elements};
+use engine::oxide::{CommandBuffer, NavAction, PaintCx, Screen, ScreenEventCx, UiEvent};
 use engine::ui::{Element, Event, View};
 use std::cell::RefCell;
 
@@ -63,6 +65,21 @@ impl TrainingJumpView {
             }
         }
     }
+
+    fn legacy_elements(&self) -> Vec<Element> {
+        self.scene.borrow().elements()
+    }
+
+    fn handle_legacy_event(&self, event: Event) -> Option<RouteTarget> {
+        let scene = self.scene.borrow();
+        if scene.is_save_dialog_active() {
+            scene.handle_save_dialog_event(&event);
+            None
+        } else {
+            drop(scene);
+            self.handle_jump_event(event)
+        }
+    }
 }
 
 impl View<RouteTarget> for TrainingJumpView {
@@ -71,16 +88,37 @@ impl View<RouteTarget> for TrainingJumpView {
     }
 
     fn elements(&self) -> Vec<Element> {
-        self.scene.borrow().elements()
+        let mut commands = CommandBuffer::new();
+        let mut cx = PaintCx::new(&mut commands);
+        Screen::paint(self, &mut cx);
+        commands_to_elements(&commands)
     }
 
     fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {
-        let scene = self.scene.borrow();
-        if scene.is_save_dialog_active() {
-            scene.handle_save_dialog_event(&event);
-            None
-        } else {
-            self.handle_jump_event(event)
+        let mut cx = ScreenEventCx::default();
+        Screen::event(self, &mut cx, event.into());
+        match cx.take_action() {
+            NavAction::Navigate(route) => Some(route),
+            NavAction::Back => Some(RouteTarget::Back),
+            NavAction::Quit => Some(RouteTarget::Quit),
+            NavAction::None => None,
         }
+    }
+}
+
+impl Screen<RouteTarget> for TrainingJumpView {
+    fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
+        let Some(event) = event_from_ui(event) else {
+            return;
+        };
+        if let Some(route) = self.handle_legacy_event(event) {
+            cx.navigate(route);
+        } else {
+            cx.consume();
+        }
+    }
+
+    fn paint(&self, cx: &mut PaintCx<'_>) {
+        paint_elements(cx, &self.legacy_elements());
     }
 }
