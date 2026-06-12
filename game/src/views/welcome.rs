@@ -4,6 +4,8 @@ use crate::gfx::sprites;
 use crate::route::RouteTarget;
 use crate::save::SaveRef;
 use crate::text::lang::LangBase;
+use engine::oxide::legacy::{commands_to_elements, paint_elements};
+use engine::oxide::{CommandBuffer, NavAction, PaintCx, Screen, ScreenEventCx, UiEvent};
 use engine::ui::{Component, Element, Event, View};
 use std::rc::Rc;
 
@@ -28,10 +30,8 @@ impl WelcomeScreenView {
             save_manager,
         }
     }
-}
 
-impl View<RouteTarget> for WelcomeScreenView {
-    fn elements(&self) -> Vec<Element> {
+    fn legacy_elements(&self) -> Vec<Element> {
         let mut els = vec![
             Element::fillbox(0, 0, 320, 200, BLACK),
             Element::fillbox(0, 0, 51, 200, FILL_DIM),
@@ -46,26 +46,60 @@ impl View<RouteTarget> for WelcomeScreenView {
             Element::text("PLEASE CHOOSE A LANGUAGE:", 100, 50, FONT_DEFAULT, false),
         ];
 
-        // language names centred at x=155, y=temp*8+55
         for (i, name) in self.languages.iter().enumerate() {
-            let iy = ((i + 1) * 8 + 55) as i32;
-            els.push(Element::center_text(name.clone(), 155, iy, FONT_GOLD));
+            let y = ((i + 1) * 8 + 55) as i32;
+            els.push(Element::center_text(name.clone(), 155, y, FONT_GOLD));
         }
 
-        // highlight box from Menu component (labels disabled)
         els.extend(self.menu.elements());
-
         els
     }
 
+    fn legacy_event(event: UiEvent) -> Option<Event> {
+        match event {
+            UiEvent::KeyDown(key) => Some(Event::Keyboard(key)),
+            UiEvent::Text(c) => Some(Event::Keyboard(engine::oxide::Key::Char(c))),
+            UiEvent::Quit | UiEvent::Tick => None,
+        }
+    }
+}
+
+impl View<RouteTarget> for WelcomeScreenView {
+    fn elements(&self) -> Vec<Element> {
+        let mut commands = CommandBuffer::new();
+        let mut cx = PaintCx::new(&mut commands);
+        Screen::paint(self, &mut cx);
+        commands_to_elements(&commands)
+    }
+
     fn handle_event(&mut self, event: Event) -> Option<RouteTarget> {
+        let mut cx = ScreenEventCx::default();
+        Screen::event(self, &mut cx, event.into());
+        match cx.take_action() {
+            NavAction::Navigate(route) => Some(route),
+            NavAction::Back => Some(RouteTarget::Back),
+            NavAction::Quit => Some(RouteTarget::Quit),
+            NavAction::None => None,
+        }
+    }
+}
+
+impl Screen<RouteTarget> for WelcomeScreenView {
+    fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
+        let Some(event) = Self::legacy_event(event) else {
+            return;
+        };
         match self.menu.handle_event(&event) {
-            Some(0) => Some(RouteTarget::MainMenu),
+            Some(0) => cx.navigate(RouteTarget::MainMenu),
             Some(n) => {
                 self.save_manager.set_language(n - 1);
-                Some(RouteTarget::MainMenu)
+                cx.navigate(RouteTarget::MainMenu);
             }
-            _ => None,
+            _ => {}
         }
+    }
+
+    fn paint(&self, cx: &mut PaintCx<'_>) {
+        paint_elements(cx, &self.legacy_elements());
     }
 }
