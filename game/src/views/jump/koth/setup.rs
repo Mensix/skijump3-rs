@@ -305,6 +305,12 @@ impl KothSetupView {
                 None
             }
             3 => {
+                self.update_config(|cfg| {
+                    if cfg.kothpack == 0 {
+                        cfg.kothpel = (1..=20).map(|i| i as i32).collect();
+                        cfg.koth_count = 20;
+                    }
+                });
                 self.mode.set(KothMode::Opponents);
                 None
             }
