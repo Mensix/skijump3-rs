@@ -32,7 +32,6 @@ impl Renderer {
             .window("Ski Jump International v3", WIDTH * 2, HEIGHT * 2)
             .resizable()
             .position_centered()
-            .maximized()
             .build()
             .map_err(|e| e.to_string())?;
 
