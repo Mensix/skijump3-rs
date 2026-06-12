@@ -129,6 +129,10 @@ impl JumpRuntime {
         self.wind_place.get()
     }
 
+    pub fn set_wind_enabled(&self, enabled: bool) {
+        self.wind.borrow_mut().set_enabled(enabled);
+    }
+
     pub fn with_rng_wind_mut<R>(&self, f: impl FnOnce(&mut Random, &mut Wind) -> R) -> R {
         let mut rng = self.rng.borrow_mut();
         let mut wind = self.wind.borrow_mut();
@@ -257,6 +261,7 @@ impl Store {
     }
 
     pub fn start_active(&self, comp: crate::competition::ActiveCompetition) {
+        self.jump_runtime.set_wind_enabled(true);
         *self.active_competition.borrow_mut() = Some(comp);
     }
 
@@ -304,6 +309,10 @@ impl Store {
     #[must_use]
     pub fn practice_hill(&self) -> usize {
         self.practice.hill()
+    }
+
+    pub fn set_wind_enabled(&self, enabled: bool) {
+        self.jump_runtime.set_wind_enabled(enabled);
     }
 
     pub fn set_practice_hill(&self, hill: usize) {

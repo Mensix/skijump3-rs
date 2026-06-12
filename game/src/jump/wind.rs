@@ -18,6 +18,7 @@ pub struct Wind {
     increasing: bool,
     place: u8,
     position: WindPosition,
+    enabled: bool,
 }
 
 impl Default for Wind {
@@ -32,6 +33,7 @@ impl Default for Wind {
             increasing: false,
             place: 0,
             position: WindPosition { x: 10, y: 180 },
+            enabled: true,
         };
         wind.set_place(0);
         wind
@@ -51,7 +53,18 @@ impl Wind {
         self.set_place(place);
     }
 
+    pub fn set_enabled(&mut self, enabled: bool) {
+        self.enabled = enabled;
+        if !enabled {
+            self.value = 0;
+        }
+    }
+
     pub fn sample(&mut self, rng: &mut Random) -> i32 {
+        if !self.enabled {
+            self.value = 0;
+            return 0;
+        }
         self.shift(rng);
         self.value = math::round(f64::from(
             (self.angle.to_radians()).cos() * self.strength as f32,
@@ -60,7 +73,9 @@ impl Wind {
     }
 
     pub fn advance_without_sampling(&mut self, rng: &mut Random) {
-        self.shift(rng);
+        if self.enabled {
+            self.shift(rng);
+        }
     }
 
     pub const fn set_place(&mut self, place: u8) {

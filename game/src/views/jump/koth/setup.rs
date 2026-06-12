@@ -309,6 +309,7 @@ impl KothSetupView {
         });
         drop(profiles);
         self.store.start_active(comp);
+        self.store.set_wind_enabled(config.kothwind != 0);
         Some(RouteTarget::CompetitionJump)
     }
 }
