@@ -82,14 +82,6 @@ pub fn modal_background(x: i32, y: i32, w: i32, h: i32) -> Vec<Element> {
 }
 
 #[must_use]
-pub fn panel_background(x: i32, y: i32, w: i32, h: i32, border: Rgba, bg: Rgba) -> Vec<Element> {
-    vec![
-        Element::fillbox(x, y, w, h, border),
-        Element::fillbox(x + 1, y + 1, w - 2, h - 2, bg),
-    ]
-}
-
-#[must_use]
 pub fn page_hints(page: usize, pages: usize, prev: &str, next: &str, end: &str) -> Vec<Element> {
     let mut els = Vec::with_capacity(2);
     if page > 0 {

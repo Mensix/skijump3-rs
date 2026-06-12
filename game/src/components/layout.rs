@@ -2,17 +2,8 @@ use crate::gfx::palette::{FILL_BORDER, FILL_LINE, FONT_DEFAULT, FONT_HELP, FONT_
 use crate::store::StoreRef;
 use crate::text::format;
 use crate::text::lang::LangBase;
-use engine::color::Rgba;
 use engine::ui::Element;
 use std::rc::Rc;
-
-#[must_use]
-pub fn header_elements(text: &str, x: i32, y: i32, color: Rgba, bg: Rgba) -> Vec<Element> {
-    vec![
-        Element::fillbox(x, y, 100, 6, bg),
-        Element::text(text, x, y, color, false),
-    ]
-}
 
 #[derive(Clone)]
 pub struct MainLayout {

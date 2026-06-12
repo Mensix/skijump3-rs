@@ -8,7 +8,6 @@ pub struct KothRuntime {
     pub human_indices: Vec<usize>,
     pub hill_idx: usize,
     pub jump_rounds_per_elimination: u8,
-    pub pack: u8,
     pub phase: KothPhase,
     pub current_elimination_round: u8,
     pub current_jump_round: u8,
@@ -66,4 +65,4 @@ pub struct KothJumpContext {
     pub starting_count: usize,
 }
 
-pub const NUM_KOTH_PACKS: u8 = 6;
+

@@ -11,18 +11,16 @@ use crate::views::jump::competition::results::{
 };
 use crate::views::jump::competition::ui_state::RenderMode;
 use engine::oxide::{ImageRegionDraw, PaintCx, Screen, ScreenEventCx, UiEvent, UpdateCx};
-use engine::ui::{Blinker, Element, Event, Key};
+use engine::ui::{Element, Event, Key};
 
 pub struct KothJumpView {
     controller: CompetitionJumpController<KothRuntime>,
-    blinker: Blinker,
 }
 
 impl KothJumpView {
     pub(crate) fn new(resources: ResourcesRef, store: StoreRef) -> Self {
         Self {
             controller: CompetitionJumpController::new(resources, store, None),
-            blinker: Blinker::new(),
         }
     }
 

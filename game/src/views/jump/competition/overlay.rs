@@ -21,7 +21,6 @@ pub struct OverlayData {
     pub event_standings_top5: Vec<EventStandingEntry>,
     pub wc_standings_top5: Vec<WcStandingEntry>,
     pub coach_style: u8,
-    pub alive_count: usize,
 }
 
 #[derive(Debug, Clone)]
@@ -91,12 +90,10 @@ impl OverlayData {
             event_standings_top5: event_top5,
             wc_standings_top5: wc_top5,
             coach_style,
-            alive_count: 0,
         }
     }
 
     fn from_koth(c: &crate::competition::koth::types::KothRuntime, coach_style: u8) -> Self {
-        let alive = c.participants.iter().filter(|p| p.is_alive()).count();
         Self {
             phase: crate::competition::types::CompetitionPhase::Round1,
             style: crate::competition::types::CupStyle::CustomCup,
@@ -106,7 +103,6 @@ impl OverlayData {
             event_standings_top5: Vec::new(),
             wc_standings_top5: Vec::new(),
             coach_style,
-            alive_count: alive,
         }
     }
 
@@ -134,7 +130,6 @@ impl OverlayData {
             event_standings_top5: event_top5,
             wc_standings_top5: Vec::new(),
             coach_style,
-            alive_count: 0,
         }
     }
 }

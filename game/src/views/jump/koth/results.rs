@@ -28,8 +28,6 @@ pub struct KothEntry {
     pub dist1: f64,
     pub dist2: f64,
     pub is_human: bool,
-    pub is_eliminated: bool,
-    pub is_last_eliminated: bool,
     pub is_king: bool,
 }
 
@@ -39,7 +37,6 @@ pub struct KothPage {
     pub total_pages: usize,
     pub items: Vec<KothEntry>,
     pub title: String,
-    pub remaining: usize,
 }
 
 /// Build a sorted list of entries matching Pascal kothjarj order.
@@ -103,8 +100,6 @@ fn build_entries(c: &KothRuntime) -> (Vec<KothEntry>, usize, bool) {
                 dist1: d1,
                 dist2: d2,
                 is_human,
-                is_eliminated: !p.is_alive(),
-                is_last_eliminated,
                 is_king,
             }
         })
@@ -118,11 +113,11 @@ pub fn render(resources: &ResourcesRef, store: &crate::store::StoreRef) -> Vec<E
     store
         .with_active(|active| {
             let c = active.koth_runtime()?;
-            let (entries, remaining, _is_final) = build_entries(c);
+            let (entries, _remaining, _is_final) = build_entries(c);
             let total_pages = (entries.len() + ITEMS_PER_PAGE - 1) / ITEMS_PER_PAGE;
             let page = 1;
 
-            let title = if remaining <= 1 {
+            let title = if _remaining <= 1 {
                 "KING OF THE HILL!"
             } else {
                 "KING OF THE HILL"
@@ -134,7 +129,6 @@ pub fn render(resources: &ResourcesRef, store: &crate::store::StoreRef) -> Vec<E
                     total_pages,
                     items: entries,
                     title: title.to_string(),
-                    remaining,
                 },
                 resources,
             ))
