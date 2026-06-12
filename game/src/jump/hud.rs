@@ -1,10 +1,10 @@
-use crate::components::prompt;
 use crate::data::records::HillRecord;
 use crate::gfx::palette::{FONT_DEFAULT, FONT_GOLD, FONT_GREET, FONT_HELP};
 use crate::gfx::sprites;
 use crate::text::lang::LangBase;
 use engine::color::Rgba;
-use engine::ui::{Element, Font};
+use engine::oxide::PaintCx;
+use engine::ui::Font;
 
 const KEY_NAMES: [&str; 5] = ["ARROW UP", "ARROW RIGHT", "ARROW LEFT", "T", "R"];
 
@@ -12,79 +12,62 @@ pub(crate) fn key_name(i: usize) -> &'static str {
     KEY_NAMES.get(i.wrapping_sub(1)).copied().unwrap_or("?")
 }
 
-pub(crate) fn push_info_panel_frame(els: &mut Vec<Element>) {
-    els.push(Element::sprite(sprites::Sprite::InfoPanel as u16, 227, 2));
+pub(crate) fn push_info_panel_frame(cx: &mut PaintCx<'_>) {
+    cx.sprite(sprites::Sprite::InfoPanel as u16, (227, 2));
 }
 
-pub(crate) fn push_keymap(els: &mut Vec<Element>, langbase: &LangBase) {
-    push_info_panel_frame(els);
-    els.push(Element::right_text(langbase.lstr(330), 308, 9, FONT_GOLD));
+pub(crate) fn push_keymap(cx: &mut PaintCx<'_>, langbase: &LangBase) {
+    push_info_panel_frame(cx);
+    cx.right_text((308, 9), FONT_GOLD, langbase.lstr(330));
     for i in 1..=5 {
         let ii = i as i32;
-        els.push(Element::right_text(
-            format!("{}: {}", langbase.lstr(330 + i), key_name(i)),
-            308,
-            9 + ii * 10,
+        cx.right_text(
+            (308, 9 + ii * 10),
             FONT_GOLD,
-        ));
+            format!("{}: {}", langbase.lstr(330 + i), key_name(i)),
+        );
     }
 }
 
 pub(crate) fn push_hill_record_info(
-    els: &mut Vec<Element>,
+    cx: &mut PaintCx<'_>,
     langbase: &LangBase,
     hill_name_k: &str,
     hill_record: Option<&HillRecord>,
 ) {
-    push_info_panel_frame(els);
-    els.push(Element::right_text(hill_name_k, 308, 9, FONT_GOLD));
-    els.push(Element::text(langbase.lstr(65), 308, 19, FONT_GOLD, true));
+    push_info_panel_frame(cx);
+    cx.right_text((308, 9), FONT_GOLD, hill_name_k);
+    cx.right_text((308, 19), FONT_GOLD, langbase.lstr(65));
     if let Some(record) = hill_record {
         if record.len > 0.0 {
-            els.push(Element::right_text(&record.name, 308, 29, FONT_GOLD));
-            els.push(Element::text(
-                format!("{:.1}m", record.len),
-                308,
-                39,
-                FONT_GOLD,
-                true,
-            ));
+            cx.right_text((308, 29), FONT_GOLD, &record.name);
+            cx.right_text((308, 39), FONT_GOLD, format!("{:.1}m", record.len));
         }
     }
 }
 
 pub(crate) fn push_jumper_info_box(
-    els: &mut Vec<Element>,
+    cx: &mut PaintCx<'_>,
     font: &Font,
     langbase: &LangBase,
     phase_label: &str,
     jumper_name: &str,
     subline: Option<(&str, Rgba)>,
 ) {
-    els.push(Element::sprite(
-        sprites::Sprite::JumperInfoBox as u16,
-        3,
-        150,
-    ));
+    cx.sprite(sprites::Sprite::JumperInfoBox as u16, (3, 150));
     let label56 = langbase.lstr(56);
     let label_w = font.string_width(label56) as i32;
-    els.push(Element::text(phase_label, 12, 160, FONT_GREET, false));
-    els.push(Element::text(label56, 12, 172, FONT_GREET, false));
-    els.push(Element::text(
-        jumper_name,
-        12 + label_w,
-        172,
-        FONT_DEFAULT,
-        false,
-    ));
+    cx.text((12, 160), FONT_GREET, phase_label);
+    cx.text((12, 172), FONT_GREET, label56);
+    cx.text((12 + label_w, 172), FONT_DEFAULT, jumper_name);
     if let Some((text, color)) = subline {
-        els.push(Element::text(text, 14 + label_w, 179, color, false));
+        cx.text((14 + label_w, 179), color, text);
     }
-    els.push(Element::text(langbase.lstr(59), 12, 191, FONT_HELP, false));
+    cx.text((12, 191), FONT_HELP, langbase.lstr(59));
 }
 
 pub(crate) fn push_wait_for_key(
-    els: &mut Vec<Element>,
+    cx: &mut PaintCx<'_>,
     langbase: &LangBase,
     x: i32,
     y: i32,
@@ -93,14 +76,9 @@ pub(crate) fn push_wait_for_key(
     cursor_color: Rgba,
     cursor_visible: bool,
 ) {
-    prompt::push_wait_for_key(
-        els,
-        langbase,
-        x,
-        y,
-        bg,
-        text_color,
-        cursor_color,
-        cursor_visible,
-    );
+    cx.right_text((x, y), text_color, langbase.lstr(15).to_string());
+    cx.fill((x - 2 + 1, y - 2, 9, 11), bg);
+    if cursor_visible {
+        cx.fill((x + 1, y + 6, 5, 1), cursor_color);
+    }
 }

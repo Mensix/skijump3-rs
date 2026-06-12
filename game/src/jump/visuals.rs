@@ -4,11 +4,11 @@ use crate::gfx::palette::{
 use crate::gfx::sprites;
 use engine::consts::{HEIGHT, WIDTH};
 use engine::sprite::SpriteColorRecolor;
-use engine::ui::{Element, ImageRegion};
+use engine::oxide::{ImageRegionDraw, PaintCx};
 use std::rc::Rc;
 
-pub(crate) fn push_viewport(els: &mut Vec<Element>, viewport: &Rc<[u8]>) {
-    els.push(Element::image_region(ImageRegion {
+pub(crate) fn push_viewport(cx: &mut PaintCx<'_>, viewport: &Rc<[u8]>) {
+    cx.image_region(ImageRegionDraw {
         pixels: Rc::clone(viewport),
         src_w: WIDTH,
         src_h: HEIGHT,
@@ -18,21 +18,20 @@ pub(crate) fn push_viewport(els: &mut Vec<Element>, viewport: &Rc<[u8]>) {
         dst_y: 0,
         w: WIDTH,
         h: HEIGHT,
-    }));
+    });
 }
 
 pub(crate) fn push_hill_record_marker(
-    els: &mut Vec<Element>,
+    cx: &mut PaintCx<'_>,
     marker: Option<(i32, i32)>,
     sx: i32,
     sy: i32,
 ) {
     if let Some((hr_x, hr_y)) = marker {
-        els.push(Element::sprite(
+        cx.sprite(
             sprites::Sprite::HillRecordMarker as u16,
-            hr_x - sx,
-            hr_y - sy,
-        ));
+            (hr_x - sx, hr_y - sy),
+        );
     }
 }
 
@@ -47,7 +46,7 @@ pub(crate) struct JumperSpriteSpec {
     pub(crate) ski_color: usize,
 }
 
-pub(crate) fn push_jumper_sprites(els: &mut Vec<Element>, spec: JumperSpriteSpec) {
+pub(crate) fn push_jumper_sprites(cx: &mut PaintCx<'_>, spec: JumperSpriteSpec) {
     let body_recolor = SpriteColorRecolor::new(vec![
         (
             JUMPER_SUIT_SOURCE_SHADE_1,
@@ -62,18 +61,16 @@ pub(crate) fn push_jumper_sprites(els: &mut Vec<Element>, spec: JumperSpriteSpec
         JUMPER_SKI_SOURCE,
         palette::ski_color(spec.ski_color),
     )]);
-    els.push(Element::sprite_remapped(
+    cx.sprite_remapped(
         spec.body_anim,
-        spec.body_x,
-        spec.body_y,
+        (spec.body_x, spec.body_y),
         body_recolor,
-    ));
-    els.push(Element::sprite_remapped(
+    );
+    cx.sprite_remapped(
         spec.ski_anim,
-        spec.ski_x,
-        spec.ski_y,
+        (spec.ski_x, spec.ski_y),
         ski_recolor,
-    ));
+    );
 }
 
 #[cfg(test)]

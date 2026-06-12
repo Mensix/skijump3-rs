@@ -3,7 +3,6 @@ use crate::competition::machine::Competition;
 use crate::competition::runtime::{IndividualJumpContext, IndividualResultsKind};
 use crate::competition::scoring::wc_points_for_rank;
 use crate::competition::types::{CompetitionPhase, CupStyle};
-use crate::components::screen;
 use crate::gfx::palette::FONT_GREET;
 use crate::jump::types::JumpPhase;
 use crate::jump::JumpParticipant;
@@ -20,8 +19,8 @@ use crate::views::jump::competition::results::{
 };
 use crate::views::jump::competition::ui_state::{RenderMode, ResultScreen};
 use crate::views::jump::scene::JumpScene;
-use engine::oxide::{ImageRegionDraw, PaintCx, Screen, ScreenEventCx, UiEvent, UpdateCx};
-use engine::ui::{Blinker, Element, Event, Key};
+use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent, UpdateCx};
+use engine::ui::{Blinker, Event, Key};
 
 pub struct WorldCupJumpView {
     controller: CompetitionJumpController<Competition>,
@@ -107,14 +106,15 @@ impl WorldCupJumpView {
 
     /// Pascal: rank calculation — counts participants with points <= jumper's total.
     /// Shows `($X.)` at (255,45), left of the score at (308,45).
-    fn rank_element(&self) -> Option<Element> {
-        let scene = self.controller.scene()?;
-        let outcome = scene.outcome()?;
+    fn draw_rank(&self, cx: &mut PaintCx<'_>) {
+        let Some(scene) = self.controller.scene() else { return };
+        let Some(outcome) = scene.outcome() else { return };
         if scene.phase() != Some(JumpPhase::Result) {
-            return None;
+            return;
         }
         let own_id = scene.participant_id();
-        self.controller
+        if let Some(rank) = self
+            .controller
             .store()
             .with_active(|active| {
                 let c = active.individual()?;
@@ -130,31 +130,27 @@ impl WorldCupJumpView {
                     .filter(|p| p.id != own_id && p.points.is_some_and(|pts| pts > own_total))
                     .count()
                     + 1;
-                Some(Element::right_text(
-                    format!("(${rank}.)"),
-                    255,
-                    45,
-                    FONT_GREET,
-                ))
+                Some(rank)
             })
             .flatten()
+        {
+            cx.right_text((255, 45), FONT_GREET, format!("(${rank}.)"));
+        }
     }
 
     fn paint_content(&self, cx: &mut PaintCx<'_>) {
         match self.controller.render_mode() {
             RenderMode::Jump => {
-                let mut els = self.controller.render_jump_elements();
-                if let Some(rank_el) = self.rank_element() {
-                    els.push(rank_el);
-                }
-                draw_items(cx, &els);
+                self.controller.render_jump(cx);
+                self.draw_rank(cx);
             }
             RenderMode::Results => self.results_page(cx),
             RenderMode::Done => {}
             RenderMode::Error => {
                 let msg = self.controller.ui_state().error_message();
-                let items = screen::message_screen(&msg, "Press any key to return");
-                draw_items(cx, &items);
+                cx.fill((0, 0, 320, 200), crate::gfx::palette::BLACK);
+                cx.text((20, 80), crate::gfx::palette::FONT_DEFAULT, &msg);
+                cx.text((20, 95), crate::gfx::palette::FONT_HELP, "Press any key to return");
             }
         }
     }
@@ -223,53 +219,6 @@ fn input_event(event: UiEvent) -> Option<Event> {
         UiEvent::KeyDown(key) => Some(Event::Keyboard(key)),
         UiEvent::Text(c) => Some(Event::Keyboard(Key::Char(c))),
         UiEvent::Quit | UiEvent::Tick => None,
-    }
-}
-
-fn draw_items(cx: &mut PaintCx<'_>, items: &[Element]) {
-    for item in items {
-        draw_item(cx, item);
-    }
-}
-
-fn draw_item(cx: &mut PaintCx<'_>, item: &Element) {
-    match item {
-        Element::Image(pixels, w, h) => cx.image(pixels.clone(), *w, *h),
-        Element::ImageRegion(region) => cx.image_region(ImageRegionDraw {
-            pixels: region.pixels.clone(),
-            src_w: region.src_w,
-            src_h: region.src_h,
-            src_x: region.src_x,
-            src_y: region.src_y,
-            dst_x: region.dst_x,
-            dst_y: region.dst_y,
-            w: region.w,
-            h: region.h,
-        }),
-        Element::Text {
-            text,
-            x,
-            y,
-            color,
-            right,
-            center,
-        } => {
-            if *center {
-                cx.center_text((*x, *y), *color, text);
-            } else if *right {
-                cx.right_text((*x, *y), *color, text);
-            } else {
-                cx.text((*x, *y), *color, text);
-            }
-        }
-        Element::Sprite(idx, x, y) => cx.sprite(*idx, (*x, *y)),
-        Element::Fillbox { x, y, w, h, color } => cx.fill((*x, *y, *w, *h), *color),
-        Element::FillArea { thing } => cx.dither_fill(*thing),
-        Element::Box { x, y, w, h, color } => cx.stroke((*x, *y, *w, *h), *color),
-        Element::SpriteRemapped(idx, x, y, recolor) => {
-            cx.sprite_remapped(*idx, (*x, *y), recolor.clone());
-        }
-        Element::Container(children) => draw_items(cx, children),
     }
 }
 

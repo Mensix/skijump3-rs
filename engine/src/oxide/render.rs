@@ -65,7 +65,7 @@ impl OxideRenderer {
     }
 }
 
-fn draw_command_to_element(command: DrawCommand) -> Element {
+pub fn draw_command_to_element(command: DrawCommand) -> Element {
     match command {
         DrawCommand::Image { pixels, w, h } => Element::Image(pixels, w, h),
         DrawCommand::ImageRegion(region) => Element::ImageRegion(image_region_to_element(region)),

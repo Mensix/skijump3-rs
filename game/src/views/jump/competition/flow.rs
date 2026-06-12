@@ -9,7 +9,8 @@ use crate::views::jump::competition::session::{CompetitionSession, SessionError}
 use crate::views::jump::competition::ui_state::CompetitionUiState;
 use crate::views::jump::input::{JumpInputAction, JumpInputController};
 use crate::views::jump::scene::JumpScene;
-use engine::ui::{Element, Event, Key};
+use engine::oxide::PaintCx;
+use engine::ui::{Event, Key};
 
 #[derive(Debug)]
 pub(crate) enum CompetitionFlowCommand<C, R> {
@@ -164,10 +165,11 @@ where
 }
 
 pub(crate) fn render_jump_scene_with_overlay(
+    cx: &mut PaintCx<'_>,
     scene: &JumpScene,
     overlay: &CompetitionOverlay,
     ui_state: &CompetitionUiState,
-) -> Vec<Element> {
+) {
     if scene.outcome().is_some() {
         scene.collect_telemetry();
     }
@@ -182,11 +184,10 @@ pub(crate) fn render_jump_scene_with_overlay(
             .as_ref()
             .is_some_and(|ctx| ctx.kind != OverlayKind::None),
     );
-    let mut els = scene.elements();
+    scene.render(cx);
     if let Some(ctx) = overlay_ctx {
-        els.extend(overlay.render_elements(&ctx));
+        overlay.render(cx, &ctx);
     }
-    els
 }
 
 pub(crate) fn acknowledge_finished_jump(

@@ -1,5 +1,4 @@
 use crate::competition::koth::types::{KothJumpContext, KothResultsKind, KothRuntime};
-use crate::components::screen;
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::views::jump::competition::controller::CompetitionJumpController;
@@ -8,8 +7,8 @@ use crate::views::jump::competition::flow::{
 };
 
 use crate::views::jump::competition::ui_state::RenderMode;
-use engine::oxide::{ImageRegionDraw, PaintCx, Screen, ScreenEventCx, UiEvent, UpdateCx};
-use engine::ui::{Element, Event, Key};
+use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent, UpdateCx};
+use engine::ui::{Event, Key};
 
 pub struct KothJumpView {
     controller: CompetitionJumpController<KothRuntime>,
@@ -64,15 +63,16 @@ impl KothJumpView {
     }
 
     fn paint_content(&self, cx: &mut PaintCx<'_>) {
-        let items = match self.controller.render_mode() {
-            RenderMode::Jump => self.controller.render_jump_elements(),
+        match self.controller.render_mode() {
+            RenderMode::Jump => {
+                self.controller.render_jump(cx);
+            }
             RenderMode::Results => {
                 crate::views::jump::koth::results::render(
                     cx,
                     self.controller.resources(),
                     self.controller.store(),
                 );
-                return;
             }
             RenderMode::Done | RenderMode::Error => {
                 let msg = if self.controller.render_mode() == RenderMode::Error {
@@ -80,10 +80,11 @@ impl KothJumpView {
                 } else {
                     String::new()
                 };
-                screen::message_screen(&msg, self.controller.resources().langbase.lstr(15))
+                cx.fill((0, 0, 320, 200), crate::gfx::palette::BLACK);
+                cx.text((20, 80), crate::gfx::palette::FONT_DEFAULT, &msg);
+                cx.text((20, 95), crate::gfx::palette::FONT_HELP, self.controller.resources().langbase.lstr(15));
             }
-        };
-        draw_items(cx, &items);
+        }
     }
 
     fn handle_input(&mut self, event: Event) -> Option<RouteTarget> {
@@ -163,49 +164,4 @@ fn input_event(event: UiEvent) -> Option<Event> {
     }
 }
 
-fn draw_items(cx: &mut PaintCx<'_>, items: &[Element]) {
-    for item in items {
-        draw_item(cx, item);
-    }
-}
 
-fn draw_item(cx: &mut PaintCx<'_>, item: &Element) {
-    match item {
-        Element::Image(pixels, w, h) => cx.image(pixels.clone(), *w, *h),
-        Element::ImageRegion(region) => cx.image_region(ImageRegionDraw {
-            pixels: region.pixels.clone(),
-            src_w: region.src_w,
-            src_h: region.src_h,
-            src_x: region.src_x,
-            src_y: region.src_y,
-            dst_x: region.dst_x,
-            dst_y: region.dst_y,
-            w: region.w,
-            h: region.h,
-        }),
-        Element::Text {
-            text,
-            x,
-            y,
-            color,
-            right,
-            center,
-        } => {
-            if *center {
-                cx.center_text((*x, *y), *color, text);
-            } else if *right {
-                cx.right_text((*x, *y), *color, text);
-            } else {
-                cx.text((*x, *y), *color, text);
-            }
-        }
-        Element::Sprite(idx, x, y) => cx.sprite(*idx, (*x, *y)),
-        Element::Fillbox { x, y, w, h, color } => cx.fill((*x, *y, *w, *h), *color),
-        Element::FillArea { thing } => cx.dither_fill(*thing),
-        Element::Box { x, y, w, h, color } => cx.stroke((*x, *y, *w, *h), *color),
-        Element::SpriteRemapped(idx, x, y, recolor) => {
-            cx.sprite_remapped(*idx, (*x, *y), recolor.clone());
-        }
-        Element::Container(children) => draw_items(cx, children),
-    }
-}

@@ -6,7 +6,7 @@ use crate::jump::types::{JumpPhase, JumpTelemetry};
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::format::format_decimal;
 use crate::views::jump::competition::ui_state::CompetitionUiState;
-use engine::ui::Element;
+use engine::oxide::PaintCx;
 
 /// Lightweight snapshot of competition data for overlay rendering.
 /// Built once per frame to avoid repeated `store.read()` calls.
@@ -250,30 +250,28 @@ impl CompetitionOverlay {
     }
 
     /// Render all overlay elements for the current state.
-    pub fn render_elements(&self, ctx: &OverlayContext) -> Vec<Element> {
-        let mut els = Vec::new();
+    pub fn render(&self, cx: &mut PaintCx<'_>, ctx: &OverlayContext) {
         match ctx.kind {
             OverlayKind::None => {}
-            OverlayKind::Keymap => hud::push_keymap(&mut els, &self.resources.langbase),
+            OverlayKind::Keymap => hud::push_keymap(cx, &self.resources.langbase),
             OverlayKind::CyclingWithInfoBox => {
-                self.cycling_info_elements(&mut els, ctx.frame_counter, ctx.hill_idx, &ctx.data);
+                self.cycling_info_elements(cx, ctx.frame_counter, ctx.hill_idx, &ctx.data);
                 if ctx.data.style != CupStyle::TeamCup {
-                    self.jumper_info_box(&mut els, &ctx.participant, false);
+                    self.jumper_info_box(cx, &ctx.participant, false);
                 }
             }
             OverlayKind::Round2WithInfoBox => {
-                self.cycling_info_elements(&mut els, ctx.frame_counter, ctx.hill_idx, &ctx.data);
+                self.cycling_info_elements(cx, ctx.frame_counter, ctx.hill_idx, &ctx.data);
                 if ctx.data.style != CupStyle::TeamCup {
-                    self.jumper_info_box(&mut els, &ctx.participant, true);
+                    self.jumper_info_box(cx, &ctx.participant, true);
                 }
             }
-            OverlayKind::Coach => self.coach_elements(&mut els, ctx),
+            OverlayKind::Coach => self.coach_elements(cx, ctx),
         }
-        els
     }
 
     /// Pascal `DoCoachCorner`: coach advice panel at bottom-left after jump.
-    fn coach_elements(&self, els: &mut Vec<Element>, ctx: &OverlayContext) {
+    fn coach_elements(&self, cx: &mut PaintCx<'_>, ctx: &OverlayContext) {
         use crate::gfx::palette::FONT_GREET;
         use crate::gfx::sprites::Sprite;
 
@@ -285,9 +283,9 @@ impl CompetitionOverlay {
         let base = 361 + style as usize * 40;
         let lang = &self.resources.langbase;
 
-        els.push(Element::sprite(Sprite::JumperInfoBox as u16, 3, 150));
-        els.push(Element::text(lang.lstr(400), 12, 150, FONT_GREET, false));
-        els.push(Element::text("\"", 12, 160, FONT_GREET, false));
+        cx.sprite(Sprite::JumperInfoBox as u16, (3, 150));
+        cx.text((12, 150), FONT_GREET, lang.lstr(400));
+        cx.text((12, 160), FONT_GREET, "\"");
 
         let cstr0 = self.coach_range(lang, base + 2, t.angle_counter, &[49, 61, 200]);
         let cstr1 = if t.grade < 10 {
@@ -330,18 +328,18 @@ impl CompetitionOverlay {
                 if y < 190 {
                     y += 8;
                 }
-                els.push(Element::text(line.clone(), 18, y, FONT_GREET, false));
+                cx.text((18, y), FONT_GREET, line.clone());
                 line.clear();
             }
         }
         if !line.is_empty() {
             if line.len() < 2 {
-                els.push(Element::text(format!("{line}\""), 18, y, FONT_GREET, false));
+                cx.text((18, y), FONT_GREET, format!("{line}\""));
             } else {
                 if y < 192 {
                     y += 8;
                 }
-                els.push(Element::text(format!("{line}\""), 18, y, FONT_GREET, false));
+                cx.text((18, y), FONT_GREET, format!("{line}\""));
             }
         }
     }
@@ -364,7 +362,7 @@ impl CompetitionOverlay {
     /// Pascal `JumperInfoBox` at (3,150).
     fn jumper_info_box(
         &self,
-        els: &mut Vec<Element>,
+        cx: &mut PaintCx<'_>,
         participant: &Participant,
         round2_with_r1: bool,
     ) {
@@ -415,7 +413,7 @@ impl CompetitionOverlay {
             None
         };
         hud::push_jumper_info_box(
-            els,
+            cx,
             &self.resources.font,
             &self.resources.langbase,
             &phase_label,
@@ -427,7 +425,7 @@ impl CompetitionOverlay {
     /// Pascal drawinfo: cycling info on the `InfoPanel`.
     fn cycling_info_elements(
         &self,
-        els: &mut Vec<Element>,
+        cx: &mut PaintCx<'_>,
         frame_counter: i32,
         hill_idx: usize,
         data: &OverlayData,
@@ -442,14 +440,14 @@ impl CompetitionOverlay {
             if has_wc_leader {
                 let phase = (frame_counter as usize) % 292;
                 if phase <= 130 {
-                    self.hill_info_elements(els, hill_idx);
+                    self.hill_info_elements(cx, hill_idx);
                 } else if (146..=276).contains(&phase) {
-                    self.wc_standings_elements(els, data);
+                    self.wc_standings_elements(cx, data);
                 } else {
-                    hud::push_info_panel_frame(els);
+                    hud::push_info_panel_frame(cx);
                 }
             } else {
-                self.hill_info_elements(els, hill_idx);
+                self.hill_info_elements(cx, hill_idx);
             }
             return;
         }
@@ -458,36 +456,34 @@ impl CompetitionOverlay {
         let phase = (frame_counter as usize) % cycle;
 
         if phase <= 130 {
-            self.top5_event_elements(els, data);
+            self.top5_event_elements(cx, data);
         } else if (146..=276).contains(&phase) {
-            self.hill_info_elements(els, hill_idx);
+            self.hill_info_elements(cx, hill_idx);
         } else if has_wc_leader && (292..=422).contains(&phase) {
-            self.wc_standings_elements(els, data);
+            self.wc_standings_elements(cx, data);
         } else {
-            hud::push_info_panel_frame(els);
+            hud::push_info_panel_frame(cx);
         }
     }
 
     /// Pascal drawtop5info: hill name + top 5 event points with gap behind leader
-    fn top5_event_elements(&self, els: &mut Vec<Element>, data: &OverlayData) {
-        hud::push_info_panel_frame(els);
+    fn top5_event_elements(&self, cx: &mut PaintCx<'_>, data: &OverlayData) {
+        hud::push_info_panel_frame(cx);
         let hill_name_k = self
             .resources
             .hills
             .hill(data.current_hill)
             .map(|h| format!("{} K{}", h.name, h.kr))
             .unwrap_or_default();
-        els.push(Element::text(hill_name_k, 308, 9, FONT_GOLD, true));
+        cx.right_text((308, 9), FONT_GOLD, hill_name_k);
 
         for (i, entry) in data.event_standings_top5.iter().enumerate() {
             if entry.points > 0.0 {
-                els.push(Element::text(
-                    format!("{}  {}", entry.name, format_decimal(entry.points)),
-                    308,
-                    20 + i as i32 * 7,
+                cx.right_text(
+                    (308, 20 + i as i32 * 7),
                     FONT_GOLD,
-                    true,
-                ));
+                    format!("{}  {}", entry.name, format_decimal(entry.points)),
+                );
             }
         }
 
@@ -498,19 +494,17 @@ impl CompetitionOverlay {
             let temp = leader_pts - current_pts;
             if temp > 0.0 {
                 let label = self.resources.langbase.lstr(62);
-                els.push(Element::text(
-                    format!("{}: {}", label, format_decimal(temp + 0.1)),
-                    308,
-                    62,
+                cx.right_text(
+                    (308, 62),
                     FONT_GOLD,
-                    true,
-                ));
+                    format!("{}: {}", label, format_decimal(temp + 0.1)),
+                );
             }
         }
     }
 
     /// Pascal drawhrinfo: hill record name + distance
-    fn hill_info_elements(&self, els: &mut Vec<Element>, hill_idx: usize) {
+    fn hill_info_elements(&self, cx: &mut PaintCx<'_>, hill_idx: usize) {
         let hill_name_k = self
             .resources
             .hills
@@ -519,7 +513,7 @@ impl CompetitionOverlay {
             .unwrap_or_default();
         let records = self.store.records();
         hud::push_hill_record_info(
-            els,
+            cx,
             &self.resources.langbase,
             &hill_name_k,
             records.hill_record(hill_idx),
@@ -527,18 +521,12 @@ impl CompetitionOverlay {
     }
 
     /// Pascal drawwcinfo: top 5 WC / season standings with raw points.
-    fn wc_standings_elements(&self, els: &mut Vec<Element>, data: &OverlayData) {
-        hud::push_info_panel_frame(els);
-        els.push(Element::text(
-            self.resources.langbase.lstr(70).to_string(),
-            308,
-            9,
-            FONT_GOLD,
-            true,
-        ));
+    fn wc_standings_elements(&self, cx: &mut PaintCx<'_>, data: &OverlayData) {
+        hud::push_info_panel_frame(cx);
+        cx.right_text((308, 9), FONT_GOLD, self.resources.langbase.lstr(70).to_string());
         for (i, entry) in data.wc_standings_top5.iter().enumerate() {
             let s = format!("{}  {}", entry.name, entry.points);
-            els.push(Element::text(s, 308, 20 + i as i32 * 7, FONT_GOLD, true));
+            cx.right_text((308, 20 + i as i32 * 7), FONT_GOLD, s);
         }
     }
 }

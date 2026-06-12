@@ -11,7 +11,8 @@ use crate::views::jump::competition::overlay::CompetitionOverlay;
 use crate::views::jump::competition::session::CompetitionSession;
 use crate::views::jump::competition::ui_state::{CompetitionUiState, RenderMode};
 use crate::views::jump::scene::JumpScene;
-use engine::ui::{Element, Event};
+use engine::oxide::PaintCx;
+use engine::ui::Event;
 
 pub(crate) struct CompetitionJumpController<R>
 where
@@ -87,11 +88,10 @@ where
         }
     }
 
-    pub(crate) fn render_jump_elements(&self) -> Vec<Element> {
-        self.scene
-            .as_ref()
-            .map(|scene| render_jump_scene_with_overlay(scene, &self.overlay, &self.ui_state))
-            .unwrap_or_default()
+    pub(crate) fn render_jump(&self, cx: &mut PaintCx<'_>) {
+        if let Some(scene) = self.scene.as_ref() {
+            render_jump_scene_with_overlay(cx, scene, &self.overlay, &self.ui_state);
+        }
     }
 
     pub(crate) fn handle_jump_scene_event(

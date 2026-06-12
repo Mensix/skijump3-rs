@@ -1,6 +1,6 @@
-use crate::components::screen;
 use crate::data::hill::HillCatalog;
 use crate::data::records::RecordStore;
+use crate::gfx::palette::{BLACK, FONT_DEFAULT, FONT_HELP};
 use crate::jump::config::JumpConfig;
 use crate::jump::frame::JumpRenderFrame;
 use crate::jump::presentation;
@@ -14,7 +14,8 @@ use crate::jump::{ComputerInputProvider, JumpPresentationContext, JumpSession, J
 use crate::rng::Random;
 use crate::text::lang::LangBase;
 use engine::consts::{HEIGHT, WIDTH};
-use engine::ui::{Element, Font};
+use engine::oxide::PaintCx;
+use engine::ui::Font;
 use std::cell::Cell;
 
 pub(crate) struct JumpRunnerRenderEnv<'a> {
@@ -109,7 +110,7 @@ impl JumpRunner {
     }
 
     /// Advance physics, AI, and wind by one frame. Call once per frame
-    /// before `elements()` so the rendering stays pure.
+    /// before `render()` so the rendering stays pure.
     pub(crate) fn update(&mut self, rng: &mut Random, wind: &mut Wind) {
         if self.computer_input.is_some() && !self.computer_pre_ai_wind_done {
             // Pascal samples wind once before computer skill/reflex are initialized.
@@ -127,17 +128,17 @@ impl JumpRunner {
         self.last_wind = self.session.tick_with_wind(rng, wind);
     }
 
-    pub(crate) fn elements(&mut self, env: JumpRunnerRenderEnv<'_>) -> Vec<Element> {
+    pub(crate) fn render(&mut self, cx: &mut PaintCx<'_>, env: JumpRunnerRenderEnv<'_>) {
         match self.session.terrain() {
-            Err(err) => unavailable_elements(&err.to_string()),
-            Ok(_) if self.session.state().is_some() => self.elements_for_loaded_session(env),
-            _ => unavailable_elements("jump state not available"),
+            Err(err) => unavailable_render(cx, &err.to_string()),
+            Ok(_) if self.session.state().is_some() => self.render_loaded_session(cx, env),
+            _ => unavailable_render(cx, "jump state not available"),
         }
     }
 
-    fn elements_for_loaded_session(&mut self, env: JumpRunnerRenderEnv<'_>) -> Vec<Element> {
+    fn render_loaded_session(&mut self, cx: &mut PaintCx<'_>, env: JumpRunnerRenderEnv<'_>) {
         if self.session.phase().is_none() {
-            return unavailable_elements("jump state not available");
+            return unavailable_render(cx, "jump state not available");
         }
 
         let hill_name_k = env
@@ -176,7 +177,7 @@ impl JumpRunner {
                 false
             },
         };
-        presentation::elements(&frame, &ctx)
+        presentation::render(cx, &frame, &ctx);
     }
 
     fn apply_snow_to_viewport(&mut self, frame: &mut JumpRenderFrame, wind: i32) {
@@ -194,6 +195,8 @@ impl JumpRunner {
     }
 }
 
-fn unavailable_elements(message: &str) -> Vec<Element> {
-    screen::message_screen(message, "PRESS ESC")
+fn unavailable_render(cx: &mut PaintCx<'_>, message: &str) {
+    cx.fill((0, 0, 320, 200), BLACK);
+    cx.text((20, 80), FONT_DEFAULT, message);
+    cx.text((20, 95), FONT_HELP, "PRESS ESC");
 }

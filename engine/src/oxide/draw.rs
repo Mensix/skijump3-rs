@@ -1,5 +1,6 @@
 use crate::color::Rgba;
 use crate::sprite::SpriteColorRecolor;
+use crate::ui::Element;
 use std::rc::Rc;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -128,5 +129,13 @@ impl CommandBuffer {
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.commands.is_empty()
+    }
+
+    #[must_use]
+    pub fn to_elements(&mut self) -> Vec<Element> {
+        std::mem::take(&mut self.commands)
+            .into_iter()
+            .map(super::render::draw_command_to_element)
+            .collect()
     }
 }

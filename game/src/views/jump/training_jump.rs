@@ -66,7 +66,7 @@ impl TrainingJumpView {
     }
 
     fn paint_content(&self, cx: &mut PaintCx<'_>) {
-        draw_items(cx, &self.scene.borrow().elements());
+        self.scene.borrow().render(cx);
     }
 
     fn handle_input(&self, event: Event) -> Option<RouteTarget> {

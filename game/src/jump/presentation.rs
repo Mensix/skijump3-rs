@@ -7,7 +7,8 @@ use crate::jump::types::JumpPhase;
 use crate::jump::visuals::{self, JumperSpriteSpec};
 use crate::text::lang::LangBase;
 use engine::color::Rgba;
-use engine::ui::{Element, Font};
+use engine::oxide::PaintCx;
+use engine::ui::Font;
 
 const FONT_DIM_TURQUOISE: Rgba = Rgba::from_rgb6(0, 47, 52);
 
@@ -29,26 +30,25 @@ pub struct JumpPresentationContext<'a> {
     pub(crate) show_keymap: bool,
 }
 
-pub fn elements(frame: &JumpRenderFrame, ctx: &JumpPresentationContext<'_>) -> Vec<Element> {
-    let mut els = Vec::new();
-    visuals::push_viewport(&mut els, &frame.viewport);
+pub fn render(cx: &mut PaintCx<'_>, frame: &JumpRenderFrame, ctx: &JumpPresentationContext<'_>) {
+    visuals::push_viewport(cx, &frame.viewport);
 
     let start_light_recolor = palette::start_light_recolor(frame.phase == JumpPhase::Disqualified);
 
     match frame.phase {
         JumpPhase::Info => {
-            info_elements(&mut els, frame, ctx);
+            info_elements(cx, frame, ctx);
         }
         JumpPhase::Result => {
-            result_elements(&mut els, frame, ctx);
+            result_elements(cx, frame, ctx);
         }
-        JumpPhase::Landing => landing_elements(&mut els, frame, ctx),
+        JumpPhase::Landing => landing_elements(cx, frame, ctx),
         JumpPhase::Flight => {}
         JumpPhase::OnBar => {
-            info_panel_elements(&mut els, frame, ctx);
+            info_panel_elements(cx, frame, ctx);
         }
         JumpPhase::Inrun => {}
-        JumpPhase::Disqualified => dq_elements(&mut els, frame, ctx),
+        JumpPhase::Disqualified => dq_elements(cx, frame, ctx),
     }
 
     let jumper_x = frame.x - frame.sx;
@@ -59,25 +59,24 @@ pub fn elements(frame: &JumpRenderFrame, ctx: &JumpPresentationContext<'_>) -> V
             JumpPhase::Info | JumpPhase::Result | JumpPhase::Landing
         )
     {
-        wind_elements(&mut els, ctx.wind_position, frame.wind_value);
+        wind_elements(cx, ctx.wind_position, frame.wind_value);
     }
     if frame.phase == JumpPhase::OnBar
         && (frame.frame_counter < 350 || (frame.frame_counter % 40) > 19)
     {
-        els.push(Element::sprite_remapped(
+        cx.sprite_remapped(
             sprites::Sprite::StartLight as u16,
-            jumper_x + 60,
-            jumper_y - 10,
+            (jumper_x + 60, jumper_y - 10),
             start_light_recolor,
-        ));
+        );
     }
 
-    visuals::push_hill_record_marker(&mut els, frame.hill_record_marker, frame.sx, frame.sy);
+    visuals::push_hill_record_marker(cx, frame.hill_record_marker, frame.sx, frame.sy);
 
     // Pascal: jumper not drawn during Info phase (only hill + info panel)
     if frame.phase != JumpPhase::Info {
         visuals::push_jumper_sprites(
-            &mut els,
+            cx,
             JumperSpriteSpec {
                 body_anim: frame.body_anim,
                 ski_anim: frame.ski_anim,
@@ -90,37 +89,24 @@ pub fn elements(frame: &JumpRenderFrame, ctx: &JumpPresentationContext<'_>) -> V
             },
         );
     }
-    els
 }
 
 fn gate_info_elements(
-    els: &mut Vec<Element>,
+    cx: &mut PaintCx<'_>,
     frame: &JumpRenderFrame,
     ctx: &JumpPresentationContext<'_>,
 ) {
     if ctx.allow_gate_adjust {
         let label58 = ctx.langbase.lstr(58);
         let label58_w = ctx.font.string_width(label58) as i32;
-        els.push(Element::text(label58, 64, 19, FONT_DEFAULT, false));
-        els.push(Element::text(
-            format!("{}", frame.start_gate),
-            70 + label58_w,
-            19,
-            FONT_GOLD,
-            false,
-        ));
-        els.push(Element::text(
-            "(+/-)",
-            67 + label58_w,
-            27,
-            FONT_GREET,
-            false,
-        ));
+        cx.text((64, 19), FONT_DEFAULT, label58);
+        cx.text((70 + label58_w, 19), FONT_GOLD, format!("{}", frame.start_gate));
+        cx.text((67 + label58_w, 27), FONT_GREET, "(+/-)");
     }
 }
 
 fn jumper_info_box_elements(
-    els: &mut Vec<Element>,
+    cx: &mut PaintCx<'_>,
     _frame: &JumpRenderFrame,
     ctx: &JumpPresentationContext<'_>,
 ) {
@@ -131,7 +117,7 @@ fn jumper_info_box_elements(
     };
     let subline = (!ctx.team_name.is_empty()).then_some((ctx.team_name, FILL_TURQUOISE));
     hud::push_jumper_info_box(
-        els,
+        cx,
         ctx.font,
         ctx.langbase,
         phase_label,
@@ -141,18 +127,18 @@ fn jumper_info_box_elements(
 }
 
 fn info_elements(
-    els: &mut Vec<Element>,
+    cx: &mut PaintCx<'_>,
     frame: &JumpRenderFrame,
     ctx: &JumpPresentationContext<'_>,
 ) {
-    info_panel_elements(els, frame, ctx);
-    gate_info_elements(els, frame, ctx);
-    jumper_info_box_elements(els, frame, ctx);
+    info_panel_elements(cx, frame, ctx);
+    gate_info_elements(cx, frame, ctx);
+    jumper_info_box_elements(cx, frame, ctx);
 }
 
 /// Draw the right-side InfoPanel sprite and its default content.
 fn info_panel_elements(
-    els: &mut Vec<Element>,
+    cx: &mut PaintCx<'_>,
     _frame: &JumpRenderFrame,
     ctx: &JumpPresentationContext<'_>,
 ) {
@@ -160,32 +146,27 @@ fn info_panel_elements(
         return;
     }
     if ctx.show_keymap {
-        hud::push_keymap(els, ctx.langbase);
+        hud::push_keymap(cx, ctx.langbase);
     } else {
-        hud::push_hill_record_info(els, ctx.langbase, ctx.hill_name_k, ctx.hill_record);
+        hud::push_hill_record_info(cx, ctx.langbase, ctx.hill_name_k, ctx.hill_record);
     }
 }
 
-fn panel_header(els: &mut Vec<Element>, name: &str, color: Rgba) {
-    hud::push_info_panel_frame(els);
-    els.push(Element::right_text(name, 308, 9, color));
+fn panel_header(cx: &mut PaintCx<'_>, name: &str, color: Rgba) {
+    hud::push_info_panel_frame(cx);
+    cx.right_text((308, 9), color, name);
 }
 
-fn panel_distance(els: &mut Vec<Element>, distance: i32) {
-    els.push(Element::right_text(
-        format!("{:.1}m", f64::from(distance) / 10.0),
-        308,
-        33,
-        FONT_GREET,
-    ));
+fn panel_distance(cx: &mut PaintCx<'_>, distance: i32) {
+    cx.right_text((308, 33), FONT_GREET, format!("{:.1}m", f64::from(distance) / 10.0));
 }
 
 fn result_elements(
-    els: &mut Vec<Element>,
+    cx: &mut PaintCx<'_>,
     frame: &JumpRenderFrame,
     ctx: &JumpPresentationContext<'_>,
 ) {
-    panel_header(els, ctx.jumper_name, FONT_DEFAULT);
+    panel_header(cx, ctx.jumper_name, FONT_DEFAULT);
     let style_min = *frame.style_points.iter().min().unwrap_or(&0);
     let style_max = *frame.style_points.iter().max().unwrap_or(&0);
     let first_min_idx = frame.style_points.iter().position(|&p| p == style_min);
@@ -196,121 +177,74 @@ fn result_elements(
         } else {
             FONT_GREET
         };
-        els.push(Element::text(
-            format!("{:.1}", f64::from(point) / 10.0),
-            308 - (i as i32) * 24,
-            21,
+        cx.right_text(
+            (308 - (i as i32) * 24, 21),
             color,
-            true,
-        ));
+            format!("{:.1}", f64::from(point) / 10.0),
+        );
     }
-    panel_distance(els, frame.distance);
-    els.push(Element::text(
-        format!("{:.1}", f64::from(frame.score) / 10.0),
-        308,
-        45,
-        FONT_GOLD,
-        true,
-    ));
-    els.push(Element::text(
-        ctx.langbase.lstr(298),
-        308,
-        73,
-        FONT_GREET,
-        true,
-    ));
+    panel_distance(cx, frame.distance);
+    cx.right_text((308, 45), FONT_GOLD, format!("{:.1}", f64::from(frame.score) / 10.0));
+    cx.right_text((308, 73), FONT_GREET, ctx.langbase.lstr(298));
 }
 
 fn landing_elements(
-    els: &mut Vec<Element>,
+    cx: &mut PaintCx<'_>,
     frame: &JumpRenderFrame,
     ctx: &JumpPresentationContext<'_>,
 ) {
-    panel_header(els, ctx.jumper_name, FONT_GREET);
-    panel_distance(els, frame.distance);
+    panel_header(cx, ctx.jumper_name, FONT_GREET);
+    panel_distance(cx, frame.distance);
     for (i, &point) in frame.style_points.iter().enumerate() {
         if frame.style_revealed[i] {
-            els.push(Element::text(
-                format!("{:.1}", f64::from(point) / 10.0),
-                308 - (i as i32) * 24,
-                21,
+            cx.right_text(
+                (308 - (i as i32) * 24, 21),
                 FONT_GREET,
-                true,
-            ));
+                format!("{:.1}", f64::from(point) / 10.0),
+            );
         }
     }
 }
 
-fn dq_elements(els: &mut Vec<Element>, frame: &JumpRenderFrame, ctx: &JumpPresentationContext<'_>) {
+fn dq_elements(cx: &mut PaintCx<'_>, frame: &JumpRenderFrame, ctx: &JumpPresentationContext<'_>) {
     let jumper_x = frame.x - frame.sx;
     let jumper_y = frame.y - frame.sy;
-    els.push(Element::sprite_remapped(
+    cx.sprite_remapped(
         sprites::Sprite::StartLight as u16,
-        jumper_x + 60,
-        jumper_y - 10,
+        (jumper_x + 60, jumper_y - 10),
         palette::start_light_recolor(true),
-    ));
-    els.push(Element::sprite(
-        sprites::Sprite::JumperInfoBox as u16,
-        3,
-        150,
-    ));
-    els.push(Element::text(
-        format!("{} {}", ctx.jumper_name, ctx.langbase.lstr(79)),
-        12,
-        160,
+    );
+    cx.sprite(sprites::Sprite::JumperInfoBox as u16, (3, 150));
+    cx.text(
+        (12, 160),
         FONT_DEFAULT,
-        false,
-    ));
+        format!("{} {}", ctx.jumper_name, ctx.langbase.lstr(79)),
+    );
 }
 
-pub fn wind_elements(els: &mut Vec<Element>, position: WindPosition, value: i32) {
+pub fn wind_elements(cx: &mut PaintCx<'_>, position: WindPosition, value: i32) {
     let x = position.x;
     let y = position.y;
-    els.push(Element::fillbox(x + 4, y + 1, 35, 2, FILL_BORDER));
-    els.push(Element::fillbox(x + 21, y + 1, 1, 2, FONT_DEFAULT));
-    els.push(Element::fillbox(x + 21, y + 9, 1, 1, FONT_GREET));
+    cx.fill((x + 4, y + 1, 35, 2), FILL_BORDER);
+    cx.fill((x + 21, y + 1, 1, 2), FONT_DEFAULT);
+    cx.fill((x + 21, y + 9, 1, 1), FONT_GREET);
     if value > 0 {
-        els.push(Element::fillbox(
-            x + 22,
-            y + 1,
-            value / 3 + 1,
-            2,
-            Rgba::from_rgb6(56, 13, 13),
-        ));
+        cx.fill((x + 22, y + 1, value / 3 + 1, 2), Rgba::from_rgb6(56, 13, 13));
     }
     if value < 0 {
         let w = (-value) / 3 + 1;
-        els.push(Element::fillbox(
-            x + 21 - w,
-            y + 1,
-            w,
-            2,
-            Rgba::from_rgb6(13, 53, 13),
-        ));
+        cx.fill((x + 21 - w, y + 1, w, 2), Rgba::from_rgb6(13, 53, 13));
     }
 
     let text = format!("{:.1}", f64::from(value.abs()) / 10.0);
     if value < 0 {
-        els.push(Element::text("-", x + 10, y + 5, FONT_GREET, false));
+        cx.text((x + 10, y + 5), FONT_GREET, "-");
     }
     let mut chars = text.chars();
     if let Some(ones) = chars.next() {
-        els.push(Element::text(
-            ones.to_string(),
-            x + 15,
-            y + 5,
-            FONT_GREET,
-            false,
-        ));
+        cx.text((x + 15, y + 5), FONT_GREET, ones.to_string());
     }
     if let Some(tenths) = text.chars().nth(2) {
-        els.push(Element::text(
-            tenths.to_string(),
-            x + 24,
-            y + 5,
-            FONT_GREET,
-            false,
-        ));
+        cx.text((x + 24, y + 5), FONT_GREET, tenths.to_string());
     }
 }

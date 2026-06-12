@@ -1,4 +1,3 @@
-use crate::components::screen;
 use crate::data::hill::HillInfo;
 use crate::data::hill_profile::HillTerrain;
 use crate::error::AssetError;
@@ -15,8 +14,9 @@ use crate::store::{ResourcesRef, StoreRef};
 use crate::text::lang::LangBase;
 use crate::views::replay::playback_controls::{PlaybackMode, PlaybackSpeed, ReplayPlayback};
 use engine::consts::{HEIGHT, WIDTH};
-use engine::oxide::{ImageRegionDraw, PaintCx, Screen, ScreenEventCx, UiEvent, UpdateCx};
-use engine::ui::{Blinker, Element, Event, Key};
+use engine::oxide::input::Key;
+use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent, UpdateCx};
+use engine::ui::Blinker;
 use std::cell::{Cell, RefCell};
 use std::collections::VecDeque;
 use std::rc::Rc;
@@ -109,22 +109,20 @@ impl ReplayView {
 
     fn paint_content(&self, cx: &mut PaintCx<'_>) {
         let Ok(terrain) = &self.terrain else {
-            draw_items(
-                cx,
-                &screen::message_screen("Replay hill not found", "PRESS ESC"),
-            );
+            cx.fill((0, 0, 320, 200), crate::gfx::palette::BLACK);
+            cx.text((20, 80), FONT_DEFAULT, "Replay hill not found");
+            cx.text((20, 95), crate::gfx::palette::FONT_HELP, "PRESS ESC");
             return;
         };
         let mut session_ref = self.session.borrow_mut();
         let Some(session) = session_ref.as_mut() else {
-            draw_items(
-                cx,
-                &screen::message_screen("No replay selected", "PRESS ESC"),
-            );
+            cx.fill((0, 0, 320, 200), crate::gfx::palette::BLACK);
+            cx.text((20, 80), FONT_DEFAULT, "No replay selected");
+            cx.text((20, 95), crate::gfx::palette::FONT_HELP, "PRESS ESC");
             return;
         };
         let Some(frame) = session.render_frame() else {
-            draw_items(cx, &screen::black_screen());
+            cx.fill((0, 0, 320, 200), crate::gfx::palette::BLACK);
             return;
         };
         let (x, y) = frame.position;
@@ -147,12 +145,11 @@ impl ReplayView {
             );
         }
         let viewport: Rc<[u8]> = viewport_rgba.into();
-        let mut els = Vec::new();
-        visuals::push_viewport(&mut els, &viewport);
+        visuals::push_viewport(cx, &viewport);
 
-        visuals::push_hill_record_marker(&mut els, session.trace().meta.hill_record_marker, sx, sy);
+        visuals::push_hill_record_marker(cx, session.trace().meta.hill_record_marker, sx, sy);
         visuals::push_jumper_sprites(
-            &mut els,
+            cx,
             JumperSpriteSpec {
                 body_anim: u16::from(replay_frame.body_anim),
                 ski_anim: u16::from(replay_frame.ski_anim),
@@ -168,9 +165,9 @@ impl ReplayView {
         let wind_pos = WindPosition { x: 10, y: 180 };
 
         if !session.trace().meta.intro {
-            hud::push_info_panel_frame(&mut els);
+            hud::push_info_panel_frame(cx);
             if session.frame_index() % 30 > 15 {
-                els.push(Element::text("R", 2, 2, FONT_GOLD, false));
+                cx.text((2, 2), FONT_GOLD, "R");
             }
             let hill_text = self
                 .resources
@@ -180,21 +177,16 @@ impl ReplayView {
                     || "?".to_string(),
                     |hill| format!("{} K{}", hill.name, hill.kr),
                 );
-            els.push(Element::right_text(hill_text, 308, 9, FONT_DEFAULT));
-            els.push(Element::text(
-                &session.trace().meta.author,
-                308,
-                19,
-                FONT_DEFAULT,
-                true,
-            ));
-            els.push(Element::sprite_remapped(
+            cx.right_text((308, 9), FONT_DEFAULT, hill_text);
+            cx.right_text((308, 19), FONT_DEFAULT, &session.trace().meta.author);
+            cx.sprite_remapped(
                 sprites::Sprite::ReplayModeIcon as u16,
-                150,
-                30,
+                (150, 30),
                 palette::replay_speed_recolor(self.playback.mode()),
-            ));
-            els.push(Element::text(
+            );
+            cx.right_text(
+                (309, 29),
+                FONT_GREET,
                 format!(
                     "{} {}",
                     self.resources.langbase.lstr(340),
@@ -204,12 +196,10 @@ impl ReplayView {
                         session.trace().meta.flight_stop,
                     )
                 ),
-                309,
-                29,
+            );
+            cx.right_text(
+                (309, 39),
                 FONT_GREET,
-                true,
-            ));
-            els.push(Element::text(
                 format!(
                     "{} {}",
                     self.resources.langbase.lstr(341),
@@ -221,42 +211,35 @@ impl ReplayView {
                             .map_or(1.0, HillInfo::pk),
                     )
                 ),
-                309,
-                39,
+            );
+            cx.right_text(
+                (309, 49),
                 FONT_GREET,
-                true,
-            ));
-            els.push(Element::text(
                 format!(
                     "{} {}",
                     self.resources.langbase.lstr(342),
                     replay_speed_text(self.playback.speed(), &self.resources.langbase)
                 ),
-                309,
-                49,
-                FONT_GREET,
-                true,
-            ));
+            );
             if let Some(gate_text) = replay_gate_text(
                 &self.resources.langbase,
                 session.trace().meta.start_gate_or_competition,
             ) {
-                els.push(Element::right_text(gate_text, 309, 59, FONT_GREET));
+                cx.right_text((309, 59), FONT_GREET, gate_text);
             }
         }
-        presentation::wind_elements(&mut els, wind_pos, i32::from(replay_frame.wind));
+        presentation::wind_elements(cx, wind_pos, i32::from(replay_frame.wind));
         if session.trace().meta.intro {
             self.update_intro_boxes(session.frame_index());
             if let Some(phase) = *self.active_intro_box.borrow() {
                 intro_box_elements(
-                    &mut els,
+                    cx,
                     &self.resources.langbase,
                     phase,
                     self.cursor_blink.visible(11, 10),
                 );
             }
         }
-        draw_items(cx, &els);
     }
 }
 
@@ -277,9 +260,9 @@ impl Screen<RouteTarget> for ReplayView {
     }
 
     fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
-        let Some(event) = input_event(event) else {
+        if matches!(event, UiEvent::Quit | UiEvent::Tick) {
             return;
-        };
+        }
         if self.active_intro_box.borrow().is_some() {
             if let Some(route) = self.dismiss_intro_box() {
                 cx.navigate(route);
@@ -289,8 +272,8 @@ impl Screen<RouteTarget> for ReplayView {
             return;
         }
         match event {
-            Event::Keyboard(Key::Escape | Key::Delete) => cx.back(),
-            Event::Keyboard(Key::Char('+') | Key::Up) => {
+            UiEvent::KeyDown(Key::Escape | Key::Delete) => cx.back(),
+            UiEvent::KeyDown(Key::Up) | UiEvent::Text('+') => {
                 if let Some(s) = self.playback.speed().next_up() {
                     self.playback.set_speed(s);
                     if self.playback.mode() == PlaybackMode::Pause {
@@ -299,7 +282,7 @@ impl Screen<RouteTarget> for ReplayView {
                 }
                 cx.consume();
             }
-            Event::Keyboard(Key::Char('-') | Key::Down) => {
+            UiEvent::KeyDown(Key::Down) | UiEvent::Text('-') => {
                 if let Some(s) = self.playback.speed().next_down() {
                     self.playback.set_speed(s);
                     if self.playback.mode() == PlaybackMode::Pause {
@@ -308,7 +291,7 @@ impl Screen<RouteTarget> for ReplayView {
                 }
                 cx.consume();
             }
-            Event::Keyboard(Key::Right) => {
+            UiEvent::KeyDown(Key::Right) => {
                 self.playback
                     .set_mode(if self.playback.mode() == PlaybackMode::Forward {
                         PlaybackMode::PlayOnceThenPause
@@ -317,7 +300,7 @@ impl Screen<RouteTarget> for ReplayView {
                     });
                 cx.consume();
             }
-            Event::Keyboard(Key::Left) => {
+            UiEvent::KeyDown(Key::Left) => {
                 self.playback
                     .set_mode(if self.playback.mode() == PlaybackMode::Rewind {
                         PlaybackMode::PlayOnceThenPause
@@ -326,75 +309,20 @@ impl Screen<RouteTarget> for ReplayView {
                     });
                 cx.consume();
             }
-            Event::Keyboard(Key::Char(' ')) if self.playback.mode() == PlaybackMode::Pause => {
+            UiEvent::Text(' ') if self.playback.mode() == PlaybackMode::Pause => {
                 self.playback.set_mode(PlaybackMode::OneStep);
                 cx.consume();
             }
-            Event::Keyboard(Key::Char('p' | 'P')) => {
+            UiEvent::Text('p' | 'P') => {
                 self.playback.set_mode(PlaybackMode::PlayOnceThenPause);
                 cx.consume();
             }
-            Event::Keyboard(_) => {}
+            _ => {}
         }
     }
 
     fn paint(&self, cx: &mut PaintCx<'_>) {
         self.paint_content(cx);
-    }
-}
-
-fn input_event(event: UiEvent) -> Option<Event> {
-    match event {
-        UiEvent::KeyDown(key) => Some(Event::Keyboard(key)),
-        UiEvent::Text(c) => Some(Event::Keyboard(Key::Char(c))),
-        UiEvent::Quit | UiEvent::Tick => None,
-    }
-}
-
-fn draw_items(cx: &mut PaintCx<'_>, items: &[Element]) {
-    for item in items {
-        draw_item(cx, item);
-    }
-}
-
-fn draw_item(cx: &mut PaintCx<'_>, item: &Element) {
-    match item {
-        Element::Image(pixels, w, h) => cx.image(pixels.clone(), *w, *h),
-        Element::ImageRegion(region) => cx.image_region(ImageRegionDraw {
-            pixels: region.pixels.clone(),
-            src_w: region.src_w,
-            src_h: region.src_h,
-            src_x: region.src_x,
-            src_y: region.src_y,
-            dst_x: region.dst_x,
-            dst_y: region.dst_y,
-            w: region.w,
-            h: region.h,
-        }),
-        Element::Text {
-            text,
-            x,
-            y,
-            color,
-            right,
-            center,
-        } => {
-            if *center {
-                cx.center_text((*x, *y), *color, text);
-            } else if *right {
-                cx.right_text((*x, *y), *color, text);
-            } else {
-                cx.text((*x, *y), *color, text);
-            }
-        }
-        Element::Sprite(idx, x, y) => cx.sprite(*idx, (*x, *y)),
-        Element::Fillbox { x, y, w, h, color } => cx.fill((*x, *y, *w, *h), *color),
-        Element::FillArea { thing } => cx.dither_fill(*thing),
-        Element::Box { x, y, w, h, color } => cx.stroke((*x, *y, *w, *h), *color),
-        Element::SpriteRemapped(idx, x, y, recolor) => {
-            cx.sprite_remapped(*idx, (*x, *y), recolor.clone());
-        }
-        Element::Container(children) => draw_items(cx, children),
     }
 }
 
@@ -454,37 +382,20 @@ fn replay_speed_text(speed: PlaybackSpeed, langbase: &LangBase) -> String {
 }
 
 fn intro_box_elements(
-    els: &mut Vec<Element>,
+    cx: &mut PaintCx<'_>,
     langbase: &LangBase,
     phase: u8,
     cursor_visible: bool,
 ) {
     let ix = 30;
     let iy = if phase <= 3 { 140 } else { 30 };
-    els.push(Element::fillbox(ix - 7, iy - 7, 269, 40, FILL_BORDER));
-    els.push(Element::fillbox(ix - 6, iy - 6, 267, 38, BG_LEFT));
-    els.push(Element::text(
-        langbase.lstr(360 + phase as usize * 2),
-        ix,
-        iy,
-        FONT_GOLD,
-        false,
-    ));
-    els.push(Element::text(
-        langbase.lstr(361 + phase as usize * 2),
-        ix,
-        iy + 10,
-        FONT_GOLD,
-        false,
-    ));
-    hud::push_wait_for_key(
-        els,
-        langbase,
-        ix + 246,
-        iy + 21,
-        BG_LEFT,
-        FONT_DEFAULT,
-        FONT_DEFAULT,
-        cursor_visible,
-    );
+    cx.fill((ix - 7, iy - 7, 269, 40), FILL_BORDER);
+    cx.fill((ix - 6, iy - 6, 267, 38), BG_LEFT);
+    cx.text((ix, iy), FONT_GOLD, langbase.lstr(360 + phase as usize * 2));
+    cx.text((ix, iy + 10), FONT_GOLD, langbase.lstr(361 + phase as usize * 2));
+    cx.right_text((ix + 246, iy + 21), FONT_DEFAULT, langbase.lstr(15).to_string());
+    cx.fill((ix + 246 + 1 - 2 + 1, iy + 21 - 2, 9, 11), BG_LEFT);
+    if cursor_visible {
+        cx.fill((ix + 246 + 1, iy + 21 + 6, 5, 1), FONT_DEFAULT);
+    }
 }

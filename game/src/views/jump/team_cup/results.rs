@@ -1,17 +1,19 @@
 use crate::competition::team_cup::types::{TeamCupResultsKind, TeamCupStandingsKind};
-use crate::components::screen::new_screen_with_bg;
-use crate::gfx::palette::{BG_TEAMCUP, FILL_HIGHLIGHT, FONT_DEFAULT, FONT_GOLD, FONT_HELP};
+use crate::gfx::palette::{BG_TEAMCUP, BLACK, FILL_DIM, FILL_HIGHLIGHT, FONT_DEFAULT, FONT_GOLD, FONT_HELP};
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::format::format_decimal;
 use crate::text::layout::shorten_name;
-use engine::ui::Element;
+use engine::oxide::PaintCx;
 
 pub(crate) fn render(
+    cx: &mut PaintCx<'_>,
     resources: &ResourcesRef,
     store: &StoreRef,
     results_kind: TeamCupResultsKind,
-) -> Vec<Element> {
-    let mut els = new_screen_with_bg(1, BG_TEAMCUP);
+) {
+    cx.fill((0, 0, 320, 200), BLACK);
+    cx.fill((0, 0, 320, 19), FILL_DIM);
+    cx.fill((0, 20, 320, 180), BG_TEAMCUP);
     let standings_kind = match results_kind {
         TeamCupResultsKind::Standings => TeamCupStandingsKind::Overall,
         TeamCupResultsKind::LegResults => TeamCupStandingsKind::Leg,
@@ -43,7 +45,7 @@ pub(crate) fn render(
         .flatten()
         .unwrap_or_default();
 
-    els.push(Element::text(header, 30, 6, FONT_DEFAULT, false));
+    cx.text((30, 6), FONT_DEFAULT, header);
 
     let mut last_rank = 0usize;
     let mut y = 23i32;
@@ -56,31 +58,20 @@ pub(crate) fn render(
         // Pascal Entry: rank in col2, name in col1, points in col1
         if entry.rank != last_rank && entry.rank > 0 {
             let c = if is_human { FONT_GOLD } else { FILL_HIGHLIGHT };
-            els.push(Element::text(format!("{}.", entry.rank), 24, y, c, true));
+            cx.right_text((24, y), c, format!("{}.", entry.rank));
         }
         last_rank = entry.rank;
 
         let nc = if is_human { FONT_DEFAULT } else { FONT_HELP };
         let name = shorten_name(&entry.name, &resources.font, 122);
-        els.push(Element::text(name, 32, y, nc, false));
+        cx.text((32, y), nc, name);
 
         // Points as raw integer (no DOS tenths quirk)
-        els.push(Element::right_text(
-            format_decimal(entry.primary_score),
-            184,
-            y,
-            nc,
-        ));
+        cx.right_text((184, y), nc, format_decimal(entry.primary_score));
 
         y += 10;
     }
 
     // Pascal WaitForKey: Done-) at bottom right
-    els.push(Element::right_text(
-        format!("{}-)", resources.langbase.lstr(248)),
-        319,
-        13,
-        FONT_HELP,
-    ));
-    els
+    cx.right_text((319, 13), FONT_HELP, format!("{}-)", resources.langbase.lstr(248)));
 }
