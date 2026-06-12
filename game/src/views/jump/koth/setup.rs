@@ -83,15 +83,6 @@ impl KothSetupView {
             cx.text((180, 16), FONT_HELP, lang.lstr(140));
             cx.text((180, 24), FONT_GREET, lang.lstr(141));
             cx.right_text((310, 24), FONT_GREET, lang.lstr(142));
-            let names = self.resources.player_names();
-            if let Some(&idx) = cfg.kothpel.first() {
-                let idx = idx as usize;
-                let name = names.get(idx - 1).map(|s| s.as_str()).unwrap_or("?");
-                let y = 33;
-                cx.fill((178, y - 2, 137, 10), BG_LEFT);
-                cx.text((180, y), FONT_DEFAULT, shorten_name(name, &self.resources.font, 110));
-                cx.right_text((310, y), FONT_DEFAULT, format!("#{}", idx));
-            }
         } else {
             // --- right panel: "Computer Jumpers:" (white, Pascal 240) ---
             cx.text((180, 10), FONT_DEFAULT, lang.lstr(120));
@@ -188,6 +179,20 @@ impl KothSetupView {
                 cx.stroke((4, pcy - 3, 160, 10), FONT_DEFAULT);
             }
             _ => {}
+        }
+
+        // Draw opponent row last (after all dither_fill, so row stays solid)
+        if self.mode.get() == KothMode::Opponents {
+            if let Some(&idx) = cfg.kothpel.first() {
+                let idx = idx as usize;
+                let name = self.resources.player_names()
+                    .get(idx - 1)
+                    .map(|s| s.as_str())
+                    .unwrap_or("?");
+                cx.fill((178, 33 - 2, 137, 10), BG_LEFT);
+                cx.text((180, 33), FONT_DEFAULT, shorten_name(name, &self.resources.font, 110));
+                cx.right_text((310, 33), FONT_DEFAULT, format!("#{}", idx));
+            }
         }
     }
 
