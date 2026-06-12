@@ -1,5 +1,6 @@
 pub mod app;
 pub mod draw;
+pub mod draw_renderer;
 pub mod input;
 pub mod paint;
 pub mod render;
