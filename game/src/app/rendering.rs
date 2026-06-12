@@ -1,20 +1,20 @@
 use crate::gfx::palette::FONT_HELP;
 use crate::route::RouteTarget;
-use engine::element_renderer::ElementRenderContext;
+use engine::oxide::{Background, OxideRenderer};
 use engine::sprite::SpriteData;
 use engine::ui::{BackgroundMode, Element, Font, Router};
 use engine::video::{Renderer, TextureId};
 use std::time::Instant;
 
 pub(super) struct FrameRenderer {
-    context: ElementRenderContext,
+    renderer: OxideRenderer,
     fps: FpsCounter,
 }
 
 impl FrameRenderer {
     pub(super) fn new() -> Self {
         Self {
-            context: ElementRenderContext::new(),
+            renderer: OxideRenderer::new(),
             fps: FpsCounter::new(),
         }
     }
@@ -31,12 +31,12 @@ impl FrameRenderer {
         self.add_debug_overlay(&mut elements);
 
         let background = match router.current_view().gpu_background() {
-            BackgroundMode::MainPng => Some(main_background),
-            BackgroundMode::NoneBlack => None,
+            BackgroundMode::MainPng => Background::Texture(main_background),
+            BackgroundMode::NoneBlack => Background::None,
         };
 
-        self.context
-            .render_frame(renderer, font, sprites, &elements, background)?;
+        self.renderer
+            .render_legacy(renderer, font, sprites, elements, background)?;
         renderer.wait_frame();
         Ok(())
     }
