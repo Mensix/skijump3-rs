@@ -26,15 +26,22 @@ pub(crate) fn render(
             let round = tc.current_round + 1;
             let jumper = tc.current_jumper_slot + 1;
             let header = match results_kind {
-                TeamCupResultsKind::LegResults => format!(
-                    "{} {} {} 6 - R {} - {} {}",
-                    resources.langbase.lstr(81),
-                    leg,
-                    resources.langbase.lstr(8),
-                    round,
-                    resources.langbase.lstr(88),
-                    jumper,
-                ),
+                TeamCupResultsKind::LegResults => {
+                    if tc.current_leg + 1 == 6 {
+                        // Pascal: lstr(92) = "The Team Cup is over!"
+                        resources.langbase.lstr(92).to_string()
+                    } else {
+                        format!(
+                            "{} {} {} 6 - R {} - {} {}",
+                            resources.langbase.lstr(81),
+                            leg,
+                            resources.langbase.lstr(8),
+                            round,
+                            resources.langbase.lstr(88),
+                            jumper,
+                        )
+                    }
+                }
                 TeamCupResultsKind::Standings => {
                     let text = resources.langbase.lstr(91);
                     format!("{} {} 6", text, leg)

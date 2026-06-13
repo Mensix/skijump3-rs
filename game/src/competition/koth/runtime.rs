@@ -60,15 +60,13 @@ impl KothRuntime {
         let mut sorted = alive;
         sorted.sort_by(|(_, a), (_, b)| b.total_cmp(a));
 
-        // Pascal: random swap for consecutive ties
+        // Pascal: iterates all adjacent pairs, no stride skip
         let mut i = 0;
         while i + 1 < sorted.len() {
             if (sorted[i].1 - sorted[i + 1].1).abs() < f64::EPSILON && self.rng.random_i32(2) == 0 {
                 sorted.swap(i, i + 1);
-                i += 2;
-            } else {
-                i += 1;
             }
+            i += 1;
         }
 
         // eliminate last place (worst scorer, at end of descending list)

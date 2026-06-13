@@ -55,13 +55,18 @@ impl KothJumpView {
             || self.controller.ui_state().has_page()
     }
 
-    fn dismiss_results_and_advance(&mut self) {
+    fn dismiss_results_and_advance(&mut self) -> Option<RouteTarget> {
         if let Some(command) = self
             .controller
             .dismiss_results_and_advance()
         {
+            if matches!(command, CompetitionFlowCommand::Done) {
+                self.on_complete();
+                return Some(RouteTarget::Back);
+            }
             self.apply_command(command);
         }
+        None
     }
 
     fn paint_content(&self, cx: &mut PaintCx<'_>) {
@@ -100,7 +105,9 @@ impl KothJumpView {
                 event,
                 UiEvent::KeyDown(Key::Right | Key::Enter | Key::Escape) | UiEvent::Text(' ')
             ) {
-                self.dismiss_results_and_advance();
+                if let Some(route) = self.dismiss_results_and_advance() {
+                    return Some(route);
+                }
             }
             return None;
         }

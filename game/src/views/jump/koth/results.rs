@@ -82,10 +82,15 @@ fn build_entries(c: &KothRuntime) -> (Vec<KothEntry>, usize, bool) {
             let (d1, d2) = if p.jumps.is_empty() {
                 (0.0, 0.0)
             } else {
+                let target_round = if p.is_alive() {
+                    c.current_elimination_round
+                } else {
+                    p.eliminated_in_round.saturating_sub(1)
+                };
                 let round_jumps: Vec<f64> = p
                     .jumps
                     .iter()
-                    .filter(|j| j.elimination_round == c.current_elimination_round)
+                    .filter(|j| j.elimination_round == target_round)
                     .map(|j| j.distance)
                     .collect();
                 match round_jumps.len() {
