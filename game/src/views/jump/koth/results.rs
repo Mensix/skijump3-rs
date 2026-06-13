@@ -8,6 +8,7 @@ use crate::store::ResourcesRef;
 use crate::text::format::format_decimal;
 use engine::color::Rgba;
 use engine::oxide::PaintCx;
+use crate::text::lang::LangBase;
 
 // Pascal column positions (columnX[1]): rank, name, points, distance, qual, extra
 const COL_RANK: i32 = 24;
@@ -21,6 +22,11 @@ const ITEMS_PER_PAGE: usize = 22;
 
 const KOTH_BG: Rgba = BG_4HILLS;
 
+fn separator_label(lang: &LangBase, round: u8) -> String {
+    let idx = 101 + (round as usize % 5);
+    lang.lstr(idx).to_string()
+}
+
 /// One entry in the KOTH results list.
 pub struct KothEntry {
     pub rank: usize,
@@ -30,6 +36,7 @@ pub struct KothEntry {
     pub dist2: f64,
     pub is_human: bool,
     pub is_king: bool,
+    pub separator_before: bool,
 }
 
 /// Paginated KOTH results data.
@@ -45,7 +52,6 @@ fn build_entries(c: &KothRuntime) -> (Vec<KothEntry>, usize, bool) {
     let mut idx_sorted: Vec<usize> = (0..c.participants.len()).collect();
     // Pascal kothjarj: alive sorted by points descending,
     // eliminated sorted by elimination order (later = higher)
-    // We sort: alive first (desc points), then eliminated (desc elimination round)
     idx_sorted.sort_by(|&a, &b| {
         let pa = &c.participants[a];
         let pb = &c.participants[b];
@@ -60,6 +66,12 @@ fn build_entries(c: &KothRuntime) -> (Vec<KothEntry>, usize, bool) {
     let remaining = c.participants.iter().filter(|p| p.is_alive()).count();
     let is_final = remaining <= 1;
 
+    // Find first eliminated in this round (Pascal: temp = players+1-mcpisteet[0])
+    let last_eliminated_pos = idx_sorted.iter().position(|&idx| {
+        let p = &c.participants[idx];
+        !p.is_alive() && p.eliminated_in_round == c.current_elimination_round
+    });
+
     let entries: Vec<KothEntry> = idx_sorted
         .iter()
         .enumerate()
@@ -67,7 +79,6 @@ fn build_entries(c: &KothRuntime) -> (Vec<KothEntry>, usize, bool) {
             let p = &c.participants[idx];
             let is_human = c.human_indices.contains(&idx);
 
-            // Get distances from current elimination round jumps
             let (d1, d2) = if p.jumps.is_empty() {
                 (0.0, 0.0)
             } else {
@@ -84,8 +95,6 @@ fn build_entries(c: &KothRuntime) -> (Vec<KothEntry>, usize, bool) {
                 }
             };
 
-            let _is_last_eliminated =
-                !p.is_alive() && p.eliminated_in_round == c.current_elimination_round;
             let is_king = is_final && pos == 0;
 
             let cname = if p.competitor.real_name.is_empty() {
@@ -102,6 +111,7 @@ fn build_entries(c: &KothRuntime) -> (Vec<KothEntry>, usize, bool) {
                 dist2: d2,
                 is_human,
                 is_king,
+                separator_before: Some(pos) == last_eliminated_pos,
             }
         })
         .collect();
@@ -118,9 +128,9 @@ pub fn render(cx: &mut PaintCx<'_>, resources: &ResourcesRef, store: &crate::sto
         let page = 1;
 
         let title = if remaining <= 1 {
-            "KING OF THE HILL!"
+            format!("{}!", resources.langbase.lstr(31))
         } else {
-            "KING OF THE HILL"
+            format!("{} {}", resources.langbase.lstr(31), resources.langbase.lstr(95))
         };
 
         let kp = KothPage {
@@ -164,6 +174,17 @@ pub fn render(cx: &mut PaintCx<'_>, resources: &ResourcesRef, store: &crate::sto
         for entry in kp.items.iter().skip(start).take(end) {
             if y > 180 {
                 break;
+            }
+
+            // Pascal separator before the eliminated player
+            if entry.separator_before {
+                let label = separator_label(&resources.langbase, c.current_elimination_round);
+                cx.fill((0, y - 2, 320, 10), FILL_DIM);
+                cx.text((COL_NAME, y), FONT_HELP, &label);
+                y += ROW_STEP;
+                if y > 180 {
+                    break;
+                }
             }
 
             let (col_name, col_rank, col_extra) = if entry.is_human {

@@ -56,8 +56,12 @@ impl KothJumpView {
     }
 
     fn dismiss_results_and_advance(&mut self) {
-        self.controller
-            .dismiss_results_and_advance(KothResultsKind::Results);
+        if let Some(command) = self
+            .controller
+            .dismiss_results_and_advance(KothResultsKind::Results)
+        {
+            self.apply_command(command);
+        }
     }
 
     fn paint_content(&self, cx: &mut PaintCx<'_>) {
@@ -73,14 +77,12 @@ impl KothJumpView {
                 );
             }
             RenderMode::Done | RenderMode::Error => {
-                let msg = if self.controller.render_mode() == RenderMode::Error {
-                    self.controller.ui_state().error_message()
-                } else {
-                    String::new()
-                };
-                cx.fill((0, 0, 320, 200), crate::gfx::palette::BLACK);
-                cx.text((20, 80), crate::gfx::palette::FONT_DEFAULT, &msg);
-                cx.text((20, 95), crate::gfx::palette::FONT_HELP, self.controller.resources().langbase.lstr(15));
+                if self.controller.render_mode() == RenderMode::Error {
+                    let msg = self.controller.ui_state().error_message();
+                    cx.fill((0, 0, 320, 200), crate::gfx::palette::BLACK);
+                    cx.text((20, 80), crate::gfx::palette::FONT_DEFAULT, &msg);
+                    cx.text((20, 95), crate::gfx::palette::FONT_HELP, self.controller.resources().langbase.lstr(15));
+                } // Done: no black screen
             }
         }
     }
@@ -94,7 +96,6 @@ impl KothJumpView {
         }
 
         if self.controller.render_mode() == RenderMode::Done {
-            // KOTH complete, any key returns
             if matches!(event, UiEvent::KeyDown(_) | UiEvent::Text(_)) {
                 return Some(RouteTarget::Back);
             }
@@ -129,8 +130,14 @@ impl Screen<RouteTarget> for KothJumpView {
     fn update(&mut self) {
         self.controller.record_acknowledged_human_jump();
 
-        if let Some(command) = self.controller.drive() {
-            self.apply_command(command);
+        // Don't drive competition while showing results or done (prevents blink)
+        if !matches!(
+            self.controller.render_mode(),
+            RenderMode::Results | RenderMode::Done | RenderMode::Error
+        ) {
+            if let Some(command) = self.controller.drive() {
+                self.apply_command(command);
+            }
         }
 
         if self.controller.render_mode() == RenderMode::Jump {

@@ -121,7 +121,6 @@ impl OverlayData {
             .min_by(|(_, a), (_, b)| a.total_points.total_cmp(&b.total_points))
             .map(|(_, p)| p);
         let has_scores = c.participants.iter().any(|p| p.total_points > 0.0);
-        let has_scores = c.participants.iter().any(|p| p.total_points > 0.0);
         let (last_name, last_points) = if has_scores {
             last_place
                 .map(|p| (p.competitor.name.clone(), p.total_points))
