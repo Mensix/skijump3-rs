@@ -1,3 +1,4 @@
+use crate::competition::koth::types::KothRuntime;
 use crate::competition::team_cup::types::TeamCupStandingsKind;
 use crate::competition::types::{CompetitionPhase, CupStyle, Participant, QualificationStatus};
 use crate::gfx::palette::{FONT_GOLD, FONT_HELP};
@@ -7,6 +8,18 @@ use crate::store::{ResourcesRef, StoreRef};
 use crate::text::format::format_decimal;
 use crate::views::jump::competition::ui_state::CompetitionUiState;
 use engine::oxide::PaintCx;
+
+/// Lightweight snapshot of KOTH data for overlay rendering.
+#[derive(Debug, Clone)]
+pub struct KothOverlayInfo {
+    pub alive_count: usize,
+    pub total_count: usize,
+    pub last_name: String,
+    pub last_points: f64,
+    pub elimination_round: u8,
+    pub jump_round: u8,
+    pub jump_rounds_per_elimination: u8,
+}
 
 /// Lightweight snapshot of competition data for overlay rendering.
 /// Built once per frame to avoid repeated `store.read()` calls.
@@ -21,6 +34,7 @@ pub struct OverlayData {
     pub event_standings_top5: Vec<EventStandingEntry>,
     pub wc_standings_top5: Vec<WcStandingEntry>,
     pub coach_style: u8,
+    pub koth_info: Option<KothOverlayInfo>,
 }
 
 #[derive(Debug, Clone)]
@@ -90,10 +104,31 @@ impl OverlayData {
             event_standings_top5: event_top5,
             wc_standings_top5: wc_top5,
             coach_style,
+            koth_info: None,
         }
     }
 
-    fn from_koth(c: &crate::competition::koth::types::KothRuntime, coach_style: u8) -> Self {
+    fn from_koth(c: &KothRuntime, coach_style: u8) -> Self {
+        let alive_count = c.participants.iter().filter(|p| p.is_alive()).count();
+        let total_count = c.participants.len();
+        // Pascal jarjesta5 for KOTH: top5[1] = worst alive (lowest points)
+        // Exclude humans (they haven't jumped yet when overlay first appears)
+        let last_place = c
+            .participants
+            .iter()
+            .enumerate()
+            .filter(|(i, p)| p.is_alive() && !c.human_indices.contains(i))
+            .min_by(|(_, a), (_, b)| a.total_points.total_cmp(&b.total_points))
+            .map(|(_, p)| p);
+        let has_scores = c.participants.iter().any(|p| p.total_points > 0.0);
+        let has_scores = c.participants.iter().any(|p| p.total_points > 0.0);
+        let (last_name, last_points) = if has_scores {
+            last_place
+                .map(|p| (p.competitor.name.clone(), p.total_points))
+                .unwrap_or_default()
+        } else {
+            (String::new(), 0.0)
+        };
         Self {
             phase: crate::competition::types::CompetitionPhase::Round1,
             style: crate::competition::types::CupStyle::CustomCup,
@@ -103,6 +138,15 @@ impl OverlayData {
             event_standings_top5: Vec::new(),
             wc_standings_top5: Vec::new(),
             coach_style,
+            koth_info: Some(KothOverlayInfo {
+                alive_count,
+                total_count,
+                last_name,
+                last_points,
+                elimination_round: c.current_elimination_round,
+                jump_round: c.current_jump_round,
+                jump_rounds_per_elimination: c.jump_rounds_per_elimination,
+            }),
         }
     }
 
@@ -130,6 +174,7 @@ impl OverlayData {
             event_standings_top5: event_top5,
             wc_standings_top5: Vec::new(),
             coach_style,
+            koth_info: None,
         }
     }
 }
@@ -151,6 +196,7 @@ pub struct OverlayContext {
     pub frame_counter: i32,
     pub data: OverlayData,
     pub telemetry: Option<JumpTelemetry>,
+    pub scene_phase: JumpPhase,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -160,6 +206,7 @@ pub enum OverlayKind {
     CyclingWithInfoBox,
     Round2WithInfoBox,
     Coach,
+    Koth,
 }
 
 /// Renders overlays (keymap, cycling info, jumper info box) on top of the
@@ -196,6 +243,7 @@ impl CompetitionOverlay {
             frame_counter,
             data,
             telemetry,
+            scene_phase,
         })
     }
 
@@ -225,6 +273,17 @@ impl CompetitionOverlay {
                 return OverlayKind::Coach;
             }
         }
+
+        // KOTH overlay: cycle between jumpers left and hill record
+        if data.koth_info.is_some()
+            && matches!(
+                scene_phase,
+                JumpPhase::Info | JumpPhase::OnBar | JumpPhase::Result
+            )
+        {
+            return OverlayKind::Koth;
+        }
+
         let first_event = data.current_event == 0;
         let show_keymap = ui_state.is_first_human_onbar()
             && first_event
@@ -267,6 +326,16 @@ impl CompetitionOverlay {
                 }
             }
             OverlayKind::Coach => self.coach_elements(cx, ctx),
+            OverlayKind::Koth => {
+                if matches!(ctx.scene_phase, JumpPhase::Info | JumpPhase::Result) {
+                    let phase = (ctx.frame_counter as usize) % 292;
+                    if phase <= 130 {
+                        self.koth_info_elements(cx, ctx);
+                    } else if (146..=276).contains(&phase) {
+                        self.hill_info_elements(cx, ctx.hill_idx);
+                    }
+                }
+            }
         }
     }
 
@@ -518,6 +587,30 @@ impl CompetitionOverlay {
             &hill_name_k,
             records.hill_record(hill_idx),
         );
+    }
+
+    /// Pascal drawkothinfo: jumpers left + worst alive with phase label
+    fn koth_info_elements(&self, cx: &mut PaintCx<'_>, ctx: &OverlayContext) {
+        let lang = &self.resources.langbase;
+        let Some(ref ki) = ctx.data.koth_info else { return };
+        let total = ki.total_count;
+        let left = ki.alive_count;
+        hud::push_info_panel_frame(cx);
+        // "Jumpers Left: N of TOTAL" — Pascal lstr(67) + lstr(8)
+        let str1 = format!("{} {} {}", lang.lstr(67), left, lang.lstr(8));
+        cx.right_text((308, 9), FONT_GOLD, format!("{str1} {total}"));
+
+        // Phase label + worst-alive info (Pascal top5[1]=lowest points for KOTH)
+        if !ki.last_name.is_empty() {
+            let label = if ki.jump_round == 0 && ki.jump_rounds_per_elimination > 1 {
+                lang.lstr(69) // "Currently Last:"
+            } else {
+                lang.lstr(68) // "Need to Beat:"
+            };
+            cx.right_text((308, 19), FONT_GOLD, label);
+            let pts_str = format_decimal(ki.last_points);
+            cx.right_text((308, 29), FONT_GOLD, format!("{} ${}", ki.last_name, pts_str));
+        }
     }
 
     /// Pascal drawwcinfo: top 5 WC / season standings with raw points.

@@ -29,9 +29,8 @@ impl KothJumpView {
                 is_new_event: _,
             } => {
                 let phase_label = format!(
-                    "Round {} (elim {})",
+                    "Round {}",
                     context.jump_round + 1,
-                    context.elimination_round + 1,
                 );
                 self.controller
                     .prepare_human_jump(participant, hill_idx, phase_label, None);
