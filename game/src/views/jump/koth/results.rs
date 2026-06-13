@@ -140,8 +140,6 @@ pub fn render(cx: &mut PaintCx<'_>, resources: &ResourcesRef, store: &crate::sto
         cx.fill((0, 20, 320, 180), KOTH_BG);
         cx.dither_fill(63);
         cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
-        // Background pattern (Pascal InvBack)
-        cx.sprite(sprites::Sprite::Logo as u16, (160, 100));
 
         // Pascal-style: just "Done" hint (no prev/next pagination for KOTH)
         cx.right_text((319, 13), FONT_HELP, format!("{}-)", resources.langbase.lstr(248)));
