@@ -250,7 +250,7 @@ impl CompetitionRuntime for TeamCupRuntime {
         }
     }
 
-    fn advance_results_runtime(&mut self, _kind: Self::ResultsKind) {
+    fn advance_results_runtime(&mut self) {
         if self.standings_pending {
             self.standings_pending = false;
             return;

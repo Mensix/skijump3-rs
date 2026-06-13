@@ -1,7 +1,7 @@
 use crate::gfx::palette::{BG_LEFT, BLACK, FILL_DIM, FONT_DEFAULT, FONT_GOLD, FONT_GREET};
 use crate::gfx::sprites;
 use crate::route::RouteTarget;
-use crate::store::{ResourcesRef, StoreRef};
+use crate::store::ResourcesRef;
 use crate::text::format;
 use engine::oxide::input::Key;
 use engine::oxide::widget::EventCx;
@@ -10,14 +10,13 @@ use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent, Widget};
 
 pub struct KothHillPickerView {
     resources: ResourcesRef,
-    store: StoreRef,
     menu: PixelMenu,
     start: usize,
     total: usize,
 }
 
 impl KothHillPickerView {
-    pub fn new(resources: ResourcesRef, store: StoreRef) -> Self {
+    pub fn new(resources: ResourcesRef) -> Self {
         let kothmaki = resources.save_manager.config.borrow().kothmaki;
         let total = resources.hills.len();
         let start = if kothmaki > 0 {
@@ -40,7 +39,6 @@ impl KothHillPickerView {
 
         Self {
             resources,
-            store,
             menu,
             start,
             total,

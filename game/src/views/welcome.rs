@@ -2,11 +2,9 @@ use crate::gfx::palette::{BG_LEFT, BLACK, FILL_DIM, FONT_DEFAULT, FONT_GOLD, FON
 use crate::gfx::sprites;
 use crate::route::RouteTarget;
 use crate::save::SaveRef;
-use crate::text::lang::LangBase;
 use engine::oxide::widgets::menu::MenuItem as OxideMenuItem;
 use engine::oxide::widgets::menu::PixelMenu;
 use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent, Widget};
-use std::rc::Rc;
 
 pub struct WelcomeScreenView {
     menu: PixelMenu,
@@ -16,7 +14,7 @@ pub struct WelcomeScreenView {
 
 impl WelcomeScreenView {
     #[must_use]
-    pub fn new(languages: Vec<String>, _langbase: &Rc<LangBase>, save_manager: SaveRef) -> Self {
+    pub fn new(languages: Vec<String>, save_manager: SaveRef) -> Self {
         let count = languages.len();
         let items: Vec<OxideMenuItem> = (0..count)
             .map(|i| OxideMenuItem::new((i + 1) as u8, format!("{}", i)))

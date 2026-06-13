@@ -7,7 +7,6 @@ use crate::text::lang::LangBase;
 use engine::oxide::widgets::menu::{PixelMenu, MenuItem as OxideMenuItem};
 use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent};
 use std::cell::Cell;
-use std::rc::Rc;
 
 use super::state::SetupModal;
 
@@ -21,7 +20,7 @@ pub struct SetupView {
 
 impl SetupView {
     pub fn new(resources: ResourcesRef, store: StoreRef) -> Self {
-        let menu = Self::make_menu(0, &resources.langbase, 0);
+        let menu = Self::make_menu(0, 0);
         Self {
             resources,
             store,
@@ -31,7 +30,7 @@ impl SetupView {
         }
     }
 
-    pub(crate) fn make_menu(screen: usize, _langbase: &Rc<LangBase>, selected: usize) -> PixelMenu {
+    pub(crate) fn make_menu(screen: usize, selected: usize) -> PixelMenu {
         let entries = match screen {
             0 => 6,
             1 => 4,
@@ -51,7 +50,7 @@ impl SetupView {
     pub(crate) fn switch_screen(&mut self, new_screen: usize) {
         let selected = self.menu.selected();
         self.screen.set(new_screen);
-        self.menu = Self::make_menu(new_screen, &self.resources.langbase, selected);
+        self.menu = Self::make_menu(new_screen, selected);
     }
 
     pub(crate) fn langbase(&self) -> &LangBase {

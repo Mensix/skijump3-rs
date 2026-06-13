@@ -7,6 +7,7 @@ use crate::store::{HasRuntime, ResourcesRef, Store, StoreRef};
 use crate::views::jump::competition::overlay::{CompetitionOverlay, OverlayKind};
 use crate::views::jump::competition::session::{CompetitionSession, SessionError};
 use crate::views::jump::competition::ui_state::CompetitionUiState;
+use crate::views::jump::competition::ui_state::RenderMode;
 use crate::views::jump::input::{JumpInputAction, JumpInputController};
 use crate::views::jump::scene::JumpScene;
 use engine::oxide::input::{Key, UiEvent};
@@ -272,7 +273,7 @@ pub(crate) fn handle_jump_scene_event(
 }
 
 pub(crate) fn route_error_back(ui_state: &CompetitionUiState, event: UiEvent) -> Option<RouteTarget> {
-    if ui_state.render_mode() != crate::views::jump::competition::ui_state::RenderMode::Error {
+    if ui_state.render_mode() != RenderMode::Error {
         return None;
     }
     matches!(event, UiEvent::KeyDown(_) | UiEvent::Text(_)).then_some(RouteTarget::Back)

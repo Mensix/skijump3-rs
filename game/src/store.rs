@@ -10,6 +10,10 @@ use crate::jump::types::DEFAULT_START_GATE;
 use crate::jump::wind::Wind;
 use crate::rng::Random;
 use crate::save::{SaveManager, SaveRef};
+use crate::competition::koth::types::KothRuntime;
+use crate::competition::machine::Competition;
+use crate::competition::team_cup::types::TeamCupRuntime;
+use crate::competition::ActiveCompetition;
 use crate::text::lang::LangBase;
 use engine::oxide::Font;
 use std::cell::{Cell, Ref, RefCell, RefMut};
@@ -226,7 +230,7 @@ pub struct Store {
     jump_runtime: JumpRuntime,
     practice: PracticeSettings,
     replay_selection: ReplaySelection,
-    active_competition: RefCell<Option<crate::competition::ActiveCompetition>>,
+    active_competition: RefCell<Option<ActiveCompetition>>,
     profiles: RefCell<ProfileStore>,
     records: RefCell<RecordStore>,
     selected_hill: Cell<usize>,
@@ -260,21 +264,21 @@ impl Store {
         self.set_wind_place(save_manager.config.borrow().windplace as u8);
     }
 
-    pub fn start_active(&self, comp: crate::competition::ActiveCompetition) {
+    pub fn start_active(&self, comp: ActiveCompetition) {
         self.jump_runtime.set_wind_enabled(true);
         *self.active_competition.borrow_mut() = Some(comp);
     }
 
     pub fn with_active<R>(
         &self,
-        f: impl FnOnce(&crate::competition::ActiveCompetition) -> R,
+        f: impl FnOnce(&ActiveCompetition) -> R,
     ) -> Option<R> {
         self.active_competition.borrow().as_ref().map(f)
     }
 
     pub fn with_active_mut<R>(
         &self,
-        f: impl FnOnce(&mut crate::competition::ActiveCompetition) -> R,
+        f: impl FnOnce(&mut ActiveCompetition) -> R,
     ) -> Option<R> {
         self.active_competition.borrow_mut().as_mut().map(f)
     }
@@ -389,30 +393,30 @@ pub trait HasRuntime<R> {
     fn with_runtime_mut<T>(&self, f: impl FnOnce(&mut R) -> T) -> Option<T>;
 }
 
-impl HasRuntime<crate::competition::machine::Competition> for Store {
+impl HasRuntime<Competition> for Store {
     fn with_runtime_mut<T>(
         &self,
-        f: impl FnOnce(&mut crate::competition::machine::Competition) -> T,
+        f: impl FnOnce(&mut Competition) -> T,
     ) -> Option<T> {
         self.with_active_mut(|active| active.individual_mut().map(f))
             .flatten()
     }
 }
 
-impl HasRuntime<crate::competition::team_cup::types::TeamCupRuntime> for Store {
+impl HasRuntime<TeamCupRuntime> for Store {
     fn with_runtime_mut<T>(
         &self,
-        f: impl FnOnce(&mut crate::competition::team_cup::types::TeamCupRuntime) -> T,
+        f: impl FnOnce(&mut TeamCupRuntime) -> T,
     ) -> Option<T> {
         self.with_active_mut(|active| active.team_cup_runtime_mut().map(f))
             .flatten()
     }
 }
 
-impl HasRuntime<crate::competition::koth::types::KothRuntime> for Store {
+impl HasRuntime<KothRuntime> for Store {
     fn with_runtime_mut<T>(
         &self,
-        f: impl FnOnce(&mut crate::competition::koth::types::KothRuntime) -> T,
+        f: impl FnOnce(&mut KothRuntime) -> T,
     ) -> Option<T> {
         self.with_active_mut(|active| active.koth_runtime_mut().map(f))
             .flatten()

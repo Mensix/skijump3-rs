@@ -1,7 +1,7 @@
 use crate::data::hill::HillInfo;
 use crate::data::hill_profile::HillTerrain;
 use crate::error::AssetError;
-use crate::gfx::palette::{self, BG_LEFT, FILL_BORDER, FONT_DEFAULT, FONT_GOLD, FONT_GREET};
+use crate::gfx::palette::{self, BG_LEFT, BLACK, FILL_BORDER, FONT_DEFAULT, FONT_GOLD, FONT_GREET, FONT_HELP};
 use crate::gfx::sprites;
 use crate::jump::hud;
 use crate::jump::math;
@@ -11,6 +11,7 @@ use crate::jump::snow::SnowSystem;
 use crate::jump::visuals::{self, JumperSpriteSpec};
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
+use crate::text::format;
 use crate::text::lang::LangBase;
 use crate::views::replay::playback_controls::{PlaybackMode, PlaybackSpeed, ReplayPlayback};
 use engine::consts::{HEIGHT, WIDTH};
@@ -109,20 +110,20 @@ impl ReplayView {
 
     fn paint_content(&self, cx: &mut PaintCx<'_>) {
         let Ok(terrain) = &self.terrain else {
-            cx.fill((0, 0, 320, 200), crate::gfx::palette::BLACK);
+            cx.fill((0, 0, 320, 200), BLACK);
             cx.text((20, 80), FONT_DEFAULT, "Replay hill not found");
-            cx.text((20, 95), crate::gfx::palette::FONT_HELP, "PRESS ESC");
+            cx.text((20, 95), FONT_HELP, "PRESS ESC");
             return;
         };
         let mut session_ref = self.session.borrow_mut();
         let Some(session) = session_ref.as_mut() else {
-            cx.fill((0, 0, 320, 200), crate::gfx::palette::BLACK);
+            cx.fill((0, 0, 320, 200), BLACK);
             cx.text((20, 80), FONT_DEFAULT, "No replay selected");
-            cx.text((20, 95), crate::gfx::palette::FONT_HELP, "PRESS ESC");
+            cx.text((20, 95), FONT_HELP, "PRESS ESC");
             return;
         };
         let Some(frame) = session.render_frame() else {
-            cx.fill((0, 0, 320, 200), crate::gfx::palette::BLACK);
+            cx.fill((0, 0, 320, 200), BLACK);
             return;
         };
         let (x, y) = frame.position;
@@ -327,7 +328,7 @@ impl Screen<RouteTarget> for ReplayView {
 }
 
 fn format_distance(distance: i32) -> String {
-    crate::text::format::format_tenths(distance)
+    format::format_tenths(distance)
 }
 
 fn replay_time(frame_index: usize, flight_start: usize, flight_stop: usize) -> String {

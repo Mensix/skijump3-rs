@@ -1,5 +1,6 @@
 use crate::components::page_nav::cycle_index;
 use crate::route::RouteTarget;
+use crate::save::config::Config;
 use engine::oxide::input::{Key, UiEvent};
 
 use super::state::SetupModal;
@@ -9,7 +10,7 @@ pub(crate) fn handle_event(view: &mut SetupView, event: UiEvent) -> Option<Route
     match view.modal.get() {
         Some(SetupModal::WindPlace(pos)) => handle_wind_place(view, event, pos),
         Some(SetupModal::SeeComps(val)) => handle_see_comps(view, event, val),
-        Some(SetupModal::ConfirmReset(kind)) => handle_confirm_reset(view, event, kind),
+        Some(SetupModal::ConfirmReset(_)) => handle_confirm_reset(view, event),
         Some(SetupModal::LanguagePicker(sel)) => handle_language_picker(view, event, sel),
         None => handle_screen_event(view, event),
     }
@@ -79,10 +80,9 @@ fn handle_see_comps(view: &mut SetupView, event: UiEvent, mut val: usize) -> Opt
     None
 }
 
-fn handle_confirm_reset(view: &mut SetupView, event: UiEvent, _kind: u8) -> Option<RouteTarget> {
+fn handle_confirm_reset(view: &mut SetupView, event: UiEvent) -> Option<RouteTarget> {
     match event {
         UiEvent::Text(c) if c == 'y' || c == 'Y' => {
-            let _ = _kind;
             view.modal.set(None);
         }
         UiEvent::KeyDown(Key::Escape | Key::Enter) => {
@@ -231,7 +231,7 @@ fn activate_item(view: &mut SetupView, screen: usize, item: usize) {
         (3, 2) => view.modal.set(Some(SetupModal::ConfirmReset(1))),
         (3, 3) => view.modal.set(Some(SetupModal::ConfirmReset(0))),
         (3, 4) => view.save_manager().update_config(|cfg| {
-            *cfg = crate::save::config::Config::default();
+            *cfg = Config::default();
         }),
         _ => {}
     }

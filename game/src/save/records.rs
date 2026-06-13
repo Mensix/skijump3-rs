@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::data::records::RecordStore;
+use crate::save::parse_toml;
 use crate::save::SaveError;
 
 /// TOML wrapper — mirrors save/config.rs and save/players.rs pattern.
@@ -13,7 +14,7 @@ struct RecordsFile {
 
 impl RecordStore {
     pub fn from_toml_bytes(data: &[u8]) -> Result<Self, SaveError> {
-        let file: RecordsFile = crate::save::parse_toml(data)?;
+        let file: RecordsFile = parse_toml(data)?;
         if file.format_version != 1 {
             return Err(SaveError::Serialization(format!(
                 "Unsupported hiscores format_version: {}",

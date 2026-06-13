@@ -1,6 +1,8 @@
 use crate::competition::factory;
+use crate::competition::koth::builder;
 use crate::gfx::palette::{BG_LEFT, BG_RIGHT, BLACK, FILL_DIM, FONT_DEFAULT, FONT_GOLD, FONT_GREET, FONT_HELP};
 use crate::route::RouteTarget;
+use crate::save::config::Config;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::layout::shorten_name;
 use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent};
@@ -30,7 +32,7 @@ pub struct KothSetupView {
 impl KothSetupView {
     pub fn new(resources: ResourcesRef, store: StoreRef) -> Self {
         let pack = resources.save_manager.config.borrow().kothpack;
-        crate::competition::koth::builder::apply_koth_pack(&resources.save_manager, pack as u8);
+        builder::apply_koth_pack(&resources.save_manager, pack as u8);
         Self {
             resources,
             store,
@@ -42,11 +44,11 @@ impl KothSetupView {
         }
     }
 
-    fn config(&self) -> std::cell::Ref<'_, crate::save::config::Config> {
+    fn config(&self) -> std::cell::Ref<'_, Config> {
         self.resources.save_manager.config.borrow()
     }
 
-    fn update_config(&self, f: impl FnOnce(&mut crate::save::config::Config)) {
+    fn update_config(&self, f: impl FnOnce(&mut Config)) {
         self.resources.save_manager.update_config(f);
     }
 
@@ -375,7 +377,7 @@ impl KothSetupView {
 
     fn apply_pack(&self, pack: i32) {
         self.update_config(|cfg| cfg.kothpack = pack);
-        crate::competition::koth::builder::apply_koth_pack(
+        builder::apply_koth_pack(
             &self.resources.save_manager,
             pack as u8,
         );

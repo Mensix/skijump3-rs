@@ -3,7 +3,7 @@ use crate::competition::machine::Competition;
 use crate::competition::runtime::{IndividualJumpContext, IndividualResultsKind};
 use crate::competition::scoring::wc_points_for_rank;
 use crate::competition::types::{CompetitionPhase, CupStyle};
-use crate::gfx::palette::FONT_GREET;
+use crate::gfx::palette::{BLACK, FONT_DEFAULT, FONT_GREET, FONT_HELP};
 use crate::jump::types::JumpPhase;
 use crate::jump::JumpParticipant;
 use crate::jump::JumpPolicy;
@@ -148,9 +148,9 @@ impl WorldCupJumpView {
             RenderMode::Done => {}
             RenderMode::Error => {
                 let msg = self.controller.ui_state().error_message();
-                cx.fill((0, 0, 320, 200), crate::gfx::palette::BLACK);
-                cx.text((20, 80), crate::gfx::palette::FONT_DEFAULT, &msg);
-                cx.text((20, 95), crate::gfx::palette::FONT_HELP, "Press any key to return");
+                cx.fill((0, 0, 320, 200), BLACK);
+                cx.text((20, 80), FONT_DEFAULT, &msg);
+                cx.text((20, 95), FONT_HELP, "Press any key to return");
             }
         }
     }
@@ -284,7 +284,7 @@ impl WorldCupJumpView {
         self.blinker.reset();
         if let Some(command) = self
             .controller
-            .dismiss_results_and_advance(IndividualResultsKind::Results)
+            .dismiss_results_and_advance()
         {
             self.apply_command(command);
         }

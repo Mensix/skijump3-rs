@@ -7,6 +7,7 @@ use crate::views::jump::competition::flow::{
     route_error_back, CompetitionFlowCommand, JumpInputResult,
 };
 use crate::views::jump::team_cup::results as team_cup_results;
+use crate::gfx::palette::{BLACK, FONT_DEFAULT, FONT_HELP};
 use crate::views::jump::competition::ui_state::RenderMode;
 use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent};
 use engine::oxide::Blinker;
@@ -114,9 +115,9 @@ impl TeamCupJumpView {
                 } else {
                     String::new()
                 };
-                cx.fill((0, 0, 320, 200), crate::gfx::palette::BLACK);
-                cx.text((20, 80), crate::gfx::palette::FONT_DEFAULT, &msg);
-                cx.text((20, 95), crate::gfx::palette::FONT_HELP, self.controller.resources().langbase.lstr(15));
+                cx.fill((0, 0, 320, 200), BLACK);
+                cx.text((20, 80), FONT_DEFAULT, &msg);
+                cx.text((20, 95), FONT_HELP, self.controller.resources().langbase.lstr(15));
             }
         }
     }
@@ -161,7 +162,7 @@ impl TeamCupJumpView {
             if matches!(event, UiEvent::KeyDown(_) | UiEvent::Text(_)) {
                 if let Some(cmd) = self
                     .controller
-                    .dismiss_results_and_advance(self.results_kind)
+                    .dismiss_results_and_advance()
                 {
                     self.apply_command(cmd);
                 }

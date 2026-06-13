@@ -154,7 +154,7 @@ impl CompetitionRuntime for KothRuntime {
         self.current_participant_pos += 1;
     }
 
-    fn advance_results_runtime(&mut self, _kind: Self::ResultsKind) {
+    fn advance_results_runtime(&mut self) {
         if self.phase == KothPhase::Complete {
             return;
         }

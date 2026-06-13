@@ -1,11 +1,16 @@
 use crate::competition::koth::types::KothRuntime;
+use crate::competition::machine::Competition;
+use crate::competition::team_cup::types::TeamCupRuntime;
 use crate::competition::team_cup::types::TeamCupStandingsKind;
 use crate::competition::types::{CompetitionPhase, CupStyle, Participant, QualificationStatus};
-use crate::gfx::palette::{FONT_GOLD, FONT_HELP};
+use crate::competition::ActiveCompetition;
+use crate::gfx::palette::{FONT_GOLD, FONT_GREET, FONT_HELP};
+use crate::gfx::sprites::Sprite;
 use crate::jump::hud;
 use crate::jump::types::{JumpPhase, JumpTelemetry};
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::format::format_decimal;
+use crate::text::lang::LangBase;
 use crate::views::jump::competition::ui_state::CompetitionUiState;
 use engine::oxide::PaintCx;
 
@@ -16,7 +21,6 @@ pub struct KothOverlayInfo {
     pub total_count: usize,
     pub last_name: String,
     pub last_points: f64,
-    pub elimination_round: u8,
     pub jump_round: u8,
     pub jump_rounds_per_elimination: u8,
 }
@@ -55,21 +59,21 @@ impl OverlayData {
         let coach_style = active_coach_style(store);
         store
             .with_active(|active| match active {
-                crate::competition::ActiveCompetition::Training => None,
-                crate::competition::ActiveCompetition::Individual(comp) => {
+                ActiveCompetition::Training => None,
+                ActiveCompetition::Individual(comp) => {
                     Some(Self::from_individual(comp, coach_style))
                 }
-                crate::competition::ActiveCompetition::TeamCup(comp) => {
+                ActiveCompetition::TeamCup(comp) => {
                     Some(Self::from_team_cup(comp, coach_style))
                 }
-                crate::competition::ActiveCompetition::Koth(comp) => {
+                ActiveCompetition::Koth(comp) => {
                     Some(Self::from_koth(comp, coach_style))
                 }
             })
             .flatten()
     }
 
-    fn from_individual(c: &crate::competition::machine::Competition, coach_style: u8) -> Self {
+    fn from_individual(c: &Competition, coach_style: u8) -> Self {
         let event_standings = c.event_standings();
         let event_top5 = event_standings
             .iter()
@@ -129,8 +133,8 @@ impl OverlayData {
             (String::new(), 0.0)
         };
         Self {
-            phase: crate::competition::types::CompetitionPhase::Round1,
-            style: crate::competition::types::CupStyle::CustomCup,
+            phase: CompetitionPhase::Round1,
+            style: CupStyle::CustomCup,
             current_event: c.current_elimination_round as usize,
             current_hill: c.hill_idx,
             current_participant: None,
@@ -142,7 +146,6 @@ impl OverlayData {
                 total_count,
                 last_name,
                 last_points,
-                elimination_round: c.current_elimination_round,
                 jump_round: c.current_jump_round,
                 jump_rounds_per_elimination: c.jump_rounds_per_elimination,
             }),
@@ -150,7 +153,7 @@ impl OverlayData {
     }
 
     fn from_team_cup(
-        tc: &crate::competition::team_cup::types::TeamCupRuntime,
+        tc: &TeamCupRuntime,
         coach_style: u8,
     ) -> Self {
         let leg_standings = tc.standings(TeamCupStandingsKind::Leg);
@@ -340,9 +343,6 @@ impl CompetitionOverlay {
 
     /// Pascal `DoCoachCorner`: coach advice panel at bottom-left after jump.
     fn coach_elements(&self, cx: &mut PaintCx<'_>, ctx: &OverlayContext) {
-        use crate::gfx::palette::FONT_GREET;
-        use crate::gfx::sprites::Sprite;
-
         let Some(ref t) = ctx.telemetry else { return };
         let style = ctx.data.coach_style;
         if style == 0 || t.grade == 0 {
@@ -415,7 +415,7 @@ impl CompetitionOverlay {
     /// Look up language string for a value within the given range thresholds.
     fn coach_range(
         &self,
-        lang: &crate::text::lang::LangBase,
+        lang: &LangBase,
         base: usize,
         val: u8,
         thresholds: &[u8],

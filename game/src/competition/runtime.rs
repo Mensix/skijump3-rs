@@ -23,7 +23,7 @@ pub trait CompetitionRuntime {
 
     fn decide_next_runtime(&mut self) -> CompetitionDecision<Self::Context, Self::ResultsKind>;
     fn record_jump_runtime(&mut self, context: &Self::Context, outcome: JumpOutcome);
-    fn advance_results_runtime(&mut self, kind: Self::ResultsKind);
+    fn advance_results_runtime(&mut self);
     fn is_complete_runtime(&self) -> bool;
 
     /// Whether the current jumper is human (needs UI).
@@ -105,12 +105,12 @@ impl CompetitionRuntime for Competition {
         }
     }
 
-    fn record_jump_runtime(&mut self, _context: &Self::Context, outcome: JumpOutcome) {
+    fn record_jump_runtime(&mut self, _: &Self::Context, outcome: JumpOutcome) {
         self.apply_jump_outcome(outcome);
         self.advance();
     }
 
-    fn advance_results_runtime(&mut self, _kind: Self::ResultsKind) {
+    fn advance_results_runtime(&mut self) {
         self.advance();
     }
 

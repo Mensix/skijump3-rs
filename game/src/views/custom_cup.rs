@@ -1,5 +1,5 @@
 use crate::competition::factory;
-use crate::gfx::palette::{FILL_BORDER, FONT_DEFAULT, FONT_GREET, FONT_HEADER, FONT_HELP};
+use crate::gfx::palette::{BG_LEFT, BLACK, FILL_BORDER, FILL_DIM, FONT_DEFAULT, FONT_GREET, FONT_HEADER, FONT_HELP};
 use crate::gfx::sprites;
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
@@ -56,10 +56,10 @@ impl CustomCupSetupView {
     fn paint_content(&self, cx: &mut PaintCx<'_>) {
         let lang = &self.resources.langbase;
         let help_line = format!("{}, {}, {}", lang.lstr(285), lang.lstr(286), lang.lstr(287));
-        cx.fill((0, 0, 320, 200), crate::gfx::palette::BLACK);
-        cx.fill((0, 0, 11, 200), crate::gfx::palette::FILL_DIM);
-        cx.fill((12, 0, 296, 200), crate::gfx::palette::BG_LEFT);
-        cx.fill((309, 0, 11, 200), crate::gfx::palette::FILL_DIM);
+        cx.fill((0, 0, 320, 200), BLACK);
+        cx.fill((0, 0, 11, 200), FILL_DIM);
+        cx.fill((12, 0, 296, 200), BG_LEFT);
+        cx.fill((309, 0, 11, 200), FILL_DIM);
         cx.dither_fill(63);
         cx.sprite(sprites::Sprite::Logo as u16, (30, 8));
         cx.text((68, 8), FONT_DEFAULT, lang.lstr(118));

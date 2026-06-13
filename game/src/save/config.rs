@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+use crate::save::parse_toml;
 use crate::save::SaveError;
 
 /// TOML wrapper to version the file.
@@ -91,7 +92,7 @@ impl Default for Config {
 
 impl Config {
     pub fn from_toml_bytes(data: &[u8]) -> Result<Self, SaveError> {
-        let file: ConfigFile = crate::save::parse_toml(data)?;
+        let file: ConfigFile = parse_toml(data)?;
         if file.format_version != 1 {
             return Err(SaveError::Serialization(format!(
                 "Unsupported config format_version: {}",

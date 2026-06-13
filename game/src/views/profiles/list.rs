@@ -1,6 +1,6 @@
 use crate::components::page_nav::cycle_index;
 use crate::data::profile::Profile;
-use crate::gfx::palette::{suit_color_shade, FILL_DIM, FONT_DEFAULT};
+use crate::gfx::palette::{suit_color_shade, BG_RIGHT, BLACK, FILL_DIM, FONT_DEFAULT, ski_color};
 use crate::route::RouteTarget;
 use crate::save::SaveRef;
 use crate::store::{ResourcesRef, StoreRef};
@@ -172,11 +172,11 @@ impl ProfilesView {
             Mode::ColorSelect { selector, color_x, color_y, color_max, color_suit, .. } => {
                 let value = selector.value();
                 let width = 31i32;
-                cx.fill((*color_x, *color_y, width, 5 + ((*color_max + 1) as i32 * 8)), crate::gfx::palette::BLACK);
-                cx.stroke((*color_x, *color_y, width, 5 + ((*color_max + 1) as i32 * 8)), crate::gfx::palette::BG_RIGHT);
+                cx.fill((*color_x, *color_y, width, 5 + ((*color_max + 1) as i32 * 8)), BLACK);
+                cx.stroke((*color_x, *color_y, width, 5 + ((*color_max + 1) as i32 * 8)), BG_RIGHT);
                 for v in 0..=*color_max {
                     let by = *color_y + 4 + v as i32 * 8;
-                    let fill = if *color_suit { suit_color_shade(v, 0) } else { crate::gfx::palette::ski_color(v) };
+                    let fill = if *color_suit { suit_color_shade(v, 0) } else { ski_color(v) };
                     cx.fill((*color_x + 6, by, 19, 5), fill);
                     if *color_suit {
                         cx.stroke((*color_x + 6, by, 19, 5), suit_color_shade(v, 2));

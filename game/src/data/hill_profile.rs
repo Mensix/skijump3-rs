@@ -249,9 +249,9 @@ impl HillTerrain {
 mod tests {
     use super::*;
 
-    fn test_files() -> crate::files::FileStore {
+    fn test_files() -> FileStore {
         let assets = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets");
-        crate::files::FileStore::new(assets, std::path::PathBuf::from("."))
+        FileStore::new(assets, std::path::PathBuf::from("."))
     }
 
     #[test]

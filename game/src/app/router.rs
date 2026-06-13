@@ -233,9 +233,10 @@ impl RouteRegistry {
             ),
             (
                 RouteTarget::KothHillPicker,
-                self.resources_store(|resources, store| {
-                    Box::new(KothHillPickerView::new(resources, store))
-                }),
+                {
+                    let resources = self.resources.clone();
+                    Box::new(move || Box::new(KothHillPickerView::new(resources.clone())))
+                },
             ),
             (
                 RouteTarget::KothSetup,
@@ -285,7 +286,6 @@ impl RouteRegistry {
 fn welcome_screen(resources: &ResourcesRef, save_manager: SaveRef) -> Box<dyn AppScreen> {
     Box::new(WelcomeScreenView::new(
         resources.langbase.languages.clone(),
-        &resources.langbase,
         save_manager,
     ))
 }

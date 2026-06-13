@@ -3,10 +3,10 @@ use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::views::jump::competition::controller::CompetitionJumpController;
 use crate::views::jump::competition::flow::{
-    route_error_back, CompetitionFlowCommand, JumpInputResult,
+    CompetitionFlowCommand, JumpInputResult,
 };
-
 use crate::views::jump::competition::ui_state::RenderMode;
+use crate::views::jump::koth::results;
 use engine::oxide::{Key, PaintCx, Screen, ScreenEventCx, UiEvent};
 
 pub struct KothJumpView {
@@ -58,7 +58,7 @@ impl KothJumpView {
     fn dismiss_results_and_advance(&mut self) {
         if let Some(command) = self
             .controller
-            .dismiss_results_and_advance(KothResultsKind::Results)
+            .dismiss_results_and_advance()
         {
             self.apply_command(command);
         }
@@ -70,31 +70,24 @@ impl KothJumpView {
                 self.controller.render_jump(cx);
             }
             RenderMode::Results => {
-                crate::views::jump::koth::results::render(
+                results::render(
                     cx,
                     self.controller.resources(),
                     self.controller.store(),
                 );
             }
-            RenderMode::Done | RenderMode::Error => {
-                if self.controller.render_mode() == RenderMode::Error {
-                    let msg = self.controller.ui_state().error_message();
-                    cx.fill((0, 0, 320, 200), crate::gfx::palette::BLACK);
-                    cx.text((20, 80), crate::gfx::palette::FONT_DEFAULT, &msg);
-                    cx.text((20, 95), crate::gfx::palette::FONT_HELP, self.controller.resources().langbase.lstr(15));
-                } // Done: no black screen
+            RenderMode::Done => {
+                results::render(
+                    cx,
+                    self.controller.resources(),
+                    self.controller.store(),
+                );
             }
+            RenderMode::Error => {}
         }
     }
 
     fn handle_input(&mut self, event: UiEvent) -> Option<RouteTarget> {
-        if let Some(route) = route_error_back(self.controller.ui_state(), event) {
-            return Some(route);
-        }
-        if self.controller.render_mode() == RenderMode::Error {
-            return None;
-        }
-
         if self.controller.render_mode() == RenderMode::Done {
             if matches!(event, UiEvent::KeyDown(_) | UiEvent::Text(_)) {
                 return Some(RouteTarget::Back);
@@ -133,7 +126,7 @@ impl Screen<RouteTarget> for KothJumpView {
         // Don't drive competition while showing results or done (prevents blink)
         if !matches!(
             self.controller.render_mode(),
-            RenderMode::Results | RenderMode::Done | RenderMode::Error
+            RenderMode::Results | RenderMode::Done
         ) {
             if let Some(command) = self.controller.drive() {
                 self.apply_command(command);

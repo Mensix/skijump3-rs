@@ -1,10 +1,10 @@
 use crate::competition::koth::types::KothRuntime;
 use crate::gfx::palette::{
-    BG_KOTH, BLACK, FILL_DIM, FILL_HIGHLIGHT, FONT_DEFAULT, FONT_GOLD, FONT_HEADER,
-    FONT_HELP,
+    BG_KOTH, BLACK, FILL_DIM, FILL_HIGHLIGHT, FONT_DEFAULT, FONT_GOLD,
+    FONT_HEADER, FONT_HELP,
 };
 use crate::gfx::sprites;
-use crate::store::ResourcesRef;
+use crate::store::{ResourcesRef, StoreRef};
 use crate::text::format::format_decimal;
 use engine::color::Rgba;
 use engine::oxide::PaintCx;
@@ -21,6 +21,8 @@ const ROW_STEP: i32 = 8;
 const ITEMS_PER_PAGE: usize = 22;
 
 const KOTH_BG: Rgba = BG_KOTH;
+// Pascal kothlista phase=4: computer col3 = setcol3+5 = 251 (dimmed gold)
+const FONT_GOLD_DIM: Rgba = engine::color::Rgba::from_rgb6(52, 47, 0);
 
 fn separator_label(lang: &LangBase, round: u8) -> String {
     let idx = 101 + (round as usize % 5);
@@ -67,7 +69,7 @@ fn build_entries(c: &KothRuntime) -> (Vec<KothEntry>, usize, bool) {
     // Find first eliminated in this round (Pascal: temp = players+1-mcpisteet[0])
     let last_eliminated_pos = idx_sorted.iter().position(|&idx| {
         let p = &c.participants[idx];
-        !p.is_alive() && p.eliminated_in_round == c.current_elimination_round
+        !p.is_alive() && p.eliminated_in_round == c.current_elimination_round + 1
     });
 
     let entries: Vec<KothEntry> = idx_sorted
@@ -118,7 +120,7 @@ fn build_entries(c: &KothRuntime) -> (Vec<KothEntry>, usize, bool) {
 }
 
 /// Render the KOTH results list (Pascal kothlista).
-pub fn render(cx: &mut PaintCx<'_>, resources: &ResourcesRef, store: &crate::store::StoreRef) {
+pub fn render(cx: &mut PaintCx<'_>, resources: &ResourcesRef, store: &StoreRef) {
     store.with_active(|active| {
         let c = active.koth_runtime()?;
         let (entries, remaining, _is_final) = build_entries(c);
@@ -154,21 +156,25 @@ pub fn render(cx: &mut PaintCx<'_>, resources: &ResourcesRef, store: &crate::sto
                 break;
             }
 
-            // Pascal separator before the eliminated player
+            // Pascal separator before the eliminated player (entry with Pos=0, type=3, gold text)
             if entry.separator_before {
                 let label = separator_label(&resources.langbase, c.current_elimination_round);
-                cx.fill((0, y - 2, 320, 10), FILL_DIM);
-                cx.text((COL_NAME, y), FONT_HELP, &label);
+                y += ROW_STEP / 2;
+                if y > 180 {
+                    break;
+                }
+                cx.text((COL_NAME, y), FONT_GOLD, &label);
                 y += ROW_STEP;
                 if y > 180 {
                     break;
                 }
+                y += ROW_STEP / 2;
             }
 
             let (col_name, col_rank, col_extra) = if entry.is_human {
                 (FONT_DEFAULT, FONT_HEADER, FONT_HEADER)
             } else {
-                (FONT_HELP, FILL_HIGHLIGHT, FONT_GOLD)
+                (FONT_HELP, FILL_HIGHLIGHT, FONT_GOLD_DIM)
             };
 
             if entry.rank != last_rank {
@@ -200,8 +206,8 @@ pub fn render(cx: &mut PaintCx<'_>, resources: &ResourcesRef, store: &crate::sto
             }
 
             if entry.is_king {
-                cx.right_text(
-                    (COL_EXTRA + 30, y),
+                cx.text(
+                    (COL_EXTRA, y),
                     col_rank,
                     resources.langbase.lstr(143).to_string(),
                 );

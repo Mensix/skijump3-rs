@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::data::profile::{ProfileStore, MAX_ACTIVE_PROFILES, MAX_PROFILES};
+use crate::save::parse_toml;
 use crate::save::SaveError;
 
 /// TOML wrapper to version the file — mirrors save/config.rs pattern.
@@ -13,7 +14,7 @@ struct ProfilesFile {
 
 impl ProfileStore {
     pub fn from_toml_bytes(data: &[u8]) -> Result<Self, SaveError> {
-        let file: ProfilesFile = crate::save::parse_toml(data)?;
+        let file: ProfilesFile = parse_toml(data)?;
         if file.format_version != 1 {
             return Err(SaveError::Serialization(format!(
                 "Unsupported players format_version: {}",
