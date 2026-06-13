@@ -2,6 +2,7 @@
 *.SKI
 .DS_Store
 .opencode/
+node_modules
 .vscode/
 .agents/
 .cargo/

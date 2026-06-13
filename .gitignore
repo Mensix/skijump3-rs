@@ -1,4 +1,6 @@
 /target
+.opencode/
+node_modules/
 .agents
 skills-lock.json.opencode/
 TEMP.SJR

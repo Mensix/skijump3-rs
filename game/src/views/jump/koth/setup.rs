@@ -5,7 +5,7 @@ use crate::store::{ResourcesRef, StoreRef};
 use crate::text::layout::shorten_name;
 use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent};
 use engine::oxide::input::Key;
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 
 use crate::text::lang::LangBase;
 
@@ -22,7 +22,9 @@ pub struct KothSetupView {
     selected: Cell<usize>,
     mode: Cell<KothMode>,
     pack_cursor: Cell<usize>,
-    opponent_cursor: Cell<usize>,
+    // stack+preview for custom opponents (like CustomCupSetupView)
+    selected_opponents: RefCell<Vec<usize>>,
+    preview_opponent: Cell<usize>,
 }
 
 impl KothSetupView {
@@ -36,7 +38,8 @@ impl KothSetupView {
             selected: Cell::new(initial),
             mode: Cell::new(KothMode::Main),
             pack_cursor: Cell::new(0),
-            opponent_cursor: Cell::new(0),
+            selected_opponents: RefCell::new(Vec::new()),
+            preview_opponent: Cell::new(0),
         }
     }
 
@@ -110,7 +113,7 @@ impl KothSetupView {
         // --- left panel: menu items ---
         cx.text((10, 10), FONT_DEFAULT, format!("1 - {}", lang.lstr(121)));
         cx.text((10, 20), FONT_DEFAULT, format!("2 - {}", lang.lstr(122)));
-        cx.text((10, 30), self.col1(), format!("3 - {}", lang.lstr(123)));
+        cx.text((10, 30), FONT_DEFAULT, format!("3 - {}", lang.lstr(123)));
         cx.text((10, 40), self.col1(), format!("4 - {}", lang.lstr(124)));
         let hill_name = if cfg.kothmaki == 0 {
             lang.lstr(155)
@@ -181,17 +184,26 @@ impl KothSetupView {
             _ => {}
         }
 
-        // Draw opponent row last (after all dither_fill, so row stays solid)
+        // Draw opponent rows — stack + preview (like CustomCupSetupView)
         if self.mode.get() == KothMode::Opponents {
-            if let Some(&idx) = cfg.kothpel.first() {
-                let idx = idx as usize;
-                let name = self.resources.player_names()
-                    .get(idx - 1)
-                    .map(|s| s.as_str())
-                    .unwrap_or("?");
-                cx.fill((178, 33 - 2, 137, 10), BG_LEFT);
-                cx.text((180, 33), FONT_DEFAULT, shorten_name(name, &self.resources.font, 110));
-                cx.right_text((310, 33), FONT_DEFAULT, format!("#{}", idx));
+            let names = self.resources.player_names();
+            let sel = self.selected_opponents.borrow();
+            let prev = self.preview_opponent.get();
+            // selected opponents in gold
+            for (i, &id) in sel.iter().enumerate() {
+                let name = names.get(id - 1).map(|s| s.as_str()).unwrap_or("?");
+                let y = (i as i32 + 1) * 8 + 25;
+                cx.fill((178, y - 2, 137, 10), BG_LEFT);
+                cx.text((180, y), FONT_GOLD, shorten_name(name, &self.resources.font, 110));
+                cx.right_text((310, y), FONT_GOLD, format!("#{}", id));
+            }
+            // preview slot at bottom (white)
+            if sel.len() < 20 {
+                let y = (sel.len() as i32 + 1) * 8 + 25;
+                let name = names.get(prev).map(|s| s.as_str()).unwrap_or("?");
+                cx.fill((178, y - 2, 137, 10), BG_LEFT);
+                cx.text((180, y), FONT_DEFAULT, shorten_name(name, &self.resources.font, 110));
+                cx.right_text((310, y), FONT_DEFAULT, format!("#{}", prev + 1));
             }
         }
     }
@@ -200,7 +212,7 @@ impl KothSetupView {
         match self.mode.get() {
             KothMode::Main => self.handle_main(event),
             KothMode::Packs => self.handle_packs(event),
-            KothMode::Opponents => None,
+            KothMode::Opponents => self.handle_opponents(event),
         }
     }
 }
@@ -278,6 +290,90 @@ impl KothSetupView {
         }
     }
 
+    fn handle_opponents(&mut self, event: UiEvent) -> Option<RouteTarget> {
+        let max_idx = self.resources.player_names().len();
+        match event {
+            UiEvent::KeyDown(Key::Escape) => {
+                self.update_config(|cfg| {
+                    let sel = self.selected_opponents.borrow();
+                    cfg.kothpel = sel.iter().map(|&v| v as i32).collect();
+                    cfg.koth_count = sel.len() as i32;
+                });
+                self.mode.set(KothMode::Main);
+                None
+            }
+            UiEvent::KeyDown(Key::Down) | UiEvent::KeyDown(Key::Enter) | UiEvent::Text(' ') => {
+                let prev_id = self.preview_opponent.get() + 1;
+                let mut sel = self.selected_opponents.borrow_mut();
+                if sel.len() < 20 && !sel.contains(&prev_id) {
+                    sel.push(prev_id);
+                }
+                // advance preview to first unselected after prev_id
+                let mut next = prev_id % max_idx;
+                for _ in 0..max_idx {
+                    if !sel.contains(&(next + 1)) {
+                        self.preview_opponent.set(next);
+                        break;
+                    }
+                    next = (next + 1) % max_idx;
+                }
+                None
+            }
+            UiEvent::KeyDown(Key::Up) | UiEvent::KeyDown(Key::Backspace) => {
+                let popped = self.selected_opponents.borrow_mut().pop();
+                if let Some(id) = popped {
+                    self.preview_opponent.set(id - 1);
+                }
+                None
+            }
+            UiEvent::KeyDown(Key::Left) => {
+                let prev = self.preview_opponent.get();
+                let sel = self.selected_opponents.borrow();
+                let mut next = (prev + max_idx - 1) % max_idx;
+                for _ in 0..max_idx {
+                    if !sel.contains(&(next + 1)) {
+                        self.preview_opponent.set(next);
+                        break;
+                    }
+                    next = (next + max_idx - 1) % max_idx;
+                }
+                None
+            }
+            UiEvent::KeyDown(Key::Right) => {
+                let prev = self.preview_opponent.get();
+                let sel = self.selected_opponents.borrow();
+                let mut next = (prev + 1) % max_idx;
+                for _ in 0..max_idx {
+                    if !sel.contains(&(next + 1)) {
+                        self.preview_opponent.set(next);
+                        break;
+                    }
+                    next = (next + 1) % max_idx;
+                }
+                None
+            }
+            UiEvent::KeyDown(Key::Home) => {
+                self.preview_opponent.set(0);
+                None
+            }
+            UiEvent::KeyDown(Key::End) => {
+                self.preview_opponent.set(max_idx - 1);
+                None
+            }
+            UiEvent::KeyDown(Key::PageUp) => {
+                let prev = self.preview_opponent.get();
+                self.preview_opponent.set(prev.saturating_sub(10));
+                None
+            }
+            UiEvent::KeyDown(Key::PageDown) => {
+                let prev = self.preview_opponent.get();
+                self.preview_opponent.set((prev + 10).min(max_idx - 1));
+                None
+            }
+            _ => None,
+        }
+    }
+
     fn apply_pack(&self, pack: i32) {
         self.update_config(|cfg| cfg.kothpack = pack);
         crate::competition::koth::builder::apply_koth_pack(
@@ -290,13 +386,7 @@ impl KothSetupView {
     fn activate(&self, n: usize) -> Option<RouteTarget> {
         match n {
             0 => Some(RouteTarget::MainMenu),
-            1 => {
-                if self.config().kothpack == 0 {
-                    Some(RouteTarget::KothHillPicker)
-                } else {
-                    self.start_koth()
-                }
-            }
+            1 => self.start_koth(),
             2 => {
                 let cfg = self.config();
                 let pack = cfg.kothpack;
@@ -306,12 +396,14 @@ impl KothSetupView {
                 None
             }
             3 => {
-                self.update_config(|cfg| {
-                    if cfg.kothpack == 0 {
-                        cfg.kothpel = (1..=20).map(|i| i as i32).collect();
-                        cfg.koth_count = 20;
-                    }
-                });
+                self.update_config(|cfg| cfg.kothpack = 0);
+                let cfg = self.config();
+                *self.selected_opponents.borrow_mut() = if cfg.koth_count > 0 {
+                    cfg.kothpel.iter().map(|&v| v as usize).collect()
+                } else {
+                    Vec::new()
+                };
+                self.preview_opponent.set(0);
                 self.mode.set(KothMode::Opponents);
                 None
             }
