@@ -1,6 +1,6 @@
 use crate::competition::koth::types::KothRuntime;
 use crate::gfx::palette::{
-    BG_4HILLS, BLACK, FILL_DIM, FILL_HIGHLIGHT, FILL_TURQUOISE, FONT_DEFAULT, FONT_HEADER,
+    BG_KOTH, BLACK, FILL_DIM, FILL_HIGHLIGHT, FONT_DEFAULT, FONT_GOLD, FONT_HEADER,
     FONT_HELP,
 };
 use crate::gfx::sprites;
@@ -20,7 +20,7 @@ const START_Y: i32 = 23;
 const ROW_STEP: i32 = 8;
 const ITEMS_PER_PAGE: usize = 22;
 
-const KOTH_BG: Rgba = BG_4HILLS;
+const KOTH_BG: Rgba = BG_KOTH;
 
 fn separator_label(lang: &LangBase, round: u8) -> String {
     let idx = 101 + (round as usize % 5);
@@ -41,8 +41,6 @@ pub struct KothEntry {
 
 /// Paginated KOTH results data.
 pub struct KothPage {
-    pub page: usize,
-    pub total_pages: usize,
     pub items: Vec<KothEntry>,
     pub title: String,
 }
@@ -124,8 +122,6 @@ pub fn render(cx: &mut PaintCx<'_>, resources: &ResourcesRef, store: &crate::sto
     store.with_active(|active| {
         let c = active.koth_runtime()?;
         let (entries, remaining, _is_final) = build_entries(c);
-        let total_pages = entries.len().div_ceil(ITEMS_PER_PAGE);
-        let page = 1;
 
         let title = if remaining <= 1 {
             format!("{}!", resources.langbase.lstr(31))
@@ -134,44 +130,28 @@ pub fn render(cx: &mut PaintCx<'_>, resources: &ResourcesRef, store: &crate::sto
         };
 
         let kp = KothPage {
-            page,
-            total_pages,
             items: entries,
             title: title.to_string(),
         };
 
-        // new_screen_with_bg(1, KOTH_BG)
+        // new_screen_with_bg(1, KOTH_BG) — like Hall of Fame
         cx.fill((0, 0, 320, 200), BLACK);
         cx.fill((0, 0, 320, 19), FILL_DIM);
         cx.fill((0, 20, 320, 180), KOTH_BG);
         cx.dither_fill(63);
         cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
+        // Background pattern (Pascal InvBack)
+        cx.sprite(sprites::Sprite::Logo as u16, (160, 100));
 
-        // page_hints
-        if kp.page > 0 {
-            cx.right_text((319, 5), FONT_HELP, format!("(-{}", resources.langbase.lstr(246)));
-        }
-        let hint = if kp.page + 1 == kp.total_pages {
-            resources.langbase.lstr(248)
-        } else {
-            resources.langbase.lstr(247)
-        };
-        cx.right_text((319, 13), FONT_HELP, format!("{}-)", hint));
+        // Pascal-style: just "Done" hint (no prev/next pagination for KOTH)
+        cx.right_text((319, 13), FONT_HELP, format!("{}-)", resources.langbase.lstr(248)));
 
         // Title
         cx.text((30, 6), FONT_DEFAULT, &kp.title);
 
-        // Hint when only 1 page and few entries
-        if kp.total_pages == 1 && kp.items.len() <= 20 {
-            cx.text((30, 190), FONT_HELP, resources.langbase.lstr(86));
-        }
-
-        let start = (kp.page - 1) * ITEMS_PER_PAGE;
-        let end = start + ITEMS_PER_PAGE;
         let mut y = START_Y;
         let mut last_rank = 0usize;
-
-        for entry in kp.items.iter().skip(start).take(end) {
+        for entry in kp.items.iter().take(ITEMS_PER_PAGE) {
             if y > 180 {
                 break;
             }
@@ -190,7 +170,7 @@ pub fn render(cx: &mut PaintCx<'_>, resources: &ResourcesRef, store: &crate::sto
             let (col_name, col_rank, col_extra) = if entry.is_human {
                 (FONT_DEFAULT, FONT_HEADER, FONT_HEADER)
             } else {
-                (FONT_HELP, FILL_HIGHLIGHT, FILL_TURQUOISE)
+                (FONT_HELP, FILL_HIGHLIGHT, FONT_GOLD)
             };
 
             if entry.rank != last_rank {
