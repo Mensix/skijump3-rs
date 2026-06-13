@@ -58,8 +58,11 @@ impl TeamCupJumpView {
                 participant,
                 hill_idx,
                 context,
-                is_new_event: _,
+                is_new_event,
             } => {
+                if is_new_event {
+                    self.controller.store().setup_jump_event();
+                }
                 let phase_label = if context.round_idx == 0 {
                     self.controller.resources().langbase.lstr(54).to_string()
                 } else {
