@@ -22,7 +22,16 @@ impl EditHillView {
 }
 
 impl Screen<RouteTarget> for EditHillView {
-    fn event(&mut self, _cx: &mut ScreenEventCx<RouteTarget>, _event: UiEvent) {}
+    fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
+        let mut ecx = engine::oxide::widget::EventCx::default();
+        match self.menu.event(&mut ecx, event) {
+            Some(0) | Some(12) => cx.navigate(RouteTarget::Back),
+            _ => {}
+        }
+        if ecx.is_consumed() {
+            cx.consume();
+        }
+    }
 
     fn paint(&self, cx: &mut PaintCx<'_>) {
         let xx = 15i32;
