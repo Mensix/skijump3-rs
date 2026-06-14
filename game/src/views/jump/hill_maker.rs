@@ -1,4 +1,4 @@
-use crate::gfx::theme::{BG_LEFT, BLACK, FILL_BORDER, FILL_DIM, FONT_DEFAULT, FONT_GOLD, FONT_HELP};
+use crate::gfx::theme::{BG_LEFT, BLACK, FILL_TURQUOISE, FONT_DEFAULT, FONT_GOLD, FONT_HELP};
 use crate::route::RouteTarget;
 use crate::store::ResourcesRef;
 use crate::text::layout::lstr;
@@ -21,21 +21,34 @@ impl Screen<RouteTarget> for HillMakerView {
         let lb = &*self.resources.langbase;
 
         cx.fill((0, 0, 320, 200), BLACK);
-        cx.pattern_fill((0, 0, 320, 19), FILL_DIM);
-        cx.fill((0, 19, 320, 1), FILL_BORDER);
-        cx.pattern_fill((0, 20, 320, 180), BG_LEFT);
+        cx.pattern_fill((0, 0, 320, 200), BG_LEFT);
 
         cx.text((5, 5), FONT_GOLD, lstr(lb, 270, "SJ3 Hill Maker"));
 
-        cx.text((5, 21), FONT_DEFAULT, lstr(lb, 271, "(use arrows, DEL,"));
-        cx.text((5, 29), FONT_DEFAULT, lstr(lb, 272, " ENTER or ESC)"));
+        cx.text((5, 21), FONT_HELP, lstr(lb, 271, "(use arrows, DEL,"));
+        cx.text((5, 29), FONT_HELP, lstr(lb, 272, " ENTER or ESC)"));
 
-        cx.text((100, 5), FONT_GOLD, lstr(lb, 273, "Filename"));
-        cx.text((160, 5), FONT_GOLD, lstr(lb, 274, "Hillname"));
+        let col1 = 100i32;
+        let col2 = 160i32;
 
-        cx.text((100, 53), FONT_DEFAULT, lstr(lb, 275, "*Add New Hill*"));
+        cx.text((col1, 5), FILL_TURQUOISE, lstr(lb, 273, "Filename"));
+        cx.text((col2, 5), FILL_TURQUOISE, lstr(lb, 274, "Hillname"));
 
-        cx.text((100, 173), FONT_HELP, lstr(lb, 276, "-Exit-"));
+        let mut temp = 0i32;
+
+        temp += 1;
+        cx.text(
+            (col1, 5 + temp * 8),
+            FONT_DEFAULT,
+            lstr(lb, 275, "*Add New Hill*"),
+        );
+
+        temp += 2;
+        cx.text(
+            (col1, 5 + temp * 8),
+            FONT_HELP,
+            lstr(lb, 276, "-Exit-"),
+        );
     }
 
     fn background(&self) -> ScreenBackground {
