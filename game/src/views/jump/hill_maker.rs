@@ -2,15 +2,21 @@ use crate::gfx::theme::{BG_LEFT, BLACK, FONT_DEFAULT, FONT_GOLD, FONT_GREET, FON
 use crate::route::RouteTarget;
 use crate::store::ResourcesRef;
 use crate::text::layout::lstr;
+use engine::oxide::widgets::menu::{MenuItem, PixelMenu};
+use engine::oxide::Widget;
 use engine::oxide::{PaintCx, Screen, ScreenBackground, ScreenEventCx, UiEvent};
 
 pub struct HillMakerView {
     resources: ResourcesRef,
+    menu: PixelMenu,
 }
 
 impl HillMakerView {
     pub fn new(resources: ResourcesRef) -> Self {
-        Self { resources }
+        let items = vec![MenuItem::new(1, lstr(&resources.langbase, 275, "*Add New Hill*"))];
+        let menu = PixelMenu::new(99, 14, 221, 8, items, FONT_DEFAULT, FONT_GOLD)
+            .with_labels(false);
+        Self { resources, menu }
     }
 }
 
@@ -40,21 +46,10 @@ impl Screen<RouteTarget> for HillMakerView {
             format!("{} 1 {} 1", lstr(lb, 157, "Page"), lstr(lb, 8, "of")),
         );
 
-        let mut temp = 0i32;
+        cx.text((col1, 13), FONT_GOLD, lstr(lb, 275, "*Add New Hill*"));
+        self.menu.paint(cx);
 
-        temp += 1;
-        cx.text(
-            (col1, 5 + temp * 8),
-            FONT_DEFAULT,
-            lstr(lb, 275, "*Add New Hill*"),
-        );
-
-        temp += 2;
-        cx.text(
-            (col1, 5 + temp * 8),
-            FONT_HELP,
-            lstr(lb, 276, "-Exit-"),
-        );
+        cx.text((col1, 29), FONT_HELP, lstr(lb, 276, "-Exit-"));
     }
 
     fn background(&self) -> ScreenBackground {
