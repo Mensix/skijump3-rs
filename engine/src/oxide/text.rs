@@ -1,11 +1,21 @@
 use crate::bitmap::{IndexedBitmap, RgbaBitmap};
 use crate::color::Rgba;
 use crate::consts::{FONT_GLYPH_COUNT, HEIGHT, SHADOW_PIXEL, WIDTH};
-use crate::sprite::SpriteData;
+
+/// A single font glyph: raw palette indices (1 byte per pixel), row-major.
+/// Index 0 = transparent, SHADOW_PIXEL = shadow, everything else = text color.
+#[derive(Debug, Clone)]
+pub struct Glyph {
+    pub pixels: Box<[u8]>,
+    pub width: u16,
+    pub height: u16,
+    pub center_x: i8,
+    pub center_y: i8,
+}
 
 #[derive(Debug, Clone)]
 pub struct Font {
-    glyphs: Vec<Option<SpriteData>>,
+    glyphs: Vec<Option<Glyph>>,
 }
 
 struct GlyphPos {
@@ -26,7 +36,7 @@ impl Font {
     }
 
     #[must_use]
-    pub fn from_sprites(sprites: &[SpriteData]) -> Self {
+    pub fn from_sprites(sprites: &[Glyph]) -> Self {
         let mut font = Self::new();
         for (i, sprite) in sprites.iter().enumerate() {
             if i < FONT_GLYPH_COUNT {
@@ -365,28 +375,27 @@ impl Default for Font {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::sprite::SpriteData;
 
     /// Build a minimal font with two glyphs:
     ///   'A' (idx 0): 3×5 solid block of value 1, center=(0,0)
     ///   'B' (idx 1): 2×4 with a `SHADOW_PIXEL`, center=(0,0)
     fn make_font() -> Font {
         let mut sprites = Vec::with_capacity(FONT_GLYPH_COUNT);
-        sprites.resize_with(FONT_GLYPH_COUNT, || SpriteData {
+        sprites.resize_with(FONT_GLYPH_COUNT, || Glyph {
             pixels: [].into(),
             width: 0,
             height: 0,
             center_x: 0,
             center_y: 0,
         });
-        sprites[0] = SpriteData {
+        sprites[0] = Glyph {
             pixels: vec![1; 15].into_boxed_slice(),
             width: 3,
             height: 5,
             center_x: 0,
             center_y: 0,
         };
-        sprites[1] = SpriteData {
+        sprites[1] = Glyph {
             pixels: vec![
                 2,
                 2, // row 0

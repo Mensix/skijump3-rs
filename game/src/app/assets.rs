@@ -4,8 +4,8 @@ use crate::content::ContentStore;
 use crate::files::FileStore;
 use crate::gfx::materials;
 use engine::color::Rgba;
-use engine::consts::{PATTERN_SPRITE, TILE_H, TILE_W};
-use engine::oxide::Font;
+use engine::consts::{FONT_GLYPH_COUNT, PATTERN_SPRITE, TILE_H, TILE_W};
+use engine::oxide::{Font, Glyph};
 use engine::sprite::{BakedSpriteTextures, BaseSprite};
 use engine::video::{Renderer, TextureId};
 
@@ -23,48 +23,80 @@ pub(super) struct LoadedAssets {
 
 pub(super) fn load(files: &FileStore, renderer: &mut Renderer) -> Result<LoadedAssets, String> {
     let content_store = ContentStore::load(files, CONTENT_MANIFEST).map_err(|e| e.to_string())?;
-    let sprites = content_store.sprites.clone();
-    let font = Font::from_sprites(&sprites);
     let main_background = load_background_texture(files, renderer)?;
 
-    // Load indexed PNGs (type 3) — extract palette indices + embedded palette
+    // Load font glyphs from indexed PNGs (indices 0..FONT_GLYPH_COUNT)
+    let mut glyphs: Vec<Glyph> = Vec::new();
+    for idx in 0..FONT_GLYPH_COUNT {
+        let path = format!("{SPRITES_PNG_PREFIX}{idx}.png");
+        let data = files.read(&path).map_err(|e| e.to_string())?;
+        let (indices, _palette, width, height) = decode_indexed_png(&data)?;
+        glyphs.push(Glyph {
+            pixels: indices.into_boxed_slice(),
+            width: width as u16,
+            height: height as u16,
+            center_x: 0,
+            center_y: 0,
+        });
+    }
+    let font = Font::from_sprites(&glyphs);
+
+    // Load center_x/center_y metadata from TOML
+    let centers_raw = files
+        .read("sprites/png/centers.toml")
+        .map_err(|e| e.to_string())?;
+    let centers_val: toml::Value = toml::from_slice(&centers_raw).map_err(|e| e.to_string())?;
+    let centers_map = match &centers_val {
+        toml::Value::Table(t) => t,
+        _ => return Err("centers.toml is not a table".to_string()),
+    };
+
+    // Load base sprites from indexed PNGs + centers
     let mut base_sprites = Vec::new();
-    for (idx, sprite) in sprites.iter().enumerate() {
+    for idx in 0..=176u16 {
         let path = format!("{SPRITES_PNG_PREFIX}{idx}.png");
         let data = match files.read(&path) {
             Ok(d) => d,
             Err(_) => continue,
         };
         let (indices, palette, png_w, png_h) = decode_indexed_png(&data)?;
-        if png_w != u32::from(sprite.width) || png_h != u32::from(sprite.height) {
-            return Err(format!(
-                "Sprite {idx} dimensions mismatch: PNG {png_w}x{png_h} vs SpriteData {}x{}",
-                sprite.width, sprite.height,
-            ));
-        }
+
+        let (cx, cy) = centers_map
+            .get(&idx.to_string())
+            .and_then(|v| v.as_table())
+            .and_then(|t| {
+                Some((
+                    t.get("cx")?.as_integer()? as i8,
+                    t.get("cy")?.as_integer()? as i8,
+                ))
+            })
+            .unwrap_or((0, 0));
+
         base_sprites.push(BaseSprite {
-            sprite_idx: idx as u16,
+            sprite_idx: idx,
             indices,
             palette,
-            width: u32::from(sprite.width),
-            height: u32::from(sprite.height),
-            center_x: sprite.center_x,
-            center_y: sprite.center_y,
+            width: png_w,
+            height: png_h,
+            center_x: cx,
+            center_y: cy,
         });
     }
 
-    // Bake material variants at startup — override palette indices then resolve
+    // Bake material variants at startup
     let baked_sprites = BakedSpriteTextures::bake_with_png(
         renderer,
         &base_sprites,
         &materials::prebaked_sprite_materials(),
     )?;
 
-    let pattern_sprite = sprites
-        .get(PATTERN_SPRITE)
-        .ok_or_else(|| "Pattern sprite 62 not found".to_string())?;
-    let pattern_texture =
-        renderer.create_pattern_texture(&pattern_sprite.pixels, TILE_W, TILE_H)?;
+    // Load pattern sprite 62 from indexed PNG
+    let pattern_path = format!("{SPRITES_PNG_PREFIX}{PATTERN_SPRITE}.png");
+    let pattern_data = files
+        .read(&pattern_path)
+        .map_err(|_| "Pattern sprite 62 not found".to_string())?;
+    let (pattern_indices, _palette, _pw, _ph) = decode_indexed_png(&pattern_data)?;
+    let pattern_texture = renderer.create_pattern_texture(&pattern_indices, TILE_W, TILE_H)?;
 
     Ok(LoadedAssets {
         content_store,
