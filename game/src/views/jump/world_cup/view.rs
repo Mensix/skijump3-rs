@@ -62,14 +62,11 @@ impl WorldCupJumpView {
                     .controller
                     .store()
                     .with_active(|active| {
-                        active
-                            .individual()
-                            .map(|c| {
-                                c.event_standings()
-                                    .first()
-                                    .map_or(false, |s| s.id == participant.id)
-                            })
-                            .unwrap_or(false)
+                        active.individual().map_or(false, |c| {
+                            c.event_standings()
+                                .first()
+                                .map_or(false, |s| s.id == participant.id)
+                        })
                     })
                     .unwrap_or(false);
                 self.controller
