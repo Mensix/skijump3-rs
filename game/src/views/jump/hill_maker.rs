@@ -14,7 +14,7 @@ pub struct HillMakerView {
 impl HillMakerView {
     pub fn new(resources: ResourcesRef) -> Self {
         let items = vec![MenuItem::new(1, lstr(&resources.langbase, 275, "*Add New Hill*"))];
-        let menu = PixelMenu::new(99, 14, 221, 8, items, FONT_DEFAULT, FONT_GOLD)
+        let menu = PixelMenu::new(99, 14, 221, 8, items, FONT_DEFAULT, FONT_DEFAULT)
             .with_labels(false);
         Self { resources, menu }
     }
@@ -49,7 +49,7 @@ impl Screen<RouteTarget> for HillMakerView {
         cx.text((col1, 13), FONT_GOLD, lstr(lb, 275, "*Add New Hill*"));
         self.menu.paint(cx);
 
-        cx.text((col1, 29), FONT_HELP, lstr(lb, 276, "-Exit-"));
+        cx.text((col1, 29), FONT_DEFAULT, lstr(lb, 276, "-Exit-"));
     }
 
     fn background(&self) -> ScreenBackground {
