@@ -44,7 +44,7 @@ impl Game {
             pattern_texture,
         } = assets::load(&files, &mut renderer)?;
         let state = GameState::load(Rc::clone(&files), font.clone(), content_store)?;
-        let start_route = RouteTarget::EditHill;
+        let start_route = RouteTarget::MainMenu;
         let router = create_router(
             state.resources,
             state.store,

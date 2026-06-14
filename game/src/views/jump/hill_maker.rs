@@ -2,6 +2,7 @@ use crate::gfx::theme::{BG_LEFT, BLACK, FONT_DEFAULT, FONT_GOLD, FONT_GREET, FON
 use crate::route::RouteTarget;
 use crate::store::ResourcesRef;
 use crate::text::layout::lstr;
+use engine::oxide::input::Key;
 use engine::oxide::widgets::menu::{MenuItem, PixelMenu};
 use engine::oxide::Widget;
 use engine::oxide::{PaintCx, Screen, ScreenBackground, ScreenEventCx, UiEvent};
@@ -21,7 +22,20 @@ impl HillMakerView {
 }
 
 impl Screen<RouteTarget> for HillMakerView {
-    fn event(&mut self, _cx: &mut ScreenEventCx<RouteTarget>, _event: UiEvent) {}
+    fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
+        if matches!(event, UiEvent::KeyDown(Key::Escape)) {
+            cx.back();
+            return;
+        }
+        let mut ecx = engine::oxide::widget::EventCx::default();
+        match self.menu.event(&mut ecx, event) {
+            Some(1) => cx.navigate(RouteTarget::EditHill),
+            _ => {}
+        }
+        if ecx.is_consumed() {
+            cx.consume();
+        }
+    }
 
     fn paint(&self, cx: &mut PaintCx<'_>) {
         let lb = &*self.resources.langbase;

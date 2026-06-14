@@ -212,7 +212,7 @@ impl Screen<RouteTarget> for EditHillView {
                 if let UiEvent::Text(ch) = event {
                     if ch == 'Y' || ch == 'y' {
                         self.save();
-                        cx.navigate(RouteTarget::Back);
+                        cx.back();
                     } else {
                         self.mode = EditMode::Viewing;
                         self.menu.set_selected(10); // back to FILENAME field
@@ -260,7 +260,7 @@ impl Screen<RouteTarget> for EditHillView {
         match self.menu.event(&mut ecx, event) {
             Some(0) => {
                 if !self.has_changes() {
-                    cx.navigate(RouteTarget::Back);
+                    cx.back();
                 } else {
                     let filename = &self.values[10];
                     if !Self::is_valid_filename(filename) {
@@ -279,11 +279,11 @@ impl Screen<RouteTarget> for EditHillView {
                         };
                     } else {
                         self.save();
-                        cx.navigate(RouteTarget::Back);
+                        cx.back();
                     }
                 }
             }
-            Some(12) => cx.navigate(RouteTarget::Back),
+            Some(12) => cx.back(),
             Some(n @ 1..=11) => {
                 if matches!(event, UiEvent::KeyDown(Key::Enter) | UiEvent::Text(' ')) {
                     self.start_edit(n);
