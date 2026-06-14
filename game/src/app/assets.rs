@@ -41,17 +41,7 @@ pub(super) fn load(files: &FileStore, renderer: &mut Renderer) -> Result<LoadedA
     }
     let font = Font::from_sprites(&glyphs);
 
-    // Load center_x/center_y metadata from TOML
-    let centers_raw = files
-        .read("sprites/png/centers.toml")
-        .map_err(|e| e.to_string())?;
-    let centers_val: toml::Value = toml::from_slice(&centers_raw).map_err(|e| e.to_string())?;
-    let centers_map = match &centers_val {
-        toml::Value::Table(t) => t,
-        _ => return Err("centers.toml is not a table".to_string()),
-    };
-
-    // Load base sprites from indexed PNGs + centers
+    // Load base sprites from indexed PNGs + centers from PNG tEXt chunks
     let mut base_sprites = Vec::new();
     for idx in 0..=176u16 {
         let path = format!("{SPRITES_PNG_PREFIX}{idx}.png");
@@ -60,17 +50,7 @@ pub(super) fn load(files: &FileStore, renderer: &mut Renderer) -> Result<LoadedA
             Err(_) => continue,
         };
         let (indices, palette, png_w, png_h) = decode_indexed_png(&data)?;
-
-        let (cx, cy) = centers_map
-            .get(&idx.to_string())
-            .and_then(|v| v.as_table())
-            .and_then(|t| {
-                Some((
-                    t.get("cx")?.as_integer()? as i8,
-                    t.get("cy")?.as_integer()? as i8,
-                ))
-            })
-            .unwrap_or((0, 0));
+        let (cx, cy) = sprite_center_from_png(&data).unwrap_or((0, 0));
 
         base_sprites.push(BaseSprite {
             sprite_idx: idx,
@@ -105,6 +85,28 @@ pub(super) fn load(files: &FileStore, renderer: &mut Renderer) -> Result<LoadedA
         baked_sprites,
         pattern_texture,
     })
+}
+
+/// Extract center_x/center_y from PNG tEXt chunk with key "cXcY".
+/// Returns `None` if the chunk is not present.
+fn sprite_center_from_png(data: &[u8]) -> Option<(i8, i8)> {
+    let mut pos = 8;
+    while pos + 8 <= data.len() {
+        let chunk_len = u32::from_be_bytes(data[pos..pos + 4].try_into().ok()?) as usize;
+        if pos + 12 + chunk_len > data.len() {
+            break;
+        }
+        let chunk_type = &data[pos + 4..pos + 8];
+        if chunk_type == b"cXcY" {
+            let text = std::str::from_utf8(&data[pos + 8..pos + 8 + chunk_len]).ok()?;
+            let (cx_str, cy_str) = text.split_once(',')?;
+            let cx: i8 = cx_str.trim().parse().ok()?;
+            let cy: i8 = cy_str.trim().parse().ok()?;
+            return Some((cx, cy));
+        }
+        pos += 12 + chunk_len;
+    }
+    None
 }
 
 /// Decode a type-3 (indexed) PNG, returning (palette_indices, [Rgba; 256], width, height).
