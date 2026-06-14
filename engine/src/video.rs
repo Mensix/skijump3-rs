@@ -6,6 +6,7 @@ use std::time::{Duration, Instant};
 
 use crate::color::Rgba;
 use crate::consts::{HEIGHT, TARGET_FPS, WIDTH};
+use crate::oxide::draw::DitherPattern;
 
 mod dither;
 use dither::dither_rect_rgba;
@@ -252,8 +253,8 @@ impl Renderer {
         h: i32,
         color: Rgba,
         is_box: bool,
-        thing: u8,
-        pattern: &[u8],
+        dither_pattern: DitherPattern,
+        pattern_pixels: &[u8],
     ) -> Result<(), String> {
         let bright = Self::brighten_overlay(color);
         let r = bright.r;
@@ -271,8 +272,8 @@ impl Renderer {
             g,
             b,
             is_box,
-            thing,
-            pattern,
+            dither_pattern,
+            pattern_pixels,
         );
         Ok(())
     }

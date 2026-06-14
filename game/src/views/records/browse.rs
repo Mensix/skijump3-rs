@@ -1,7 +1,7 @@
 use crate::data::records::{HillRecord, Hiscore};
 use crate::gfx::sprites;
 use crate::gfx::theme::{
-    BG_KOTH, BG_LEFT, BLACK, DITHER_FILL_COLORS, FILL_DIM, FONT_DEFAULT, FONT_GREET, FONT_HELP,
+    BG_KOTH, BG_LEFT, BLACK, DITHER_OVERLAY_COLORS, FILL_DIM, FONT_DEFAULT, FONT_GREET, FONT_HELP,
     FONT_NEW,
 };
 use crate::route::RouteTarget;
@@ -9,7 +9,7 @@ use crate::store::{ResourcesRef, StoreRef};
 use crate::text::format::{format_decimal, ordinal_dot};
 use crate::text::layout::{is_computer_name, lstr, shorten_name};
 use engine::oxide::input::Key;
-use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent};
+use engine::oxide::{DitherPattern, PaintCx, Screen, ScreenEventCx, UiEvent};
 
 const HALL_PAGES: usize = 3;
 const PAGE_SIZE: usize = 20;
@@ -373,7 +373,7 @@ fn paint_screen(cx: &mut PaintCx<'_>, style: u8, bg: engine::color::Rgba) {
         }
         _ => {}
     }
-    cx.dither_fill(63, DITHER_FILL_COLORS);
+    cx.dither_overlay(DitherPattern::Normal, DITHER_OVERLAY_COLORS);
     match style {
         1 => cx.sprite(sprites::Sprite::Logo as u16, (5, 2)),
         4 => {

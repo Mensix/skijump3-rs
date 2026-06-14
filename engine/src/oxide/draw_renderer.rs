@@ -3,6 +3,7 @@ use std::collections::HashMap;
 
 use crate::color::Rgba;
 use crate::consts::PATTERN_SPRITE;
+use crate::oxide::draw::DitherPattern;
 use crate::oxide::draw::{DrawCommand, SpriteDraw, TextAlign};
 use crate::oxide::Font;
 use crate::palette::Palette;
@@ -12,7 +13,7 @@ use crate::video::{Renderer, TextureId};
 const TEXT_SHADOW: Rgba = Rgba::rgb(0, 0, 0);
 const MAX_CACHE_SIZE: usize = 256;
 
-struct DitherRect {
+struct DitherOverlayRect {
     x: i32,
     y: i32,
     w: i32,
@@ -21,7 +22,7 @@ struct DitherRect {
     is_box: bool,
 }
 
-impl DitherRect {
+impl DitherOverlayRect {
     const fn new(x: i32, y: i32, w: i32, h: i32, color: Rgba, is_box: bool) -> Self {
         Self {
             x,
@@ -34,12 +35,12 @@ impl DitherRect {
     }
 }
 
-struct DitherFillCollector {
-    pending: Vec<DitherRect>,
+struct DitherOverlayCollector {
+    pending: Vec<DitherOverlayRect>,
 }
 
-impl DitherFillCollector {
-    fn new(mut pending: Vec<DitherRect>) -> Self {
+impl DitherOverlayCollector {
+    fn new(mut pending: Vec<DitherOverlayRect>) -> Self {
         pending.clear();
         Self { pending }
     }
@@ -54,17 +55,17 @@ impl DitherFillCollector {
 
     fn track_rect(&mut self, x: i32, y: i32, w: i32, h: i32, color: Rgba, is_box: bool) {
         self.pending
-            .push(DitherRect::new(x, y, w, h, color, is_box));
+            .push(DitherOverlayRect::new(x, y, w, h, color, is_box));
     }
 
-    fn apply_fill_area(
+    fn apply_overlay(
         &mut self,
         renderer: &mut Renderer,
         sprites: &[SpriteData],
-        thing: u8,
+        pattern: DitherPattern,
         colors: &[Rgba],
     ) -> Result<(), String> {
-        if let Some(pattern) = sprites.get(PATTERN_SPRITE) {
+        if let Some(pattern_sprite) = sprites.get(PATTERN_SPRITE) {
             for rect in &self.pending {
                 if !colors.contains(&rect.color) {
                     continue;
@@ -76,8 +77,8 @@ impl DitherFillCollector {
                     rect.h,
                     rect.color,
                     rect.is_box,
-                    thing,
-                    &pattern.pixels,
+                    pattern,
+                    &pattern_sprite.pixels,
                 )?;
             }
         }
@@ -88,7 +89,7 @@ impl DitherFillCollector {
         Ok(())
     }
 
-    fn into_pending(self) -> Vec<DitherRect> {
+    fn into_pending(self) -> Vec<DitherOverlayRect> {
         self.pending
     }
 }
@@ -303,7 +304,7 @@ fn draw_text_texture(renderer: &mut Renderer, entry: &TextCacheEntry) -> Result<
 }
 
 pub struct DrawCommandRenderer {
-    pending_dither_rects: Vec<DitherRect>,
+    pending_dither_rects: Vec<DitherOverlayRect>,
     sprite_texture_cache: SpriteTextureCache,
     text_cache: TextCache,
     frame_counter: u64,
@@ -344,7 +345,7 @@ impl DrawCommandRenderer {
         self.frame_counter = self.frame_counter.wrapping_add(1);
 
         let pending_dither_rects = std::mem::take(&mut self.pending_dither_rects);
-        let mut dither = DitherFillCollector::new(pending_dither_rects);
+        let mut dither = DitherOverlayCollector::new(pending_dither_rects);
 
         for command in commands {
             self.render_command(
@@ -370,7 +371,7 @@ impl DrawCommandRenderer {
         palette: &Palette,
         sprites: &[SpriteData],
         command: &DrawCommand,
-        dither: &mut DitherFillCollector,
+        dither: &mut DitherOverlayCollector,
         frame: u64,
     ) -> Result<(), String> {
         match command {
@@ -382,8 +383,8 @@ impl DrawCommandRenderer {
                 renderer.draw_box(rect.x, rect.y, rect.w, rect.h, *color)?;
                 dither.track_box(rect.x, rect.y, rect.w, rect.h, *color);
             }
-            DrawCommand::DitherFill { thing, colors } => {
-                dither.apply_fill_area(renderer, sprites, *thing, colors)?;
+            DrawCommand::DitherOverlay { pattern, colors } => {
+                dither.apply_overlay(renderer, sprites, *pattern, colors)?;
             }
             DrawCommand::Text(run) => {
                 self.text_cache.draw(

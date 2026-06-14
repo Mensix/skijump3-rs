@@ -1,13 +1,14 @@
 use crate::consts::{TILE_H, TILE_W};
+use crate::oxide::draw::DitherPattern;
 
 /// Write bright RGBA pixels into a full-screen RGBA buffer at pattern-hit
 /// positions within the given rect.  The rect is clipped to
 /// `(0, 0, screen_w, screen_h)`.  Tiling always uses `TILE_W`/`TILE_H`
 /// constants.
 ///
-/// `thing` controls the tile offset: `thing == 64` shifts by (2, 7),
-/// anything else uses (0, 0).  When `is_box` is true only the 1-pixel
-/// border of the rect is processed.
+/// `DitherPattern::Shifted` uses tile offset (2, 7),
+/// `DitherPattern::Normal` uses (0, 0).  When `is_box` is true only the
+/// 1-pixel border of the rect is processed.
 pub(super) fn dither_rect_rgba(
     rgba: &mut [u8],
     screen_w: usize,
@@ -20,10 +21,13 @@ pub(super) fn dither_rect_rgba(
     bright_g: u8,
     bright_b: u8,
     is_box: bool,
-    thing: u8,
-    pattern: &[u8],
+    pattern: DitherPattern,
+    pattern_pixels: &[u8],
 ) {
-    let (shift_x, shift_y) = if thing == 64 { (2, 7) } else { (0, 0) };
+    let (shift_x, shift_y) = match pattern {
+        DitherPattern::Shifted => (2, 7),
+        DitherPattern::Normal => (0, 0),
+    };
     let left = x.max(0) as usize;
     let top = y.max(0) as usize;
     let right = ((x + w).min(screen_w as i32)).max(0) as usize;
@@ -53,7 +57,7 @@ pub(super) fn dither_rect_rgba(
             let ax = ((sx as i32 + shift_x) as usize) % tw;
             let ay = ((sy as i32 + shift_y) as usize) % th;
             let pi = ay * tw + ax;
-            if pi < pattern.len() && pattern[pi] != 0 {
+            if pi < pattern_pixels.len() && pattern_pixels[pi] != 0 {
                 let idx = (sy * screen_w + sx) * 4;
                 if idx + 3 < rgba.len() {
                     rgba[idx] = bright_r;
@@ -70,6 +74,7 @@ pub(super) fn dither_rect_rgba(
 mod tests {
     use super::*;
     use crate::consts::{FILL_BRIGHTEN, SHADOW_PIXEL, TILE_H, TILE_W};
+    use crate::oxide::draw::DitherPattern;
 
     fn make_pattern() -> Vec<u8> {
         let mut d = vec![0u8; (TILE_W * TILE_H) as usize];
@@ -86,7 +91,18 @@ mod tests {
         let bright = SHADOW_PIXEL + 1 + FILL_BRIGHTEN;
 
         dither_rect_rgba(
-            &mut rgba, screen_w, screen_h, 0, 0, 19, 13, bright, bright, bright, false, 63,
+            &mut rgba,
+            screen_w,
+            screen_h,
+            0,
+            0,
+            19,
+            13,
+            bright,
+            bright,
+            bright,
+            false,
+            DitherPattern::Normal,
             &pattern,
         );
 
@@ -101,7 +117,7 @@ mod tests {
     }
 
     #[test]
-    fn dither_rect_thing_64_shift() {
+    fn dither_rect_pattern_shifted() {
         let screen_w = 320usize;
         let screen_h = 200usize;
         let mut rgba = vec![0u8; screen_w * screen_h * 4];
@@ -109,7 +125,18 @@ mod tests {
         let bright = SHADOW_PIXEL + 1 + FILL_BRIGHTEN;
 
         dither_rect_rgba(
-            &mut rgba, screen_w, screen_h, 0, 0, 19, 13, bright, bright, bright, false, 64,
+            &mut rgba,
+            screen_w,
+            screen_h,
+            0,
+            0,
+            19,
+            13,
+            bright,
+            bright,
+            bright,
+            false,
+            DitherPattern::Shifted,
             &pattern,
         );
 
@@ -131,7 +158,18 @@ mod tests {
         let bright = SHADOW_PIXEL + 1 + FILL_BRIGHTEN;
 
         dither_rect_rgba(
-            &mut rgba, screen_w, screen_h, 1, 0, 19, 13, bright, bright, bright, false, 63,
+            &mut rgba,
+            screen_w,
+            screen_h,
+            1,
+            0,
+            19,
+            13,
+            bright,
+            bright,
+            bright,
+            false,
+            DitherPattern::Normal,
             &pattern,
         );
 
@@ -150,7 +188,19 @@ mod tests {
         let bright = 248;
 
         dither_rect_rgba(
-            &mut rgba, screen_w, screen_h, 0, 0, 19, 13, bright, bright, bright, true, 63, &pattern,
+            &mut rgba,
+            screen_w,
+            screen_h,
+            0,
+            0,
+            19,
+            13,
+            bright,
+            bright,
+            bright,
+            true,
+            DitherPattern::Normal,
+            &pattern,
         );
 
         let idx_corner = 0;
@@ -171,7 +221,18 @@ mod tests {
         let bright = 248;
 
         dither_rect_rgba(
-            &mut rgba, screen_w, screen_h, -5, -5, 19, 13, bright, bright, bright, false, 63,
+            &mut rgba,
+            screen_w,
+            screen_h,
+            -5,
+            -5,
+            19,
+            13,
+            bright,
+            bright,
+            bright,
+            false,
+            DitherPattern::Normal,
             &pattern,
         );
 
@@ -192,7 +253,19 @@ mod tests {
         let bright = 248;
 
         dither_rect_rgba(
-            &mut rgba, screen_w, screen_h, 0, 0, 0, 10, bright, bright, bright, false, 63, &pattern,
+            &mut rgba,
+            screen_w,
+            screen_h,
+            0,
+            0,
+            0,
+            10,
+            bright,
+            bright,
+            bright,
+            false,
+            DitherPattern::Normal,
+            &pattern,
         );
         assert!(rgba.iter().all(|&b| b == 0));
     }
@@ -207,7 +280,18 @@ mod tests {
         let bright = 248;
 
         dither_rect_rgba(
-            &mut rgba, screen_w, screen_h, -2, 0, 19, 10, bright, bright, bright, true, 63,
+            &mut rgba,
+            screen_w,
+            screen_h,
+            -2,
+            0,
+            19,
+            10,
+            bright,
+            bright,
+            bright,
+            true,
+            DitherPattern::Normal,
             &pattern,
         );
 
@@ -236,7 +320,18 @@ mod tests {
         let bright = 248;
 
         dither_rect_rgba(
-            &mut rgba, screen_w, screen_h, 0, -5, 10, 19, bright, bright, bright, true, 63,
+            &mut rgba,
+            screen_w,
+            screen_h,
+            0,
+            -5,
+            10,
+            19,
+            bright,
+            bright,
+            bright,
+            true,
+            DitherPattern::Normal,
             &pattern,
         );
 
@@ -261,7 +356,18 @@ mod tests {
         let bright = 248;
 
         dither_rect_rgba(
-            &mut rgba, screen_w, screen_h, -100, 0, 10, 10, bright, bright, bright, false, 63,
+            &mut rgba,
+            screen_w,
+            screen_h,
+            -100,
+            0,
+            10,
+            10,
+            bright,
+            bright,
+            bright,
+            false,
+            DitherPattern::Normal,
             &pattern,
         );
         assert!(rgba.iter().all(|&b| b == 99));
@@ -288,7 +394,7 @@ mod tests {
             bright,
             bright,
             false,
-            63,
+            DitherPattern::Normal,
             &pattern,
         );
 

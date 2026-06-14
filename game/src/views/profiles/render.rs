@@ -1,11 +1,11 @@
 use crate::gfx::jumper_colors::{ski_color, suit_color_shade};
 use crate::gfx::theme::{
-    BG_LEFT, BG_ORDER, BG_RIGHT, BLACK, DITHER_FILL_COLORS, FONT_BACK, FONT_DEFAULT, FONT_HELP,
+    BG_LEFT, BG_ORDER, BG_RIGHT, BLACK, DITHER_OVERLAY_COLORS, FONT_BACK, FONT_DEFAULT, FONT_HELP,
     FONT_NAME, FONT_NEW,
 };
 use crate::text::layout::lstr;
 use crate::views::profiles::format::format_profile_value;
-use engine::oxide::PaintCx;
+use engine::oxide::{DitherPattern, PaintCx};
 
 use super::list::{Mode, ProfilesView};
 
@@ -13,7 +13,7 @@ pub(super) fn draw_screen_base(view: &ProfilesView, cx: &mut PaintCx<'_>) {
     cx.fill((0, 0, 320, 200), BLACK);
     cx.fill((0, 0, 159, 200), BG_LEFT);
     cx.fill((160, 0, 160, 200), BG_RIGHT);
-    cx.dither_fill(63, DITHER_FILL_COLORS);
+    cx.dither_overlay(DitherPattern::Normal, DITHER_OVERLAY_COLORS);
     cx.text(
         (40, 3),
         FONT_HELP,
@@ -67,7 +67,7 @@ pub(super) fn draw_help(view: &ProfilesView, cx: &mut PaintCx<'_>, profile: Opti
     }
 
     cx.fill((1, 175, 158, 25), BG_LEFT);
-    cx.dither_fill(63, DITHER_FILL_COLORS);
+    cx.dither_overlay(DitherPattern::Normal, DITHER_OVERLAY_COLORS);
 
     if let Some(profile) = profile {
         let in_order = store.order_pos(profile).is_some();
@@ -104,7 +104,7 @@ pub(super) fn draw_help(view: &ProfilesView, cx: &mut PaintCx<'_>, profile: Opti
 
 pub(super) fn draw_empty_edit(cx: &mut PaintCx<'_>) {
     cx.fill((166, 4, 154, 195), BG_RIGHT);
-    cx.dither_fill(63, DITHER_FILL_COLORS);
+    cx.dither_overlay(DitherPattern::Normal, DITHER_OVERLAY_COLORS);
 }
 
 pub(super) fn draw_suit_ski(

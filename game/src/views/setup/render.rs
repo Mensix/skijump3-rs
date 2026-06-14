@@ -1,8 +1,9 @@
 use crate::gfx::sprites;
 use crate::gfx::theme::{
-    BG_LEFT, BLACK, DITHER_FILL_COLORS, FILL_BORDER, FILL_DIM, FONT_DEFAULT, FONT_HEADER, FONT_HELP,
+    BG_LEFT, BLACK, DITHER_OVERLAY_COLORS, FILL_BORDER, FILL_DIM, FONT_DEFAULT, FONT_HEADER,
+    FONT_HELP,
 };
-use engine::oxide::PaintCx;
+use engine::oxide::{DitherPattern, PaintCx};
 
 use super::state::{hex_char, wind_place_name, SetupModal};
 use super::view::SetupView;
@@ -90,7 +91,7 @@ fn render_screen(view: &SetupView, cx: &mut PaintCx<'_>) {
     cx.fill((0, 0, 320, 200), BLACK);
     cx.fill((0, 0, 320, 19), FILL_DIM);
     cx.fill((0, 20, 320, 180), BG_LEFT);
-    cx.dither_fill(63, DITHER_FILL_COLORS);
+    cx.dither_overlay(DitherPattern::Normal, DITHER_OVERLAY_COLORS);
     cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
 
     let title_id = match view.screen.get() {

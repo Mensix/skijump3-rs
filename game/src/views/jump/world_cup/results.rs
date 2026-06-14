@@ -3,13 +3,13 @@ use crate::competition::types::{CompetitionPhase, CupStyle, Participant, Qualifi
 
 use crate::gfx::sprites;
 use crate::gfx::theme::{
-    BG_4HILLS, BG_LEFT, BG_RIGHT_BRIGHT, BG_WC, BLACK, DITHER_FILL_COLORS, FILL_DIM,
+    BG_4HILLS, BG_LEFT, BG_RIGHT_BRIGHT, BG_WC, BLACK, DITHER_OVERLAY_COLORS, FILL_DIM,
     FILL_HIGHLIGHT, FILL_TURQUOISE, FONT_DEFAULT, FONT_GREET, FONT_HEADER, FONT_HELP,
 };
 use crate::store::ResourcesRef;
 use crate::text::format::{format_decimal, ordinal_dot};
 use engine::color::Rgba;
-use engine::oxide::PaintCx;
+use engine::oxide::{DitherPattern, PaintCx};
 
 pub const QUALIFICATION_ITEMS_PER_PAGE: usize = 25;
 
@@ -428,7 +428,7 @@ pub fn render_results_page(cx: &mut PaintCx<'_>, page: &ResultsPage, resources: 
     cx.fill((0, 0, 320, 200), BLACK);
     cx.fill((0, 0, 320, 19), FILL_DIM);
     cx.fill((0, 20, 320, 180), bg);
-    cx.dither_fill(63, DITHER_FILL_COLORS);
+    cx.dither_overlay(DitherPattern::Normal, DITHER_OVERLAY_COLORS);
     cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
 
     let prev = resources.langbase.lstr(246);
@@ -542,7 +542,7 @@ pub fn render_stats_page(
         cx.fill((0, 0, 320, 200), BLACK);
         cx.fill((0, 0, 320, 19), FILL_DIM);
         cx.fill((0, 20, 320, 180), bg);
-        cx.dither_fill(63, DITHER_FILL_COLORS);
+        cx.dither_overlay(DitherPattern::Normal, DITHER_OVERLAY_COLORS);
         cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
         return;
     };
@@ -551,7 +551,7 @@ pub fn render_stats_page(
     cx.fill((0, 0, 320, 200), BLACK);
     cx.fill((0, 0, 320, 19), FILL_DIM);
     cx.fill((0, 20, 320, 180), bg);
-    cx.dither_fill(63, DITHER_FILL_COLORS);
+    cx.dither_overlay(DitherPattern::Normal, DITHER_OVERLAY_COLORS);
     cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
 
     cx.text((30, 6), FONT_DEFAULT, resources.langbase.lstr(89));

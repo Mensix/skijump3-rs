@@ -1,12 +1,12 @@
 use crate::gfx::sprites;
 use crate::gfx::theme::{
-    BG_LEFT, BLACK, DITHER_FILL_COLORS, FILL_DIM, FONT_DEFAULT, FONT_GOLD, FONT_GREET,
+    BG_LEFT, BLACK, DITHER_OVERLAY_COLORS, FILL_DIM, FONT_DEFAULT, FONT_GOLD, FONT_GREET,
 };
 use crate::route::RouteTarget;
 use crate::save::SaveRef;
 use engine::oxide::widgets::menu::MenuItem as OxideMenuItem;
 use engine::oxide::widgets::menu::PixelMenu;
-use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent, Widget};
+use engine::oxide::{DitherPattern, PaintCx, Screen, ScreenEventCx, UiEvent, Widget};
 
 pub struct WelcomeScreenView {
     menu: PixelMenu,
@@ -35,7 +35,7 @@ impl WelcomeScreenView {
         cx.fill((0, 0, 51, 200), FILL_DIM);
         cx.fill((52, 0, 216, 200), BG_LEFT);
         cx.fill((269, 0, 51, 200), FILL_DIM);
-        cx.dither_fill(63, DITHER_FILL_COLORS);
+        cx.dither_overlay(DitherPattern::Normal, DITHER_OVERLAY_COLORS);
         cx.sprite(sprites::Sprite::Logo as u16, (80, 6));
         cx.right_text((240, 6), FONT_DEFAULT, "WELCOME!");
         cx.right_text((240, 16), FONT_GOLD, "TERVETULOA!");

@@ -1,14 +1,14 @@
 use crate::competition::koth::types::KothRuntime;
 use crate::gfx::sprites;
 use crate::gfx::theme::{
-    BG_KOTH, BLACK, DITHER_FILL_COLORS, FILL_DIM, FILL_HIGHLIGHT, FONT_DEFAULT, FONT_GOLD,
+    BG_KOTH, BLACK, DITHER_OVERLAY_COLORS, FILL_DIM, FILL_HIGHLIGHT, FONT_DEFAULT, FONT_GOLD,
     FONT_HEADER, FONT_HELP,
 };
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::format::format_decimal;
 use crate::text::lang::LangBase;
 use engine::color::Rgba;
-use engine::oxide::PaintCx;
+use engine::oxide::{DitherPattern, PaintCx};
 
 // Pascal column positions (columnX[1]): rank, name, points, distance, qual, extra
 const COL_RANK: i32 = 24;
@@ -149,7 +149,7 @@ pub fn render(cx: &mut PaintCx<'_>, resources: &ResourcesRef, store: &StoreRef) 
         cx.fill((0, 0, 320, 200), BLACK);
         cx.fill((0, 0, 320, 19), FILL_DIM);
         cx.fill((0, 20, 320, 180), KOTH_BG);
-        cx.dither_fill(63, DITHER_FILL_COLORS);
+        cx.dither_overlay(DitherPattern::Normal, DITHER_OVERLAY_COLORS);
         cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
 
         // Pascal-style: just "Done" hint (no prev/next pagination for KOTH)

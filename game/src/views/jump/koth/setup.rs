@@ -1,7 +1,7 @@
 use crate::competition::factory;
 use crate::competition::koth::builder;
 use crate::gfx::theme::{
-    BG_LEFT, BG_RIGHT, BLACK, DITHER_FILL_COLORS, FILL_DIM, FONT_DEFAULT, FONT_GOLD, FONT_GREET,
+    BG_LEFT, BG_RIGHT, BLACK, DITHER_OVERLAY_COLORS, FILL_DIM, FONT_DEFAULT, FONT_GOLD, FONT_GREET,
     FONT_HELP,
 };
 use crate::route::RouteTarget;
@@ -9,7 +9,7 @@ use crate::save::config::Config;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::layout::shorten_name;
 use engine::oxide::input::Key;
-use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent};
+use engine::oxide::{DitherPattern, PaintCx, Screen, ScreenEventCx, UiEvent};
 use std::cell::{Cell, RefCell};
 
 use crate::text::lang::LangBase;
@@ -78,13 +78,13 @@ impl KothSetupView {
         cx.fill((0, 0, 169, 99), FILL_DIM);
         cx.fill((0, 100, 169, 100), BG_RIGHT);
         cx.fill((170, 0, 150, 200), BG_LEFT);
-        cx.dither_fill(63, DITHER_FILL_COLORS);
+        cx.dither_overlay(DitherPattern::Normal, DITHER_OVERLAY_COLORS);
         let lang = &self.resources.langbase;
         let cfg = self.config();
 
         if self.mode.get() == KothMode::Opponents {
             cx.fill((170, 0, 150, 200), BG_LEFT);
-            cx.dither_fill(63, DITHER_FILL_COLORS);
+            cx.dither_overlay(DitherPattern::Normal, DITHER_OVERLAY_COLORS);
             cx.text((180, 2), FONT_DEFAULT, lang.lstr(138));
             cx.text((180, 9), FONT_HELP, lang.lstr(139));
             cx.text((180, 16), FONT_HELP, lang.lstr(140));
@@ -112,7 +112,7 @@ impl KothSetupView {
 
         // --- left panel: menu background (Pascal MakeMenu bgcolor=245) ---
         cx.fill((4, 7, 160, 63), FILL_DIM);
-        cx.dither_fill(63, DITHER_FILL_COLORS);
+        cx.dither_overlay(DitherPattern::Normal, DITHER_OVERLAY_COLORS);
 
         // --- left panel: menu items ---
         cx.text((10, 10), FONT_DEFAULT, format!("1 - {}", lang.lstr(121)));

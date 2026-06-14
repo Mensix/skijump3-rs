@@ -1,4 +1,5 @@
 use crate::color::Rgba;
+use crate::oxide::draw::DitherPattern;
 use crate::oxide::input::{Key, UiEvent};
 use crate::oxide::paint::PaintCx;
 use crate::oxide::widget::{EventCx, Widget};
@@ -84,7 +85,7 @@ impl Widget for ConfirmDialog {
         cx.fill((self.x, self.y, self.w, self.h), self.border);
         cx.fill((self.x + 1, self.y + 1, self.w - 2, self.h - 2), self.bg);
         if self.dither {
-            cx.dither_fill(63, [self.bg]);
+            cx.dither_overlay(DitherPattern::Normal, [self.bg]);
         }
         cx.text((self.x + 8, self.y + 8), self.fg, &self.message);
         if let Some(sub) = &self.subtitle {

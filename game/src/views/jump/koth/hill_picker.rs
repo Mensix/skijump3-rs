@@ -1,6 +1,6 @@
 use crate::gfx::sprites;
 use crate::gfx::theme::{
-    BG_LEFT, BLACK, DITHER_FILL_COLORS, FILL_DIM, FONT_DEFAULT, FONT_GOLD, FONT_GREET,
+    BG_LEFT, BLACK, DITHER_OVERLAY_COLORS, FILL_DIM, FONT_DEFAULT, FONT_GOLD, FONT_GREET,
 };
 use crate::route::RouteTarget;
 use crate::store::ResourcesRef;
@@ -8,7 +8,7 @@ use crate::text::format;
 use engine::oxide::input::Key;
 use engine::oxide::widget::EventCx;
 use engine::oxide::widgets::menu::{MenuItem as OxideMenuItem, PixelMenu};
-use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent, Widget};
+use engine::oxide::{DitherPattern, PaintCx, Screen, ScreenEventCx, UiEvent, Widget};
 
 pub struct KothHillPickerView {
     resources: ResourcesRef,
@@ -141,7 +141,7 @@ impl Screen<RouteTarget> for KothHillPickerView {
         cx.fill((0, 0, 11, 200), FILL_DIM);
         cx.fill((12, 0, 296, 200), BG_LEFT);
         cx.fill((309, 0, 11, 200), FILL_DIM);
-        cx.dither_fill(63, DITHER_FILL_COLORS);
+        cx.dither_overlay(DitherPattern::Normal, DITHER_OVERLAY_COLORS);
         cx.sprite(sprites::Sprite::Logo as u16, (30, 8));
         cx.text((30, 31), FONT_DEFAULT, self.resources.langbase.lstr(151));
         cx.text((30, 41), FONT_DEFAULT, self.resources.langbase.lstr(152));
