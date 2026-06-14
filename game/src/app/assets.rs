@@ -36,6 +36,15 @@ pub(super) fn load(files: &FileStore, renderer: &mut Renderer) -> Result<LoadedA
             Err(_) => continue,
         };
         let (indices, palette) = decode_indexed_png(&data)?;
+        let png_w = (indices.len() as f64 / f64::from(sprite.height)).round() as u32;
+        if png_w != u32::from(sprite.width) || indices.len() != (sprite.width * sprite.height) as usize {
+            return Err(format!(
+                "Sprite {idx} dimensions mismatch: PNG {} indices (w={png_w}) vs SpriteData {}x{}",
+                indices.len(),
+                sprite.width,
+                sprite.height,
+            ));
+        }
         base_sprites.push(BaseSprite {
             sprite_idx: idx as u16,
             indices,
@@ -95,8 +104,20 @@ fn decode_indexed_png(data: &[u8]) -> Result<(Vec<u8>, [Rgba; 256]), String> {
     }
 
     let out_len = info.raw_bytes();
+    let width = info.width as usize;
+    let height = info.height as usize;
     let mut buf = vec![0u8; out_len];
     reader.next_frame(&mut buf).map_err(|e| e.to_string())?;
+
+    if buf.len() != width * height {
+        return Err(format!(
+            "indexed PNG size mismatch: raw_bytes={} but expected {} ({}x{})",
+            buf.len(),
+            width * height,
+            width,
+            height,
+        ));
+    }
 
     Ok((buf, palette))
 }
