@@ -1,15 +1,23 @@
 use crate::gfx::theme::{BG_LEFT, BLACK, FONT_DEFAULT, FONT_GOLD, FONT_HELP};
 use crate::route::RouteTarget;
 use crate::store::ResourcesRef;
+use engine::oxide::widgets::menu::{MenuItem, PixelMenu};
+use engine::oxide::Widget;
 use engine::oxide::{PaintCx, Screen, ScreenBackground, ScreenEventCx, UiEvent};
 
 pub struct EditHillView {
     resources: ResourcesRef,
+    menu: PixelMenu,
 }
 
 impl EditHillView {
     pub fn new(resources: ResourcesRef) -> Self {
-        Self { resources }
+        let items = (1..=12)
+            .map(|n| MenuItem::new(n, ""))
+            .collect();
+        let menu = PixelMenu::new(10, 8, 110, 13, items, FONT_DEFAULT, FONT_DEFAULT)
+            .with_labels(false);
+        Self { resources, menu }
     }
 }
 
@@ -88,6 +96,8 @@ impl Screen<RouteTarget> for EditHillView {
         }
 
         cx.text((xx, 179), FONT_GOLD, "0. EXIT and SAVE");
+
+        self.menu.paint(cx);
     }
 
     fn background(&self) -> ScreenBackground {

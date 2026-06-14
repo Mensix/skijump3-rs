@@ -143,7 +143,6 @@ impl Widget for PixelMenu {
     type Message = usize;
 
     fn event(&mut self, cx: &mut EventCx, event: UiEvent) -> Option<Self::Message> {
-        let total = self.total_items();
         let msg = match event {
             UiEvent::KeyDown(Key::Up) => {
                 self.move_up();
@@ -170,20 +169,6 @@ impl Widget for PixelMenu {
                 }
                 cx.consume();
                 None
-            }
-            UiEvent::Text(c) if c.is_ascii_digit() => {
-                let n = c.to_digit(10).map_or(0, |d| d as usize);
-                if n >= 1 && n <= total {
-                    self.selected = n - 1;
-                    Some(n)
-                } else if n == 0 {
-                    if self.exit_label.is_some() {
-                        self.selected = self.items.len();
-                    }
-                    Some(0)
-                } else {
-                    None
-                }
             }
             UiEvent::KeyDown(Key::Escape) => Some(0),
             _ => None,
