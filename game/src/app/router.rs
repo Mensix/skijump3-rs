@@ -3,9 +3,9 @@ use crate::route::RouteTarget;
 use crate::save::SaveRef;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::views::{
-    CompetitionJumpView, CustomCupSetupView, HallOfFameView, HillRecordsView, JumpMenuView,
-    KothHillPickerView, KothSetupView, MainMenuView, ProfilesView, ReplayBrowserView, ReplayView,
-    SetupView, TrainingSetupView, WelcomeScreenView,
+    CompetitionJumpView, CustomCupSetupView, HallOfFameView, HillMakerView, HillRecordsView,
+    JumpMenuView, KothHillPickerView, KothSetupView, MainMenuView, ProfilesView,
+    ReplayBrowserView, ReplayView, SetupView, TrainingSetupView, WelcomeScreenView,
 };
 use engine::oxide::{NavAction, PaintCx, Screen, ScreenBackground, ScreenEventCx, UiEvent};
 use std::rc::Rc;
@@ -239,6 +239,10 @@ impl RouteRegistry {
                     Box::new(KothSetupView::new(resources, store))
                 }),
             ),
+            (RouteTarget::HillMakerSetup, {
+                let resources = self.resources.clone();
+                Box::new(move || Box::new(HillMakerView::new(resources.clone())))
+            }),
             (
                 RouteTarget::Quit,
                 self.layout_store(|layout, store| Box::new(MainMenuView::new(layout, store))),

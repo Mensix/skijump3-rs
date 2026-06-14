@@ -16,5 +16,6 @@ pub enum RouteTarget {
     ProfilesList,
     KothSetup,
     KothHillPicker,
+    HillMakerSetup,
     Back,
 }
