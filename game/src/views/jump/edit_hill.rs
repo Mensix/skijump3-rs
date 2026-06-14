@@ -234,9 +234,9 @@ impl Screen<RouteTarget> for EditHillView {
                 input.paint(cx);
             }
             EditMode::Alert { message, subtitle, .. } => {
-                cx.fill((59, 79, 202, 53), BLACK);
-                cx.fill((60, 80, 200, 51), BG_LEFT);
-                cx.pattern_fill((60, 80, 200, 51), BG_LEFT);
+                cx.fill((59, 79, 203, 54), BLACK);
+                cx.fill((60, 80, 201, 52), BG_LEFT);
+                cx.pattern_fill((60, 80, 201, 52), BG_LEFT);
                 cx.text((80, 90), FONT_GOLD, message);
                 cx.text((80, 100), FONT_GOLD, subtitle);
                 cx.text((80, 115), FONT_HELP, "[press any key]");
