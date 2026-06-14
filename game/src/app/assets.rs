@@ -87,8 +87,9 @@ pub(super) fn load(files: &FileStore, renderer: &mut Renderer) -> Result<LoadedA
     })
 }
 
-/// Extract center_x/center_y from PNG tEXt chunk with key "cXcY".
-/// Returns `None` if the chunk is not present.
+/// Extract center_x/center_y from a PNG tEXt chunk with keyword "cXcY".
+/// The chunk data layout is: keyword (null-terminated Latin-1) + value text.
+/// Returns `None` if no such chunk exists.
 fn sprite_center_from_png(data: &[u8]) -> Option<(i8, i8)> {
     let mut pos = 8;
     while pos + 8 <= data.len() {
@@ -97,12 +98,19 @@ fn sprite_center_from_png(data: &[u8]) -> Option<(i8, i8)> {
             break;
         }
         let chunk_type = &data[pos + 4..pos + 8];
-        if chunk_type == b"cXcY" {
-            let text = std::str::from_utf8(&data[pos + 8..pos + 8 + chunk_len]).ok()?;
-            let (cx_str, cy_str) = text.split_once(',')?;
-            let cx: i8 = cx_str.trim().parse().ok()?;
-            let cy: i8 = cy_str.trim().parse().ok()?;
-            return Some((cx, cy));
+        if chunk_type == b"tEXt" {
+            let chunk_data = &data[pos + 8..pos + 8 + chunk_len];
+            // Find null terminator separating keyword from value
+            if let Some(null_at) = chunk_data.iter().position(|&b| b == 0) {
+                let keyword = std::str::from_utf8(&chunk_data[..null_at]).ok()?;
+                if keyword == "cXcY" {
+                    let value = std::str::from_utf8(&chunk_data[null_at + 1..]).ok()?;
+                    let (cx_str, cy_str) = value.split_once(',')?;
+                    let cx: i8 = cx_str.trim().parse().ok()?;
+                    let cy: i8 = cy_str.trim().parse().ok()?;
+                    return Some((cx, cy));
+                }
+            }
         }
         pos += 12 + chunk_len;
     }
