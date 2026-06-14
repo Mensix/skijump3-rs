@@ -1,4 +1,5 @@
-use crate::gfx::theme::{BG_LEFT, BLACK, FONT_DEFAULT, FONT_GOLD, FONT_HELP};
+use crate::gfx::theme::{BG_LEFT, BG_RIGHT, BLACK, FONT_DEFAULT, FONT_GOLD, FONT_HELP};
+use engine::oxide::Blinker;
 use crate::route::RouteTarget;
 use crate::store::ResourcesRef;
 use engine::oxide::input::Key;
@@ -19,6 +20,7 @@ pub struct EditHillView {
     menu: PixelMenu,
     mode: EditMode,
     values: [String; 12],
+    blinker: Blinker,
 }
 
 impl EditHillView {
@@ -48,6 +50,7 @@ impl EditHillView {
             menu,
             mode: EditMode::Viewing,
             values,
+            blinker: Blinker::new(),
         }
     }
 
@@ -246,13 +249,17 @@ impl Screen<RouteTarget> for EditHillView {
             EditMode::Editing { input, .. } => {
                 input.paint(cx);
             }
-            EditMode::Alert { message, subtitle, .. } => {
+            EditMode::Alert { ref message, ref subtitle, .. } => {
                 cx.fill((59, 79, 203, 54), BLACK);
-                cx.fill((60, 80, 201, 52), BG_LEFT);
-                cx.pattern_fill((60, 80, 201, 52), BG_LEFT);
+                cx.fill((60, 80, 201, 52), BG_RIGHT);
+                cx.pattern_fill((60, 80, 201, 52), BG_RIGHT);
                 cx.text((80, 90), FONT_GOLD, message);
                 cx.text((80, 100), FONT_GOLD, subtitle);
-                cx.text((80, 115), FONT_HELP, "[press any key]");
+                cx.text((190, 110), FONT_DEFAULT, self.resources.langbase.lstr(15));
+                if self.blinker.visible(11, 10) {
+                    let cx_pos = 190 + self.resources.font.string_width(&self.resources.langbase.lstr(15)) as i32;
+                    cx.fill((cx_pos + 1, 110 + 6, 5, 1), FONT_DEFAULT);
+                }
             }
             EditMode::Viewing => {}
         }
