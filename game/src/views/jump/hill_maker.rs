@@ -1,4 +1,4 @@
-use crate::gfx::theme::{BG_LEFT, BLACK, FILL_TURQUOISE, FONT_DEFAULT, FONT_GOLD, FONT_HELP};
+use crate::gfx::theme::{BG_LEFT, BLACK, FONT_DEFAULT, FONT_GOLD, FONT_GREET, FONT_HELP};
 use crate::route::RouteTarget;
 use crate::store::ResourcesRef;
 use crate::text::layout::lstr;
@@ -31,12 +31,12 @@ impl Screen<RouteTarget> for HillMakerView {
         let col1 = 100i32;
         let col2 = 160i32;
 
-        cx.text((col1, 5), FILL_TURQUOISE, lstr(lb, 273, "Filename"));
-        cx.text((col2, 5), FILL_TURQUOISE, lstr(lb, 274, "Hillname"));
+        cx.text((col1, 5), FONT_GREET, lstr(lb, 273, "Filename"));
+        cx.text((col2, 5), FONT_GREET, lstr(lb, 274, "Hillname"));
 
         cx.text(
             (5, 45),
-            FILL_TURQUOISE,
+            FONT_GREET,
             format!("{} 1 {} 1", lstr(lb, 157, "Page"), lstr(lb, 8, "of")),
         );
 
