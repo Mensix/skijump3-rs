@@ -1,13 +1,23 @@
 use crate::gfx::theme::{BG_LEFT, BLACK, FONT_DEFAULT, FONT_GOLD, FONT_HELP};
 use crate::route::RouteTarget;
 use crate::store::ResourcesRef;
+use engine::oxide::input::Key;
 use engine::oxide::widgets::menu::{MenuItem, PixelMenu};
+use engine::oxide::widgets::text_input::{TextInput, TextInputMessage};
 use engine::oxide::Widget;
 use engine::oxide::{PaintCx, Screen, ScreenBackground, ScreenEventCx, UiEvent};
+
+#[derive(Debug)]
+enum EditMode {
+    Viewing,
+    Editing(TextInput),
+}
 
 pub struct EditHillView {
     resources: ResourcesRef,
     menu: PixelMenu,
+    mode: EditMode,
+    values: [String; 12],
 }
 
 impl EditHillView {
@@ -18,15 +28,87 @@ impl EditHillView {
         let menu = PixelMenu::new(10, 8, 110, 13, items, FONT_DEFAULT, FONT_DEFAULT)
             .with_labels(false)
             .with_exit("", 13);
-        Self { resources, menu }
+        let values = [
+            "Default".into(),
+            "120".into(),
+            "1".into(),
+            "0".into(),
+            "100".into(),
+            "0".into(),
+            "100".into(),
+            "100".into(),
+            "6".into(),
+            "Unknown".into(),
+            "NEW1".into(),
+            "".into(),
+        ];
+        Self {
+            resources,
+            menu,
+            mode: EditMode::Viewing,
+            values,
+        }
+    }
+
+    fn start_edit(&mut self, field: usize) {
+        let yy = 10 + ((field - 1) * 13) as i32;
+        let value = self.values[field - 1].clone();
+        let input = TextInput::new(
+            120,
+            yy,
+            150,
+            value,
+            130,
+            BLACK,
+            FONT_GOLD,
+            FONT_DEFAULT,
+            self.resources.font.clone(),
+        );
+        self.mode = EditMode::Editing(input);
+    }
+
+    fn commit_edit(&mut self, value: String) {
+        let field = self.menu.selected() + 1;
+        self.values[field - 1] = value;
+        self.mode = EditMode::Viewing;
+    }
+
+    fn cancel_edit(&mut self) {
+        self.mode = EditMode::Viewing;
     }
 }
 
 impl Screen<RouteTarget> for EditHillView {
     fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
+        match &mut self.mode {
+            EditMode::Editing(input) => {
+                let mut ecx = engine::oxide::widget::EventCx::default();
+                match input.event(&mut ecx, event) {
+                    Some(TextInputMessage::Commit(value)) => {
+                        self.commit_edit(value);
+                    }
+                    Some(TextInputMessage::Cancel) => {
+                        self.cancel_edit();
+                    }
+                    None => {}
+                }
+                if ecx.is_consumed() {
+                    cx.consume();
+                }
+                return;
+            }
+            EditMode::Viewing => {}
+        }
+
         let mut ecx = engine::oxide::widget::EventCx::default();
         match self.menu.event(&mut ecx, event) {
-            Some(0) | Some(12) => cx.navigate(RouteTarget::Back),
+            Some(0) => cx.navigate(RouteTarget::Back),
+            Some(12) => cx.navigate(RouteTarget::Back),
+            Some(n @ 1..=11) => {
+                if matches!(event, UiEvent::KeyDown(Key::Enter) | UiEvent::Text(' ')) {
+                    self.start_edit(n);
+                }
+            }
             _ => {}
         }
         if ecx.is_consumed() {
@@ -71,21 +153,6 @@ impl Screen<RouteTarget> for EditHillView {
             "",
         ];
 
-        let values = [
-            "Default",
-            "120",
-            "1",
-            "0",
-            "100",
-            "0",
-            "100",
-            "100",
-            "6",
-            "Unknown",
-            "NEW1",
-            "",
-        ];
-
         for temp in 1..=12 {
             let yy = 10 + ((temp - 1) * 13) as i32;
             let label = if temp < 12 {
@@ -100,12 +167,19 @@ impl Screen<RouteTarget> for EditHillView {
                 cx.text((xx2 + 40, yy), FONT_HELP, descriptions[temp - 1]);
             }
 
-            if !values[temp - 1].is_empty() {
-                cx.text((xx2, yy), FONT_GOLD, values[temp - 1]);
+            if !self.values[temp - 1].is_empty() {
+                cx.text((xx2, yy), FONT_GOLD, &self.values[temp - 1]);
             }
         }
 
         cx.text((xx, 179), FONT_GOLD, "0. EXIT and SAVE");
+
+        match &self.mode {
+            EditMode::Editing(input) => {
+                input.paint(cx);
+            }
+            EditMode::Viewing => {}
+        }
 
         self.menu.paint(cx);
     }
