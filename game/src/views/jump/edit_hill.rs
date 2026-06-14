@@ -83,7 +83,20 @@ impl EditHillView {
         match field {
             2 => Self::validate_int(&mut value, 40, 300),
             3 | 4 => {
-                if !value.chars().all(|c| c.is_ascii_alphanumeric()) {
+                if value.is_empty() || !value.chars().all(|c| c.is_ascii_alphanumeric()) {
+                    return;
+                }
+                let prefix = if field == 3 { "front" } else { "back" };
+                let path = format!("hills/generated/HILL{value}/{prefix}_visual.png");
+                if self.resources.files.read(&path).is_err() {
+                    let label = if field == 3 { "FRONT" } else { "BACK" };
+                    let old = self.values[field - 1].clone();
+                    self.mode = EditMode::Alert {
+                        field,
+                        old_value: old,
+                        message: format!("INVALID {label} INDEX VALUE."),
+                        subtitle: format!("FILE HILL{value}/{prefix}_visual.png DOESN'T EXIST."),
+                    };
                     return;
                 }
             }
