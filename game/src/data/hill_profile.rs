@@ -1,6 +1,6 @@
 use crate::error::AssetError;
 use crate::files::FileStore;
-use crate::gfx::png::{load_grayscale_png, load_png};
+use crate::gfx::png::load_png;
 use serde::Deserialize;
 use std::rc::Rc;
 
@@ -8,8 +8,6 @@ pub const HILL_PROFILE_LEN: usize = 1300;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HillTerrain {
-    front_pixels: Rc<[u8]>,
-    back_pixels: Rc<[u8]>,
     front_visual: Rc<[u8]>,
     back_visual: Rc<[u8]>,
     pub width: u16,
@@ -58,19 +56,11 @@ impl HillTerrain {
             ));
         }
 
-        let front_mask_raw = files
-            .read(&format!("{dir}front_mask.png"))
-            .map_err(|e| AssetError::io(format!("{dir}front_mask.png"), e))?;
-        let front_mask = load_grayscale_png(&front_mask_raw)?;
         let front_visual_raw = files
             .read(&format!("{dir}front_visual.png"))
             .map_err(|e| AssetError::io(format!("{dir}front_visual.png"), e))?;
         let front_visual = load_png(&front_visual_raw)?;
 
-        let back_mask_raw = files
-            .read(&format!("{dir}back_mask.png"))
-            .map_err(|e| AssetError::io(format!("{dir}back_mask.png"), e))?;
-        let back_mask = load_grayscale_png(&back_mask_raw)?;
         let back_visual_raw = files
             .read(&format!("{dir}back_visual.png"))
             .map_err(|e| AssetError::io(format!("{dir}back_visual.png"), e))?;
@@ -81,19 +71,9 @@ impl HillTerrain {
         let bw = meta.back_width as usize;
         let bh = meta.back_height as usize;
 
-        if front_mask.width as usize != w || front_mask.height as usize != h {
-            return Err(AssetError::Custom(format!(
-                "Hill {hill_idx}: front mask dimensions mismatch (expected {w}x{h})"
-            )));
-        }
         if front_visual.width as usize != w || front_visual.height as usize != h {
             return Err(AssetError::Custom(format!(
                 "Hill {hill_idx}: front visual dimensions mismatch (expected {w}x{h})"
-            )));
-        }
-        if back_mask.width as usize != bw || back_mask.height as usize != bh {
-            return Err(AssetError::Custom(format!(
-                "Hill {hill_idx}: back mask dimensions mismatch (expected {bw}x{bh})"
             )));
         }
         if back_visual.width as usize != bw || back_visual.height as usize != bh {
@@ -117,12 +97,7 @@ impl HillTerrain {
             )));
         }
 
-        let front_mask_pixels = front_mask.pixels;
-        let back_mask_pixels = back_mask.pixels;
-
         Ok(Self {
-            front_pixels: front_mask_pixels.into(),
-            back_pixels: back_mask_pixels.into(),
             front_visual: front_visual.pixels.into(),
             back_visual: back_visual.pixels.into(),
             width: meta.width,
@@ -169,11 +144,10 @@ impl HillTerrain {
                     let sx = back_x as usize;
                     let sy = back_y as usize;
                     if sx < back_w && sy < self.back_height as usize {
-                        let src_idx = sy * back_w + sx;
-                        let pixel = self.back_pixels.get(src_idx).copied().unwrap_or(0);
+                        let rgba_src_offset = (sy * back_w + sx) * 4;
+                        let pixel = self.back_visual[rgba_src_offset + 3];
                         if pixel != 0 {
                             mask[out_idx] = pixel;
-                            let rgba_src_offset = src_idx * 4;
                             let rgba_dst = &mut rgba[out_idx * 4..out_idx * 4 + 4];
                             rgba_dst.copy_from_slice(
                                 &self.back_visual[rgba_src_offset..rgba_src_offset + 4],
@@ -201,11 +175,10 @@ impl HillTerrain {
                 if front_in_line {
                     let sy = front_y as usize;
                     let sx = front_x as usize;
-                    let src_idx = sy * width_u + sx;
-                    let pixel = self.front_pixels.get(src_idx).copied().unwrap_or(0);
+                    let rgba_src_offset = (sy * width_u + sx) * 4;
+                    let pixel = self.front_visual[rgba_src_offset + 3];
                     if pixel != 0 {
                         mask[out_idx] = pixel;
-                        let rgba_src_offset = src_idx * 4;
                         let rgba_dst = &mut rgba[out_idx * 4..out_idx * 4 + 4];
                         rgba_dst.copy_from_slice(
                             &self.front_visual[rgba_src_offset..rgba_src_offset + 4],
