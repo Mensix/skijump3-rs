@@ -98,7 +98,7 @@ impl EditHillView {
                         field,
                         old_value: old,
                         message: format!("INVALID {label} INDEX VALUE."),
-                        subtitle: format!("HILL{value} DOESN'T EXIST."),
+                        subtitle: format!("FILE {label}{value}.PNG DOESN'T EXIST."),
                     };
                     return;
                 }
@@ -257,8 +257,7 @@ impl Screen<RouteTarget> for EditHillView {
                 cx.text((80, 100), FONT_GOLD, subtitle);
                 cx.text((190, 110), FONT_DEFAULT, self.resources.langbase.lstr(15));
                 if self.blinker.visible(11, 10) {
-                    let cx_pos = 190 + self.resources.font.string_width(&self.resources.langbase.lstr(15)) as i32;
-                    cx.fill((cx_pos + 1, 110 + 6, 5, 1), FONT_DEFAULT);
+                    cx.fill((191, 110, 5, 7), FONT_DEFAULT);
                 }
             }
             EditMode::Viewing => {}
