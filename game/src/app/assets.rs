@@ -2,14 +2,29 @@ use crate::content::ContentStore;
 use crate::files::FileStore;
 use crate::gfx::materials;
 use crate::gfx::png::load_png;
+use engine::color::Rgba;
 use engine::consts::{PATTERN_SPRITE, TILE_H, TILE_W};
 use engine::oxide::Font;
-use engine::sprite::{BakedSpriteTexture, BakedSpriteTextures, SpriteData};
+use engine::sprite::{BakedSpriteTextures, BaseSprite, SourceColorMap};
 use engine::video::{Renderer, TextureId};
 
 const MAIN_PNG: &str = "MAIN.png";
 const CONTENT_MANIFEST: &str = "content.toml";
 const SPRITES_PNG_PREFIX: &str = "sprites/png/";
+
+#[derive(serde::Deserialize)]
+struct SourceColorEntry {
+    idx: u8,
+    r: u8,
+    g: u8,
+    b: u8,
+    a: u8,
+}
+
+#[derive(serde::Deserialize)]
+struct SourceColorsFile {
+    source: Vec<SourceColorEntry>,
+}
 
 pub(super) struct LoadedAssets {
     pub(super) content_store: ContentStore,
@@ -25,21 +40,55 @@ pub(super) fn load(files: &FileStore, renderer: &mut Renderer) -> Result<LoadedA
     let font = Font::from_sprites(&sprites);
     let main_background = load_background_texture(files, renderer)?;
 
-    let mut baked_sprites = BakedSpriteTextures::new();
-
+    // Load base sprites from PNG files
+    let mut base_sprites = Vec::new();
     for (idx, sprite) in sprites.iter().enumerate() {
         let path = format!("{SPRITES_PNG_PREFIX}{idx}.png");
-        if let Ok(tex) = load_png_texture(files, renderer, &path, sprite) {
-            baked_sprites.add_default(idx as u16, tex);
-        }
+        let data = match files.read(&path) {
+            Ok(d) => d,
+            Err(_) => continue,
+        };
+        let img = load_png(&data).map_err(|e| e.to_string())?;
+        base_sprites.push(BaseSprite {
+            sprite_idx: idx as u16,
+            rgba: img.pixels,
+            width: img.width,
+            height: img.height,
+            center_x: sprite.center_x,
+            center_y: sprite.center_y,
+        });
     }
 
-    for (sprite_idx, material) in &materials::prebaked_sprite_materials() {
-        let path = format!("{SPRITES_PNG_PREFIX}{}_{}.png", sprite_idx, material.id().value());
-        if let Ok(tex) = load_png_texture(files, renderer, &path, &sprites[*sprite_idx as usize]) {
-            baked_sprites.add_material(*sprite_idx, material.clone(), tex);
-        }
-    }
+    // Load source colors (original RGBA for each override palette index)
+    let src_data = files
+        .read("sprites/png/source_colors.toml")
+        .map_err(|e| e.to_string())?;
+    let colors_file: SourceColorsFile = toml::from_slice(&src_data).map_err(|e| e.to_string())?;
+
+    let source_colors: Vec<(u8, Rgba)> = colors_file
+        .source
+        .iter()
+        .map(|e| {
+            (
+                e.idx,
+                Rgba {
+                    r: e.r,
+                    g: e.g,
+                    b: e.b,
+                    a: e.a,
+                },
+            )
+        })
+        .collect();
+    let source_map = SourceColorMap::from_entries(&source_colors);
+
+    // Bake material variants at startup by recolor-matching
+    let baked_sprites = BakedSpriteTextures::bake_with_png(
+        renderer,
+        &base_sprites,
+        &source_map,
+        &materials::prebaked_sprite_materials(),
+    )?;
 
     let pattern_sprite = sprites
         .get(PATTERN_SPRITE)
@@ -53,24 +102,6 @@ pub(super) fn load(files: &FileStore, renderer: &mut Renderer) -> Result<LoadedA
         main_background,
         baked_sprites,
         pattern_texture,
-    })
-}
-
-fn load_png_texture(
-    files: &FileStore,
-    renderer: &mut Renderer,
-    path: &str,
-    sprite: &SpriteData,
-) -> Result<BakedSpriteTexture, String> {
-    let data = files.read(path).map_err(|e| e.to_string())?;
-    let img = load_png(&data).map_err(|e| e.to_string())?;
-    let texture_id = renderer.create_rgba_texture(&img.pixels, img.width, img.height)?;
-    Ok(BakedSpriteTexture {
-        texture_id,
-        center_x: sprite.center_x,
-        center_y: sprite.center_y,
-        width: img.width as u16,
-        height: img.height as u16,
     })
 }
 

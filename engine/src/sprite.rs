@@ -1,7 +1,7 @@
 use crate::bitmap::IndexedBitmap;
 use crate::color::Rgba;
 use crate::consts::{HEIGHT, WIDTH};
-use crate::video::TextureId;
+use crate::video::{Renderer, TextureId};
 use std::collections::{hash_map::DefaultHasher, HashMap};
 use std::hash::{Hash, Hasher};
 
@@ -47,6 +47,11 @@ impl SpriteMaterial {
     #[must_use]
     pub fn id(&self) -> SpriteMaterialId {
         self.id
+    }
+
+    #[must_use]
+    pub fn overrides(&self) -> &[(PaletteIndex, Rgba)] {
+        &self.overrides
     }
 }
 
@@ -189,6 +194,114 @@ impl BakedSpriteTextures {
             sprite_idx,
             material: material.clone(),
         })
+    }
+
+    /// Bake material variants from base RGBA sprites by matching source
+    /// pixel colors and replacing with override colors.
+    ///
+    /// `base_sprites` maps sprite_idx → (rgba_bytes, width, height, center_x, center_y).
+    /// `source_colors` maps palette_idx → the original RGBA value of that
+    ///   palette entry (from the source palette). Used to identify which
+    ///   pixels in the base sprite need recoloring.
+    /// `material_variants` is the list of (sprite_idx, material) pairs to bake.
+    pub fn bake_with_png(
+        renderer: &mut Renderer,
+        base_sprites: &[BaseSprite],
+        source_colors: &SourceColorMap,
+        material_variants: &[(u16, SpriteMaterial)],
+    ) -> Result<Self, String> {
+        let mut defaults = vec![None; base_sprites.len()];
+        let mut materials = HashMap::new();
+
+        for base in base_sprites {
+            let texture_id = renderer.create_rgba_texture(&base.rgba, base.width, base.height)?;
+            let idx = base.sprite_idx as usize;
+            while defaults.len() <= idx {
+                defaults.push(None);
+            }
+            defaults[idx] = Some(BakedSpriteTexture {
+                texture_id,
+                center_x: base.center_x,
+                center_y: base.center_y,
+                width: base.width as u16,
+                height: base.height as u16,
+            });
+        }
+
+        let mut scratch = Vec::new();
+        for (sprite_idx, material) in material_variants {
+            let Some(base) = base_sprites.iter().find(|b| b.sprite_idx == *sprite_idx) else {
+                continue;
+            };
+            let len = base.rgba.len();
+            scratch.clear();
+            scratch.reserve(len);
+            scratch.extend_from_slice(&base.rgba);
+
+            for &(source_idx, override_color) in material.overrides() {
+                let Some(&orig_color) = source_colors.map.get(&source_idx.value()) else {
+                    continue;
+                };
+                let orig = [orig_color.r, orig_color.g, orig_color.b, orig_color.a];
+                let repl = [
+                    override_color.r,
+                    override_color.g,
+                    override_color.b,
+                    override_color.a,
+                ];
+                for chunk in scratch.chunks_exact_mut(4) {
+                    if chunk == orig {
+                        chunk.copy_from_slice(&repl);
+                    }
+                }
+            }
+
+            let texture_id = renderer.create_rgba_texture(&scratch, base.width, base.height)?;
+            materials.insert(
+                BakedSpriteTextureKey {
+                    sprite_idx: *sprite_idx,
+                    material: material.clone(),
+                },
+                BakedSpriteTexture {
+                    texture_id,
+                    center_x: base.center_x,
+                    center_y: base.center_y,
+                    width: base.width as u16,
+                    height: base.height as u16,
+                },
+            );
+        }
+
+        Ok(Self {
+            defaults,
+            materials,
+        })
+    }
+}
+
+/// Pre-loaded base sprite RGBA data for `BakedSpriteTextures::bake_with_png`.
+#[derive(Debug, Clone)]
+pub struct BaseSprite {
+    pub sprite_idx: u16,
+    pub rgba: Vec<u8>,
+    pub width: u32,
+    pub height: u32,
+    pub center_x: i8,
+    pub center_y: i8,
+}
+
+/// Maps palette index → its original RGBA color (from the source palette).
+/// Used by bake to identify pixels that need recoloring.
+#[derive(Debug, Clone)]
+pub struct SourceColorMap {
+    map: HashMap<u8, Rgba>,
+}
+
+impl SourceColorMap {
+    pub fn from_entries(entries: &[(u8, Rgba)]) -> Self {
+        Self {
+            map: entries.iter().copied().collect(),
+        }
     }
 }
 
