@@ -2,29 +2,14 @@ use crate::content::ContentStore;
 use crate::files::FileStore;
 use crate::gfx::materials;
 use crate::gfx::png::load_png;
-use engine::color::Rgba;
 use engine::consts::{PATTERN_SPRITE, TILE_H, TILE_W};
 use engine::oxide::Font;
-use engine::sprite::{BakedSpriteTextures, BaseSprite, SourceColorMap};
+use engine::sprite::{BakedSpriteTextures, BaseSprite, SpriteData};
 use engine::video::{Renderer, TextureId};
 
 const MAIN_PNG: &str = "MAIN.png";
 const CONTENT_MANIFEST: &str = "content.toml";
 const SPRITES_PNG_PREFIX: &str = "sprites/png/";
-
-#[derive(serde::Deserialize)]
-struct SourceColorEntry {
-    idx: u8,
-    r: u8,
-    g: u8,
-    b: u8,
-    a: u8,
-}
-
-#[derive(serde::Deserialize)]
-struct SourceColorsFile {
-    source: Vec<SourceColorEntry>,
-}
 
 pub(super) struct LoadedAssets {
     pub(super) content_store: ContentStore,
@@ -59,34 +44,10 @@ pub(super) fn load(files: &FileStore, renderer: &mut Renderer) -> Result<LoadedA
         });
     }
 
-    // Load source colors (original RGBA for each override palette index)
-    let src_data = files
-        .read("sprites/png/source_colors.toml")
-        .map_err(|e| e.to_string())?;
-    let colors_file: SourceColorsFile = toml::from_slice(&src_data).map_err(|e| e.to_string())?;
-
-    let source_colors: Vec<(u8, Rgba)> = colors_file
-        .source
-        .iter()
-        .map(|e| {
-            (
-                e.idx,
-                Rgba {
-                    r: e.r,
-                    g: e.g,
-                    b: e.b,
-                    a: e.a,
-                },
-            )
-        })
-        .collect();
-    let source_map = SourceColorMap::from_entries(&source_colors);
-
-    // Bake material variants at startup by recolor-matching
+    // Bake material variants at startup — alpha-channel recolor matching
     let baked_sprites = BakedSpriteTextures::bake_with_png(
         renderer,
         &base_sprites,
-        &source_map,
         &materials::prebaked_sprite_materials(),
     )?;
 

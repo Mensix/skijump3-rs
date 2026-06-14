@@ -196,25 +196,32 @@ impl BakedSpriteTextures {
         })
     }
 
-    /// Bake material variants from base RGBA sprites by matching source
-    /// pixel colors and replacing with override colors.
+    /// Bake material variants from base RGBA sprites by matching alpha
+    /// channel values against override source indices.
     ///
-    /// `base_sprites` maps sprite_idx → (rgba_bytes, width, height, center_x, center_y).
-    /// `source_colors` maps palette_idx → the original RGBA value of that
-    ///   palette entry (from the source palette). Used to identify which
-    ///   pixels in the base sprite need recoloring.
-    /// `material_variants` is the list of (sprite_idx, material) pairs to bake.
+    /// Base PNGs encode override-source pixels with alpha = palette index
+    /// (e.g., alpha=216 for a pixel sourced from palette index 216).
+    /// Non-source pixels have alpha=255. Index-0 pixels (transparent)
+    /// have alpha=0.
+    ///
+    /// For each material variant, pixels whose alpha matches a source
+    /// palette index get replaced with the override colour (alpha→255).
     pub fn bake_with_png(
         renderer: &mut Renderer,
         base_sprites: &[BaseSprite],
-        source_colors: &SourceColorMap,
         material_variants: &[(u16, SpriteMaterial)],
     ) -> Result<Self, String> {
         let mut defaults = vec![None; base_sprites.len()];
         let mut materials = HashMap::new();
 
         for base in base_sprites {
-            let texture_id = renderer.create_rgba_texture(&base.rgba, base.width, base.height)?;
+            let mut rgba = base.rgba.clone();
+            for chunk in rgba.chunks_exact_mut(4) {
+                if chunk[3] != 0 && chunk[3] != 255 {
+                    chunk[3] = 255;
+                }
+            }
+            let texture_id = renderer.create_rgba_texture(&rgba, base.width, base.height)?;
             let idx = base.sprite_idx as usize;
             while defaults.len() <= idx {
                 defaults.push(None);
@@ -233,25 +240,17 @@ impl BakedSpriteTextures {
             let Some(base) = base_sprites.iter().find(|b| b.sprite_idx == *sprite_idx) else {
                 continue;
             };
-            let len = base.rgba.len();
             scratch.clear();
-            scratch.reserve(len);
             scratch.extend_from_slice(&base.rgba);
 
             for &(source_idx, override_color) in material.overrides() {
-                let Some(&orig_color) = source_colors.map.get(&source_idx.value()) else {
-                    continue;
-                };
-                let orig = [orig_color.r, orig_color.g, orig_color.b, orig_color.a];
-                let repl = [
-                    override_color.r,
-                    override_color.g,
-                    override_color.b,
-                    override_color.a,
-                ];
+                let src_alpha = source_idx.value();
                 for chunk in scratch.chunks_exact_mut(4) {
-                    if chunk == orig {
-                        chunk.copy_from_slice(&repl);
+                    if chunk[3] == src_alpha {
+                        chunk[0] = override_color.r;
+                        chunk[1] = override_color.g;
+                        chunk[2] = override_color.b;
+                        chunk[3] = 255;
                     }
                 }
             }
@@ -272,10 +271,7 @@ impl BakedSpriteTextures {
             );
         }
 
-        Ok(Self {
-            defaults,
-            materials,
-        })
+        Ok(Self { defaults, materials })
     }
 }
 
@@ -288,21 +284,6 @@ pub struct BaseSprite {
     pub height: u32,
     pub center_x: i8,
     pub center_y: i8,
-}
-
-/// Maps palette index → its original RGBA color (from the source palette).
-/// Used by bake to identify pixels that need recoloring.
-#[derive(Debug, Clone)]
-pub struct SourceColorMap {
-    map: HashMap<u8, Rgba>,
-}
-
-impl SourceColorMap {
-    pub fn from_entries(entries: &[(u8, Rgba)]) -> Self {
-        Self {
-            map: entries.iter().copied().collect(),
-        }
-    }
 }
 
 impl Default for SpriteMaterial {
