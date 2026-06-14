@@ -54,8 +54,10 @@ impl EditHillView {
         let yy = 10 + ((field - 1) * 13) as i32;
         let value = self.values[field - 1].clone();
         let (max_width, max_chars) = match field {
+            1 | 10 => (150, 130),
             3 | 4 => (20, 20),
-            11 => (60, 8),
+            2 | 5 | 6 | 7 | 8 | 9 => (30, 10),
+            11 => (62, 8),
             _ => (150, 130),
         };
         let input = TextInput::new(
