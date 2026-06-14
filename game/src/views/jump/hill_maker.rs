@@ -34,6 +34,12 @@ impl Screen<RouteTarget> for HillMakerView {
         cx.text((col1, 5), FILL_TURQUOISE, lstr(lb, 273, "Filename"));
         cx.text((col2, 5), FILL_TURQUOISE, lstr(lb, 274, "Hillname"));
 
+        cx.text(
+            (5, 45),
+            FILL_TURQUOISE,
+            format!("{} 1 {} 1", lstr(lb, 157, "Page"), lstr(lb, 8, "of")),
+        );
+
         let mut temp = 0i32;
 
         temp += 1;
