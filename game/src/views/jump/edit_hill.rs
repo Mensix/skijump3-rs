@@ -95,7 +95,7 @@ impl EditHillView {
                         field,
                         old_value: old,
                         message: format!("INVALID {label} INDEX VALUE."),
-                        subtitle: format!("FILE HILL{value}/{prefix}_visual.png DOESN'T EXIST."),
+                        subtitle: format!("HILL{value} DOESN'T EXIST."),
                     };
                     return;
                 }
