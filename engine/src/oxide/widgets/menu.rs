@@ -161,6 +161,17 @@ impl Widget for PixelMenu {
                 }
             }
             UiEvent::Text(c) if c.is_ascii_digit() => {
+                let d = c.to_digit(10).unwrap_or(0) as usize;
+                let total = self.total_items();
+                if d >= 1 && d <= total {
+                    self.set_selected(d - 1);
+                } else if d == 0 {
+                    self.set_selected(total.saturating_sub(1));
+                }
+                cx.consume();
+                None
+            }
+            UiEvent::Text(c) if c.is_ascii_digit() => {
                 let n = c.to_digit(10).map_or(0, |d| d as usize);
                 if n >= 1 && n <= total {
                     self.selected = n - 1;
