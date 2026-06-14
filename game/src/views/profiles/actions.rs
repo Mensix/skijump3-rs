@@ -1,18 +1,19 @@
-use std::rc::Rc;
-
-use crate::components::confirm_dialog::ConfirmDialog;
-use crate::components::text_input::TextInput;
-use crate::components::value_selector::ValueSelector;
 use crate::data::profile::{Profile, NUM_SKIS, NUM_SUITS};
-use crate::gfx::theme::{BG_RIGHT, BLACK, FILL_DIM, FONT_DEFAULT, FONT_NEW};
+use crate::gfx::theme::{BG_RIGHT, BLACK, FILL_DIM, FONT_DEFAULT, FONT_HEADER, FONT_NEW};
 use crate::route::RouteTarget;
 use crate::text::layout::{lstr, replace_display_name};
+use engine::oxide::widgets::confirm::ConfirmDialog as OxideConfirmDialog;
+use engine::oxide::widgets::selector::NumericSelector;
+use engine::oxide::widgets::text_input::TextInput as OxideTextInput;
 
 use super::list::{ColorField, Mode, ProfilesView, QuestionAction, TextField, REPLACE_MAX};
 use super::render::profile_label;
 
 pub(super) fn save_players(view: &ProfilesView) {
-    if let Err(e) = view.save_manager.save_players(&view.store.profiles()) {
+    let result = view
+        .store
+        .with_profiles(|profiles| view.save_manager.save_players(profiles));
+    if let Err(e) = result {
         eprintln!("Warning: failed to save players: {e}");
     }
 }
@@ -26,10 +27,10 @@ pub(super) fn handle_list_enter(view: &mut ProfilesView) -> Option<RouteTarget> 
 
     if view.selected >= np {
         let profile = view.unique_default_profile();
-        let mut store = view.store.profiles_mut();
-        store.profiles.push(profile);
-        let profile_index = store.num_profiles() - 1;
-        drop(store);
+        let profile_index = view.store.with_profiles_mut(|store| {
+            store.profiles.push(profile);
+            store.num_profiles() - 1
+        });
         save_players(view);
         view.selected = profile_index;
         view.mode = Mode::Edit {
@@ -65,15 +66,20 @@ pub(super) fn handle_list_delete(view: &mut ProfilesView) {
         let name = view.store.profiles().profiles[view.selected].name.clone();
         view.mode = Mode::Question {
             action: QuestionAction::DeleteProfile(view.selected),
-            dialog: ConfirmDialog::new(
+            dialog: OxideConfirmDialog::new(
+                (59, 79, 203, 53),
+                BG_RIGHT,
+                BLACK,
+                FONT_HEADER,
                 format!(
                     "{}: {}",
                     lstr(&view.resources.langbase, 328, "Delete"),
                     name
                 ),
-                Rc::clone(&view.resources.langbase),
-                view.resources.font.clone(),
-            ),
+                "Y",
+                "N",
+            )
+            .with_subtitle(lstr(&view.resources.langbase, 193, "Are you sure?")),
         };
     }
 }
@@ -95,15 +101,20 @@ pub(super) fn handle_edit_enter(view: &mut ProfilesView, profile: usize, selecte
             view.mode = Mode::ColorSelect {
                 profile,
                 field: ColorField::Suit,
-                selector: ValueSelector::color_bars(
+                selector: NumericSelector::new(
                     x,
                     24,
+                    31,
                     NUM_SUITS - 1,
                     value,
                     BLACK,
-                    BG_RIGHT,
-                    true,
+                    FONT_DEFAULT,
+                    "",
                 ),
+                color_x: x,
+                color_y: 24,
+                color_max: NUM_SUITS - 1,
+                color_suit: true,
             };
         }
         3 => {
@@ -119,15 +130,20 @@ pub(super) fn handle_edit_enter(view: &mut ProfilesView, profile: usize, selecte
             view.mode = Mode::ColorSelect {
                 profile,
                 field: ColorField::Ski,
-                selector: ValueSelector::color_bars(
+                selector: NumericSelector::new(
                     x,
                     32,
+                    31,
                     NUM_SKIS - 1,
                     value,
                     BLACK,
-                    BG_RIGHT,
-                    false,
+                    FONT_DEFAULT,
+                    "",
                 ),
+                color_x: x,
+                color_y: 32,
+                color_max: NUM_SKIS - 1,
+                color_suit: false,
             };
         }
         4 => {
@@ -145,7 +161,7 @@ pub(super) fn handle_edit_enter(view: &mut ProfilesView, profile: usize, selecte
             } else {
                 String::new()
             };
-            let mut selector = ValueSelector::numeric(
+            let mut selector = NumericSelector::new(
                 x,
                 44,
                 320 - x,
@@ -155,9 +171,6 @@ pub(super) fn handle_edit_enter(view: &mut ProfilesView, profile: usize, selecte
                 FONT_DEFAULT,
                 display,
             );
-            if value > 0 {
-                selector.set_right_text(&format!("#{value}"));
-            }
             selector.set_wrap(false);
             view.mode = Mode::ReplaceSelect { profile, selector };
         }
@@ -185,11 +198,20 @@ pub(super) fn handle_edit_enter(view: &mut ProfilesView, profile: usize, selecte
         7 => {
             view.mode = Mode::Question {
                 action: QuestionAction::ResetProfile(profile),
-                dialog: ConfirmDialog::new(
+                dialog: OxideConfirmDialog::new(
+                    (59, 79, 203, 53),
+                    BG_RIGHT,
+                    BLACK,
+                    FONT_HEADER,
                     lstr(&view.resources.langbase, 329, "Reset jumper?"),
-                    Rc::clone(&view.resources.langbase),
-                    view.resources.font.clone(),
-                ),
+                    "Y",
+                    "N",
+                )
+                .with_subtitle(lstr(
+                    &view.resources.langbase,
+                    193,
+                    "Are you sure?",
+                )),
             };
         }
         _ => {}
@@ -217,13 +239,15 @@ pub(super) fn start_text_input(view: &mut ProfilesView, profile: usize, field: T
     view.mode = Mode::TextInput {
         profile,
         field,
-        input: TextInput::new(
+        input: OxideTextInput::new(
             x,
             y,
             max_width,
             old,
+            130,
             FILL_DIM,
             FONT_NEW,
+            FONT_DEFAULT,
             view.resources.font.clone(),
         ),
     };

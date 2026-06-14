@@ -28,23 +28,6 @@ pub fn format_tenths(value: i32) -> String {
     buf
 }
 
-/// Format an i64 as tenths, delegating to `format_tenths`.
-/// Values outside i32 range are safe (no narrowing cast).
-#[must_use]
-#[cfg(test)]
-fn format_tenths_i64(value: i64) -> String {
-    if value == 0 {
-        return "0.0".to_string();
-    }
-    let mut buf = String::with_capacity(16);
-    if value < 0 {
-        buf.push('-');
-    }
-    let abs = value.unsigned_abs();
-    write!(buf, "{}.{}", abs / 10, abs % 10).unwrap();
-    buf
-}
-
 /// `"5."`, `"12."`, etc.
 #[must_use]
 pub fn ordinal_dot(n: usize) -> String {

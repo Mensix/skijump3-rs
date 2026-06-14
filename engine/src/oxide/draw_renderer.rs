@@ -400,7 +400,7 @@ impl DrawCommandRenderer {
             }
             DrawCommand::Sprite(SpriteDraw { idx, position }) => {
                 if let Some(sprite_data) = sprites.get(*idx as usize) {
-                    let material = SpriteMaterial::default();
+                    let material = SpriteMaterial::new(&[]);
                     self.sprite_texture_cache.draw(
                         renderer,
                         palette,

@@ -95,14 +95,18 @@ impl SpriteMaterial {
         self.color_override(PaletteIndex(source))
     }
 
-    #[must_use]
-    pub fn default() -> Self {
+}
+
+impl Default for SpriteMaterial {
+    fn default() -> Self {
         Self {
             id: SpriteMaterialId::DEFAULT,
             overrides: Box::new([]),
         }
     }
+}
 
+impl SpriteMaterial {
     #[must_use]
     pub fn resolved_palette(&self, palette: &Palette) -> [Rgba; PALETTE_SIZE] {
         let mut resolved = [Rgba::transparent(); PALETTE_SIZE];

@@ -1,3 +1,7 @@
+use crate::competition::koth::types::KothRuntime;
+use crate::competition::machine::Competition;
+use crate::competition::team_cup::types::TeamCupRuntime;
+use crate::competition::ActiveCompetition;
 use crate::content::names::NameCatalog;
 use crate::data::hill::HillCatalog;
 use crate::data::hill_profile::HillTerrain;
@@ -9,9 +13,9 @@ use crate::jump::replay::ReplayTrace;
 use crate::jump::types::DEFAULT_START_GATE;
 use crate::jump::wind::Wind;
 use crate::rng::Random;
-use crate::save::SaveRef;
+use crate::save::{SaveManager, SaveRef};
 use crate::text::lang::LangBase;
-use engine::ui::Font;
+use engine::oxide::Font;
 use std::cell::{Cell, Ref, RefCell, RefMut};
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -129,6 +133,10 @@ impl JumpRuntime {
         self.wind_place.get()
     }
 
+    pub fn set_wind_enabled(&self, enabled: bool) {
+        self.wind.borrow_mut().set_enabled(enabled);
+    }
+
     pub fn with_rng_wind_mut<R>(&self, f: impl FnOnce(&mut Random, &mut Wind) -> R) -> R {
         let mut rng = self.rng.borrow_mut();
         let mut wind = self.wind.borrow_mut();
@@ -222,7 +230,7 @@ pub struct Store {
     jump_runtime: JumpRuntime,
     practice: PracticeSettings,
     replay_selection: ReplaySelection,
-    active_competition: RefCell<Option<crate::competition::ActiveCompetition>>,
+    active_competition: RefCell<Option<ActiveCompetition>>,
     profiles: RefCell<ProfileStore>,
     records: RefCell<RecordStore>,
     selected_hill: Cell<usize>,
@@ -232,28 +240,13 @@ pub struct Store {
 
 impl Default for Store {
     fn default() -> Self {
-        Self::new(RecordStore::default())
+        Self::from_loaded_data(RecordStore::default(), ProfileStore::new())
     }
 }
 
 impl Store {
     #[must_use]
-    pub fn new(records: RecordStore) -> Self {
-        Self {
-            jump_runtime: JumpRuntime::new(),
-            practice: PracticeSettings::new(),
-            replay_selection: ReplaySelection::new(),
-            active_competition: RefCell::new(None),
-            profiles: RefCell::new(ProfileStore::new()),
-            records: RefCell::new(records),
-            selected_hill: Cell::new(0),
-            start_gate: Cell::new(DEFAULT_START_GATE),
-            selected_main_menu: Cell::new(0),
-        }
-    }
-
-    #[must_use]
-    pub fn with_profiles(records: RecordStore, profiles: ProfileStore) -> Self {
+    pub fn from_loaded_data(records: RecordStore, profiles: ProfileStore) -> Self {
         Self {
             jump_runtime: JumpRuntime::new(),
             practice: PracticeSettings::new(),
@@ -267,21 +260,20 @@ impl Store {
         }
     }
 
-    pub fn start_active(&self, comp: crate::competition::ActiveCompetition) {
+    pub fn configure_from_save(&self, save_manager: &SaveManager) {
+        self.set_wind_place(save_manager.config.borrow().windplace as u8);
+    }
+
+    pub fn start_active(&self, comp: ActiveCompetition) {
+        self.jump_runtime.set_wind_enabled(true);
         *self.active_competition.borrow_mut() = Some(comp);
     }
 
-    pub fn with_active<R>(
-        &self,
-        f: impl FnOnce(&crate::competition::ActiveCompetition) -> R,
-    ) -> Option<R> {
+    pub fn with_active<R>(&self, f: impl FnOnce(&ActiveCompetition) -> R) -> Option<R> {
         self.active_competition.borrow().as_ref().map(f)
     }
 
-    pub fn with_active_mut<R>(
-        &self,
-        f: impl FnOnce(&mut crate::competition::ActiveCompetition) -> R,
-    ) -> Option<R> {
+    pub fn with_active_mut<R>(&self, f: impl FnOnce(&mut ActiveCompetition) -> R) -> Option<R> {
         self.active_competition.borrow_mut().as_mut().map(f)
     }
 
@@ -291,6 +283,16 @@ impl Store {
 
     pub fn profiles_mut(&self) -> RefMut<'_, ProfileStore> {
         self.profiles.borrow_mut()
+    }
+
+    pub fn with_profiles<R>(&self, f: impl FnOnce(&ProfileStore) -> R) -> R {
+        let profiles = self.profiles.borrow();
+        f(&profiles)
+    }
+
+    pub fn with_profiles_mut<R>(&self, f: impl FnOnce(&mut ProfileStore) -> R) -> R {
+        let mut profiles = self.profiles.borrow_mut();
+        f(&mut profiles)
     }
 
     pub fn records(&self) -> Ref<'_, RecordStore> {
@@ -304,6 +306,10 @@ impl Store {
     #[must_use]
     pub fn practice_hill(&self) -> usize {
         self.practice.hill()
+    }
+
+    pub fn set_wind_enabled(&self, enabled: bool) {
+        self.jump_runtime.set_wind_enabled(enabled);
     }
 
     pub fn set_practice_hill(&self, hill: usize) {
@@ -380,22 +386,23 @@ pub trait HasRuntime<R> {
     fn with_runtime_mut<T>(&self, f: impl FnOnce(&mut R) -> T) -> Option<T>;
 }
 
-impl HasRuntime<crate::competition::machine::Competition> for Store {
-    fn with_runtime_mut<T>(
-        &self,
-        f: impl FnOnce(&mut crate::competition::machine::Competition) -> T,
-    ) -> Option<T> {
+impl HasRuntime<Competition> for Store {
+    fn with_runtime_mut<T>(&self, f: impl FnOnce(&mut Competition) -> T) -> Option<T> {
         self.with_active_mut(|active| active.individual_mut().map(f))
             .flatten()
     }
 }
 
-impl HasRuntime<crate::competition::team_cup::types::TeamCupRuntime> for Store {
-    fn with_runtime_mut<T>(
-        &self,
-        f: impl FnOnce(&mut crate::competition::team_cup::types::TeamCupRuntime) -> T,
-    ) -> Option<T> {
+impl HasRuntime<TeamCupRuntime> for Store {
+    fn with_runtime_mut<T>(&self, f: impl FnOnce(&mut TeamCupRuntime) -> T) -> Option<T> {
         self.with_active_mut(|active| active.team_cup_runtime_mut().map(f))
+            .flatten()
+    }
+}
+
+impl HasRuntime<KothRuntime> for Store {
+    fn with_runtime_mut<T>(&self, f: impl FnOnce(&mut KothRuntime) -> T) -> Option<T> {
+        self.with_active_mut(|active| active.koth_runtime_mut().map(f))
             .flatten()
     }
 }

@@ -34,12 +34,6 @@ impl Rgb6Palette {
     }
 
     #[must_use]
-    pub fn color(&self, idx: usize) -> [u8; 3] {
-        let off = idx * 3;
-        [self.data[off], self.data[off + 1], self.data[off + 2]]
-    }
-
-    #[must_use]
     pub fn into_palette(self) -> Palette {
         Palette::from_rgb6_bytes(&self.data).expect("validated 768-byte rgb6 palette")
     }
@@ -54,16 +48,6 @@ struct PaletteToml {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn from_6bit_bytes_preserves_values() {
-        let mut raw = [0u8; 768];
-        raw[0] = 63;
-        raw[1] = 32;
-        raw[2] = 0;
-        let pal = Rgb6Palette::from_6bit_bytes(&raw).unwrap();
-        assert_eq!(pal.color(0), [63, 32, 0]);
-    }
 
     #[test]
     fn from_6bit_bytes_rejects_wrong_size() {

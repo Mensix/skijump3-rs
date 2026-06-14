@@ -9,18 +9,6 @@ impl<const N: usize> PointsTable<N> {
         Self { points }
     }
 
-    #[cfg(test)]
-    #[must_use]
-    pub const fn len(&self) -> usize {
-        N
-    }
-
-    #[cfg(test)]
-    #[must_use]
-    pub const fn points(&self) -> [i32; N] {
-        self.points
-    }
-
     #[must_use]
     pub fn points_for_rank(&self, rank: usize) -> i32 {
         if (1..=N).contains(&rank) {

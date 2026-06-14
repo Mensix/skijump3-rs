@@ -86,18 +86,19 @@ pub fn replay_speed_material(mode: PlaybackMode) -> SpriteMaterial {
         PlaybackMode::SpeedChange => 251,
         _ => 249,
     };
+    let pairs: [(u8, engine::color::Rgba); 5] = array::from_fn(|i| {
+        let idx = (249 + i) as u8;
+        (
+            idx,
+            if idx == active {
+                THEME.material.replay_active
+            } else {
+                THEME.material.replay_inactive
+            },
+        )
+    });
     SpriteMaterial::with_id(
         SpriteMaterialId::new(MATERIAL_REPLAY_SPEED | u64::from(active)),
-        &array::from_fn(|i| {
-            let idx = (249 + i) as u8;
-            (
-                idx,
-                if idx == active {
-                    THEME.material.replay_active
-                } else {
-                    THEME.material.replay_inactive
-                },
-            )
-        }),
+        &pairs,
     )
 }
