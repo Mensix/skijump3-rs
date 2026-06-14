@@ -11,6 +11,7 @@ use engine::oxide::{PaintCx, Screen, ScreenBackground, ScreenEventCx, UiEvent};
 enum EditMode {
     Viewing,
     Editing { field: usize, input: TextInput },
+    Alert { message: String, subtitle: String, old_value: String, field: usize },
 }
 
 pub struct EditHillView {
@@ -81,6 +82,11 @@ impl EditHillView {
         };
         match field {
             2 => Self::validate_int(&mut value, 40, 300),
+            3 | 4 => {
+                // TODO: validate front/back index against available PNG/PCX files.
+                // Pascal checked FRONT*.PCX / BACK*.PCX existence via fexist().
+                // Since we no longer use PCX files, this check is deferred.
+            }
             5 => Self::validate_int(&mut value, 0, 255),
             6 => Self::validate_int(&mut value, 0, 1),
             7 => Self::validate_int(&mut value, 60, 145),
@@ -114,6 +120,14 @@ impl EditHillView {
 impl Screen<RouteTarget> for EditHillView {
     fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
         match &mut self.mode {
+            EditMode::Alert { field, old_value, .. } => {
+                if matches!(event, UiEvent::KeyDown(_) | UiEvent::Text(_)) {
+                    self.values[*field - 1] = old_value.clone();
+                    self.mode = EditMode::Viewing;
+                }
+                cx.consume();
+                return;
+            }
             EditMode::Editing { field, input } => {
                 let event = if Self::is_numeric_field(*field) {
                     match event {
@@ -218,6 +232,14 @@ impl Screen<RouteTarget> for EditHillView {
         match &self.mode {
             EditMode::Editing { input, .. } => {
                 input.paint(cx);
+            }
+            EditMode::Alert { message, subtitle, .. } => {
+                cx.fill((59, 79, 202, 53), BLACK);
+                cx.fill((60, 80, 200, 51), BG_LEFT);
+                cx.pattern_fill((60, 80, 200, 51), BG_LEFT);
+                cx.text((80, 90), FONT_GOLD, message);
+                cx.text((80, 100), FONT_GOLD, subtitle);
+                cx.text((80, 115), FONT_HELP, "[press any key]");
             }
             EditMode::Viewing => {}
         }
