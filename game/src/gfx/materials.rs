@@ -12,8 +12,9 @@ use crate::views::replay::PlaybackMode;
 
 // Animation sprite ranges (must match jump/animation.rs).
 const BODY_SPRITE_MIN: u16 = 100;
+const BODY_SPRITE_MAX: u16 = 167;
 const SKI_SPRITE_MIN: u16 = 70;
-const SKI_SPRITE_MAX: u16 = 91;
+const SKI_SPRITE_MAX: u16 = 89;
 
 const MATERIAL_JUMPER_BODY: u64 = 0x1000;
 const MATERIAL_JUMPER_SKI: u64 = 0x2000;
@@ -113,8 +114,8 @@ pub fn replay_speed_material(mode: PlaybackMode) -> SpriteMaterial {
 pub fn prebaked_sprite_materials() -> Vec<(u16, SpriteMaterial)> {
     let mut materials = Vec::new();
 
-    // Body sprites (100-164): suit/bib material variants
-    for sprite_idx in BODY_SPRITE_MIN..=Sprite::InrunTransition as u16 {
+    // Body sprites (100-167): suit/bib material variants
+    for sprite_idx in BODY_SPRITE_MIN..=BODY_SPRITE_MAX {
         for suit_color in 0..8 {
             materials.push((sprite_idx, jumper_body_material(suit_color, false)));
             materials.push((sprite_idx, jumper_body_material(suit_color, true)));
