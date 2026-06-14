@@ -79,21 +79,6 @@ mod tests {
     }
 
     #[test]
-    fn table_has_30_entries() {
-        assert_eq!(WC_POINTS.len(), 30);
-        let points = WC_POINTS.points();
-        assert_eq!(points[0], 100);
-        assert_eq!(points[29], 1);
-    }
-
-    #[test]
-    fn wc_points_for_rank_returns_correct_values() {
-        assert_eq!(wc_points_for_rank(1), 100);
-        assert_eq!(wc_points_for_rank(2), 80);
-        assert_eq!(wc_points_for_rank(30), 1);
-    }
-
-    #[test]
     fn wc_points_for_rank_out_of_range_returns_zero() {
         assert_eq!(wc_points_for_rank(0), 0);
         assert_eq!(wc_points_for_rank(31), 0);

@@ -1,6 +1,0 @@
-format_version = 1
-default = "original"
-
-[[sets]]
-id = "original"
-file = "original.toml"

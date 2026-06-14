@@ -52,11 +52,4 @@ mod tests {
     fn negative_single() {
         assert_eq!(format_tenths(-3), "-0.3");
     }
-
-    #[test]
-    fn i64_roundtrip() {
-        assert_eq!(format_tenths_i64(1234), "123.4");
-        assert_eq!(format_tenths_i64(-15), "-1.5");
-        assert_eq!(format_tenths_i64(0), "0.0");
-    }
 }

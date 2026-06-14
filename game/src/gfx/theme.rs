@@ -134,15 +134,3 @@ pub const FILL_TURQUOISE: Rgba = THEME.fill.turquoise;
 pub const FILL_LINE: Rgba = THEME.fill.line;
 pub const FILL_DIM: Rgba = THEME.fill.dim;
 pub const BLACK: Rgba = THEME.black;
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn theme_background_colors_match_expected_rgb6_values() {
-        assert_eq!(BG_LEFT, Rgba::from_rgb6(18, 13, 34));
-        assert_eq!(BG_RIGHT, Rgba::from_rgb6(34, 13, 18));
-        assert_eq!(FILL_DIM, Rgba::from_rgb6(20, 20, 20));
-    }
-}

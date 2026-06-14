@@ -93,7 +93,6 @@ mod tests {
     #[test]
     fn embedded_assets_accessible() {
         assert!(Assets::get("languages/english.toml").is_some());
-        assert!(Assets::get("sprites/manifest.toml").is_some());
     }
 
     #[test]

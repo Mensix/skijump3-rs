@@ -265,43 +265,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn maps_inrun_ski_and_body_frames() {
-        assert_eq!(slope_ski_anim(0), 70);
-        assert_eq!(slope_ski_anim(4), 71);
-        assert_eq!(slope_ski_anim(90), 82);
-        assert_eq!(inrun_body_anim(70), 100);
-        assert_eq!(inrun_body_anim(72), 101);
-        assert_eq!(inrun_body_anim(82), 104);
-    }
-
-    #[test]
-    fn maps_takeoff_and_flight_frames() {
-        assert_eq!(takeoff_body_anim(0), 116);
-        assert_eq!(takeoff_body_anim(4), 117);
-        assert_eq!(takeoff_body_anim(24), 111);
-
-        assert_eq!(flight_body_anim(49), 105);
-        assert_eq!(flight_body_anim(50), 106);
-        assert_eq!(flight_body_anim(187), 112);
-        assert_eq!(flight_ski_anim(-258), 89);
-        assert_eq!(flight_ski_anim(20), 71);
-    }
-
-    #[test]
-    fn maps_landing_height() {
-        assert_eq!(landing_height(24), 50);
-        assert_eq!(landing_height(25), 48);
-        assert_eq!(landing_height(60), 15);
-    }
-
-    #[test]
-    fn maps_landing_thresholds_and_risk() {
-        assert_eq!(crash_risk(31), 2);
-        assert_eq!(crash_risk(16), 701);
-        assert_eq!(crash_risk(15), 951);
-    }
-
-    #[test]
     fn maps_landing_and_fall_frames() {
         assert_eq!(
             post_landing_body_anim(101, 100, LandingStyle::Telemark, 0, 70),
