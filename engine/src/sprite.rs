@@ -196,16 +196,12 @@ impl BakedSpriteTextures {
         })
     }
 
-    /// Bake material variants from base RGBA sprites by matching alpha
-    /// channel values against override source indices.
+    /// Bake material variants from indexed (type-3) PNG data.
     ///
-    /// Base PNGs encode override-source pixels with alpha = palette index
-    /// (e.g., alpha=216 for a pixel sourced from palette index 216).
-    /// Non-source pixels have alpha=255. Index-0 pixels (transparent)
-    /// have alpha=0.
-    ///
-    /// For each material variant, pixels whose alpha matches a source
-    /// palette index get replaced with the override colour (alpha→255).
+    /// Base sprites carry 1-byte palette indices per pixel + a 256-entry
+    /// RGBA palette. Default textures resolve indices through the palette.
+    /// Material variants replace source palette indices with override
+    /// colours before resolving.
     pub fn bake_with_png(
         renderer: &mut Renderer,
         base_sprites: &[BaseSprite],
@@ -214,14 +210,10 @@ impl BakedSpriteTextures {
         let mut defaults = vec![None; base_sprites.len()];
         let mut materials = HashMap::new();
 
+        let mut scratch = Vec::new();
         for base in base_sprites {
-            let mut rgba = base.rgba.clone();
-            for chunk in rgba.chunks_exact_mut(4) {
-                if chunk[3] != 0 && chunk[3] != 255 {
-                    chunk[3] = 255;
-                }
-            }
-            let texture_id = renderer.create_rgba_texture(&rgba, base.width, base.height)?;
+            indices_to_rgba(&base.indices, &base.palette, &mut scratch);
+            let texture_id = renderer.create_rgba_texture(&scratch, base.width, base.height)?;
             let idx = base.sprite_idx as usize;
             while defaults.len() <= idx {
                 defaults.push(None);
@@ -235,26 +227,18 @@ impl BakedSpriteTextures {
             });
         }
 
-        let mut scratch = Vec::new();
+        scratch.clear();
         for (sprite_idx, material) in material_variants {
             let Some(base) = base_sprites.iter().find(|b| b.sprite_idx == *sprite_idx) else {
                 continue;
             };
-            scratch.clear();
-            scratch.extend_from_slice(&base.rgba);
-
+            // Build a resolved palette with overrides applied
+            let mut resolved = base.palette;
             for &(source_idx, override_color) in material.overrides() {
-                let src_alpha = source_idx.value();
-                for chunk in scratch.chunks_exact_mut(4) {
-                    if chunk[3] == src_alpha {
-                        chunk[0] = override_color.r;
-                        chunk[1] = override_color.g;
-                        chunk[2] = override_color.b;
-                        chunk[3] = 255;
-                    }
-                }
+                resolved[source_idx.value() as usize] = override_color;
             }
 
+            indices_to_rgba(&base.indices, &resolved, &mut scratch);
             let texture_id = renderer.create_rgba_texture(&scratch, base.width, base.height)?;
             materials.insert(
                 BakedSpriteTextureKey {
@@ -275,11 +259,28 @@ impl BakedSpriteTextures {
     }
 }
 
-/// Pre-loaded base sprite RGBA data for `BakedSpriteTextures::bake_with_png`.
+/// Convert 1-byte palette indices to RGBA using a 256-entry palette.
+/// Index 0 → transparent; all others → palette[index].
+fn indices_to_rgba(indices: &[u8], palette: &[Rgba; 256], out: &mut Vec<u8>) {
+    out.clear();
+    out.reserve(indices.len() * 4);
+    for &idx in indices {
+        let c = palette[idx as usize];
+        out.push(c.r);
+        out.push(c.g);
+        out.push(c.b);
+        out.push(c.a);
+    }
+}
+
+/// Pre-loaded base sprite data for `BakedSpriteTextures::bake_with_png`.
+/// `indices` holds 1-byte palette indices per pixel (row-major).
+/// `palette` is the 256-entry RGBA palette embedded in the indexed PNG.
 #[derive(Debug, Clone)]
 pub struct BaseSprite {
     pub sprite_idx: u16,
-    pub rgba: Vec<u8>,
+    pub indices: Vec<u8>,
+    pub palette: [Rgba; 256],
     pub width: u32,
     pub height: u32,
     pub center_x: i8,

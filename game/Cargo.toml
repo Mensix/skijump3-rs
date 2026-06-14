@@ -12,6 +12,7 @@ sdl2 = { workspace = true }
 serde = { version = "1", features = ["derive"] }
 toml = "1.1.2"
 image = { version = "0.25.8", default-features = false, features = ["png"] }
+png = "0.18.1"
 thiserror = "2"
 rust-embed = "8.11.0"
 
