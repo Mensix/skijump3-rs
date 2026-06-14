@@ -46,11 +46,7 @@ impl MainLayout {
             format!("{} {}", self.langbase.lstr(35), self.langbase.lstr(36)),
         );
         cx.fill((132, 175, 177, 22), FILL_BORDER);
-        cx.text(
-            (140, 177),
-            FONT_NEW,
-            "EVERYONE - THANKS FOR THE SUPPORT!",
-        );
+        cx.text((140, 177), FONT_NEW, "EVERYONE - THANKS FOR THE SUPPORT!");
     }
 
     pub fn footer(&self, cx: &mut PaintCx<'_>) {

@@ -1,5 +1,7 @@
 use crate::competition::team_cup::types::{TeamCupResultsKind, TeamCupStandingsKind};
-use crate::gfx::palette::{BG_TEAMCUP, BLACK, FILL_DIM, FILL_HIGHLIGHT, FONT_DEFAULT, FONT_GOLD, FONT_HELP};
+use crate::gfx::palette::{
+    BG_TEAMCUP, BLACK, FILL_DIM, FILL_HIGHLIGHT, FONT_DEFAULT, FONT_GOLD, FONT_HELP,
+};
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::format::format_decimal;
 use crate::text::layout::shorten_name;
@@ -80,5 +82,9 @@ pub(crate) fn render(
     }
 
     // Pascal WaitForKey: Done-) at bottom right
-    cx.right_text((319, 13), FONT_HELP, format!("{}-)", resources.langbase.lstr(248)));
+    cx.right_text(
+        (319, 13),
+        FONT_HELP,
+        format!("{}-)", resources.langbase.lstr(248)),
+    );
 }

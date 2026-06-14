@@ -4,8 +4,8 @@ use std::collections::HashMap;
 use crate::color::Rgba;
 use crate::consts::PATTERN_SPRITE;
 use crate::oxide::draw::{DrawCommand, SpriteDraw, TextAlign};
-use crate::sprite::{SpriteColorRecolor, SpriteData};
 use crate::oxide::Font;
+use crate::sprite::{SpriteColorRecolor, SpriteData};
 use crate::video::{Renderer, TextureId};
 
 const TEXT_SHADOW: Rgba = Rgba::rgb(0, 0, 0);
@@ -34,7 +34,14 @@ struct DitherRect {
 
 impl DitherRect {
     const fn new(x: i32, y: i32, w: i32, h: i32, color: Rgba, is_box: bool) -> Self {
-        Self { x, y, w, h, color, is_box }
+        Self {
+            x,
+            y,
+            w,
+            h,
+            color,
+            is_box,
+        }
     }
 }
 
@@ -46,7 +53,10 @@ struct DitherFillCollector {
 impl DitherFillCollector {
     fn new(mut pending: Vec<DitherRect>, fill_area_count: usize) -> Self {
         pending.clear();
-        Self { pending, remaining_fill_areas: fill_area_count }
+        Self {
+            pending,
+            remaining_fill_areas: fill_area_count,
+        }
     }
 
     const fn has_pending_fill_area(&self) -> bool {
@@ -63,7 +73,8 @@ impl DitherFillCollector {
 
     fn track_rect(&mut self, x: i32, y: i32, w: i32, h: i32, color: Rgba, is_box: bool) {
         if self.has_pending_fill_area() && is_fill_area_dither_color(color) {
-            self.pending.push(DitherRect::new(x, y, w, h, color, is_box));
+            self.pending
+                .push(DitherRect::new(x, y, w, h, color, is_box));
         }
     }
 
@@ -76,7 +87,14 @@ impl DitherFillCollector {
         if let Some(pattern) = sprites.get(PATTERN_SPRITE) {
             for rect in &self.pending {
                 renderer.dither_overlay_rect(
-                    rect.x, rect.y, rect.w, rect.h, rect.color, rect.is_box, thing, &pattern.data,
+                    rect.x,
+                    rect.y,
+                    rect.w,
+                    rect.h,
+                    rect.color,
+                    rect.is_box,
+                    thing,
+                    &pattern.data,
                 )?;
             }
         }
@@ -126,7 +144,10 @@ impl RemappedSpriteCache {
         if self.entries.len() >= MAX_CACHE_SIZE {
             self.entries.clear();
         }
-        let key = RemappedSpriteCacheKey { sprite_idx, recolor: recolor.clone() };
+        let key = RemappedSpriteCacheKey {
+            sprite_idx,
+            recolor: recolor.clone(),
+        };
         match self.entries.entry(key) {
             Entry::Occupied(o) => draw_remapped_texture(renderer, o.get(), x, y),
             Entry::Vacant(v) => {
@@ -164,7 +185,12 @@ fn draw_remapped_texture(
     renderer.draw_texture(
         entry.texture_id,
         None,
-        Some(sdl2::rect::Rect::new(dst_x, dst_y, u32::from(entry.width), u32::from(entry.height))),
+        Some(sdl2::rect::Rect::new(
+            dst_x,
+            dst_y,
+            u32::from(entry.width),
+            u32::from(entry.height),
+        )),
     )
 }
 
@@ -211,13 +237,24 @@ impl TextCache {
             TextAlign::Left => x,
         };
 
-        let key = TextCacheKey { text: text.to_owned(), x: fx, y, color };
+        let key = TextCacheKey {
+            text: text.to_owned(),
+            x: fx,
+            y,
+            color,
+        };
         match self.entries.entry(key) {
             Entry::Occupied(o) => draw_text_texture(renderer, o.get()),
             Entry::Vacant(v) => {
-                if let Some(bitmap) = font.render_string_rgba(text, fx, y, color, TEXT_SHADOW, &mut self.rgba_scratch) {
+                if let Some(bitmap) =
+                    font.render_string_rgba(text, fx, y, color, TEXT_SHADOW, &mut self.rgba_scratch)
+                {
                     if bitmap.pixels.iter().any(|&b| b != 0) {
-                        let tex_id = renderer.create_rgba_texture(&bitmap.pixels, bitmap.width, bitmap.height)?;
+                        let tex_id = renderer.create_rgba_texture(
+                            &bitmap.pixels,
+                            bitmap.width,
+                            bitmap.height,
+                        )?;
                         let entry = TextCacheEntry {
                             texture_id: tex_id,
                             x: bitmap.x,
@@ -239,12 +276,20 @@ fn draw_text_texture(renderer: &mut Renderer, entry: &TextCacheEntry) -> Result<
     renderer.draw_texture(
         entry.texture_id,
         None,
-        Some(sdl2::rect::Rect::new(entry.x, entry.y, entry.width, entry.height)),
+        Some(sdl2::rect::Rect::new(
+            entry.x,
+            entry.y,
+            entry.width,
+            entry.height,
+        )),
     )
 }
 
 fn count_fill_area_commands(commands: &[DrawCommand]) -> usize {
-    commands.iter().filter(|cmd| matches!(cmd, DrawCommand::DitherFill(_))).count()
+    commands
+        .iter()
+        .filter(|cmd| matches!(cmd, DrawCommand::DitherFill(_)))
+        .count()
 }
 
 pub struct DrawCommandRenderer {
@@ -317,17 +362,28 @@ impl DrawCommandRenderer {
             }
             DrawCommand::Text(run) => {
                 self.text_cache.draw(
-                    renderer, font, &run.text,
-                    run.position.x, run.position.y,
-                    run.color, run.align,
+                    renderer,
+                    font,
+                    &run.text,
+                    run.position.x,
+                    run.position.y,
+                    run.color,
+                    run.align,
                 )?;
             }
             DrawCommand::Sprite(SpriteDraw { idx, position }) => {
                 if let Some(sprite) = sprites.get(*idx as usize) {
                     if let Some(bitmap) = sprite.render_rgba_bitmap(position.x, position.y) {
                         renderer.draw_rgba_region_pixels(
-                            &bitmap.pixels, bitmap.width, bitmap.height,
-                            0, 0, bitmap.x, bitmap.y, bitmap.width, bitmap.height,
+                            &bitmap.pixels,
+                            bitmap.width,
+                            bitmap.height,
+                            0,
+                            0,
+                            bitmap.x,
+                            bitmap.y,
+                            bitmap.width,
+                            bitmap.height,
                         )?;
                     }
                 }
@@ -335,8 +391,12 @@ impl DrawCommandRenderer {
             DrawCommand::SpriteRemapped { sprite, recolor } => {
                 if let Some(sprite_data) = sprites.get(sprite.idx as usize) {
                     self.remapped_sprite_cache.draw(
-                        renderer, sprite.idx, sprite.position.x, sprite.position.y,
-                        recolor, sprite_data,
+                        renderer,
+                        sprite.idx,
+                        sprite.position.x,
+                        sprite.position.y,
+                        recolor,
+                        sprite_data,
                     )?;
                 }
             }
@@ -345,10 +405,15 @@ impl DrawCommandRenderer {
             }
             DrawCommand::ImageRegion(region) => {
                 renderer.draw_rgba_region_pixels(
-                    &region.pixels, region.src_w, region.src_h,
-                    region.src_x, region.src_y,
-                    region.dst_x, region.dst_y,
-                    region.w, region.h,
+                    &region.pixels,
+                    region.src_w,
+                    region.src_h,
+                    region.src_x,
+                    region.src_y,
+                    region.dst_x,
+                    region.dst_y,
+                    region.w,
+                    region.h,
                 )?;
             }
         }

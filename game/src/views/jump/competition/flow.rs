@@ -272,7 +272,10 @@ pub(crate) fn handle_jump_scene_event(
     JumpInputResult::None
 }
 
-pub(crate) fn route_error_back(ui_state: &CompetitionUiState, event: UiEvent) -> Option<RouteTarget> {
+pub(crate) fn route_error_back(
+    ui_state: &CompetitionUiState,
+    event: UiEvent,
+) -> Option<RouteTarget> {
     if ui_state.render_mode() != RenderMode::Error {
         return None;
     }

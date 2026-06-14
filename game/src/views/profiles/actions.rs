@@ -62,26 +62,26 @@ pub(super) fn handle_list_delete(view: &mut ProfilesView) {
     if view.store.profiles().order_pos(view.selected).is_some() {
         view.store.profiles_mut().remove_from_order(view.selected);
         save_players(view);
-        } else {
-            let name = view.store.profiles().profiles[view.selected].name.clone();
-            view.mode = Mode::Question {
-                action: QuestionAction::DeleteProfile(view.selected),
-                dialog: OxideConfirmDialog::new(
-                    (59, 79, 203, 53),
-                    BG_RIGHT,
-                    BLACK,
-                    FONT_HEADER,
-                    format!(
-                        "{}: {}",
-                        lstr(&view.resources.langbase, 328, "Delete"),
-                        name
-                    ),
-                    "Y",
-                    "N",
-                )
-                .with_subtitle(lstr(&view.resources.langbase, 193, "Are you sure?")),
-            };
-        }
+    } else {
+        let name = view.store.profiles().profiles[view.selected].name.clone();
+        view.mode = Mode::Question {
+            action: QuestionAction::DeleteProfile(view.selected),
+            dialog: OxideConfirmDialog::new(
+                (59, 79, 203, 53),
+                BG_RIGHT,
+                BLACK,
+                FONT_HEADER,
+                format!(
+                    "{}: {}",
+                    lstr(&view.resources.langbase, 328, "Delete"),
+                    name
+                ),
+                "Y",
+                "N",
+            )
+            .with_subtitle(lstr(&view.resources.langbase, 193, "Are you sure?")),
+        };
+    }
 }
 
 pub(super) fn handle_edit_enter(view: &mut ProfilesView, profile: usize, selected: usize) {
@@ -101,7 +101,16 @@ pub(super) fn handle_edit_enter(view: &mut ProfilesView, profile: usize, selecte
             view.mode = Mode::ColorSelect {
                 profile,
                 field: ColorField::Suit,
-                selector: NumericSelector::new(x, 24, 31, NUM_SUITS - 1, value, BLACK, FONT_DEFAULT, ""),
+                selector: NumericSelector::new(
+                    x,
+                    24,
+                    31,
+                    NUM_SUITS - 1,
+                    value,
+                    BLACK,
+                    FONT_DEFAULT,
+                    "",
+                ),
                 color_x: x,
                 color_y: 24,
                 color_max: NUM_SUITS - 1,
@@ -121,7 +130,16 @@ pub(super) fn handle_edit_enter(view: &mut ProfilesView, profile: usize, selecte
             view.mode = Mode::ColorSelect {
                 profile,
                 field: ColorField::Ski,
-                selector: NumericSelector::new(x, 32, 31, NUM_SKIS - 1, value, BLACK, FONT_DEFAULT, ""),
+                selector: NumericSelector::new(
+                    x,
+                    32,
+                    31,
+                    NUM_SKIS - 1,
+                    value,
+                    BLACK,
+                    FONT_DEFAULT,
+                    "",
+                ),
                 color_x: x,
                 color_y: 32,
                 color_max: NUM_SKIS - 1,
@@ -189,7 +207,11 @@ pub(super) fn handle_edit_enter(view: &mut ProfilesView, profile: usize, selecte
                     "Y",
                     "N",
                 )
-                .with_subtitle(lstr(&view.resources.langbase, 193, "Are you sure?")),
+                .with_subtitle(lstr(
+                    &view.resources.langbase,
+                    193,
+                    "Are you sure?",
+                )),
             };
         }
         _ => {}

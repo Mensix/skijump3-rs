@@ -71,4 +71,3 @@ impl Screen<RouteTarget> for WelcomeScreenView {
         self.paint_content(cx);
     }
 }
-

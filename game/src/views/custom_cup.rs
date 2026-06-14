@@ -1,5 +1,7 @@
 use crate::competition::factory;
-use crate::gfx::palette::{BG_LEFT, BLACK, FILL_BORDER, FILL_DIM, FONT_DEFAULT, FONT_GREET, FONT_HEADER, FONT_HELP};
+use crate::gfx::palette::{
+    BG_LEFT, BLACK, FILL_BORDER, FILL_DIM, FONT_DEFAULT, FONT_GREET, FONT_HEADER, FONT_HELP,
+};
 use crate::gfx::sprites;
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
@@ -155,4 +157,3 @@ impl Screen<RouteTarget> for CustomCupSetupView {
         self.paint_content(cx);
     }
 }
-

@@ -1,12 +1,14 @@
 use crate::competition::factory;
 use crate::competition::koth::builder;
-use crate::gfx::palette::{BG_LEFT, BG_RIGHT, BLACK, FILL_DIM, FONT_DEFAULT, FONT_GOLD, FONT_GREET, FONT_HELP};
+use crate::gfx::palette::{
+    BG_LEFT, BG_RIGHT, BLACK, FILL_DIM, FONT_DEFAULT, FONT_GOLD, FONT_GREET, FONT_HELP,
+};
 use crate::route::RouteTarget;
 use crate::save::config::Config;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::layout::shorten_name;
-use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent};
 use engine::oxide::input::Key;
+use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent};
 use std::cell::{Cell, RefCell};
 
 use crate::text::lang::LangBase;
@@ -195,7 +197,11 @@ impl KothSetupView {
                 let name = names.get(id - 1).map(|s| s.as_str()).unwrap_or("?");
                 let y = (i as i32 + 1) * 8 + 25;
                 cx.fill((178, y - 2, 137, 10), BG_LEFT);
-                cx.text((180, y), FONT_GOLD, shorten_name(name, &self.resources.font, 110));
+                cx.text(
+                    (180, y),
+                    FONT_GOLD,
+                    shorten_name(name, &self.resources.font, 110),
+                );
                 cx.right_text((310, y), FONT_GOLD, format!("#{}", id));
             }
             // preview slot at bottom (white)
@@ -203,7 +209,11 @@ impl KothSetupView {
                 let y = (sel.len() as i32 + 1) * 8 + 25;
                 let name = names.get(prev).map(|s| s.as_str()).unwrap_or("?");
                 cx.fill((178, y - 2, 137, 10), BG_LEFT);
-                cx.text((180, y), FONT_DEFAULT, shorten_name(name, &self.resources.font, 110));
+                cx.text(
+                    (180, y),
+                    FONT_DEFAULT,
+                    shorten_name(name, &self.resources.font, 110),
+                );
                 cx.right_text((310, y), FONT_DEFAULT, format!("#{}", prev + 1));
             }
         }
@@ -244,9 +254,7 @@ impl KothSetupView {
                 self.selected.set(if s >= 6 { 0 } else { s + 1 });
                 None
             }
-            UiEvent::KeyDown(Key::Enter) | UiEvent::Text(' ') => {
-                self.activate(self.selected.get())
-            }
+            UiEvent::KeyDown(Key::Enter) | UiEvent::Text(' ') => self.activate(self.selected.get()),
             UiEvent::Text(ch) if *ch >= '0' && *ch <= '6' => {
                 let n = *ch as usize - '0' as usize;
                 self.selected.set(n);
@@ -377,10 +385,7 @@ impl KothSetupView {
 
     fn apply_pack(&self, pack: i32) {
         self.update_config(|cfg| cfg.kothpack = pack);
-        builder::apply_koth_pack(
-            &self.resources.save_manager,
-            pack as u8,
-        );
+        builder::apply_koth_pack(&self.resources.save_manager, pack as u8);
         self.mode.set(KothMode::Main);
     }
 

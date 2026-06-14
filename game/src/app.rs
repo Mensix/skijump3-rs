@@ -7,8 +7,8 @@ use crate::app::router::{create_router, AppRouter};
 use crate::files::FileStore;
 use crate::route::RouteTarget;
 use engine::input::Input;
-use engine::sprite::SpriteData;
 use engine::oxide::Font;
+use engine::sprite::SpriteData;
 use engine::video::{Renderer, TextureId};
 use std::rc::Rc;
 

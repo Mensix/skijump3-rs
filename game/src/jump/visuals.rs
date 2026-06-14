@@ -75,16 +75,8 @@ pub(crate) fn push_jumper_sprites(cx: &mut PaintCx<'_>, spec: JumperSpriteSpec) 
         JUMPER_SKI_SOURCE,
         palette::ski_color(spec.ski_color),
     )]);
-    cx.sprite_remapped(
-        spec.body_anim,
-        (spec.body_x, spec.body_y),
-        body_recolor,
-    );
-    cx.sprite_remapped(
-        spec.ski_anim,
-        (spec.ski_x, spec.ski_y),
-        ski_recolor,
-    );
+    cx.sprite_remapped(spec.body_anim, (spec.body_x, spec.body_y), body_recolor);
+    cx.sprite_remapped(spec.ski_anim, (spec.ski_x, spec.ski_y), ski_recolor);
 }
 
 #[cfg(test)]
@@ -153,8 +145,14 @@ mod tests {
     #[test]
     fn leader_bib_recolor_uses_pascal_bib_palette_entries() {
         let body_recolor = SpriteColorRecolor::new(vec![
-            (JUMPER_BIB_SOURCE_SHADE_1, palette::jumper_bib_color_shade(1)),
-            (JUMPER_BIB_SOURCE_SHADE_3, palette::jumper_bib_color_shade(3)),
+            (
+                JUMPER_BIB_SOURCE_SHADE_1,
+                palette::jumper_bib_color_shade(1),
+            ),
+            (
+                JUMPER_BIB_SOURCE_SHADE_3,
+                palette::jumper_bib_color_shade(3),
+            ),
         ]);
 
         assert_eq!(

@@ -19,8 +19,8 @@ use crate::views::jump::competition::results::{
 };
 use crate::views::jump::competition::ui_state::{RenderMode, ResultScreen};
 use crate::views::jump::scene::JumpScene;
-use engine::oxide::{Key, PaintCx, Screen, ScreenEventCx, UiEvent};
 use engine::oxide::Blinker;
+use engine::oxide::{Key, PaintCx, Screen, ScreenEventCx, UiEvent};
 
 pub struct WorldCupJumpView {
     controller: CompetitionJumpController<Competition>,
@@ -121,8 +121,12 @@ impl WorldCupJumpView {
     /// Pascal: rank calculation — counts participants with points <= jumper's total.
     /// Shows `($X.)` at (255,45), left of the score at (308,45).
     fn draw_rank(&self, cx: &mut PaintCx<'_>) {
-        let Some(scene) = self.controller.scene() else { return };
-        let Some(outcome) = scene.outcome() else { return };
+        let Some(scene) = self.controller.scene() else {
+            return;
+        };
+        let Some(outcome) = scene.outcome() else {
+            return;
+        };
         if scene.phase() != Some(JumpPhase::Result) {
             return;
         }
@@ -296,10 +300,7 @@ impl WorldCupJumpView {
 
     fn dismiss_results_and_advance(&mut self) {
         self.blinker.reset();
-        if let Some(command) = self
-            .controller
-            .dismiss_results_and_advance()
-        {
+        if let Some(command) = self.controller.dismiss_results_and_advance() {
             self.apply_command(command);
         }
     }

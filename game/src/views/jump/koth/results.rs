@@ -1,14 +1,13 @@
 use crate::competition::koth::types::KothRuntime;
 use crate::gfx::palette::{
-    BG_KOTH, BLACK, FILL_DIM, FILL_HIGHLIGHT, FONT_DEFAULT, FONT_GOLD,
-    FONT_HEADER, FONT_HELP,
+    BG_KOTH, BLACK, FILL_DIM, FILL_HIGHLIGHT, FONT_DEFAULT, FONT_GOLD, FONT_HEADER, FONT_HELP,
 };
 use crate::gfx::sprites;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::format::format_decimal;
+use crate::text::lang::LangBase;
 use engine::color::Rgba;
 use engine::oxide::PaintCx;
-use crate::text::lang::LangBase;
 
 // Pascal column positions (columnX[1]): rank, name, points, distance, qual, extra
 const COL_RANK: i32 = 24;
@@ -133,7 +132,11 @@ pub fn render(cx: &mut PaintCx<'_>, resources: &ResourcesRef, store: &StoreRef) 
         let title = if remaining <= 1 {
             format!("{}!", resources.langbase.lstr(31))
         } else {
-            format!("{} {}", resources.langbase.lstr(31), resources.langbase.lstr(95))
+            format!(
+                "{} {}",
+                resources.langbase.lstr(31),
+                resources.langbase.lstr(95)
+            )
         };
 
         let kp = KothPage {
@@ -149,7 +152,11 @@ pub fn render(cx: &mut PaintCx<'_>, resources: &ResourcesRef, store: &StoreRef) 
         cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
 
         // Pascal-style: just "Done" hint (no prev/next pagination for KOTH)
-        cx.right_text((319, 13), FONT_HELP, format!("{}-)", resources.langbase.lstr(248)));
+        cx.right_text(
+            (319, 13),
+            FONT_HELP,
+            format!("{}-)", resources.langbase.lstr(248)),
+        );
 
         // Title
         cx.text((30, 6), FONT_DEFAULT, &kp.title);

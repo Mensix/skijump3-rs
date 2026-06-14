@@ -146,9 +146,7 @@ where
         self.ui_state.enter_error(msg.into());
     }
 
-    fn advance_results(
-        &mut self,
-    ) -> Option<CompetitionFlowCommand<R::Context, R::ResultsKind>> {
+    fn advance_results(&mut self) -> Option<CompetitionFlowCommand<R::Context, R::ResultsKind>> {
         let scene = self.scene.as_ref()?;
         command_or_error(
             &self.ui_state,

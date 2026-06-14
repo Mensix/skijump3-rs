@@ -1,7 +1,9 @@
 use crate::data::hill::HillInfo;
 use crate::data::hill_profile::HillTerrain;
 use crate::error::AssetError;
-use crate::gfx::palette::{self, BG_LEFT, BLACK, FILL_BORDER, FONT_DEFAULT, FONT_GOLD, FONT_GREET, FONT_HELP};
+use crate::gfx::palette::{
+    self, BG_LEFT, BLACK, FILL_BORDER, FONT_DEFAULT, FONT_GOLD, FONT_GREET, FONT_HELP,
+};
 use crate::gfx::sprites;
 use crate::jump::hud;
 use crate::jump::math;
@@ -16,8 +18,8 @@ use crate::text::lang::LangBase;
 use crate::views::replay::playback_controls::{PlaybackMode, PlaybackSpeed, ReplayPlayback};
 use engine::consts::{HEIGHT, WIDTH};
 use engine::oxide::input::Key;
-use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent};
 use engine::oxide::Blinker;
+use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent};
 use std::cell::{Cell, RefCell};
 use std::collections::VecDeque;
 use std::rc::Rc;
@@ -383,19 +385,22 @@ fn replay_speed_text(speed: PlaybackSpeed, langbase: &LangBase) -> String {
     }
 }
 
-fn intro_box_elements(
-    cx: &mut PaintCx<'_>,
-    langbase: &LangBase,
-    phase: u8,
-    cursor_visible: bool,
-) {
+fn intro_box_elements(cx: &mut PaintCx<'_>, langbase: &LangBase, phase: u8, cursor_visible: bool) {
     let ix = 30;
     let iy = if phase <= 3 { 140 } else { 30 };
     cx.fill((ix - 7, iy - 7, 269, 40), FILL_BORDER);
     cx.fill((ix - 6, iy - 6, 267, 38), BG_LEFT);
     cx.text((ix, iy), FONT_GOLD, langbase.lstr(360 + phase as usize * 2));
-    cx.text((ix, iy + 10), FONT_GOLD, langbase.lstr(361 + phase as usize * 2));
-    cx.right_text((ix + 246, iy + 21), FONT_DEFAULT, langbase.lstr(15).to_string());
+    cx.text(
+        (ix, iy + 10),
+        FONT_GOLD,
+        langbase.lstr(361 + phase as usize * 2),
+    );
+    cx.right_text(
+        (ix + 246, iy + 21),
+        FONT_DEFAULT,
+        langbase.lstr(15).to_string(),
+    );
     cx.fill((ix + 246 + 1 - 2 + 1, iy + 21 - 2, 9, 11), BG_LEFT);
     if cursor_visible {
         cx.fill((ix + 246 + 1, iy + 21 + 6, 5, 1), FONT_DEFAULT);

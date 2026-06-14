@@ -1,16 +1,16 @@
 use super::setup::{SetupAction, TeamCupSetup};
 use crate::competition::team_cup::types::{TeamCupJumpContext, TeamCupResultsKind, TeamCupRuntime};
+use crate::gfx::palette::{BLACK, FONT_DEFAULT, FONT_HELP};
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::views::jump::competition::controller::CompetitionJumpController;
 use crate::views::jump::competition::flow::{
     route_error_back, CompetitionFlowCommand, JumpInputResult,
 };
-use crate::views::jump::team_cup::results as team_cup_results;
-use crate::gfx::palette::{BLACK, FONT_DEFAULT, FONT_HELP};
 use crate::views::jump::competition::ui_state::RenderMode;
-use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent};
+use crate::views::jump::team_cup::results as team_cup_results;
 use engine::oxide::Blinker;
+use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ViewPhase {
@@ -120,7 +120,11 @@ impl TeamCupJumpView {
                 };
                 cx.fill((0, 0, 320, 200), BLACK);
                 cx.text((20, 80), FONT_DEFAULT, &msg);
-                cx.text((20, 95), FONT_HELP, self.controller.resources().langbase.lstr(15));
+                cx.text(
+                    (20, 95),
+                    FONT_HELP,
+                    self.controller.resources().langbase.lstr(15),
+                );
             }
         }
     }
@@ -163,10 +167,7 @@ impl TeamCupJumpView {
 
         if self.controller.render_mode() == RenderMode::Results {
             if matches!(event, UiEvent::KeyDown(_) | UiEvent::Text(_)) {
-                if let Some(cmd) = self
-                    .controller
-                    .dismiss_results_and_advance()
-                {
+                if let Some(cmd) = self.controller.dismiss_results_and_advance() {
                     self.apply_command(cmd);
                 }
             }
@@ -219,5 +220,3 @@ impl Screen<RouteTarget> for TeamCupJumpView {
         self.paint_content(cx);
     }
 }
-
-

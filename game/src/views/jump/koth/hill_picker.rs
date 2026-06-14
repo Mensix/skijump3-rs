@@ -81,10 +81,14 @@ impl KothHillPickerView {
             self.start = (self.start + 20) % self.total;
             self.menu = self.rebuild_menu();
         } else if sel == self.menu.item_count() {
-            self.resources.save_manager.update_config(|cfg| cfg.kothmaki = 0);
+            self.resources
+                .save_manager
+                .update_config(|cfg| cfg.kothmaki = 0);
         } else {
             let hill_idx = self.start + sel;
-            self.resources.save_manager.update_config(|cfg| cfg.kothmaki = hill_idx as i32 + 1);
+            self.resources
+                .save_manager
+                .update_config(|cfg| cfg.kothmaki = hill_idx as i32 + 1);
         }
     }
 

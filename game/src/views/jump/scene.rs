@@ -272,13 +272,16 @@ impl JumpScene {
         }
         let records = self.store.records();
         self.store.with_jump_wind(|wind| {
-            self.runner.borrow_mut().render(cx, JumpRunnerRenderEnv {
-                font: &self.resources.font,
-                langbase: &self.resources.langbase,
-                hills: &self.resources.hills,
-                records: &records,
-                wind,
-            })
+            self.runner.borrow_mut().render(
+                cx,
+                JumpRunnerRenderEnv {
+                    font: &self.resources.font,
+                    langbase: &self.resources.langbase,
+                    hills: &self.resources.hills,
+                    records: &records,
+                    wind,
+                },
+            )
         })
     }
 
@@ -306,7 +309,7 @@ impl JumpScene {
         let terrain = resources.terrain(hill_idx).map(|t| (*t).clone());
         let record_distance = store.records().hill_record(hill_idx).map_or(0.0, |r| r.len);
         let snow_count = snow.count();
-            JumpRunner::new(
+        JumpRunner::new(
             JumpConfig {
                 hill_idx,
                 hill,
@@ -323,5 +326,3 @@ impl JumpScene {
         )
     }
 }
-
-

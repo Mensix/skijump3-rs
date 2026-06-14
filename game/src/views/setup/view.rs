@@ -4,7 +4,7 @@ use crate::save::config::Config;
 use crate::save::SaveManager;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::lang::LangBase;
-use engine::oxide::widgets::menu::{PixelMenu, MenuItem as OxideMenuItem};
+use engine::oxide::widgets::menu::{MenuItem as OxideMenuItem, PixelMenu};
 use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent};
 use std::cell::Cell;
 

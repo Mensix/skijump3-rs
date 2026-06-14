@@ -1,3 +1,7 @@
+use crate::competition::koth::types::KothRuntime;
+use crate::competition::machine::Competition;
+use crate::competition::team_cup::types::TeamCupRuntime;
+use crate::competition::ActiveCompetition;
 use crate::content::names::NameCatalog;
 use crate::data::hill::HillCatalog;
 use crate::data::hill_profile::HillTerrain;
@@ -10,10 +14,6 @@ use crate::jump::types::DEFAULT_START_GATE;
 use crate::jump::wind::Wind;
 use crate::rng::Random;
 use crate::save::{SaveManager, SaveRef};
-use crate::competition::koth::types::KothRuntime;
-use crate::competition::machine::Competition;
-use crate::competition::team_cup::types::TeamCupRuntime;
-use crate::competition::ActiveCompetition;
 use crate::text::lang::LangBase;
 use engine::oxide::Font;
 use std::cell::{Cell, Ref, RefCell, RefMut};
@@ -269,17 +269,11 @@ impl Store {
         *self.active_competition.borrow_mut() = Some(comp);
     }
 
-    pub fn with_active<R>(
-        &self,
-        f: impl FnOnce(&ActiveCompetition) -> R,
-    ) -> Option<R> {
+    pub fn with_active<R>(&self, f: impl FnOnce(&ActiveCompetition) -> R) -> Option<R> {
         self.active_competition.borrow().as_ref().map(f)
     }
 
-    pub fn with_active_mut<R>(
-        &self,
-        f: impl FnOnce(&mut ActiveCompetition) -> R,
-    ) -> Option<R> {
+    pub fn with_active_mut<R>(&self, f: impl FnOnce(&mut ActiveCompetition) -> R) -> Option<R> {
         self.active_competition.borrow_mut().as_mut().map(f)
     }
 
@@ -394,30 +388,21 @@ pub trait HasRuntime<R> {
 }
 
 impl HasRuntime<Competition> for Store {
-    fn with_runtime_mut<T>(
-        &self,
-        f: impl FnOnce(&mut Competition) -> T,
-    ) -> Option<T> {
+    fn with_runtime_mut<T>(&self, f: impl FnOnce(&mut Competition) -> T) -> Option<T> {
         self.with_active_mut(|active| active.individual_mut().map(f))
             .flatten()
     }
 }
 
 impl HasRuntime<TeamCupRuntime> for Store {
-    fn with_runtime_mut<T>(
-        &self,
-        f: impl FnOnce(&mut TeamCupRuntime) -> T,
-    ) -> Option<T> {
+    fn with_runtime_mut<T>(&self, f: impl FnOnce(&mut TeamCupRuntime) -> T) -> Option<T> {
         self.with_active_mut(|active| active.team_cup_runtime_mut().map(f))
             .flatten()
     }
 }
 
 impl HasRuntime<KothRuntime> for Store {
-    fn with_runtime_mut<T>(
-        &self,
-        f: impl FnOnce(&mut KothRuntime) -> T,
-    ) -> Option<T> {
+    fn with_runtime_mut<T>(&self, f: impl FnOnce(&mut KothRuntime) -> T) -> Option<T> {
         self.with_active_mut(|active| active.koth_runtime_mut().map(f))
             .flatten()
     }

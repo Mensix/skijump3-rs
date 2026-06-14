@@ -34,9 +34,16 @@ impl SaveField {
 #[derive(Debug, Clone)]
 enum SaveDialogState {
     Inactive,
-    Browse { selected: usize },
-    EditField { field: SaveField, editor: TextEditState },
-    ConfirmOverwrite { filename: String },
+    Browse {
+        selected: usize,
+    },
+    EditField {
+        field: SaveField,
+        editor: TextEditState,
+    },
+    ConfirmOverwrite {
+        filename: String,
+    },
 }
 
 pub enum SaveAction {
@@ -86,10 +93,19 @@ impl SaveReplayDialog {
     }
 
     fn is_form_active(&self) -> bool {
-        matches!(self.state, SaveDialogState::Browse { .. } | SaveDialogState::EditField { .. })
+        matches!(
+            self.state,
+            SaveDialogState::Browse { .. } | SaveDialogState::EditField { .. }
+        )
     }
 
-    pub fn open(&mut self, initial_author: String, initial_name: String, distance: String, hill_name: String) {
+    pub fn open(
+        &mut self,
+        initial_author: String,
+        initial_name: String,
+        distance: String,
+        hill_name: String,
+    ) {
         self.author = initial_author;
         self.name = initial_name;
         self.distance = distance;
@@ -183,7 +199,12 @@ impl SaveReplayDialog {
         cx.text(
             (30, 6),
             FONT_DEFAULT,
-            format!("{}: {}µ at {}", self.resources.langbase.lstr(25), self.distance, self.hill_name),
+            format!(
+                "{}: {}µ at {}",
+                self.resources.langbase.lstr(25),
+                self.distance,
+                self.hill_name
+            ),
         );
 
         for i in 0..5 {
@@ -216,7 +237,10 @@ impl SaveReplayDialog {
                 };
 
                 if is_editing {
-                    let fw = match editing_field { Some(2) => 60, _ => 134 };
+                    let fw = match editing_field {
+                        Some(2) => 60,
+                        _ => 134,
+                    };
                     cx.fill((146, final_yy - 2, fw, 10), BLACK);
                 }
                 cx.text((148, final_yy), FONT_GOLD, value);
@@ -224,7 +248,11 @@ impl SaveReplayDialog {
                 if is_editing {
                     if let SaveDialogState::EditField { ref editor, .. } = self.state {
                         let cx_pos = 148
-                            + self.resources.font.string_width(&editor.buffer()[..editor.cursor_byte()]) as i32;
+                            + self
+                                .resources
+                                .font
+                                .string_width(&editor.buffer()[..editor.cursor_byte()])
+                                as i32;
                         if self.cursor_blink.visible(11, 10) {
                             cx.fill((cx_pos, final_yy + 6, 5, 1), FONT_DEFAULT);
                         }
@@ -234,7 +262,11 @@ impl SaveReplayDialog {
         }
 
         if show_box {
-            let box_y = if selected_idx < 4 { 36 + selected_idx * 16 } else { 36 + 5 * 16 };
+            let box_y = if selected_idx < 4 {
+                36 + selected_idx * 16
+            } else {
+                36 + 5 * 16
+            };
             cx.stroke((9, box_y as i32, 135, 17), FONT_DEFAULT);
         }
     }
@@ -276,14 +308,18 @@ impl SaveReplayDialog {
                     self.state = SaveDialogState::Browse { selected: next };
                     Some(SaveAction::Consumed)
                 }
-                UiEvent::KeyDown(Key::Enter) | UiEvent::Text(' ') => Some(self.activate_item(selected)),
+                UiEvent::KeyDown(Key::Enter) | UiEvent::Text(' ') => {
+                    Some(self.activate_item(selected))
+                }
                 UiEvent::Text(c) => Some(self.handle_browse_digit(*c)),
                 _ => Some(SaveAction::Consumed),
             },
             SaveDialogState::EditField { field, mut editor } => match event {
                 UiEvent::KeyDown(Key::Escape) => {
                     self.cursor_blink.reset();
-                    self.state = SaveDialogState::Browse { selected: field.idx() };
+                    self.state = SaveDialogState::Browse {
+                        selected: field.idx(),
+                    };
                     Some(SaveAction::Consumed)
                 }
                 UiEvent::KeyDown(Key::Enter) => {
@@ -294,7 +330,9 @@ impl SaveReplayDialog {
                         SaveField::Name => self.name = buf,
                         SaveField::Filename => self.filename = buf,
                     }
-                    self.state = SaveDialogState::Browse { selected: field.idx() };
+                    self.state = SaveDialogState::Browse {
+                        selected: field.idx(),
+                    };
                     Some(SaveAction::Consumed)
                 }
                 UiEvent::KeyDown(Key::Backspace) => {

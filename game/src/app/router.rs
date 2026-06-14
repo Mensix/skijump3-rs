@@ -7,9 +7,7 @@ use crate::views::{
     KothHillPickerView, KothSetupView, MainMenuView, ProfilesView, ReplayBrowserView, ReplayView,
     SetupView, TrainingSetupView, WelcomeScreenView,
 };
-use engine::oxide::{
-    NavAction, PaintCx, Screen, ScreenBackground, ScreenEventCx, UiEvent,
-};
+use engine::oxide::{NavAction, PaintCx, Screen, ScreenBackground, ScreenEventCx, UiEvent};
 use std::rc::Rc;
 
 const VERSION: &str = "3.12";
@@ -231,13 +229,10 @@ impl RouteRegistry {
                 RouteTarget::OptionsMenu,
                 self.resources_store(|resources, store| Box::new(SetupView::new(resources, store))),
             ),
-            (
-                RouteTarget::KothHillPicker,
-                {
-                    let resources = self.resources.clone();
-                    Box::new(move || Box::new(KothHillPickerView::new(resources.clone())))
-                },
-            ),
+            (RouteTarget::KothHillPicker, {
+                let resources = self.resources.clone();
+                Box::new(move || Box::new(KothHillPickerView::new(resources.clone())))
+            }),
             (
                 RouteTarget::KothSetup,
                 self.resources_store(|resources, store| {

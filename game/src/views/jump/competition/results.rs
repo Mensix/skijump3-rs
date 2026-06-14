@@ -31,9 +31,13 @@ fn render_individual(
     store.with_active(|active| {
         let c = active.individual()?;
         match ui_state.current_screen() {
-            ResultScreen::KoPairs(show_results) => {
-                world_cup::results::render_ko_pairs(cx, c, resources, show_results, ko_cursor_visible)
-            }
+            ResultScreen::KoPairs(show_results) => world_cup::results::render_ko_pairs(
+                cx,
+                c,
+                resources,
+                show_results,
+                ko_cursor_visible,
+            ),
             ResultScreen::Stats => {
                 world_cup::results::render_stats_page(cx, c, resources, ui_state.current_page())
             }
@@ -50,5 +54,3 @@ fn render_individual(
         Some(())
     });
 }
-
-

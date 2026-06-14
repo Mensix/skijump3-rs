@@ -11,7 +11,6 @@ use engine::oxide::widgets::menu::PixelMenu;
 use engine::oxide::Widget;
 use engine::oxide::{PaintCx, Screen, ScreenBackground, ScreenEventCx, UiEvent};
 
-
 pub struct JumpMenuView {
     menu: PixelMenu,
     layout: MainLayout,
@@ -204,4 +203,3 @@ fn paint_jump_menu(cx: &mut PaintCx<'_>, menu: &PixelMenu, layout: &MainLayout) 
     let y = 94 + (selected as i32) * 12 + y_offsets[selected];
     cx.stroke((5, y, 109, 13), FONT_DEFAULT);
 }
-

@@ -45,7 +45,11 @@ pub fn render_ko_pairs(
         render_ko_side(cx, right, y, false, show_results, resources);
     }
 
-    cx.right_text((305, 6), FONT_DEFAULT, resources.langbase.lstr(15).to_string());
+    cx.right_text(
+        (305, 6),
+        FONT_DEFAULT,
+        resources.langbase.lstr(15).to_string(),
+    );
     cx.fill((304, 4, 9, 11), BG_LEFT);
     if show_cursor {
         cx.fill((306, 12, 5, 1), FONT_DEFAULT);
@@ -92,18 +96,34 @@ fn render_ko_side(
     if left {
         cx.right_text((KO_LEFT_NAME, y), element_color, truncate_name(name));
         if show_results {
-            cx.right_text((KO_LEFT_POINTS, y), element_color, format_decimal(p.points.unwrap_or(0.0)));
+            cx.right_text(
+                (KO_LEFT_POINTS, y),
+                element_color,
+                format_decimal(p.points.unwrap_or(0.0)),
+            );
             cx.right_text((KO_LEFT_STATUS, y), element_color, status);
         } else {
-            cx.right_text((KO_LEFT_NAME - plus, y), element_color, format!("({seed_str})"));
+            cx.right_text(
+                (KO_LEFT_NAME - plus, y),
+                element_color,
+                format!("({seed_str})"),
+            );
         }
     } else {
         cx.text((KO_RIGHT_NAME, y), element_color, truncate_name(name));
         if show_results {
-            cx.right_text((KO_RIGHT_POINTS, y), element_color, format_decimal(p.points.unwrap_or(0.0)));
+            cx.right_text(
+                (KO_RIGHT_POINTS, y),
+                element_color,
+                format_decimal(p.points.unwrap_or(0.0)),
+            );
             cx.text((KO_RIGHT_STATUS, y), element_color, status);
         } else {
-            cx.text((KO_RIGHT_NAME + plus, y), element_color, format!("({seed_str})"));
+            cx.text(
+                (KO_RIGHT_NAME + plus, y),
+                element_color,
+                format!("({seed_str})"),
+            );
         }
     }
 }

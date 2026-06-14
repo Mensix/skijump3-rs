@@ -7,8 +7,8 @@ use crate::gfx::palette::{
 use crate::jump::replay::ReplayTrace;
 use crate::route::RouteTarget;
 use crate::store::{Resources, ResourcesRef, StoreRef};
-use engine::oxide::{PaintCx, Screen, ScreenBackground, ScreenEventCx, UiEvent};
 use engine::oxide::input::Key;
+use engine::oxide::{PaintCx, Screen, ScreenBackground, ScreenEventCx, UiEvent};
 use std::path::Path;
 
 #[derive(Debug, Clone)]
@@ -154,7 +154,6 @@ fn paint_replay_menu(cx: &mut PaintCx<'_>, layout: &MainLayout) {
         );
     }
 }
-
 
 fn load_replays(files: &FileStore) -> Vec<ReplayEntry> {
     let Ok(names) = files.list_by_ext_all("SJR") else {

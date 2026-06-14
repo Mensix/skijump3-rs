@@ -64,5 +64,3 @@ pub struct KothJumpContext {
     pub jump_round: u8,
     pub starting_count: usize,
 }
-
-

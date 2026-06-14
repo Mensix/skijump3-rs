@@ -3,8 +3,8 @@ use crate::gfx::palette::{FONT_DEFAULT, FONT_GOLD, FONT_GREET, FONT_HELP};
 use crate::gfx::sprites;
 use crate::text::lang::LangBase;
 use engine::color::Rgba;
-use engine::oxide::PaintCx;
 use engine::oxide::Font;
+use engine::oxide::PaintCx;
 
 const KEY_NAMES: [&str; 5] = ["ARROW UP", "ARROW RIGHT", "ARROW LEFT", "T", "R"];
 
@@ -65,5 +65,3 @@ pub(crate) fn push_jumper_info_box(
     }
     cx.text((12, 191), FONT_HELP, langbase.lstr(59));
 }
-
-

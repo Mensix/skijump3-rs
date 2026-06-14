@@ -1,11 +1,10 @@
 use crate::components::layout::MainLayout;
-use engine::oxide::widgets::menu::PixelMenu;
-use engine::oxide::Widget;
 use crate::gfx::palette::{BG_ERASE, FONT_DEFAULT, FONT_HEADER};
 use crate::route::RouteTarget;
 use crate::store::StoreRef;
+use engine::oxide::widgets::menu::PixelMenu;
+use engine::oxide::Widget;
 use engine::oxide::{PaintCx, Screen, ScreenBackground, ScreenEventCx, UiEvent};
-
 
 pub struct MainMenuView {
     menu: PixelMenu,
@@ -98,4 +97,3 @@ fn paint_main_menu(cx: &mut PaintCx<'_>, menu: &PixelMenu, layout: &MainLayout) 
     let y = 94 + (selected as i32) * 12 + y_offsets[selected];
     cx.stroke((5, y, 109, 13), FONT_DEFAULT);
 }
-

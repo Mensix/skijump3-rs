@@ -45,18 +45,10 @@ impl TrainingSetupView {
         let page_n = (total.saturating_sub(start)).min(20);
         let n = page_n + usize::from(total > 20);
         let items = (0..n).map(|_| OxideMenuItem::new(0, "")).collect();
-        let mut menu = PixelMenu::new(
-            110,
-            11,
-            170,
-            8,
-            items,
-            FONT_DEFAULT,
-            FONT_DEFAULT,
-        )
-        .with_labels(false)
-        .with_box(false)
-        .with_exit("", 16);
+        let mut menu = PixelMenu::new(110, 11, 170, 8, items, FONT_DEFAULT, FONT_DEFAULT)
+            .with_labels(false)
+            .with_box(false)
+            .with_exit("", 16);
         menu.set_selected(selected.saturating_sub(start).min(page_n.saturating_sub(1)));
 
         Self {
@@ -72,18 +64,10 @@ impl TrainingSetupView {
         let page_n = self.page_items();
         let n = page_n + usize::from(self.has_more());
         let items = (0..n).map(|_| OxideMenuItem::new(0, "")).collect();
-        PixelMenu::new(
-            110,
-            11,
-            170,
-            8,
-            items,
-            FONT_DEFAULT,
-            FONT_DEFAULT,
-        )
-        .with_labels(false)
-        .with_box(false)
-        .with_exit("", 16)
+        PixelMenu::new(110, 11, 170, 8, items, FONT_DEFAULT, FONT_DEFAULT)
+            .with_labels(false)
+            .with_box(false)
+            .with_exit("", 16)
     }
 
     fn confirm(&mut self) -> Option<RouteTarget> {

@@ -574,12 +574,20 @@ pub fn render_stats_page(
         .hill(competition.current_hill())
         .map(|h| format!("{} {}", h.name.chars().take(3).collect::<String>(), h.kr))
         .unwrap_or_default();
-    cx.right_text((15, y), FONT_DEFAULT, ordinal_dot(competition.current_event + 1));
+    cx.right_text(
+        (15, y),
+        FONT_DEFAULT,
+        ordinal_dot(competition.current_event + 1),
+    );
     cx.text((16, y), FONT_DEFAULT, hill_name);
     cx.right_text((70, y), FONT_DEFAULT, ordinal_dot(player.rank));
     cx.right_text((90, y), FONT_DEFAULT, player.wc_points.to_string());
     cx.right_text((110, y), FONT_DEFAULT, ordinal_dot(player.rank));
-    cx.right_text((140, y), FONT_DEFAULT, format_decimal(player.points.unwrap_or(0.0)));
+    cx.right_text(
+        (140, y),
+        FONT_DEFAULT,
+        format_decimal(player.points.unwrap_or(0.0)),
+    );
     if player.round1_len > 0.0 {
         cx.right_text(
             (170, y),

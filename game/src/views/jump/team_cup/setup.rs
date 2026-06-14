@@ -226,7 +226,11 @@ fn ready_elements(
         push_named_team(cx, resources, team_names, n, xx);
     }
 
-    cx.right_text((305, 180), FONT_DEFAULT, resources.langbase.lstr(15).to_string());
+    cx.right_text(
+        (305, 180),
+        FONT_DEFAULT,
+        resources.langbase.lstr(15).to_string(),
+    );
     cx.fill((305 - 1, 180 - 2, 9, 11), BG_TEAMCUP);
     if cursor_visible {
         cx.fill((305 + 1, 180 + 6, 5, 1), FONT_DEFAULT);
@@ -244,7 +248,11 @@ fn showteams_elements(
     cx.fill((0, 20, 320, 180), BG_TEAMCUP);
     cx.dither_fill(63);
     cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
-    cx.text((30, 6), FONT_DEFAULT, resources.langbase.lstr(111).to_string());
+    cx.text(
+        (30, 6),
+        FONT_DEFAULT,
+        resources.langbase.lstr(111).to_string(),
+    );
 
     let mut x = 5i32;
     let mut y = 24i32;
@@ -279,7 +287,11 @@ fn showteams_elements(
         }
     });
 
-    cx.right_text((305, 6), FONT_DEFAULT, resources.langbase.lstr(15).to_string());
+    cx.right_text(
+        (305, 6),
+        FONT_DEFAULT,
+        resources.langbase.lstr(15).to_string(),
+    );
     cx.fill((305 - 1, 6 - 2, 9, 11), BG_TEAMCUP);
     if cursor_visible {
         cx.fill((305 + 1, 6 + 6, 5, 1), FONT_DEFAULT);
@@ -304,8 +316,16 @@ fn push_named_team(
 }
 
 fn push_team_cup_header(cx: &mut PaintCx<'_>, resources: &ResourcesRef, store: &StoreRef) {
-    cx.text((30, 6), FONT_DEFAULT, resources.langbase.lstr(111).to_string());
-    cx.text((30, 110), FONT_DEFAULT, resources.langbase.lstr(112).to_string());
+    cx.text(
+        (30, 6),
+        FONT_DEFAULT,
+        resources.langbase.lstr(111).to_string(),
+    );
+    cx.text(
+        (30, 110),
+        FONT_DEFAULT,
+        resources.langbase.lstr(112).to_string(),
+    );
 
     if let Some(schedule) = store
         .with_active(|active| active.team_cup_runtime().map(|tc| tc.schedule.clone()))

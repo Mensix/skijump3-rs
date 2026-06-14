@@ -2,9 +2,7 @@ use crate::competition::koth::types::{KothJumpContext, KothResultsKind, KothRunt
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::views::jump::competition::controller::CompetitionJumpController;
-use crate::views::jump::competition::flow::{
-    CompetitionFlowCommand, JumpInputResult,
-};
+use crate::views::jump::competition::flow::{CompetitionFlowCommand, JumpInputResult};
 use crate::views::jump::competition::ui_state::RenderMode;
 use crate::views::jump::koth::results;
 use engine::oxide::{Key, PaintCx, Screen, ScreenEventCx, UiEvent};
@@ -28,10 +26,7 @@ impl KothJumpView {
                 context,
                 is_new_event: _,
             } => {
-                let phase_label = format!(
-                    "Round {}",
-                    context.jump_round + 1,
-                );
+                let phase_label = format!("Round {}", context.jump_round + 1,);
                 self.controller
                     .prepare_human_jump(participant, hill_idx, phase_label, None);
             }
@@ -56,10 +51,7 @@ impl KothJumpView {
     }
 
     fn dismiss_results_and_advance(&mut self) -> Option<RouteTarget> {
-        if let Some(command) = self
-            .controller
-            .dismiss_results_and_advance()
-        {
+        if let Some(command) = self.controller.dismiss_results_and_advance() {
             if matches!(command, CompetitionFlowCommand::Done) {
                 self.on_complete();
                 return Some(RouteTarget::Back);
@@ -75,18 +67,10 @@ impl KothJumpView {
                 self.controller.render_jump(cx);
             }
             RenderMode::Results => {
-                results::render(
-                    cx,
-                    self.controller.resources(),
-                    self.controller.store(),
-                );
+                results::render(cx, self.controller.resources(), self.controller.store());
             }
             RenderMode::Done => {
-                results::render(
-                    cx,
-                    self.controller.resources(),
-                    self.controller.store(),
-                );
+                results::render(cx, self.controller.resources(), self.controller.store());
             }
             RenderMode::Error => {}
         }
@@ -161,5 +145,3 @@ impl Screen<RouteTarget> for KothJumpView {
         self.paint_content(cx);
     }
 }
-
-
