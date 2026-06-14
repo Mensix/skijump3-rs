@@ -53,12 +53,17 @@ impl EditHillView {
     fn start_edit(&mut self, field: usize) {
         let yy = 10 + ((field - 1) * 13) as i32;
         let value = self.values[field - 1].clone();
+        let (max_width, max_chars) = match field {
+            3 | 4 => (20, 20),
+            11 => (60, 8),
+            _ => (150, 130),
+        };
         let input = TextInput::new(
             120,
             yy,
-            150,
+            max_width,
             value,
-            130,
+            max_chars,
             BLACK,
             FONT_GOLD,
             FONT_DEFAULT,
