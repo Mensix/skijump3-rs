@@ -203,7 +203,12 @@ pub const BLACK: Rgba = THEME.black;
 
 pub const JUMPER_SUIT_SOURCE_SHADE_1: u8 = 216;
 pub const JUMPER_SUIT_SOURCE_SHADE_3: u8 = 218;
+pub const JUMPER_BIB_SOURCE_SHADE_1: u8 = 220;
+pub const JUMPER_BIB_SOURCE_SHADE_3: u8 = 221;
 pub const JUMPER_SKI_SOURCE: u8 = 231;
+
+const JUMPER_BIB_SHADE_1: Rgb6 = Rgb6(49, 45, 0);
+const JUMPER_BIB_SHADE_3: Rgb6 = Rgb6(34, 31, 0);
 
 const SUIT_COLORS: [[u8; 4]; 8] = [
     [0, 53, 17, 53],
@@ -250,6 +255,15 @@ pub fn suit_shade_rgba(col: usize) -> [[u8; 3]; 4] {
 pub fn suit_color_shade(col: usize, shade: usize) -> Rgba {
     let rgb = suit_shade_rgba(col)[shade];
     Rgba::from_rgb6(rgb[0], rgb[1], rgb[2])
+}
+
+#[must_use]
+pub fn jumper_bib_color_shade(shade: usize) -> Rgba {
+    match shade {
+        1 => JUMPER_BIB_SHADE_1.rgba(),
+        3 => JUMPER_BIB_SHADE_3.rgba(),
+        _ => JUMPER_BIB_SHADE_1.rgba(),
+    }
 }
 
 /// Return the ski colour as an Rgba.

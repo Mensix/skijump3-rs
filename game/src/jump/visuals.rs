@@ -1,11 +1,11 @@
 use crate::gfx::palette::{
-    self, JUMPER_SKI_SOURCE, JUMPER_SUIT_SOURCE_SHADE_1, JUMPER_SUIT_SOURCE_SHADE_3,
+    self, JUMPER_BIB_SOURCE_SHADE_1, JUMPER_BIB_SOURCE_SHADE_3, JUMPER_SKI_SOURCE,
+    JUMPER_SUIT_SOURCE_SHADE_1, JUMPER_SUIT_SOURCE_SHADE_3,
 };
 use crate::gfx::sprites;
-use engine::color::Rgba;
 use engine::consts::{HEIGHT, WIDTH};
-use engine::sprite::SpriteColorRecolor;
 use engine::oxide::{ImageRegionDraw, PaintCx};
+use engine::sprite::SpriteColorRecolor;
 use std::rc::Rc;
 
 pub(crate) fn push_viewport(cx: &mut PaintCx<'_>, viewport: &Rc<[u8]>) {
@@ -49,6 +49,16 @@ pub(crate) struct JumperSpriteSpec {
 }
 
 pub(crate) fn push_jumper_sprites(cx: &mut PaintCx<'_>, spec: JumperSpriteSpec) {
+    let bib_shade_1 = if spec.has_bib {
+        palette::jumper_bib_color_shade(1)
+    } else {
+        palette::suit_color_shade(spec.suit_color, 1)
+    };
+    let bib_shade_3 = if spec.has_bib {
+        palette::jumper_bib_color_shade(3)
+    } else {
+        palette::suit_color_shade(spec.suit_color, 3)
+    };
     let body_recolor = SpriteColorRecolor::new(vec![
         (
             JUMPER_SUIT_SOURCE_SHADE_1,
@@ -58,6 +68,8 @@ pub(crate) fn push_jumper_sprites(cx: &mut PaintCx<'_>, spec: JumperSpriteSpec) 
             JUMPER_SUIT_SOURCE_SHADE_3,
             palette::suit_color_shade(spec.suit_color, 3),
         ),
+        (JUMPER_BIB_SOURCE_SHADE_1, bib_shade_1),
+        (JUMPER_BIB_SOURCE_SHADE_3, bib_shade_3),
     ]);
     let ski_recolor = SpriteColorRecolor::new(vec![(
         JUMPER_SKI_SOURCE,
@@ -73,14 +85,6 @@ pub(crate) fn push_jumper_sprites(cx: &mut PaintCx<'_>, spec: JumperSpriteSpec) 
         (spec.ski_x, spec.ski_y),
         ski_recolor,
     );
-
-    // Leader bib: yellow rectangle on the jumper body
-    if spec.has_bib {
-        cx.fill(
-            (spec.body_x + 8, spec.body_y + 4, 6, 6),
-            Rgba::from_rgb6(63, 57, 9),
-        );
-    }
 }
 
 #[cfg(test)]
@@ -100,6 +104,14 @@ mod tests {
                 JUMPER_SUIT_SOURCE_SHADE_3,
                 palette::suit_color_shade(suit_color, 3),
             ),
+            (
+                JUMPER_BIB_SOURCE_SHADE_1,
+                palette::suit_color_shade(suit_color, 1),
+            ),
+            (
+                JUMPER_BIB_SOURCE_SHADE_3,
+                palette::suit_color_shade(suit_color, 3),
+            ),
         ]);
         let ski_recolor =
             SpriteColorRecolor::new(vec![(JUMPER_SKI_SOURCE, palette::ski_color(ski_color))]);
@@ -110,6 +122,14 @@ mod tests {
         );
         assert_eq!(
             body_recolor.get(JUMPER_SUIT_SOURCE_SHADE_3),
+            Some(palette::suit_color_shade(0, 3))
+        );
+        assert_eq!(
+            body_recolor.get(JUMPER_BIB_SOURCE_SHADE_1),
+            Some(palette::suit_color_shade(0, 1))
+        );
+        assert_eq!(
+            body_recolor.get(JUMPER_BIB_SOURCE_SHADE_3),
             Some(palette::suit_color_shade(0, 3))
         );
         assert_eq!(body_recolor.get(0), None, "transparent not recolored");
@@ -127,6 +147,27 @@ mod tests {
             ski_recolor.get(JUMPER_SUIT_SOURCE_SHADE_1),
             None,
             "suit index not in ski recolor"
+        );
+    }
+
+    #[test]
+    fn leader_bib_recolor_uses_pascal_bib_palette_entries() {
+        let body_recolor = SpriteColorRecolor::new(vec![
+            (JUMPER_BIB_SOURCE_SHADE_1, palette::jumper_bib_color_shade(1)),
+            (JUMPER_BIB_SOURCE_SHADE_3, palette::jumper_bib_color_shade(3)),
+        ]);
+
+        assert_eq!(
+            body_recolor.get(JUMPER_BIB_SOURCE_SHADE_1),
+            Some(palette::jumper_bib_color_shade(1))
+        );
+        assert_eq!(
+            body_recolor.get(JUMPER_BIB_SOURCE_SHADE_3),
+            Some(palette::jumper_bib_color_shade(3))
+        );
+        assert_ne!(
+            body_recolor.get(JUMPER_BIB_SOURCE_SHADE_1),
+            Some(palette::suit_color_shade(0, 1))
         );
     }
 }

@@ -63,7 +63,7 @@ impl WorldCupJumpView {
                     .store()
                     .with_active(|active| {
                         active.individual().map_or(false, |c| {
-                            c.event_standings()
+                            c.overall_standings()
                                 .first()
                                 .map_or(false, |s| s.id == participant.id)
                         })
