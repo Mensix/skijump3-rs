@@ -10,10 +10,10 @@ workspace = true
 engine = { path = "../engine" }
 sdl2 = { workspace = true }
 serde = { version = "1", features = ["derive"] }
-toml = "0.8"
-image = { version = "0.25", default-features = false, features = ["png"] }
+toml = "1.1.2"
+image = { version = "0.25.8", default-features = false, features = ["png"] }
 thiserror = "2"
-rust-embed = "8"
+rust-embed = "8.11.0"
 
 [dev-dependencies]
 tempfile = "3"
