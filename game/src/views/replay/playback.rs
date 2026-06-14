@@ -160,6 +160,7 @@ impl ReplayView {
                 ski_y: y - sy - 1,
                 suit_color: session.trace().meta.suit_color as usize,
                 ski_color: session.trace().meta.ski_color as usize,
+                has_bib: false,
             },
         );
 

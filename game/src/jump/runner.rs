@@ -36,6 +36,7 @@ pub struct JumpRunner {
     computer_pre_ai_wind_done: bool,
     last_wind: FlightWind,
     pub(crate) suppress_info_panel: Cell<bool>,
+    pub(crate) has_bib: Cell<bool>,
     keymap_shown: Cell<bool>,
 }
 
@@ -54,6 +55,7 @@ impl JumpRunner {
             computer_pre_ai_wind_done: false,
             last_wind: FlightWind::default(),
             suppress_info_panel: Cell::new(false),
+            has_bib: Cell::new(false),
             keymap_shown: Cell::new(false),
         }
     }
@@ -107,6 +109,10 @@ impl JumpRunner {
 
     pub(crate) fn set_team_name(&mut self, name: String) {
         self.config.team_name = name;
+    }
+
+    pub(crate) fn set_has_bib(&self, val: bool) {
+        self.has_bib.set(val);
     }
 
     /// Advance physics, AI, and wind by one frame. Call once per frame
@@ -166,6 +172,7 @@ impl JumpRunner {
             team_name: &self.config.team_name,
             allow_gate_adjust: self.config.policy.allow_start_gate_adjust,
             suppress_info_panel: self.suppress_info_panel.get(),
+            has_bib: self.has_bib.get(),
             suit_color: self.config.participant.suit_color as usize,
             ski_color: self.config.participant.ski_color as usize,
             show_keymap: if !self.keymap_shown.get()

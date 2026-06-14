@@ -28,6 +28,7 @@ pub struct JumpPresentationContext<'a> {
     pub(crate) ski_color: usize,
     pub(crate) team_name: &'a str,
     pub(crate) show_keymap: bool,
+    pub(crate) has_bib: bool,
 }
 
 pub fn render(cx: &mut PaintCx<'_>, frame: &JumpRenderFrame, ctx: &JumpPresentationContext<'_>) {
@@ -86,6 +87,7 @@ pub fn render(cx: &mut PaintCx<'_>, frame: &JumpRenderFrame, ctx: &JumpPresentat
                 ski_y: jumper_y - 1,
                 suit_color: ctx.suit_color,
                 ski_color: ctx.ski_color,
+                has_bib: ctx.has_bib,
             },
         );
     }

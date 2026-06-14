@@ -58,8 +58,25 @@ impl WorldCupJumpView {
                     self.controller.store().setup_jump_event();
                 }
                 let phase_label = phase_label(self.controller.resources(), context.phase);
+                let is_leader = self
+                    .controller
+                    .store()
+                    .with_active(|active| {
+                        active
+                            .individual()
+                            .map(|c| {
+                                c.event_standings()
+                                    .first()
+                                    .map_or(false, |s| s.id == participant.id)
+                            })
+                            .unwrap_or(false)
+                    })
+                    .unwrap_or(false);
                 self.controller
                     .prepare_human_jump(participant, hill_idx, phase_label, None);
+                if let Some(scene) = self.controller.scene() {
+                    scene.set_has_bib(is_leader);
+                }
             }
             CompetitionFlowCommand::ShowResults(IndividualResultsKind::Results) => {
                 if self.controller.render_mode() != RenderMode::Results {

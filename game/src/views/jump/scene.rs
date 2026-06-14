@@ -123,6 +123,10 @@ impl JumpScene {
         self.runner.borrow().suppress_info_panel.set(suppress);
     }
 
+    pub fn set_has_bib(&self, val: bool) {
+        self.runner.borrow().set_has_bib(val);
+    }
+
     pub fn reset_state(&self, start_gate: i32) {
         let hill_idx = self.runner.borrow().hill_idx();
         let record_distance = self

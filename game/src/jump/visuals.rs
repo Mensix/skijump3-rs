@@ -2,6 +2,7 @@ use crate::gfx::palette::{
     self, JUMPER_SKI_SOURCE, JUMPER_SUIT_SOURCE_SHADE_1, JUMPER_SUIT_SOURCE_SHADE_3,
 };
 use crate::gfx::sprites;
+use engine::color::Rgba;
 use engine::consts::{HEIGHT, WIDTH};
 use engine::sprite::SpriteColorRecolor;
 use engine::oxide::{ImageRegionDraw, PaintCx};
@@ -44,6 +45,7 @@ pub(crate) struct JumperSpriteSpec {
     pub(crate) ski_y: i32,
     pub(crate) suit_color: usize,
     pub(crate) ski_color: usize,
+    pub(crate) has_bib: bool,
 }
 
 pub(crate) fn push_jumper_sprites(cx: &mut PaintCx<'_>, spec: JumperSpriteSpec) {
@@ -71,6 +73,14 @@ pub(crate) fn push_jumper_sprites(cx: &mut PaintCx<'_>, spec: JumperSpriteSpec) 
         (spec.ski_x, spec.ski_y),
         ski_recolor,
     );
+
+    // Leader bib: yellow rectangle on the jumper body
+    if spec.has_bib {
+        cx.fill(
+            (spec.body_x + 8, spec.body_y + 4, 6, 6),
+            Rgba::from_rgb6(63, 57, 9),
+        );
+    }
 }
 
 #[cfg(test)]
