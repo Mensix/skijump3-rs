@@ -16,7 +16,8 @@ impl EditHillView {
             .map(|n| MenuItem::new(n, ""))
             .collect();
         let menu = PixelMenu::new(10, 8, 110, 13, items, FONT_DEFAULT, FONT_DEFAULT)
-            .with_labels(false);
+            .with_labels(false)
+            .with_exit("", 13);
         Self { resources, menu }
     }
 }
