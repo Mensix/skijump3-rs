@@ -320,7 +320,7 @@ impl JumpSession {
                 style_points: state.style_points,
                 style_revealed: state.style_revealed,
                 hill_record_marker: self.record_marker,
-                is_hill_record: self.record_distance > 0.0 && state.distance > self.record_distance,
+                is_hill_record: self.policy.save_hill_records && self.record_distance > 0.0 && state.distance > self.record_distance,
                 hr_shake_position: None,
             };
             (frame, current_pos, body_anim, ski_anim)
