@@ -67,10 +67,29 @@ impl EditHillView {
         self.mode = EditMode::Editing(input);
     }
 
-    fn commit_edit(&mut self, value: String) {
+    fn commit_edit(&mut self, mut value: String) {
         let field = self.menu.selected() + 1;
+        match field {
+            2 => Self::validate_int(&mut value, 40, 300),
+            5 => Self::validate_int(&mut value, 0, 255),
+            6 => Self::validate_int(&mut value, 0, 1),
+            7 => Self::validate_int(&mut value, 60, 145),
+            8 => Self::validate_int(&mut value, 50, 150),
+            9 => Self::validate_int(&mut value, 0, 30),
+            11 => value.truncate(8),
+            _ => {}
+        }
         self.values[field - 1] = value;
         self.mode = EditMode::Viewing;
+    }
+
+    fn validate_int(value: &mut String, low: i32, high: i32) {
+        match value.trim().parse::<i32>() {
+            Ok(n) => {
+                *value = n.clamp(low, high).to_string();
+            }
+            Err(_) => {}
+        }
     }
 
     fn cancel_edit(&mut self) {
