@@ -35,6 +35,7 @@ pub struct JumpRunner {
     computer_input: Option<ComputerInputProvider>,
     computer_pre_ai_wind_done: bool,
     last_wind: FlightWind,
+    hr_shake_position: Cell<Option<(i32, i32)>>,
     pub(crate) suppress_info_panel: Cell<bool>,
     pub(crate) has_bib: Cell<bool>,
     keymap_shown: Cell<bool>,
@@ -54,6 +55,7 @@ impl JumpRunner {
             computer_input,
             computer_pre_ai_wind_done: false,
             last_wind: FlightWind::default(),
+            hr_shake_position: Cell::new(None),
             suppress_info_panel: Cell::new(false),
             has_bib: Cell::new(false),
             keymap_shown: Cell::new(false),
@@ -132,6 +134,18 @@ impl JumpRunner {
             }
         }
         self.last_wind = self.session.tick_with_wind(rng, wind);
+        self.hr_shake_position.set(None);
+        if self.session.phase() == Some(JumpPhase::Landing)
+            && self.config.record_distance > 0.0
+            && self
+                .session
+                .state()
+                .is_some_and(|state| f64::from(state.distance) / 10.0 > self.config.record_distance)
+            && rng.random_i32(2) == 0
+        {
+            self.hr_shake_position
+                .set(Some((308 - 1 + rng.random_i32(3), 32 + rng.random_i32(3))));
+        }
     }
 
     pub(crate) fn render(&mut self, cx: &mut PaintCx<'_>, env: JumpRunnerRenderEnv<'_>) {
@@ -157,6 +171,7 @@ impl JumpRunner {
             .session
             .render_frame(self.last_wind, WIDTH, HEIGHT)
             .expect("loaded jump render frame");
+        frame.hr_shake_position = self.hr_shake_position.get();
         self.apply_snow_to_viewport(&mut frame, env.wind.value);
         let ctx = JumpPresentationContext {
             font: env.font,

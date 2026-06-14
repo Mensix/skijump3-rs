@@ -24,4 +24,6 @@ pub struct JumpRenderFrame {
     pub(crate) style_points: [i32; 5],
     pub(crate) style_revealed: [bool; 5],
     pub(crate) hill_record_marker: Option<(i32, i32)>,
+    pub(crate) is_hill_record: bool,
+    pub(crate) hr_shake_position: Option<(i32, i32)>,
 }

@@ -185,7 +185,19 @@ fn result_elements(
             format!("{:.1}", f64::from(point) / 10.0),
         );
     }
-    panel_distance(cx, frame.distance);
+
+    if frame.is_hill_record {
+        // Pascal 2649-2651: "HR!" + distance in gold
+        cx.text((260, 33), FONT_GOLD, "HR!");
+        cx.right_text(
+            (308, 33),
+            FONT_GOLD,
+            format!("{:.1}m", f64::from(frame.distance) / 10.0),
+        );
+    } else {
+        panel_distance(cx, frame.distance);
+    }
+
     cx.right_text((308, 45), FONT_GOLD, format!("{:.1}", f64::from(frame.score) / 10.0));
     cx.right_text((308, 73), FONT_GREET, ctx.langbase.lstr(298));
 }
@@ -196,7 +208,25 @@ fn landing_elements(
     ctx: &JumpPresentationContext<'_>,
 ) {
     panel_header(cx, ctx.jumper_name, FONT_GREET);
+
+    // Pascal 2529: distance always at (temp2,33) where temp2=308
     panel_distance(cx, frame.distance);
+
+    if frame.is_hill_record {
+        // Pascal 2533: flash "HR!" — 15 frames on, 15 frames off
+        if frame.frame_counter % 30 < 15 {
+            cx.text((260, 33), FONT_GOLD, "HR!");
+        }
+        // Pascal 2536: if random(2)=0 then ewritefont(temp2-1+random(3),32+random(3),...)
+        if let Some((x, y)) = frame.hr_shake_position {
+            cx.right_text(
+                (x, y),
+                FONT_GREET,
+                format!("{:.1}m", f64::from(frame.distance) / 10.0),
+            );
+        }
+    }
+
     for (i, &point) in frame.style_points.iter().enumerate() {
         if frame.style_revealed[i] {
             cx.right_text(

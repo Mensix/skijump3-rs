@@ -320,6 +320,9 @@ impl JumpSession {
                 style_points: state.style_points,
                 style_revealed: state.style_revealed,
                 hill_record_marker: self.record_marker,
+                is_hill_record: self.record_distance > 0.0
+                    && f64::from(state.distance) / 10.0 > self.record_distance,
+                hr_shake_position: None,
             };
             (frame, current_pos, body_anim, ski_anim)
         };
