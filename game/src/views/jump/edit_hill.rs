@@ -245,25 +245,29 @@ impl Screen<RouteTarget> for EditHillView {
 
         cx.text((xx, 179), FONT_GOLD, "0. EXIT and SAVE");
 
+        if !matches!(self.mode, EditMode::Alert { .. }) {
+            self.menu.paint(cx);
+        }
+
         match &self.mode {
             EditMode::Editing { input, .. } => {
                 input.paint(cx);
             }
             EditMode::Alert { ref message, ref subtitle, .. } => {
-                cx.fill((59, 79, 203, 54), BLACK);
-                cx.fill((60, 80, 201, 52), BG_RIGHT);
-                cx.pattern_fill((60, 80, 201, 52), BG_RIGHT);
+                cx.fill((59, 79, 203, 53), BLACK);
+                cx.fill((60, 80, 201, 51), BG_RIGHT);
+                cx.pattern_fill((60, 80, 201, 51), BG_RIGHT);
                 cx.text((80, 90), FONT_GOLD, message);
                 cx.text((80, 100), FONT_GOLD, subtitle);
-                cx.text((190, 110), FONT_DEFAULT, self.resources.langbase.lstr(15));
+                let prompt = self.resources.langbase.lstr(15);
+                cx.right_text((190, 110), FONT_DEFAULT, prompt);
+                cx.fill((189, 108, 9, 11), BG_LEFT);
                 if self.blinker.visible(11, 10) {
-                    cx.fill((191, 110, 5, 7), FONT_DEFAULT);
+                    cx.fill((191, 116, 5, 1), FONT_DEFAULT);
                 }
             }
             EditMode::Viewing => {}
         }
-
-        self.menu.paint(cx);
     }
 
     fn background(&self) -> ScreenBackground {
