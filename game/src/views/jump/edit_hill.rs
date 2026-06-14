@@ -40,7 +40,7 @@ impl Screen<RouteTarget> for EditHillView {
 
         let descriptions = [
             "",
-            "Critical Point (40-300)",
+            "CRITICAL POINT (40-300m)",
             "FRONT*.PCX (000-ZZZ)",
             "BACK*.PCX (000-ZZZ)",
             "PERCENTS OF ORIGINAL (0-255)",
