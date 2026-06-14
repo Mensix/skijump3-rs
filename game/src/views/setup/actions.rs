@@ -140,6 +140,9 @@ fn handle_screen_event(view: &mut SetupView, event: UiEvent) -> Option<RouteTarg
         }
         UiEvent::KeyDown(Key::Enter) | UiEvent::Text(' ') => {
             let sel = view.menu.selected();
+            if screen == 0 && sel == 5 {
+                return Some(RouteTarget::HillMakerSetup);
+            }
             if sel >= entries {
                 if screen == 0 {
                     return Some(RouteTarget::MainMenu);
