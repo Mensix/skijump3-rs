@@ -40,7 +40,7 @@ impl Screen<RouteTarget> for EditHillView {
 
         let descriptions = [
             "",
-            "CRITICAL POINT (40-300m)",
+            "CRITICAL POINT (40-300\u{00b5})",
             "FRONT*.PCX (000-ZZZ)",
             "BACK*.PCX (000-ZZZ)",
             "PERCENTS OF ORIGINAL (0-255)",
@@ -87,7 +87,7 @@ impl Screen<RouteTarget> for EditHillView {
             }
         }
 
-        cx.text((xx, 179), FONT_DEFAULT, "0. EXIT and SAVE");
+        cx.text((xx, 179), FONT_GOLD, "0. EXIT and SAVE");
     }
 
     fn background(&self) -> ScreenBackground {
