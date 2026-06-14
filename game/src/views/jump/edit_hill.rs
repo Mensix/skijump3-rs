@@ -83,9 +83,9 @@ impl EditHillView {
         match field {
             2 => Self::validate_int(&mut value, 40, 300),
             3 | 4 => {
-                // TODO: validate front/back index against available PNG/PCX files.
-                // Pascal checked FRONT*.PCX / BACK*.PCX existence via fexist().
-                // Since we no longer use PCX files, this check is deferred.
+                if !value.chars().all(|c| c.is_ascii_alphanumeric()) {
+                    return;
+                }
             }
             5 => Self::validate_int(&mut value, 0, 255),
             6 => Self::validate_int(&mut value, 0, 1),
