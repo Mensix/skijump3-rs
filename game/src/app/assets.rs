@@ -1,11 +1,12 @@
+use std::path::Path;
+
 use crate::content::ContentStore;
 use crate::files::FileStore;
 use crate::gfx::materials;
-use crate::gfx::palette::Rgb6Palette;
 use crate::gfx::png::load_png;
 use engine::consts::{PATTERN_SPRITE, TILE_H, TILE_W};
 use engine::oxide::Font;
-use engine::sprite::{BakedSpriteTextures, SpriteData};
+use engine::sprite::{BakedSpriteTexture, BakedSpriteTextures, SpriteData};
 use engine::video::{Renderer, TextureId};
 
 const MAIN_PNG: &str = "MAIN.png";
@@ -15,26 +16,32 @@ pub(super) struct LoadedAssets {
     pub(super) content_store: ContentStore,
     pub(super) font: Font,
     pub(super) main_background: TextureId,
-    pub(super) sprites: Vec<SpriteData>,
     pub(super) baked_sprites: BakedSpriteTextures,
     pub(super) pattern_texture: TextureId,
 }
 
 pub(super) fn load(files: &FileStore, renderer: &mut Renderer) -> Result<LoadedAssets, String> {
-    let palette_toml = files.read("palette.toml").map_err(|e| e.to_string())?;
-    let palette =
-        Rgb6Palette::from_toml_bytes("palette.toml", &palette_toml).map_err(|e| e.to_string())?;
     let content_store = ContentStore::load(files, CONTENT_MANIFEST).map_err(|e| e.to_string())?;
     let sprites = content_store.sprites.clone();
     let font = Font::from_sprites(&sprites);
     let main_background = load_background_texture(files, renderer)?;
-    let palette = palette.into_palette();
-    let baked_sprites = BakedSpriteTextures::bake(
-        renderer,
-        &palette,
-        &sprites,
-        &materials::prebaked_sprite_materials(),
-    )?;
+
+    let png_dir = Path::new("game/assets/sprites/png");
+    let mut baked_sprites = BakedSpriteTextures::new();
+
+    for (idx, sprite) in sprites.iter().enumerate() {
+        let path = png_dir.join(format!("{idx}.png"));
+        if let Ok(tex) = load_png_texture(renderer, &path, sprite) {
+            baked_sprites.add_default(idx as u16, tex);
+        }
+    }
+
+    for (sprite_idx, material) in &materials::prebaked_sprite_materials() {
+        let path = png_dir.join(format!("{}_{}.png", sprite_idx, material.id().value()));
+        if let Ok(tex) = load_png_texture(renderer, &path, &sprites[*sprite_idx as usize]) {
+            baked_sprites.add_material(*sprite_idx, material.clone(), tex);
+        }
+    }
 
     let pattern_sprite = sprites
         .get(PATTERN_SPRITE)
@@ -46,9 +53,25 @@ pub(super) fn load(files: &FileStore, renderer: &mut Renderer) -> Result<LoadedA
         content_store,
         font,
         main_background,
-        sprites,
         baked_sprites,
         pattern_texture,
+    })
+}
+
+fn load_png_texture(
+    renderer: &mut Renderer,
+    path: &Path,
+    sprite: &SpriteData,
+) -> Result<BakedSpriteTexture, String> {
+    let data = std::fs::read(path).map_err(|e| e.to_string())?;
+    let img = load_png(&data).map_err(|e| e.to_string())?;
+    let texture_id = renderer.create_rgba_texture(&img.pixels, img.width, img.height)?;
+    Ok(BakedSpriteTexture {
+        texture_id,
+        center_x: sprite.center_x,
+        center_y: sprite.center_y,
+        width: sprite.width,
+        height: sprite.height,
     })
 }
 

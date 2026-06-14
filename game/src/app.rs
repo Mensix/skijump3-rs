@@ -8,7 +8,7 @@ use crate::files::FileStore;
 use crate::route::RouteTarget;
 use engine::input::Input;
 use engine::oxide::Font;
-use engine::sprite::{BakedSpriteTextures, SpriteData};
+use engine::sprite::BakedSpriteTextures;
 use engine::video::{Renderer, TextureId};
 use std::rc::Rc;
 
@@ -22,7 +22,6 @@ pub struct Game {
     input: Input,
     font: Font,
     router: AppRouter,
-    sprites: Vec<SpriteData>,
     baked_sprites: BakedSpriteTextures,
     main_background: TextureId,
     pattern_texture: TextureId,
@@ -41,7 +40,6 @@ impl Game {
             content_store,
             font,
             main_background,
-            sprites,
             baked_sprites,
             pattern_texture,
         } = assets::load(&files, &mut renderer)?;
@@ -64,7 +62,6 @@ impl Game {
             input,
             font,
             router,
-            sprites,
             baked_sprites,
             main_background,
             pattern_texture,
