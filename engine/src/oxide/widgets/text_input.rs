@@ -75,9 +75,7 @@ impl Widget for TextInput {
             }
             UiEvent::KeyDown(Key::Escape) => Some(TextInputMessage::Cancel),
             UiEvent::Text(c) if c >= ' ' => {
-                let mut next = self.editor.buffer().to_string();
-                next.push(c);
-                if self.font.string_width(&next) as i32 + 7 < self.max_width {
+                if self.font.string_width(self.editor.buffer()) as i32 + 7 < self.max_width {
                     self.editor.insert(c);
                 }
                 None
