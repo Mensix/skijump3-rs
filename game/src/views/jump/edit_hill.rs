@@ -10,7 +10,7 @@ use engine::oxide::{PaintCx, Screen, ScreenBackground, ScreenEventCx, UiEvent};
 #[derive(Debug)]
 enum EditMode {
     Viewing,
-    Editing(TextInput),
+    Editing { field: usize, input: TextInput },
 }
 
 pub struct EditHillView {
@@ -71,11 +71,14 @@ impl EditHillView {
             FONT_DEFAULT,
             self.resources.font.clone(),
         );
-        self.mode = EditMode::Editing(input);
+        self.mode = EditMode::Editing { field, input };
     }
 
     fn commit_edit(&mut self, mut value: String) {
-        let field = self.menu.selected() + 1;
+        let field = match &self.mode {
+            EditMode::Editing { field, .. } => *field,
+            _ => return,
+        };
         match field {
             2 => Self::validate_int(&mut value, 40, 300),
             5 => Self::validate_int(&mut value, 0, 255),
@@ -102,12 +105,24 @@ impl EditHillView {
     fn cancel_edit(&mut self) {
         self.mode = EditMode::Viewing;
     }
+
+    fn is_numeric_field(field: usize) -> bool {
+        matches!(field, 2 | 5 | 6 | 7 | 8 | 9)
+    }
 }
 
 impl Screen<RouteTarget> for EditHillView {
     fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
         match &mut self.mode {
-            EditMode::Editing(input) => {
+            EditMode::Editing { field, input } => {
+                let event = if Self::is_numeric_field(*field) {
+                    match event {
+                        UiEvent::Text(c) if !c.is_ascii_digit() => return,
+                        _ => event,
+                    }
+                } else {
+                    event
+                };
                 let mut ecx = engine::oxide::widget::EventCx::default();
                 match input.event(&mut ecx, event) {
                     Some(TextInputMessage::Commit(value)) => {
@@ -201,7 +216,7 @@ impl Screen<RouteTarget> for EditHillView {
         cx.text((xx, 179), FONT_GOLD, "0. EXIT and SAVE");
 
         match &self.mode {
-            EditMode::Editing(input) => {
+            EditMode::Editing { input, .. } => {
                 input.paint(cx);
             }
             EditMode::Viewing => {}
