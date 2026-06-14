@@ -35,14 +35,11 @@ pub(super) fn load(files: &FileStore, renderer: &mut Renderer) -> Result<LoadedA
             Ok(d) => d,
             Err(_) => continue,
         };
-        let (indices, palette) = decode_indexed_png(&data)?;
-        let png_w = (indices.len() as f64 / f64::from(sprite.height)).round() as u32;
-        if png_w != u32::from(sprite.width) || indices.len() != (sprite.width * sprite.height) as usize {
+        let (indices, palette, png_w, png_h) = decode_indexed_png(&data)?;
+        if png_w != u32::from(sprite.width) || png_h != u32::from(sprite.height) {
             return Err(format!(
-                "Sprite {idx} dimensions mismatch: PNG {} indices (w={png_w}) vs SpriteData {}x{}",
-                indices.len(),
-                sprite.width,
-                sprite.height,
+                "Sprite {idx} dimensions mismatch: PNG {png_w}x{png_h} vs SpriteData {}x{}",
+                sprite.width, sprite.height,
             ));
         }
         base_sprites.push(BaseSprite {
@@ -78,8 +75,8 @@ pub(super) fn load(files: &FileStore, renderer: &mut Renderer) -> Result<LoadedA
     })
 }
 
-/// Decode a type-3 (indexed) PNG, returning (palette_indices, [Rgba; 256]).
-fn decode_indexed_png(data: &[u8]) -> Result<(Vec<u8>, [Rgba; 256]), String> {
+/// Decode a type-3 (indexed) PNG, returning (palette_indices, [Rgba; 256], width, height).
+fn decode_indexed_png(data: &[u8]) -> Result<(Vec<u8>, [Rgba; 256], u32, u32), String> {
     let cursor = Cursor::new(data);
     let decoder = png::Decoder::new(cursor);
     let mut reader = decoder.read_info().map_err(|e| e.to_string())?;
@@ -103,23 +100,12 @@ fn decode_indexed_png(data: &[u8]) -> Result<(Vec<u8>, [Rgba; 256]), String> {
         }
     }
 
-    let out_len = info.raw_bytes();
-    let width = info.width as usize;
-    let height = info.height as usize;
-    let mut buf = vec![0u8; out_len];
+    let width = info.width;
+    let height = info.height;
+    let mut buf = vec![0u8; (width * height) as usize];
     reader.next_frame(&mut buf).map_err(|e| e.to_string())?;
 
-    if buf.len() != width * height {
-        return Err(format!(
-            "indexed PNG size mismatch: raw_bytes={} but expected {} ({}x{})",
-            buf.len(),
-            width * height,
-            width,
-            height,
-        ));
-    }
-
-    Ok((buf, palette))
+    Ok((buf, palette, width, height))
 }
 
 fn load_background_texture(
