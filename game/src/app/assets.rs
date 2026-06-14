@@ -1,5 +1,3 @@
-use std::path::Path;
-
 use crate::content::ContentStore;
 use crate::files::FileStore;
 use crate::gfx::materials;
@@ -11,6 +9,7 @@ use engine::video::{Renderer, TextureId};
 
 const MAIN_PNG: &str = "MAIN.png";
 const CONTENT_MANIFEST: &str = "content.toml";
+const SPRITES_PNG_PREFIX: &str = "sprites/png/";
 
 pub(super) struct LoadedAssets {
     pub(super) content_store: ContentStore,
@@ -26,19 +25,18 @@ pub(super) fn load(files: &FileStore, renderer: &mut Renderer) -> Result<LoadedA
     let font = Font::from_sprites(&sprites);
     let main_background = load_background_texture(files, renderer)?;
 
-    let png_dir = Path::new("game/assets/sprites/png");
     let mut baked_sprites = BakedSpriteTextures::new();
 
     for (idx, sprite) in sprites.iter().enumerate() {
-        let path = png_dir.join(format!("{idx}.png"));
-        if let Ok(tex) = load_png_texture(renderer, &path, sprite) {
+        let path = format!("{SPRITES_PNG_PREFIX}{idx}.png");
+        if let Ok(tex) = load_png_texture(files, renderer, &path, sprite) {
             baked_sprites.add_default(idx as u16, tex);
         }
     }
 
     for (sprite_idx, material) in &materials::prebaked_sprite_materials() {
-        let path = png_dir.join(format!("{}_{}.png", sprite_idx, material.id().value()));
-        if let Ok(tex) = load_png_texture(renderer, &path, &sprites[*sprite_idx as usize]) {
+        let path = format!("{SPRITES_PNG_PREFIX}{}_{}.png", sprite_idx, material.id().value());
+        if let Ok(tex) = load_png_texture(files, renderer, &path, &sprites[*sprite_idx as usize]) {
             baked_sprites.add_material(*sprite_idx, material.clone(), tex);
         }
     }
@@ -59,19 +57,20 @@ pub(super) fn load(files: &FileStore, renderer: &mut Renderer) -> Result<LoadedA
 }
 
 fn load_png_texture(
+    files: &FileStore,
     renderer: &mut Renderer,
-    path: &Path,
+    path: &str,
     sprite: &SpriteData,
 ) -> Result<BakedSpriteTexture, String> {
-    let data = std::fs::read(path).map_err(|e| e.to_string())?;
+    let data = files.read(path).map_err(|e| e.to_string())?;
     let img = load_png(&data).map_err(|e| e.to_string())?;
     let texture_id = renderer.create_rgba_texture(&img.pixels, img.width, img.height)?;
     Ok(BakedSpriteTexture {
         texture_id,
         center_x: sprite.center_x,
         center_y: sprite.center_y,
-        width: sprite.width,
-        height: sprite.height,
+        width: img.width as u16,
+        height: img.height as u16,
     })
 }
 
