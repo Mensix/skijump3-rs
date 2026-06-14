@@ -5,23 +5,12 @@ use crate::color::Rgba;
 use crate::consts::PATTERN_SPRITE;
 use crate::oxide::draw::{DrawCommand, SpriteDraw, TextAlign};
 use crate::oxide::Font;
-use crate::sprite::{SpriteColorRecolor, SpriteData};
+use crate::palette::Palette;
+use crate::sprite::{SpriteData, SpriteMaterial};
 use crate::video::{Renderer, TextureId};
 
 const TEXT_SHADOW: Rgba = Rgba::rgb(0, 0, 0);
 const MAX_CACHE_SIZE: usize = 256;
-
-const DITHER_FILL_COLORS: [Rgba; 5] = [
-    Rgba::from_rgb6(18, 13, 34),
-    Rgba::from_rgb6(34, 13, 18),
-    Rgba::from_rgb6(20, 20, 20),
-    Rgba::from_rgb6(0, 25, 0),
-    Rgba::from_rgb6(28, 8, 24),
-];
-
-fn is_fill_area_dither_color(color: Rgba) -> bool {
-    DITHER_FILL_COLORS.contains(&color)
-}
 
 struct DitherRect {
     x: i32,
@@ -47,20 +36,12 @@ impl DitherRect {
 
 struct DitherFillCollector {
     pending: Vec<DitherRect>,
-    remaining_fill_areas: usize,
 }
 
 impl DitherFillCollector {
-    fn new(mut pending: Vec<DitherRect>, fill_area_count: usize) -> Self {
+    fn new(mut pending: Vec<DitherRect>) -> Self {
         pending.clear();
-        Self {
-            pending,
-            remaining_fill_areas: fill_area_count,
-        }
-    }
-
-    const fn has_pending_fill_area(&self) -> bool {
-        self.remaining_fill_areas > 0
+        Self { pending }
     }
 
     fn track_fillbox(&mut self, x: i32, y: i32, w: i32, h: i32, color: Rgba) {
@@ -72,10 +53,8 @@ impl DitherFillCollector {
     }
 
     fn track_rect(&mut self, x: i32, y: i32, w: i32, h: i32, color: Rgba, is_box: bool) {
-        if self.has_pending_fill_area() && is_fill_area_dither_color(color) {
-            self.pending
-                .push(DitherRect::new(x, y, w, h, color, is_box));
-        }
+        self.pending
+            .push(DitherRect::new(x, y, w, h, color, is_box));
     }
 
     fn apply_fill_area(
@@ -83,9 +62,13 @@ impl DitherFillCollector {
         renderer: &mut Renderer,
         sprites: &[SpriteData],
         thing: u8,
+        colors: &[Rgba],
     ) -> Result<(), String> {
         if let Some(pattern) = sprites.get(PATTERN_SPRITE) {
             for rect in &self.pending {
+                if !colors.contains(&rect.color) {
+                    continue;
+                }
                 renderer.dither_overlay_rect(
                     rect.x,
                     rect.y,
@@ -94,7 +77,7 @@ impl DitherFillCollector {
                     rect.color,
                     rect.is_box,
                     thing,
-                    &pattern.data,
+                    &pattern.pixels,
                 )?;
             }
         }
@@ -102,7 +85,6 @@ impl DitherFillCollector {
             renderer.flush_dither_overlay()?;
             self.pending.clear();
         }
-        self.remaining_fill_areas = self.remaining_fill_areas.saturating_sub(1);
         Ok(())
     }
 
@@ -112,71 +94,89 @@ impl DitherFillCollector {
 }
 
 #[derive(Clone, PartialEq, Eq, Hash)]
-struct RemappedSpriteCacheKey {
+struct SpriteTextureCacheKey {
     sprite_idx: u16,
-    recolor: SpriteColorRecolor,
+    material: SpriteMaterial,
 }
 
-struct RemappedSpriteCacheEntry {
+struct SpriteTextureCacheEntry {
     texture_id: TextureId,
     center_x: i8,
     center_y: i8,
     width: u16,
     height: u16,
+    last_frame: u64,
 }
 
 #[derive(Default)]
-struct RemappedSpriteCache {
-    entries: HashMap<RemappedSpriteCacheKey, RemappedSpriteCacheEntry>,
+struct SpriteTextureCache {
+    entries: HashMap<SpriteTextureCacheKey, SpriteTextureCacheEntry>,
     rgba_scratch: Vec<u8>,
 }
 
-impl RemappedSpriteCache {
+impl SpriteTextureCache {
     fn draw(
         &mut self,
         renderer: &mut Renderer,
+        palette: &Palette,
         sprite_idx: u16,
         x: i32,
         y: i32,
-        recolor: &SpriteColorRecolor,
+        material: &SpriteMaterial,
         sprite: &SpriteData,
+        frame: u64,
     ) -> Result<(), String> {
         if self.entries.len() >= MAX_CACHE_SIZE {
-            self.entries.clear();
+            self.evict_stale(frame);
         }
-        let key = RemappedSpriteCacheKey {
+        let key = SpriteTextureCacheKey {
             sprite_idx,
-            recolor: recolor.clone(),
+            material: material.clone(),
         };
         match self.entries.entry(key) {
-            Entry::Occupied(o) => draw_remapped_texture(renderer, o.get(), x, y),
+            Entry::Occupied(o) => {
+                let entry = o.into_mut();
+                entry.last_frame = frame;
+                draw_sprite_texture(renderer, entry, x, y)
+            }
             Entry::Vacant(v) => {
-                sprite.render_recolored_rgba(recolor, &mut self.rgba_scratch);
+                sprite.render_material_rgba(palette, material, &mut self.rgba_scratch);
                 if self.rgba_scratch.iter().any(|&b| b != 0) {
                     let tex_id = renderer.create_rgba_texture(
                         &self.rgba_scratch,
                         u32::from(sprite.width),
                         u32::from(sprite.height),
                     )?;
-                    let entry = RemappedSpriteCacheEntry {
+                    let entry = SpriteTextureCacheEntry {
                         texture_id: tex_id,
                         center_x: sprite.center_x,
                         center_y: sprite.center_y,
                         width: sprite.width,
                         height: sprite.height,
+                        last_frame: frame,
                     };
-                    draw_remapped_texture(renderer, &entry, x, y)?;
+                    draw_sprite_texture(renderer, &entry, x, y)?;
                     v.insert(entry);
                 }
                 Ok(())
             }
         }
     }
+
+    fn evict_stale(&mut self, frame: u64) {
+        self.entries.retain(|_, e| e.last_frame == frame);
+        if self.entries.len() >= MAX_CACHE_SIZE {
+            let mut entries: Vec<_> = self.entries.drain().collect();
+            entries.sort_by_key(|(_, e)| std::cmp::Reverse(e.last_frame));
+            entries.truncate(MAX_CACHE_SIZE / 2);
+            self.entries = entries.into_iter().collect();
+        }
+    }
 }
 
-fn draw_remapped_texture(
+fn draw_sprite_texture(
     renderer: &mut Renderer,
-    entry: &RemappedSpriteCacheEntry,
+    entry: &SpriteTextureCacheEntry,
     x: i32,
     y: i32,
 ) -> Result<(), String> {
@@ -208,6 +208,7 @@ struct TextCacheEntry {
     y: i32,
     width: u32,
     height: u32,
+    last_frame: u64,
 }
 
 #[derive(Default)]
@@ -217,6 +218,16 @@ struct TextCache {
 }
 
 impl TextCache {
+    fn evict_stale(&mut self, frame: u64) {
+        self.entries.retain(|_, e| e.last_frame == frame);
+        if self.entries.len() >= MAX_CACHE_SIZE {
+            let mut entries: Vec<_> = self.entries.drain().collect();
+            entries.sort_by_key(|(_, e)| std::cmp::Reverse(e.last_frame));
+            entries.truncate(MAX_CACHE_SIZE / 2);
+            self.entries = entries.into_iter().collect();
+        }
+    }
+
     fn draw(
         &mut self,
         renderer: &mut Renderer,
@@ -226,9 +237,10 @@ impl TextCache {
         y: i32,
         color: Rgba,
         align: TextAlign,
+        frame: u64,
     ) -> Result<(), String> {
         if self.entries.len() >= MAX_CACHE_SIZE {
-            self.entries.clear();
+            self.evict_stale(frame);
         }
         let text_w = font.string_width(text) as i32;
         let fx = match align {
@@ -244,7 +256,11 @@ impl TextCache {
             color,
         };
         match self.entries.entry(key) {
-            Entry::Occupied(o) => draw_text_texture(renderer, o.get()),
+            Entry::Occupied(o) => {
+                let entry = o.into_mut();
+                entry.last_frame = frame;
+                draw_text_texture(renderer, entry)
+            }
             Entry::Vacant(v) => {
                 if let Some(bitmap) =
                     font.render_string_rgba(text, fx, y, color, TEXT_SHADOW, &mut self.rgba_scratch)
@@ -261,6 +277,7 @@ impl TextCache {
                             y: bitmap.y,
                             width: bitmap.width,
                             height: bitmap.height,
+                            last_frame: frame,
                         };
                         draw_text_texture(renderer, &entry)?;
                         v.insert(entry);
@@ -285,17 +302,11 @@ fn draw_text_texture(renderer: &mut Renderer, entry: &TextCacheEntry) -> Result<
     )
 }
 
-fn count_fill_area_commands(commands: &[DrawCommand]) -> usize {
-    commands
-        .iter()
-        .filter(|cmd| matches!(cmd, DrawCommand::DitherFill(_)))
-        .count()
-}
-
 pub struct DrawCommandRenderer {
     pending_dither_rects: Vec<DitherRect>,
-    remapped_sprite_cache: RemappedSpriteCache,
+    sprite_texture_cache: SpriteTextureCache,
     text_cache: TextCache,
+    frame_counter: u64,
 }
 
 impl Default for DrawCommandRenderer {
@@ -309,8 +320,9 @@ impl DrawCommandRenderer {
     pub fn new() -> Self {
         Self {
             pending_dither_rects: Vec::new(),
-            remapped_sprite_cache: RemappedSpriteCache::default(),
+            sprite_texture_cache: SpriteTextureCache::default(),
             text_cache: TextCache::default(),
+            frame_counter: 0,
         }
     }
 
@@ -318,6 +330,7 @@ impl DrawCommandRenderer {
         &mut self,
         renderer: &mut Renderer,
         font: &Font,
+        palette: &Palette,
         sprites: &[SpriteData],
         commands: &[DrawCommand],
         background: Option<TextureId>,
@@ -327,12 +340,22 @@ impl DrawCommandRenderer {
             renderer.draw_texture(bg, None, None)?;
         }
 
-        let fill_area_count = count_fill_area_commands(commands);
+        let frame = self.frame_counter;
+        self.frame_counter = self.frame_counter.wrapping_add(1);
+
         let pending_dither_rects = std::mem::take(&mut self.pending_dither_rects);
-        let mut dither = DitherFillCollector::new(pending_dither_rects, fill_area_count);
+        let mut dither = DitherFillCollector::new(pending_dither_rects);
 
         for command in commands {
-            self.render_command(renderer, font, sprites, command, &mut dither)?;
+            self.render_command(
+                renderer,
+                font,
+                palette,
+                sprites,
+                command,
+                &mut dither,
+                frame,
+            )?;
         }
 
         self.pending_dither_rects = dither.into_pending();
@@ -344,9 +367,11 @@ impl DrawCommandRenderer {
         &mut self,
         renderer: &mut Renderer,
         font: &Font,
+        palette: &Palette,
         sprites: &[SpriteData],
         command: &DrawCommand,
         dither: &mut DitherFillCollector,
+        frame: u64,
     ) -> Result<(), String> {
         match command {
             DrawCommand::Fill(rect, color) => {
@@ -357,8 +382,8 @@ impl DrawCommandRenderer {
                 renderer.draw_box(rect.x, rect.y, rect.w, rect.h, *color)?;
                 dither.track_box(rect.x, rect.y, rect.w, rect.h, *color);
             }
-            DrawCommand::DitherFill(thing) => {
-                dither.apply_fill_area(renderer, sprites, *thing)?;
+            DrawCommand::DitherFill { thing, colors } => {
+                dither.apply_fill_area(renderer, sprites, *thing, colors)?;
             }
             DrawCommand::Text(run) => {
                 self.text_cache.draw(
@@ -369,34 +394,35 @@ impl DrawCommandRenderer {
                     run.position.y,
                     run.color,
                     run.align,
+                    frame,
                 )?;
             }
             DrawCommand::Sprite(SpriteDraw { idx, position }) => {
-                if let Some(sprite) = sprites.get(*idx as usize) {
-                    if let Some(bitmap) = sprite.render_rgba_bitmap(position.x, position.y) {
-                        renderer.draw_rgba_region_pixels(
-                            &bitmap.pixels,
-                            bitmap.width,
-                            bitmap.height,
-                            0,
-                            0,
-                            bitmap.x,
-                            bitmap.y,
-                            bitmap.width,
-                            bitmap.height,
-                        )?;
-                    }
+                if let Some(sprite_data) = sprites.get(*idx as usize) {
+                    let material = SpriteMaterial::default();
+                    self.sprite_texture_cache.draw(
+                        renderer,
+                        palette,
+                        *idx,
+                        position.x,
+                        position.y,
+                        &material,
+                        sprite_data,
+                        frame,
+                    )?;
                 }
             }
-            DrawCommand::SpriteRemapped { sprite, recolor } => {
+            DrawCommand::SpriteWithMaterial { sprite, material } => {
                 if let Some(sprite_data) = sprites.get(sprite.idx as usize) {
-                    self.remapped_sprite_cache.draw(
+                    self.sprite_texture_cache.draw(
                         renderer,
+                        palette,
                         sprite.idx,
                         sprite.position.x,
                         sprite.position.y,
-                        recolor,
+                        material,
                         sprite_data,
+                        frame,
                     )?;
                 }
             }

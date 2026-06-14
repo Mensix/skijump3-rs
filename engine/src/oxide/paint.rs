@@ -2,7 +2,7 @@ use crate::color::Rgba;
 use crate::oxide::draw::{
     CommandBuffer, DrawCommand, ImageRegionDraw, Point, Rect, SpriteDraw, TextAlign, TextRun,
 };
-use crate::sprite::SpriteColorRecolor;
+use crate::sprite::SpriteMaterial;
 use std::rc::Rc;
 
 pub struct PaintCx<'a> {
@@ -22,8 +22,11 @@ impl<'a> PaintCx<'a> {
         self.commands.push(DrawCommand::Stroke(rect.into(), color));
     }
 
-    pub fn dither_fill(&mut self, thing: u8) {
-        self.commands.push(DrawCommand::DitherFill(thing));
+    pub fn dither_fill(&mut self, thing: u8, colors: impl IntoIterator<Item = Rgba>) {
+        self.commands.push(DrawCommand::DitherFill {
+            thing,
+            colors: colors.into_iter().collect(),
+        });
     }
 
     pub fn text(&mut self, position: impl Into<Point>, color: Rgba, text: impl Into<String>) {
@@ -65,18 +68,18 @@ impl<'a> PaintCx<'a> {
         }));
     }
 
-    pub fn sprite_remapped(
+    pub fn sprite_with_material(
         &mut self,
         idx: u16,
         position: impl Into<Point>,
-        recolor: SpriteColorRecolor,
+        material: SpriteMaterial,
     ) {
-        self.commands.push(DrawCommand::SpriteRemapped {
+        self.commands.push(DrawCommand::SpriteWithMaterial {
             sprite: SpriteDraw {
                 idx,
                 position: position.into(),
             },
-            recolor,
+            material,
         });
     }
 

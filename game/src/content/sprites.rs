@@ -146,8 +146,7 @@ pub(crate) fn load_sprites(
             }
 
             all_sprites.push(SpriteData {
-                data: decoded,
-                rgba_data: Vec::new(),
+                pixels: decoded.into_boxed_slice(),
                 width: s.width,
                 height: s.height,
                 center_x: s.center_x,
@@ -422,7 +421,7 @@ pixels = "0000"
 
     #[test]
     fn jumper_sprite_indices_match_remap_sources() {
-        use crate::gfx::palette::{
+        use crate::gfx::jumper_colors::{
             JUMPER_SKI_SOURCE, JUMPER_SUIT_SOURCE_SHADE_1, JUMPER_SUIT_SOURCE_SHADE_3,
         };
         let store = FileStore::new(
@@ -436,7 +435,7 @@ pixels = "0000"
         let mut all_indices: HashSet<u8> = HashSet::new();
 
         for (i, s) in sprites.iter().enumerate() {
-            let non_zero: HashSet<_> = s.data.iter().copied().filter(|&p| p != 0).collect();
+            let non_zero: HashSet<_> = s.pixels.iter().copied().filter(|&p| p != 0).collect();
             all_indices.extend(&non_zero);
             match i {
                 70..=89 => ski_indices.extend(non_zero),

@@ -1,5 +1,5 @@
 use crate::color::Rgba;
-use crate::sprite::SpriteColorRecolor;
+use crate::sprite::SpriteMaterial;
 use std::rc::Rc;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -86,13 +86,16 @@ pub enum DrawCommand {
     ImageRegion(ImageRegionDraw),
     Text(TextRun),
     Sprite(SpriteDraw),
-    SpriteRemapped {
+    SpriteWithMaterial {
         sprite: SpriteDraw,
-        recolor: SpriteColorRecolor,
+        material: SpriteMaterial,
     },
     Fill(Rect, Rgba),
     Stroke(Rect, Rgba),
-    DitherFill(u8),
+    DitherFill {
+        thing: u8,
+        colors: Vec<Rgba>,
+    },
 }
 
 #[derive(Debug, Default, Clone)]

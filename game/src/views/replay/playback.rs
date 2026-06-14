@@ -1,10 +1,11 @@
 use crate::data::hill::HillInfo;
 use crate::data::hill_profile::HillTerrain;
 use crate::error::AssetError;
-use crate::gfx::palette::{
-    self, BG_LEFT, BLACK, FILL_BORDER, FONT_DEFAULT, FONT_GOLD, FONT_GREET, FONT_HELP,
-};
+use crate::gfx::materials;
 use crate::gfx::sprites;
+use crate::gfx::theme::{
+    BG_LEFT, BLACK, FILL_BORDER, FONT_DEFAULT, FONT_GOLD, FONT_GREET, FONT_HELP,
+};
 use crate::jump::hud;
 use crate::jump::math;
 use crate::jump::presentation::{self, WindPosition};
@@ -183,10 +184,10 @@ impl ReplayView {
                 );
             cx.right_text((308, 9), FONT_DEFAULT, hill_text);
             cx.right_text((308, 19), FONT_DEFAULT, &session.trace().meta.author);
-            cx.sprite_remapped(
+            cx.sprite_with_material(
                 sprites::Sprite::ReplayModeIcon as u16,
                 (150, 30),
-                palette::replay_speed_recolor(self.playback.mode()),
+                materials::replay_speed_material(self.playback.mode()),
             );
             cx.right_text(
                 (309, 29),

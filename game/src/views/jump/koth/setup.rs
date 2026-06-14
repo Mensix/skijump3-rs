@@ -1,7 +1,8 @@
 use crate::competition::factory;
 use crate::competition::koth::builder;
-use crate::gfx::palette::{
-    BG_LEFT, BG_RIGHT, BLACK, FILL_DIM, FONT_DEFAULT, FONT_GOLD, FONT_GREET, FONT_HELP,
+use crate::gfx::theme::{
+    BG_LEFT, BG_RIGHT, BLACK, DITHER_FILL_COLORS, FILL_DIM, FONT_DEFAULT, FONT_GOLD, FONT_GREET,
+    FONT_HELP,
 };
 use crate::route::RouteTarget;
 use crate::save::config::Config;
@@ -77,13 +78,13 @@ impl KothSetupView {
         cx.fill((0, 0, 169, 99), FILL_DIM);
         cx.fill((0, 100, 169, 100), BG_RIGHT);
         cx.fill((170, 0, 150, 200), BG_LEFT);
-        cx.dither_fill(63);
+        cx.dither_fill(63, DITHER_FILL_COLORS);
         let lang = &self.resources.langbase;
         let cfg = self.config();
 
         if self.mode.get() == KothMode::Opponents {
             cx.fill((170, 0, 150, 200), BG_LEFT);
-            cx.dither_fill(63);
+            cx.dither_fill(63, DITHER_FILL_COLORS);
             cx.text((180, 2), FONT_DEFAULT, lang.lstr(138));
             cx.text((180, 9), FONT_HELP, lang.lstr(139));
             cx.text((180, 16), FONT_HELP, lang.lstr(140));
@@ -111,7 +112,7 @@ impl KothSetupView {
 
         // --- left panel: menu background (Pascal MakeMenu bgcolor=245) ---
         cx.fill((4, 7, 160, 63), FILL_DIM);
-        cx.dither_fill(63);
+        cx.dither_fill(63, DITHER_FILL_COLORS);
 
         // --- left panel: menu items ---
         cx.text((10, 10), FONT_DEFAULT, format!("1 - {}", lang.lstr(121)));

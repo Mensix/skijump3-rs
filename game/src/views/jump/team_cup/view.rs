@@ -1,6 +1,6 @@
 use super::setup::{SetupAction, TeamCupSetup};
 use crate::competition::team_cup::types::{TeamCupJumpContext, TeamCupResultsKind, TeamCupRuntime};
-use crate::gfx::palette::{BLACK, FONT_DEFAULT, FONT_HELP};
+use crate::gfx::theme::{BLACK, FONT_DEFAULT, FONT_HELP};
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::views::jump::competition::controller::CompetitionJumpController;

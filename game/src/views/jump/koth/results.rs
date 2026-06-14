@@ -1,8 +1,9 @@
 use crate::competition::koth::types::KothRuntime;
-use crate::gfx::palette::{
-    BG_KOTH, BLACK, FILL_DIM, FILL_HIGHLIGHT, FONT_DEFAULT, FONT_GOLD, FONT_HEADER, FONT_HELP,
-};
 use crate::gfx::sprites;
+use crate::gfx::theme::{
+    BG_KOTH, BLACK, DITHER_FILL_COLORS, FILL_DIM, FILL_HIGHLIGHT, FONT_DEFAULT, FONT_GOLD,
+    FONT_HEADER, FONT_HELP,
+};
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::format::format_decimal;
 use crate::text::lang::LangBase;
@@ -148,7 +149,7 @@ pub fn render(cx: &mut PaintCx<'_>, resources: &ResourcesRef, store: &StoreRef) 
         cx.fill((0, 0, 320, 200), BLACK);
         cx.fill((0, 0, 320, 19), FILL_DIM);
         cx.fill((0, 20, 320, 180), KOTH_BG);
-        cx.dither_fill(63);
+        cx.dither_fill(63, DITHER_FILL_COLORS);
         cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
 
         // Pascal-style: just "Done" hint (no prev/next pagination for KOTH)

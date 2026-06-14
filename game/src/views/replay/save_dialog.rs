@@ -1,6 +1,8 @@
 use crate::components::page_nav::cycle_index;
-use crate::gfx::palette::{BG_LEFT, BG_RIGHT, BLACK, FILL_DIM, FONT_DEFAULT, FONT_GOLD};
 use crate::gfx::sprites;
+use crate::gfx::theme::{
+    BG_LEFT, BG_RIGHT, BLACK, DITHER_FILL_COLORS, FILL_DIM, FONT_DEFAULT, FONT_GOLD,
+};
 use crate::jump::replay::ReplayTrace;
 use crate::store::ResourcesRef;
 use engine::oxide::input::{Key, UiEvent};
@@ -172,7 +174,7 @@ impl SaveReplayDialog {
         cx.fill((0, 0, 320, 200), BLACK);
         cx.fill((0, 0, 320, 19), FILL_DIM);
         cx.fill((0, 20, 320, 180), BG_LEFT);
-        cx.dither_fill(63);
+        cx.dither_fill(63, DITHER_FILL_COLORS);
         cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
 
         let is_overlay = matches!(self.state, SaveDialogState::ConfirmOverwrite { .. });

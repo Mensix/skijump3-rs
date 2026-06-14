@@ -1,4 +1,4 @@
-use crate::gfx::palette::FONT_DEFAULT;
+use crate::gfx::theme::FONT_DEFAULT;
 use crate::route::RouteTarget;
 use crate::save::config::Config;
 use crate::save::SaveManager;

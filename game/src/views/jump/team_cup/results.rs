@@ -1,5 +1,5 @@
 use crate::competition::team_cup::types::{TeamCupResultsKind, TeamCupStandingsKind};
-use crate::gfx::palette::{
+use crate::gfx::theme::{
     BG_TEAMCUP, BLACK, FILL_DIM, FILL_HIGHLIGHT, FONT_DEFAULT, FONT_GOLD, FONT_HELP,
 };
 use crate::store::{ResourcesRef, StoreRef};

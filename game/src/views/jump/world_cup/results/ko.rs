@@ -1,8 +1,8 @@
 use super::{truncate_name, OTHER_DISTANCE, OTHER_NAME, OTHER_RANK};
 use crate::competition::machine::Competition;
 use crate::competition::types::{Participant, QualificationStatus};
-use crate::gfx::palette::{BG_LEFT, BLACK, FILL_DIM, FONT_DEFAULT};
 use crate::gfx::sprites;
+use crate::gfx::theme::{BG_LEFT, BLACK, DITHER_FILL_COLORS, FILL_DIM, FONT_DEFAULT};
 use crate::store::ResourcesRef;
 use crate::text::format::format_decimal;
 use engine::oxide::PaintCx;
@@ -24,7 +24,7 @@ pub fn render_ko_pairs(
     cx.fill((0, 0, 320, 200), BLACK);
     cx.fill((0, 0, 320, 19), FILL_DIM);
     cx.fill((0, 20, 320, 180), BG_LEFT);
-    cx.dither_fill(63);
+    cx.dither_fill(63, DITHER_FILL_COLORS);
     cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
 
     cx.text((30, 6), FONT_DEFAULT, resources.langbase.lstr(94));

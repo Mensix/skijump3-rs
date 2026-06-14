@@ -1,8 +1,9 @@
 use crate::data::records::{HillRecord, Hiscore};
-use crate::gfx::palette::{
-    BG_KOTH, BG_LEFT, BLACK, FILL_DIM, FONT_DEFAULT, FONT_GREET, FONT_HELP, FONT_NEW,
-};
 use crate::gfx::sprites;
+use crate::gfx::theme::{
+    BG_KOTH, BG_LEFT, BLACK, DITHER_FILL_COLORS, FILL_DIM, FONT_DEFAULT, FONT_GREET, FONT_HELP,
+    FONT_NEW,
+};
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::format::{format_decimal, ordinal_dot};
@@ -372,7 +373,7 @@ fn paint_screen(cx: &mut PaintCx<'_>, style: u8, bg: engine::color::Rgba) {
         }
         _ => {}
     }
-    cx.dither_fill(63);
+    cx.dither_fill(63, DITHER_FILL_COLORS);
     match style {
         1 => cx.sprite(sprites::Sprite::Logo as u16, (5, 2)),
         4 => {

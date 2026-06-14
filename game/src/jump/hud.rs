@@ -1,6 +1,6 @@
 use crate::data::records::HillRecord;
-use crate::gfx::palette::{FONT_DEFAULT, FONT_GOLD, FONT_GREET, FONT_HELP};
 use crate::gfx::sprites;
+use crate::gfx::theme::{FONT_DEFAULT, FONT_GOLD, FONT_GREET, FONT_HELP};
 use crate::text::lang::LangBase;
 use engine::color::Rgba;
 use engine::oxide::Font;

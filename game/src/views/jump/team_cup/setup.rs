@@ -1,5 +1,7 @@
-use crate::gfx::palette::{BG_TEAMCUP, BLACK, FILL_DIM, FONT_DEFAULT, FONT_GOLD, FONT_HELP};
 use crate::gfx::sprites;
+use crate::gfx::theme::{
+    BG_TEAMCUP, BLACK, DITHER_FILL_COLORS, FILL_DIM, FONT_DEFAULT, FONT_GOLD, FONT_HELP,
+};
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::layout::shorten_name;
 use engine::oxide::input::{Key, UiEvent};
@@ -179,7 +181,7 @@ fn naming_elements(
     cx.fill((0, 0, 320, 200), BLACK);
     cx.fill((0, 0, 320, 19), FILL_DIM);
     cx.fill((0, 20, 320, 180), BG_TEAMCUP);
-    cx.dither_fill(63);
+    cx.dither_fill(63, DITHER_FILL_COLORS);
     cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
     push_team_cup_header(cx, resources, store);
 
@@ -216,7 +218,7 @@ fn ready_elements(
     cx.fill((0, 0, 320, 200), BLACK);
     cx.fill((0, 0, 320, 19), FILL_DIM);
     cx.fill((0, 20, 320, 180), BG_TEAMCUP);
-    cx.dither_fill(63);
+    cx.dither_fill(63, DITHER_FILL_COLORS);
     cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
     push_team_cup_header(cx, resources, store);
 
@@ -246,7 +248,7 @@ fn showteams_elements(
     cx.fill((0, 0, 320, 200), BLACK);
     cx.fill((0, 0, 320, 19), FILL_DIM);
     cx.fill((0, 20, 320, 180), BG_TEAMCUP);
-    cx.dither_fill(63);
+    cx.dither_fill(63, DITHER_FILL_COLORS);
     cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
     cx.text(
         (30, 6),
@@ -306,7 +308,7 @@ fn push_named_team(
     xx: i32,
 ) {
     cx.fill((xx - 10, 30, 135, 25), BG_TEAMCUP);
-    cx.dither_fill(63);
+    cx.dither_fill(63, DITHER_FILL_COLORS);
     cx.text(
         (xx, 30),
         FONT_HELP,

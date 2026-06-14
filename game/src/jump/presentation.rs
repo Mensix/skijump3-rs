@@ -1,6 +1,7 @@
 use crate::data::records::HillRecord;
-use crate::gfx::palette::{self, FILL_BORDER, FILL_TURQUOISE, FONT_DEFAULT, FONT_GOLD, FONT_GREET};
+use crate::gfx::materials;
 use crate::gfx::sprites;
+use crate::gfx::theme::{FILL_BORDER, FILL_TURQUOISE, FONT_DEFAULT, FONT_GOLD, FONT_GREET};
 use crate::jump::frame::JumpRenderFrame;
 use crate::jump::hud;
 use crate::jump::types::JumpPhase;
@@ -34,7 +35,8 @@ pub struct JumpPresentationContext<'a> {
 pub fn render(cx: &mut PaintCx<'_>, frame: &JumpRenderFrame, ctx: &JumpPresentationContext<'_>) {
     visuals::push_viewport(cx, &frame.viewport);
 
-    let start_light_recolor = palette::start_light_recolor(frame.phase == JumpPhase::Disqualified);
+    let start_light_material =
+        materials::start_light_material(frame.phase == JumpPhase::Disqualified);
 
     match frame.phase {
         JumpPhase::Info => {
@@ -65,10 +67,10 @@ pub fn render(cx: &mut PaintCx<'_>, frame: &JumpRenderFrame, ctx: &JumpPresentat
     if frame.phase == JumpPhase::OnBar
         && (frame.frame_counter < 350 || (frame.frame_counter % 40) > 19)
     {
-        cx.sprite_remapped(
+        cx.sprite_with_material(
             sprites::Sprite::StartLight as u16,
             (jumper_x + 60, jumper_y - 10),
-            start_light_recolor,
+            start_light_material,
         );
     }
 
@@ -237,10 +239,10 @@ fn landing_elements(
 fn dq_elements(cx: &mut PaintCx<'_>, frame: &JumpRenderFrame, ctx: &JumpPresentationContext<'_>) {
     let jumper_x = frame.x - frame.sx;
     let jumper_y = frame.y - frame.sy;
-    cx.sprite_remapped(
+    cx.sprite_with_material(
         sprites::Sprite::StartLight as u16,
         (jumper_x + 60, jumper_y - 10),
-        palette::start_light_recolor(true),
+        materials::start_light_material(true),
     );
     cx.sprite(sprites::Sprite::JumperInfoBox as u16, (3, 150));
     cx.text(

@@ -1,6 +1,7 @@
 use crate::oxide::draw::CommandBuffer;
 use crate::oxide::draw_renderer::DrawCommandRenderer;
 use crate::oxide::Font;
+use crate::palette::Palette;
 use crate::sprite::SpriteData;
 use crate::video::{Renderer, TextureId};
 
@@ -32,6 +33,7 @@ impl OxideRenderer {
         &mut self,
         renderer: &mut Renderer,
         font: &Font,
+        palette: &Palette,
         sprites: &[SpriteData],
         commands: &CommandBuffer,
         background: Background,
@@ -40,7 +42,13 @@ impl OxideRenderer {
             Background::None => None,
             Background::Texture(texture) => Some(texture),
         };
-        self.draw_renderer
-            .render_frame(renderer, font, sprites, commands.commands(), texture)
+        self.draw_renderer.render_frame(
+            renderer,
+            font,
+            palette,
+            sprites,
+            commands.commands(),
+            texture,
+        )
     }
 }

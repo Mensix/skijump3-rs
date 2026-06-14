@@ -1,8 +1,9 @@
 use crate::components::layout::MainLayout;
 use crate::components::page_nav::cycle_index;
 use crate::files::FileStore;
-use crate::gfx::palette::{
-    BG_ERASE, BG_LEFT, FILL_BORDER, FONT_DEFAULT, FONT_GOLD, FONT_HEADER, FONT_HELP,
+use crate::gfx::theme::{
+    BG_ERASE, BG_LEFT, DITHER_FILL_COLORS, FILL_BORDER, FONT_DEFAULT, FONT_GOLD, FONT_HEADER,
+    FONT_HELP,
 };
 use crate::jump::replay::ReplayTrace;
 use crate::route::RouteTarget;
@@ -104,7 +105,7 @@ fn paint_replay_panel(
     // Pascal clearscreen: right panel background with dither + labels
     cx.fill((145, 50, 174, 149), BG_LEFT);
     cx.fill((128, 70, 17, 129), BG_LEFT);
-    cx.dither_fill(64);
+    cx.dither_fill(64, DITHER_FILL_COLORS);
     cx.text((170, 51), FONT_HELP, format!("{}:", langbase.lstr(25)));
     cx.text((150, 185), FONT_HELP, langbase.lstr(146));
 

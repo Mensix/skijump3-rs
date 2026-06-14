@@ -1,6 +1,6 @@
 use crate::data::hill::HillCatalog;
 use crate::data::records::RecordStore;
-use crate::gfx::palette::{BLACK, FONT_DEFAULT, FONT_HELP};
+use crate::gfx::theme::{BLACK, FONT_DEFAULT, FONT_HELP};
 use crate::jump::config::JumpConfig;
 use crate::jump::frame::JumpRenderFrame;
 use crate::jump::presentation;

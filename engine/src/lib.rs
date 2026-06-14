@@ -3,5 +3,6 @@ pub mod color;
 pub mod consts;
 pub mod input;
 pub mod oxide;
+pub mod palette;
 pub mod sprite;
 pub mod video;

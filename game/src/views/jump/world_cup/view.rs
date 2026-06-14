@@ -3,7 +3,7 @@ use crate::competition::machine::Competition;
 use crate::competition::runtime::{IndividualJumpContext, IndividualResultsKind};
 use crate::competition::scoring::wc_points_for_rank;
 use crate::competition::types::{CompetitionPhase, CupStyle};
-use crate::gfx::palette::{BLACK, FONT_DEFAULT, FONT_GREET, FONT_HELP};
+use crate::gfx::theme::{BLACK, FONT_DEFAULT, FONT_GREET, FONT_HELP};
 use crate::jump::types::JumpPhase;
 use crate::jump::JumpParticipant;
 use crate::jump::JumpPolicy;

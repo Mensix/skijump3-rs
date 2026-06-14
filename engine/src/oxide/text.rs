@@ -137,10 +137,10 @@ impl Font {
                 for yy in 0..i32::from(gp.height) {
                     for xx in 0..i32::from(gp.width) {
                         let src_idx = (yy * i32::from(gp.width) + xx) as usize;
-                        if src_idx >= g.data.len() {
+                        if src_idx >= g.pixels.len() {
                             continue;
                         }
-                        let glyph_pixel = g.data[src_idx];
+                        let glyph_pixel = g.pixels[src_idx];
                         if glyph_pixel == 0 {
                             continue;
                         }
@@ -273,10 +273,10 @@ impl Font {
                 for yy in 0..i32::from(gp.height) {
                     for xx in 0..i32::from(gp.width) {
                         let src_idx = (yy * i32::from(gp.width) + xx) as usize;
-                        if src_idx >= g.data.len() {
+                        if src_idx >= g.pixels.len() {
                             continue;
                         }
-                        let glyph_pixel = g.data[src_idx];
+                        let glyph_pixel = g.pixels[src_idx];
                         if glyph_pixel == 0 {
                             continue;
                         }
@@ -373,23 +373,21 @@ mod tests {
     fn make_font() -> Font {
         let mut sprites = Vec::with_capacity(FONT_GLYPH_COUNT);
         sprites.resize_with(FONT_GLYPH_COUNT, || SpriteData {
-            data: vec![],
-            rgba_data: Vec::new(),
+            pixels: [].into(),
             width: 0,
             height: 0,
             center_x: 0,
             center_y: 0,
         });
         sprites[0] = SpriteData {
-            data: vec![1; 15], // 3×5 block
-            rgba_data: Vec::new(),
+            pixels: vec![1; 15].into_boxed_slice(),
             width: 3,
             height: 5,
             center_x: 0,
             center_y: 0,
         };
         sprites[1] = SpriteData {
-            data: vec![
+            pixels: vec![
                 2,
                 2, // row 0
                 2,
@@ -398,8 +396,8 @@ mod tests {
                 SHADOW_PIXEL, // row 2
                 2,
                 2, // row 3
-            ],
-            rgba_data: Vec::new(),
+            ]
+            .into_boxed_slice(),
             width: 2,
             height: 4,
             center_x: 0,

@@ -1,5 +1,5 @@
 use crate::components::layout::MainLayout;
-use crate::gfx::palette::{BG_ERASE, FONT_DEFAULT, FONT_HEADER};
+use crate::gfx::theme::{BG_ERASE, FONT_DEFAULT, FONT_HEADER};
 use crate::route::RouteTarget;
 use crate::store::StoreRef;
 use engine::oxide::widgets::menu::PixelMenu;

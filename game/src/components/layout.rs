@@ -1,4 +1,4 @@
-use crate::gfx::palette::{FILL_BORDER, FILL_LINE, FONT_DEFAULT, FONT_HELP, FONT_NEW};
+use crate::gfx::theme::{FILL_BORDER, FILL_LINE, FONT_DEFAULT, FONT_HELP, FONT_NEW};
 use crate::store::StoreRef;
 use crate::text::format;
 use crate::text::lang::LangBase;

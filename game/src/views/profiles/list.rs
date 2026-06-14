@@ -1,6 +1,7 @@
 use crate::components::page_nav::cycle_index;
 use crate::data::profile::Profile;
-use crate::gfx::palette::{ski_color, suit_color_shade, BG_RIGHT, BLACK, FILL_DIM, FONT_DEFAULT};
+use crate::gfx::jumper_colors::{ski_color, suit_color_shade};
+use crate::gfx::theme::{BG_RIGHT, BLACK, FILL_DIM, FONT_DEFAULT};
 use crate::route::RouteTarget;
 use crate::save::SaveRef;
 use crate::store::{ResourcesRef, StoreRef};

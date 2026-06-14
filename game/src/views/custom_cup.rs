@@ -1,8 +1,9 @@
 use crate::competition::factory;
-use crate::gfx::palette::{
-    BG_LEFT, BLACK, FILL_BORDER, FILL_DIM, FONT_DEFAULT, FONT_GREET, FONT_HEADER, FONT_HELP,
-};
 use crate::gfx::sprites;
+use crate::gfx::theme::{
+    BG_LEFT, BLACK, DITHER_FILL_COLORS, FILL_BORDER, FILL_DIM, FONT_DEFAULT, FONT_GREET,
+    FONT_HEADER, FONT_HELP,
+};
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::format;
@@ -62,7 +63,7 @@ impl CustomCupSetupView {
         cx.fill((0, 0, 11, 200), FILL_DIM);
         cx.fill((12, 0, 296, 200), BG_LEFT);
         cx.fill((309, 0, 11, 200), FILL_DIM);
-        cx.dither_fill(63);
+        cx.dither_fill(63, DITHER_FILL_COLORS);
         cx.sprite(sprites::Sprite::Logo as u16, (30, 8));
         cx.text((68, 8), FONT_DEFAULT, lang.lstr(118));
         cx.text((78, 16), FONT_HELP, lang.lstr(119));
