@@ -106,7 +106,7 @@ pub struct JumpSnapshot {
     pub(crate) height: i32,
     pub(crate) delta_height_sum: i32,
     pub(crate) slope_angle: i32,
-    pub(crate) distance: i32,
+    pub(crate) distance: f64,
     pub(crate) body_angle: i32,
     pub(crate) ski_angle: i32,
     pub(crate) speed: f64,

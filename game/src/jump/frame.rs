@@ -19,7 +19,7 @@ pub struct JumpRenderFrame {
     pub(crate) ski_anim: u16,
     pub(crate) wind_value: i32,
     pub(crate) start_gate: i32,
-    pub(crate) distance: i32,
+    pub(crate) distance: f64,
     pub(crate) score: i32,
     pub(crate) style_points: [i32; 5],
     pub(crate) style_revealed: [bool; 5],

@@ -255,7 +255,7 @@ impl JumpSession {
                 current_phase,
                 JumpPhase::Landing | JumpPhase::Result | JumpPhase::Disqualified
             ) {
-                self.replay.set_distance(state.distance);
+                self.replay.set_distance(math::round(state.distance * 10.0));
             }
         }
         self.last_phase = Some(current_phase);
@@ -320,8 +320,7 @@ impl JumpSession {
                 style_points: state.style_points,
                 style_revealed: state.style_revealed,
                 hill_record_marker: self.record_marker,
-                is_hill_record: self.record_distance > 0.0
-                    && f64::from(state.distance) / 10.0 > self.record_distance,
+                is_hill_record: self.record_distance > 0.0 && state.distance > self.record_distance,
                 hr_shake_position: None,
             };
             (frame, current_pos, body_anim, ski_anim)

@@ -7,8 +7,8 @@ use crate::jump::types::JumpPhase;
 use crate::jump::visuals::{self, JumperSpriteSpec};
 use crate::text::lang::LangBase;
 use engine::color::Rgba;
-use engine::oxide::PaintCx;
 use engine::oxide::Font;
+use engine::oxide::PaintCx;
 
 const FONT_DIM_TURQUOISE: Rgba = Rgba::from_rgb6(0, 47, 52);
 
@@ -102,7 +102,11 @@ fn gate_info_elements(
         let label58 = ctx.langbase.lstr(58);
         let label58_w = ctx.font.string_width(label58) as i32;
         cx.text((64, 19), FONT_DEFAULT, label58);
-        cx.text((70 + label58_w, 19), FONT_GOLD, format!("{}", frame.start_gate));
+        cx.text(
+            (70 + label58_w, 19),
+            FONT_GOLD,
+            format!("{}", frame.start_gate),
+        );
         cx.text((67 + label58_w, 27), FONT_GREET, "(+/-)");
     }
 }
@@ -128,11 +132,7 @@ fn jumper_info_box_elements(
     );
 }
 
-fn info_elements(
-    cx: &mut PaintCx<'_>,
-    frame: &JumpRenderFrame,
-    ctx: &JumpPresentationContext<'_>,
-) {
+fn info_elements(cx: &mut PaintCx<'_>, frame: &JumpRenderFrame, ctx: &JumpPresentationContext<'_>) {
     info_panel_elements(cx, frame, ctx);
     gate_info_elements(cx, frame, ctx);
     jumper_info_box_elements(cx, frame, ctx);
@@ -159,8 +159,8 @@ fn panel_header(cx: &mut PaintCx<'_>, name: &str, color: Rgba) {
     cx.right_text((308, 9), color, name);
 }
 
-fn panel_distance(cx: &mut PaintCx<'_>, distance: i32) {
-    cx.right_text((308, 33), FONT_GREET, format!("{:.1}m", f64::from(distance) / 10.0));
+fn panel_distance(cx: &mut PaintCx<'_>, distance: f64) {
+    cx.right_text((308, 33), FONT_GREET, format!("{distance:.1}m"));
 }
 
 fn result_elements(
@@ -189,16 +189,16 @@ fn result_elements(
     if frame.is_hill_record {
         // Pascal 2649-2651: "HR!" + distance in gold
         cx.text((260, 33), FONT_GOLD, "HR!");
-        cx.right_text(
-            (308, 33),
-            FONT_GOLD,
-            format!("{:.1}m", f64::from(frame.distance) / 10.0),
-        );
+        cx.right_text((308, 33), FONT_GOLD, format!("{:.1}m", frame.distance));
     } else {
         panel_distance(cx, frame.distance);
     }
 
-    cx.right_text((308, 45), FONT_GOLD, format!("{:.1}", f64::from(frame.score) / 10.0));
+    cx.right_text(
+        (308, 45),
+        FONT_GOLD,
+        format!("{:.1}", f64::from(frame.score) / 10.0),
+    );
     cx.right_text((308, 73), FONT_GREET, ctx.langbase.lstr(298));
 }
 
@@ -219,11 +219,7 @@ fn landing_elements(
         }
         // Pascal 2536: if random(2)=0 then ewritefont(temp2-1+random(3),32+random(3),...)
         if let Some((x, y)) = frame.hr_shake_position {
-            cx.right_text(
-                (x, y),
-                FONT_GREET,
-                format!("{:.1}m", f64::from(frame.distance) / 10.0),
-            );
+            cx.right_text((x, y), FONT_GREET, format!("{:.1}m", frame.distance));
         }
     }
 
@@ -261,7 +257,10 @@ pub fn wind_elements(cx: &mut PaintCx<'_>, position: WindPosition, value: i32) {
     cx.fill((x + 21, y + 1, 1, 2), FONT_DEFAULT);
     cx.fill((x + 21, y + 9, 1, 1), FONT_GREET);
     if value > 0 {
-        cx.fill((x + 22, y + 1, value / 3 + 1, 2), Rgba::from_rgb6(56, 13, 13));
+        cx.fill(
+            (x + 22, y + 1, value / 3 + 1, 2),
+            Rgba::from_rgb6(56, 13, 13),
+        );
     }
     if value < 0 {
         let w = (-value) / 3 + 1;

@@ -35,7 +35,7 @@ pub struct JumpState {
     pub(crate) height: i32,
     pub(crate) delta_height: [i32; 6],
     pub(crate) first_flight_frame: bool,
-    pub(crate) distance: i32,
+    pub(crate) distance: f64,
     pub(crate) landing_counter: i32,
     pub(crate) fall_type: FallType,
     pub(crate) grade: i32,
@@ -101,7 +101,7 @@ impl JumpState {
             height: 0,
             delta_height: [0; 6],
             first_flight_frame: true,
-            distance: 0,
+            distance: 0.0,
             landing_counter: 0,
             fall_type: FallType::None,
             grade: 0,
@@ -153,7 +153,7 @@ impl JumpState {
     pub(crate) fn outcome(&self) -> Option<JumpOutcome> {
         match self.phase {
             JumpPhase::Result => Some(JumpOutcome {
-                distance: tenths_to_decimal(self.distance),
+                distance: self.distance,
                 score: tenths_to_decimal(self.score),
                 style_points: self.style_points.map(tenths_to_decimal),
                 landing_style: self.landing_style,
@@ -236,7 +236,7 @@ impl JumpState {
         self.height = 0;
         self.delta_height = [0; 6];
         self.first_flight_frame = true;
-        self.distance = 0;
+        self.distance = 0.0;
         self.landing_counter = 0;
         self.fall_type = FallType::None;
         self.result_pending = false;
@@ -268,7 +268,7 @@ impl JumpState {
                 if count_onbar_frames && self.frame > 700 {
                     self.phase = JumpPhase::Disqualified;
                     self.score = 0;
-                    self.distance = 0;
+                    self.distance = 0.0;
                     self.landing_style = LandingStyle::Telemark;
                     self.fall_type = FallType::None;
                 }
@@ -513,7 +513,7 @@ impl JumpState {
 
     fn prepare_landing(&mut self, terrain: &HillTerrain, rng: &mut Random) {
         self.grade = if self.hill_kr != 0 {
-            math::round(f64::from(self.distance) / f64::from(self.hill_kr)) * 10
+            math::round(self.distance / f64::from(self.hill_kr) * 10.0) * 10
         } else {
             0
         };
@@ -635,9 +635,11 @@ impl JumpState {
         self.sy = self.sy.clamp(0, 312);
     }
 
-    fn distance(&self) -> i32 {
+    fn distance(&self) -> f64 {
         let vertical_delta = self.vertical_pos - f64::from(self.ramp_y);
-        math::round(self.travel.hypot(vertical_delta) * self.distance_factor * 0.5) * 5
+        f64::from(math::round(
+            self.travel.hypot(vertical_delta) * self.distance_factor * 0.5,
+        )) * 0.5
     }
 
     const fn lean_forward(&mut self) {

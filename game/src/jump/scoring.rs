@@ -22,7 +22,7 @@ pub struct ScoreResult {
 pub fn landing_risk(
     terrain: &HillTerrain,
     x: i32,
-    distance: i32,
+    distance: f64,
     hill_kr: i32,
     body_angle: i32,
     landing_style: LandingStyle,
@@ -30,7 +30,7 @@ pub fn landing_risk(
     let slope_angle = terrain.hill_angle(x);
     let quality = math::round(f64::from(slope_angle).mul_add(1.34, f64::from(body_angle) / 10.0));
     let mut risk = crash_risk(slope_angle) as i32;
-    if f64::from(distance) < (20.0 / 3.0) * f64::from(hill_kr) {
+    if distance < (20.0 / 3.0) * f64::from(hill_kr) {
         risk = 1;
     }
     if quality < 63 {
@@ -67,15 +67,14 @@ pub fn landing_risk(
 pub fn calculate_score(
     style_base: i32,
     hill_kr: i32,
-    distance: i32,
+    distance: f64,
     fall_type: FallType,
     landing_style: LandingStyle,
     rng: &mut Random,
 ) -> ScoreResult {
     let mut base = style_base;
-    let short_jump_penalty_count = math::round(
-        (f64::from(hill_kr) + f64::from(hill_kr) / 20.0 - (f64::from(distance) / 10.0)) / 6.0,
-    );
+    let short_jump_penalty_count =
+        math::round((f64::from(hill_kr) + f64::from(hill_kr) / 20.0 - distance) / 6.0);
     if short_jump_penalty_count > 0 {
         base -= short_jump_penalty_count * 5;
     }
@@ -104,9 +103,7 @@ pub fn calculate_score(
     let mut score = style_points.iter().sum::<i32>() - min_style - max_style;
     if hill_kr != 0 {
         score += math::round(
-            ((f64::from(distance) / 10.0) - (f64::from(hill_kr) * 2.0 / 3.0))
-                * (180.0 / f64::from(hill_kr))
-                * 10.0,
+            (distance - (f64::from(hill_kr) * 2.0 / 3.0)) * (180.0 / f64::from(hill_kr)) * 10.0,
         );
     }
 

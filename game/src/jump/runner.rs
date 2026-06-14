@@ -14,8 +14,8 @@ use crate::jump::{ComputerInputProvider, JumpPresentationContext, JumpSession, J
 use crate::rng::Random;
 use crate::text::lang::LangBase;
 use engine::consts::{HEIGHT, WIDTH};
-use engine::oxide::PaintCx;
 use engine::oxide::Font;
+use engine::oxide::PaintCx;
 use std::cell::Cell;
 
 pub(crate) struct JumpRunnerRenderEnv<'a> {
@@ -140,7 +140,7 @@ impl JumpRunner {
             && self
                 .session
                 .state()
-                .is_some_and(|state| f64::from(state.distance) / 10.0 > self.config.record_distance)
+                .is_some_and(|state| state.distance > self.config.record_distance)
             && rng.random_i32(2) == 0
         {
             self.hr_shake_position

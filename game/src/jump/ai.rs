@@ -140,7 +140,7 @@ mod tests {
             height: 100,
             delta_height_sum: 0,
             slope_angle: 30,
-            distance: 0,
+            distance: 0.0,
             body_angle: 158,
             ski_angle: 0,
             speed: 90.0,

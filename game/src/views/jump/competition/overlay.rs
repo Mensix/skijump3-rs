@@ -63,12 +63,8 @@ impl OverlayData {
                 ActiveCompetition::Individual(comp) => {
                     Some(Self::from_individual(comp, coach_style))
                 }
-                ActiveCompetition::TeamCup(comp) => {
-                    Some(Self::from_team_cup(comp, coach_style))
-                }
-                ActiveCompetition::Koth(comp) => {
-                    Some(Self::from_koth(comp, coach_style))
-                }
+                ActiveCompetition::TeamCup(comp) => Some(Self::from_team_cup(comp, coach_style)),
+                ActiveCompetition::Koth(comp) => Some(Self::from_koth(comp, coach_style)),
             })
             .flatten()
     }
@@ -152,10 +148,7 @@ impl OverlayData {
         }
     }
 
-    fn from_team_cup(
-        tc: &TeamCupRuntime,
-        coach_style: u8,
-    ) -> Self {
+    fn from_team_cup(tc: &TeamCupRuntime, coach_style: u8) -> Self {
         let leg_standings = tc.standings(TeamCupStandingsKind::Leg);
         let hill_idx = tc.current_hill_idx();
         let event_top5 = leg_standings
@@ -348,7 +341,7 @@ impl CompetitionOverlay {
         if style == 0 || t.grade == 0 {
             return;
         }
-        let base = 361 + style as usize * 40;
+        let base = 360 + style as usize * 40;
         let lang = &self.resources.langbase;
 
         cx.sprite(Sprite::JumperInfoBox as u16, (3, 150));
@@ -367,7 +360,12 @@ impl CompetitionOverlay {
             t.takeoff_timing,
             &[5, 9, 12, 15, 16, 19, 23, 50],
         );
-        let cstr3 = self.coach_range(lang, base + 28, t.height, &[49, 55, 60, 64, 70, 90, 200]);
+        let mut cstr3 = self.coach_range(lang, base + 28, t.height, &[49, 55, 60, 64, 70, 90, 200]);
+
+        // Pascal: if (grade=1) then cstr[3]:=lstr(index+35);
+        if t.grade == 1 {
+            cstr3 = lang.lstr(base + 35).to_string();
+        }
 
         let cstr0 = if t.grade < 10 { cstr1.clone() } else { cstr0 };
 
@@ -413,13 +411,7 @@ impl CompetitionOverlay {
     }
 
     /// Look up language string for a value within the given range thresholds.
-    fn coach_range(
-        &self,
-        lang: &LangBase,
-        base: usize,
-        val: u8,
-        thresholds: &[u8],
-    ) -> String {
+    fn coach_range(&self, lang: &LangBase, base: usize, val: u8, thresholds: &[u8]) -> String {
         let idx = thresholds
             .iter()
             .position(|&t| val <= t)
@@ -591,7 +583,9 @@ impl CompetitionOverlay {
     /// Pascal drawkothinfo: jumpers left + worst alive with phase label
     fn koth_info_elements(&self, cx: &mut PaintCx<'_>, ctx: &OverlayContext) {
         let lang = &self.resources.langbase;
-        let Some(ref ki) = ctx.data.koth_info else { return };
+        let Some(ref ki) = ctx.data.koth_info else {
+            return;
+        };
         let total = ki.total_count;
         let left = ki.alive_count;
         hud::push_info_panel_frame(cx);
@@ -608,14 +602,22 @@ impl CompetitionOverlay {
             };
             cx.right_text((308, 19), FONT_GOLD, label);
             let pts_str = format_decimal(ki.last_points);
-            cx.right_text((308, 29), FONT_GOLD, format!("{} ${}", ki.last_name, pts_str));
+            cx.right_text(
+                (308, 29),
+                FONT_GOLD,
+                format!("{} ${}", ki.last_name, pts_str),
+            );
         }
     }
 
     /// Pascal drawwcinfo: top 5 WC / season standings with raw points.
     fn wc_standings_elements(&self, cx: &mut PaintCx<'_>, data: &OverlayData) {
         hud::push_info_panel_frame(cx);
-        cx.right_text((308, 9), FONT_GOLD, self.resources.langbase.lstr(70).to_string());
+        cx.right_text(
+            (308, 9),
+            FONT_GOLD,
+            self.resources.langbase.lstr(70).to_string(),
+        );
         for (i, entry) in data.wc_standings_top5.iter().enumerate() {
             let s = format!("{}  {}", entry.name, entry.points);
             cx.right_text((308, 20 + i as i32 * 7), FONT_GOLD, s);
