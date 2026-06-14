@@ -6,6 +6,7 @@ use crate::gfx::jumper_colors::{
     self, JUMPER_BIB_SOURCE_SHADE_1, JUMPER_BIB_SOURCE_SHADE_3, JUMPER_SKI_SOURCE,
     JUMPER_SUIT_SOURCE_SHADE_1, JUMPER_SUIT_SOURCE_SHADE_3,
 };
+use crate::gfx::sprites::Sprite;
 use crate::gfx::theme::THEME;
 use crate::views::replay::PlaybackMode;
 
@@ -101,4 +102,36 @@ pub fn replay_speed_material(mode: PlaybackMode) -> SpriteMaterial {
         SpriteMaterialId::new(MATERIAL_REPLAY_SPEED | u64::from(active)),
         &pairs,
     )
+}
+
+#[must_use]
+pub fn prebaked_sprite_materials() -> Vec<(u16, SpriteMaterial)> {
+    let mut materials = Vec::new();
+
+    for sprite_idx in Sprite::TakeoffArmsUp as u16..=Sprite::InrunTransition as u16 {
+        for suit_color in 0..8 {
+            materials.push((sprite_idx, jumper_body_material(suit_color, false)));
+            materials.push((sprite_idx, jumper_body_material(suit_color, true)));
+        }
+        for ski_color in 0..4 {
+            materials.push((sprite_idx, jumper_ski_material(ski_color)));
+        }
+    }
+
+    for is_dq in [false, true] {
+        materials.push((Sprite::StartLight as u16, start_light_material(is_dq)));
+    }
+
+    for mode in [
+        PlaybackMode::Pause,
+        PlaybackMode::Forward,
+        PlaybackMode::Rewind,
+        PlaybackMode::PlayOnceThenPause,
+        PlaybackMode::SpeedChange,
+        PlaybackMode::OneStep,
+    ] {
+        materials.push((Sprite::ReplayModeIcon as u16, replay_speed_material(mode)));
+    }
+
+    materials
 }

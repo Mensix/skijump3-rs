@@ -1,9 +1,9 @@
 use crate::app::router::AppRouter;
 use crate::gfx::theme::FONT_HELP;
-use engine::oxide::Font;
-use engine::oxide::{Background, CommandBuffer, OxideRenderer, PaintCx, ScreenBackground};
-use engine::palette::Palette;
-use engine::sprite::SpriteData;
+use engine::oxide::{
+    Background, CommandBuffer, Font, OxideRenderer, PaintCx, RenderAssets, ScreenBackground,
+};
+use engine::sprite::{BakedSpriteTextures, SpriteData};
 use engine::video::{Renderer, TextureId};
 use std::time::Instant;
 
@@ -23,11 +23,8 @@ impl FrameRenderer {
     pub(super) fn render(
         &mut self,
         renderer: &mut Renderer,
-        font: &Font,
-        palette: &Palette,
-        sprites: &[SpriteData],
+        assets: FrameAssets<'_>,
         router: &AppRouter,
-        main_background: TextureId,
     ) -> Result<(), String> {
         let mut commands = CommandBuffer::new();
         {
@@ -37,12 +34,20 @@ impl FrameRenderer {
         }
 
         let background = match router.screen_background() {
-            ScreenBackground::MainPng => Background::Texture(main_background),
+            ScreenBackground::MainPng => Background::Texture(assets.main_background),
             ScreenBackground::NoneBlack => Background::None,
         };
 
-        self.renderer
-            .render_commands(renderer, font, palette, sprites, &commands, background)?;
+        self.renderer.render_commands(
+            renderer,
+            RenderAssets {
+                font: assets.font,
+                sprites: assets.sprites,
+                baked_sprites: assets.baked_sprites,
+            },
+            &commands,
+            background,
+        )?;
         renderer.wait_frame();
         Ok(())
     }
@@ -53,6 +58,13 @@ impl FrameRenderer {
             cx.right_text((319, 192), FONT_HELP, format!("{fps:.0} fps"));
         }
     }
+}
+
+pub(super) struct FrameAssets<'a> {
+    pub(super) font: &'a Font,
+    pub(super) sprites: &'a [SpriteData],
+    pub(super) baked_sprites: &'a BakedSpriteTextures,
+    pub(super) main_background: TextureId,
 }
 
 struct FpsCounter {

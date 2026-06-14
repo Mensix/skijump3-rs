@@ -19,7 +19,7 @@ pub use draw::{
 };
 pub use input::{Key, UiEvent};
 pub use paint::PaintCx;
-pub use render::{Background, OxideRenderer};
+pub use render::{Background, OxideRenderer, RenderAssets};
 pub use route::NavAction;
 pub use text::Font;
 pub use text_edit::TextEditState;

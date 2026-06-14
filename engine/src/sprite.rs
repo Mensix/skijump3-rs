@@ -2,7 +2,8 @@ use crate::bitmap::IndexedBitmap;
 use crate::color::Rgba;
 use crate::consts::{HEIGHT, WIDTH};
 use crate::palette::{Palette, PaletteIndex, PALETTE_SIZE};
-use std::collections::hash_map::DefaultHasher;
+use crate::video::{Renderer, TextureId};
+use std::collections::{hash_map::DefaultHasher, HashMap};
 use std::hash::{Hash, Hasher};
 
 #[derive(Debug, Clone)]
@@ -94,7 +95,112 @@ impl SpriteMaterial {
     pub fn get(&self, source: u8) -> Option<Rgba> {
         self.color_override(PaletteIndex(source))
     }
+}
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+struct BakedSpriteTextureKey {
+    sprite_idx: u16,
+    material: SpriteMaterial,
+}
+
+#[derive(Debug, Clone)]
+pub struct BakedSpriteTexture {
+    pub texture_id: TextureId,
+    pub center_x: i8,
+    pub center_y: i8,
+    pub width: u16,
+    pub height: u16,
+}
+
+#[derive(Debug, Default)]
+pub struct BakedSpriteTextures {
+    defaults: Vec<Option<BakedSpriteTexture>>,
+    materials: HashMap<BakedSpriteTextureKey, BakedSpriteTexture>,
+}
+
+impl BakedSpriteTextures {
+    pub fn bake(
+        renderer: &mut Renderer,
+        palette: &Palette,
+        sprites: &[SpriteData],
+        material_variants: &[(u16, SpriteMaterial)],
+    ) -> Result<Self, String> {
+        let mut scratch = Vec::new();
+        let mut defaults = vec![None; sprites.len()];
+
+        for (idx, sprite) in sprites.iter().enumerate() {
+            defaults[idx] = bake_sprite_texture(
+                renderer,
+                palette,
+                sprite,
+                &SpriteMaterial::with_id(SpriteMaterialId::DEFAULT, &[]),
+                &mut scratch,
+            )?;
+        }
+
+        let mut materials = HashMap::new();
+        for (sprite_idx, material) in material_variants {
+            if let Some(sprite) = sprites.get(*sprite_idx as usize) {
+                if let Some(texture) =
+                    bake_sprite_texture(renderer, palette, sprite, material, &mut scratch)?
+                {
+                    materials.insert(
+                        BakedSpriteTextureKey {
+                            sprite_idx: *sprite_idx,
+                            material: material.clone(),
+                        },
+                        texture,
+                    );
+                }
+            }
+        }
+
+        Ok(Self {
+            defaults,
+            materials,
+        })
+    }
+
+    #[must_use]
+    pub fn default_sprite(&self, sprite_idx: u16) -> Option<&BakedSpriteTexture> {
+        self.defaults
+            .get(sprite_idx as usize)
+            .and_then(std::option::Option::as_ref)
+    }
+
+    #[must_use]
+    pub fn material_sprite(
+        &self,
+        sprite_idx: u16,
+        material: &SpriteMaterial,
+    ) -> Option<&BakedSpriteTexture> {
+        self.materials.get(&BakedSpriteTextureKey {
+            sprite_idx,
+            material: material.clone(),
+        })
+    }
+}
+
+fn bake_sprite_texture(
+    renderer: &mut Renderer,
+    palette: &Palette,
+    sprite: &SpriteData,
+    material: &SpriteMaterial,
+    scratch: &mut Vec<u8>,
+) -> Result<Option<BakedSpriteTexture>, String> {
+    sprite.render_material_rgba(palette, material, scratch);
+    if scratch.iter().all(|&b| b == 0) {
+        return Ok(None);
+    }
+    let texture_id =
+        renderer.create_rgba_texture(scratch, u32::from(sprite.width), u32::from(sprite.height))?;
+    Ok(Some(BakedSpriteTexture {
+        texture_id,
+        center_x: sprite.center_x,
+        center_y: sprite.center_y,
+        width: sprite.width,
+        height: sprite.height,
+    }))
 }
 
 impl Default for SpriteMaterial {

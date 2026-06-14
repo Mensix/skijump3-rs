@@ -6,8 +6,7 @@ use crate::consts::PATTERN_SPRITE;
 use crate::oxide::draw::DitherPattern;
 use crate::oxide::draw::{DrawCommand, SpriteDraw, TextAlign};
 use crate::oxide::Font;
-use crate::palette::Palette;
-use crate::sprite::{SpriteData, SpriteMaterial};
+use crate::sprite::{BakedSpriteTexture, BakedSpriteTextures, SpriteData};
 use crate::video::{Renderer, TextureId};
 
 const TEXT_SHADOW: Rgba = Rgba::rgb(0, 0, 0);
@@ -94,103 +93,22 @@ impl DitherOverlayCollector {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Hash)]
-struct SpriteTextureCacheKey {
-    sprite_idx: u16,
-    material: SpriteMaterial,
-}
-
-struct SpriteTextureCacheEntry {
-    texture_id: TextureId,
-    center_x: i8,
-    center_y: i8,
-    width: u16,
-    height: u16,
-    last_frame: u64,
-}
-
-#[derive(Default)]
-struct SpriteTextureCache {
-    entries: HashMap<SpriteTextureCacheKey, SpriteTextureCacheEntry>,
-    rgba_scratch: Vec<u8>,
-}
-
-impl SpriteTextureCache {
-    fn draw(
-        &mut self,
-        renderer: &mut Renderer,
-        palette: &Palette,
-        sprite_idx: u16,
-        x: i32,
-        y: i32,
-        material: &SpriteMaterial,
-        sprite: &SpriteData,
-        frame: u64,
-    ) -> Result<(), String> {
-        if self.entries.len() >= MAX_CACHE_SIZE {
-            self.evict_stale(frame);
-        }
-        let key = SpriteTextureCacheKey {
-            sprite_idx,
-            material: material.clone(),
-        };
-        match self.entries.entry(key) {
-            Entry::Occupied(o) => {
-                let entry = o.into_mut();
-                entry.last_frame = frame;
-                draw_sprite_texture(renderer, entry, x, y)
-            }
-            Entry::Vacant(v) => {
-                sprite.render_material_rgba(palette, material, &mut self.rgba_scratch);
-                if self.rgba_scratch.iter().any(|&b| b != 0) {
-                    let tex_id = renderer.create_rgba_texture(
-                        &self.rgba_scratch,
-                        u32::from(sprite.width),
-                        u32::from(sprite.height),
-                    )?;
-                    let entry = SpriteTextureCacheEntry {
-                        texture_id: tex_id,
-                        center_x: sprite.center_x,
-                        center_y: sprite.center_y,
-                        width: sprite.width,
-                        height: sprite.height,
-                        last_frame: frame,
-                    };
-                    draw_sprite_texture(renderer, &entry, x, y)?;
-                    v.insert(entry);
-                }
-                Ok(())
-            }
-        }
-    }
-
-    fn evict_stale(&mut self, frame: u64) {
-        self.entries.retain(|_, e| e.last_frame == frame);
-        if self.entries.len() >= MAX_CACHE_SIZE {
-            let mut entries: Vec<_> = self.entries.drain().collect();
-            entries.sort_by_key(|(_, e)| std::cmp::Reverse(e.last_frame));
-            entries.truncate(MAX_CACHE_SIZE / 2);
-            self.entries = entries.into_iter().collect();
-        }
-    }
-}
-
-fn draw_sprite_texture(
+fn draw_baked_sprite_texture(
     renderer: &mut Renderer,
-    entry: &SpriteTextureCacheEntry,
+    texture: &BakedSpriteTexture,
     x: i32,
     y: i32,
 ) -> Result<(), String> {
-    let dst_x = x - i32::from(entry.center_x);
-    let dst_y = y - i32::from(entry.center_y);
+    let dst_x = x - i32::from(texture.center_x);
+    let dst_y = y - i32::from(texture.center_y);
     renderer.draw_texture(
-        entry.texture_id,
+        texture.texture_id,
         None,
         Some(sdl2::rect::Rect::new(
             dst_x,
             dst_y,
-            u32::from(entry.width),
-            u32::from(entry.height),
+            u32::from(texture.width),
+            u32::from(texture.height),
         )),
     )
 }
@@ -305,9 +223,14 @@ fn draw_text_texture(renderer: &mut Renderer, entry: &TextCacheEntry) -> Result<
 
 pub struct DrawCommandRenderer {
     pending_dither_rects: Vec<DitherOverlayRect>,
-    sprite_texture_cache: SpriteTextureCache,
     text_cache: TextCache,
     frame_counter: u64,
+}
+
+pub(crate) struct DrawRenderAssets<'a> {
+    pub(crate) font: &'a Font,
+    pub(crate) sprites: &'a [SpriteData],
+    pub(crate) baked_sprites: &'a BakedSpriteTextures,
 }
 
 impl Default for DrawCommandRenderer {
@@ -321,18 +244,15 @@ impl DrawCommandRenderer {
     pub fn new() -> Self {
         Self {
             pending_dither_rects: Vec::new(),
-            sprite_texture_cache: SpriteTextureCache::default(),
             text_cache: TextCache::default(),
             frame_counter: 0,
         }
     }
 
-    pub fn render_frame(
+    pub(crate) fn render_frame(
         &mut self,
         renderer: &mut Renderer,
-        font: &Font,
-        palette: &Palette,
-        sprites: &[SpriteData],
+        assets: DrawRenderAssets<'_>,
         commands: &[DrawCommand],
         background: Option<TextureId>,
     ) -> Result<(), String> {
@@ -348,15 +268,7 @@ impl DrawCommandRenderer {
         let mut dither = DitherOverlayCollector::new(pending_dither_rects);
 
         for command in commands {
-            self.render_command(
-                renderer,
-                font,
-                palette,
-                sprites,
-                command,
-                &mut dither,
-                frame,
-            )?;
+            self.render_command(renderer, &assets, command, &mut dither, frame)?;
         }
 
         self.pending_dither_rects = dither.into_pending();
@@ -367,9 +279,7 @@ impl DrawCommandRenderer {
     fn render_command(
         &mut self,
         renderer: &mut Renderer,
-        font: &Font,
-        palette: &Palette,
-        sprites: &[SpriteData],
+        assets: &DrawRenderAssets<'_>,
         command: &DrawCommand,
         dither: &mut DitherOverlayCollector,
         frame: u64,
@@ -384,12 +294,12 @@ impl DrawCommandRenderer {
                 dither.track_box(rect.x, rect.y, rect.w, rect.h, *color);
             }
             DrawCommand::DitherOverlay { pattern, colors } => {
-                dither.apply_overlay(renderer, sprites, *pattern, colors)?;
+                dither.apply_overlay(renderer, assets.sprites, *pattern, colors)?;
             }
             DrawCommand::Text(run) => {
                 self.text_cache.draw(
                     renderer,
-                    font,
+                    assets.font,
                     &run.text,
                     run.position.x,
                     run.position.y,
@@ -399,32 +309,18 @@ impl DrawCommandRenderer {
                 )?;
             }
             DrawCommand::Sprite(SpriteDraw { idx, position }) => {
-                if let Some(sprite_data) = sprites.get(*idx as usize) {
-                    let material = SpriteMaterial::new(&[]);
-                    self.sprite_texture_cache.draw(
-                        renderer,
-                        palette,
-                        *idx,
-                        position.x,
-                        position.y,
-                        &material,
-                        sprite_data,
-                        frame,
-                    )?;
+                if let Some(texture) = assets.baked_sprites.default_sprite(*idx) {
+                    return draw_baked_sprite_texture(renderer, texture, position.x, position.y);
                 }
             }
             DrawCommand::SpriteWithMaterial { sprite, material } => {
-                if let Some(sprite_data) = sprites.get(sprite.idx as usize) {
-                    self.sprite_texture_cache.draw(
+                if let Some(texture) = assets.baked_sprites.material_sprite(sprite.idx, material) {
+                    return draw_baked_sprite_texture(
                         renderer,
-                        palette,
-                        sprite.idx,
+                        texture,
                         sprite.position.x,
                         sprite.position.y,
-                        material,
-                        sprite_data,
-                        frame,
-                    )?;
+                    );
                 }
             }
             DrawCommand::Image { pixels, w, h } => {

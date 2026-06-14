@@ -8,13 +8,12 @@ use crate::files::FileStore;
 use crate::route::RouteTarget;
 use engine::input::Input;
 use engine::oxide::Font;
-use engine::palette::Palette;
-use engine::sprite::SpriteData;
+use engine::sprite::{BakedSpriteTextures, SpriteData};
 use engine::video::{Renderer, TextureId};
 use std::rc::Rc;
 
 use self::assets::LoadedAssets;
-use self::rendering::FrameRenderer;
+use self::rendering::{FrameAssets, FrameRenderer};
 use self::state::GameState;
 
 pub struct Game {
@@ -23,8 +22,8 @@ pub struct Game {
     input: Input,
     font: Font,
     router: AppRouter,
-    palette: Palette,
     sprites: Vec<SpriteData>,
+    baked_sprites: BakedSpriteTextures,
     main_background: TextureId,
     frame_renderer: FrameRenderer,
 }
@@ -41,8 +40,8 @@ impl Game {
             content_store,
             font,
             main_background,
-            palette,
             sprites,
+            baked_sprites,
         } = assets::load(&files, &mut renderer)?;
         let state = GameState::load(Rc::clone(&files), font.clone(), content_store)?;
         let start_route = if state.starts_with_welcome() {
@@ -63,8 +62,8 @@ impl Game {
             input,
             font,
             router,
-            palette,
             sprites,
+            baked_sprites,
             main_background,
             frame_renderer: FrameRenderer::new(),
         })
@@ -98,11 +97,13 @@ impl Game {
         self.router.update();
         self.frame_renderer.render(
             &mut self.renderer,
-            &self.font,
-            &self.palette,
-            &self.sprites,
+            FrameAssets {
+                font: &self.font,
+                sprites: &self.sprites,
+                baked_sprites: &self.baked_sprites,
+                main_background: self.main_background,
+            },
             &self.router,
-            self.main_background,
         )
     }
 }
