@@ -7,12 +7,38 @@ use engine::oxide::widgets::menu::{MenuItem, PixelMenu};
 use engine::oxide::widgets::text_input::{TextInput, TextInputMessage};
 use engine::oxide::Widget;
 use engine::oxide::{PaintCx, Screen, ScreenBackground, ScreenEventCx, UiEvent};
+use serde::Serialize;
 
 #[derive(Debug)]
 enum EditMode {
     Viewing,
     Editing { field: usize, input: TextInput },
     Alert { message: String, subtitle: String, old_value: String, field: usize },
+    ConfirmOverwrite { filename: String },
+}
+
+#[derive(Serialize)]
+struct CustomHillCatalogToml {
+    id: String,
+    name: String,
+    hills: Vec<CustomHillToml>,
+}
+
+#[derive(Serialize)]
+struct CustomHillToml {
+    id: String,
+    name: String,
+    kr: i64,
+    front_index: String,
+    back_index: String,
+    back_brightness: i64,
+    back_mirror: bool,
+    vx_final: i64,
+    pk_hundred: i64,
+    pl_save_ten_thousand: i64,
+    author: String,
+    checksum: i64,
+    profile_checksum: i64,
 }
 
 pub struct EditHillView {
@@ -20,6 +46,7 @@ pub struct EditHillView {
     menu: PixelMenu,
     mode: EditMode,
     values: [String; 12],
+    initial_values: [String; 12],
     blinker: Blinker,
 }
 
@@ -45,12 +72,50 @@ impl EditHillView {
             "NEW1".into(),
             "".into(),
         ];
+        let initial_values = values.clone();
         Self {
             resources,
             menu,
             mode: EditMode::Viewing,
             values,
+            initial_values,
             blinker: Blinker::new(),
+        }
+    }
+
+    fn has_changes(&self) -> bool {
+        self.values != self.initial_values
+    }
+
+    fn build_custom_hill_toml(&self) -> CustomHillCatalogToml {
+        let filename = &self.values[10];
+        CustomHillCatalogToml {
+            id: filename.clone(),
+            name: format!("{} custom hill", filename),
+            hills: vec![CustomHillToml {
+                id: filename.clone(),
+                name: self.values[0].clone(),
+                kr: self.values[1].parse().unwrap_or(120),
+                front_index: self.values[2].clone(),
+                back_index: self.values[3].clone(),
+                back_brightness: self.values[4].parse().unwrap_or(100),
+                back_mirror: self.values[5].parse::<i64>().unwrap_or(0) != 0,
+                vx_final: self.values[6].parse::<i64>().unwrap_or(100) + 40,
+                pk_hundred: self.values[7].parse().unwrap_or(100),
+                pl_save_ten_thousand: self.values[8].parse::<i64>().unwrap_or(6) + 3204,
+                author: self.values[9].clone(),
+                checksum: 0,
+                profile_checksum: 0,
+            }],
+        }
+    }
+
+    fn save(&self) {
+        let toml = self.build_custom_hill_toml();
+        if let Ok(data) = toml::to_string(&toml) {
+            let filename = &self.values[10];
+            let path = format!("custom_hills/{filename}.toml");
+            let _ = self.resources.files.write(&path, data.as_bytes());
         }
     }
 
@@ -131,11 +196,31 @@ impl EditHillView {
     fn is_numeric_field(field: usize) -> bool {
         matches!(field, 2 | 5 | 6 | 7 | 8 | 9)
     }
+
+    fn is_valid_filename(s: &str) -> bool {
+        if s.is_empty() || s.len() > 8 {
+            return false;
+        }
+        s.chars().all(|c| c.is_ascii_alphanumeric())
+    }
 }
 
 impl Screen<RouteTarget> for EditHillView {
     fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
         match &mut self.mode {
+            EditMode::ConfirmOverwrite { .. } => {
+                if let UiEvent::Text(ch) = event {
+                    if ch == 'Y' || ch == 'y' {
+                        self.save();
+                        cx.navigate(RouteTarget::Back);
+                    } else {
+                        self.mode = EditMode::Viewing;
+                        self.menu.set_selected(10); // back to FILENAME field
+                    }
+                }
+                cx.consume();
+                return;
+            }
             EditMode::Alert { field, old_value, .. } => {
                 if matches!(event, UiEvent::KeyDown(_) | UiEvent::Text(_)) {
                     self.values[*field - 1] = old_value.clone();
@@ -173,7 +258,31 @@ impl Screen<RouteTarget> for EditHillView {
 
         let mut ecx = engine::oxide::widget::EventCx::default();
         match self.menu.event(&mut ecx, event) {
-            Some(0) => cx.navigate(RouteTarget::Back),
+            Some(0) => {
+                if !self.has_changes() {
+                    cx.navigate(RouteTarget::Back);
+                } else {
+                    let filename = &self.values[10];
+                    if !Self::is_valid_filename(filename) {
+                        self.mode = EditMode::Alert {
+                            field: 11,
+                            old_value: self.values[10].clone(),
+                            message: "INVALID FILENAME.".to_string(),
+                            subtitle: "ENTER 1-8 ALPHANUMERIC CHARACTERS.".to_string(),
+                        };
+                        return;
+                    }
+                    let path = format!("custom_hills/{filename}.toml");
+                    if self.resources.files.read(&path).is_ok() {
+                        self.mode = EditMode::ConfirmOverwrite {
+                            filename: filename.clone(),
+                        };
+                    } else {
+                        self.save();
+                        cx.navigate(RouteTarget::Back);
+                    }
+                }
+            }
             Some(12) => cx.navigate(RouteTarget::Back),
             Some(n @ 1..=11) => {
                 if matches!(event, UiEvent::KeyDown(Key::Enter) | UiEvent::Text(' ')) {
@@ -245,7 +354,7 @@ impl Screen<RouteTarget> for EditHillView {
 
         cx.text((xx, 179), FONT_GOLD, "0. EXIT and SAVE");
 
-        if !matches!(self.mode, EditMode::Alert { .. }) {
+        if matches!(self.mode, EditMode::Viewing | EditMode::Editing { .. }) {
             self.menu.paint(cx);
         }
 
@@ -261,6 +370,18 @@ impl Screen<RouteTarget> for EditHillView {
                 cx.text((80, 100), FONT_GOLD, subtitle);
                 let prompt = self.resources.langbase.lstr(15);
                 cx.right_text((190, 110), FONT_DEFAULT, prompt);
+                cx.fill((189, 108, 9, 11), BG_LEFT);
+                if self.blinker.visible(11, 10) {
+                    cx.fill((191, 116, 5, 1), FONT_DEFAULT);
+                }
+            }
+            EditMode::ConfirmOverwrite { filename } => {
+                cx.fill((59, 79, 203, 53), BLACK);
+                cx.fill((60, 80, 201, 51), BG_RIGHT);
+                cx.pattern_fill((60, 80, 201, 51), BG_RIGHT);
+                cx.text((80, 90), FONT_GOLD, format!("FILE {filename}.TOML ALREADY EXISTS."));
+                let prompt = self.resources.langbase.lstr(346);
+                cx.text((80, 110), FONT_GOLD, format!("{} (Y/N):", prompt));
                 cx.fill((189, 108, 9, 11), BG_LEFT);
                 if self.blinker.visible(11, 10) {
                     cx.fill((191, 116, 5, 1), FONT_DEFAULT);

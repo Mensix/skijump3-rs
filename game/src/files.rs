@@ -38,12 +38,18 @@ impl FileStore {
         }
     }
 
-    /// Atomically write to save dir. Creates `save_dir` if it does not
-    /// exist (e.g. after first-launch setup).
+    /// Atomically write to save dir. Creates `save_dir` and any subdirectory
+    /// in `name` if they do not exist.
     pub fn write(&self, name: &str, data: &[u8]) -> Result<(), std::io::Error> {
-        std::fs::create_dir_all(&self.save_dir)?;
         let path = self.save_dir.join(name);
-        let tmp_path = self.save_dir.join(format!(".{name}.tmp"));
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+        let tmp_path = {
+            let parent = path.parent().unwrap_or(&self.save_dir);
+            let file_name = path.file_name().unwrap_or_default();
+            parent.join(format!(".{}.tmp", file_name.to_string_lossy()))
+        };
         std::fs::write(&tmp_path, data)?;
         std::fs::rename(&tmp_path, &path)?;
         Ok(())
