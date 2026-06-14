@@ -32,8 +32,9 @@ struct TerrainMetadata {
 }
 
 impl HillTerrain {
-    pub fn load(files: &FileStore, hill_idx: usize) -> Result<Self, AssetError> {
-        let dir = format!("hills/generated/HILL{hill_idx}/");
+    pub fn load(files: &FileStore, terrain_id: impl std::fmt::Display) -> Result<Self, AssetError> {
+        let terrain_id = terrain_id.to_string();
+        let dir = format!("hills/generated/HILL{terrain_id}/");
 
         let meta_bytes = files.read(&format!("{dir}terrain.toml")).map_err(|e| {
             let path = format!("{dir}terrain.toml");
@@ -73,26 +74,26 @@ impl HillTerrain {
 
         if front_visual.width as usize != w || front_visual.height as usize != h {
             return Err(AssetError::Custom(format!(
-                "Hill {hill_idx}: front visual dimensions mismatch (expected {w}x{h})"
+                "Hill {terrain_id}: front visual dimensions mismatch (expected {w}x{h})"
             )));
         }
         if back_visual.width as usize != bw || back_visual.height as usize != bh {
             return Err(AssetError::Custom(format!(
-                "Hill {hill_idx}: back visual dimensions mismatch (expected {bw}x{bh})"
+                "Hill {terrain_id}: back visual dimensions mismatch (expected {bw}x{bh})"
             )));
         }
 
         let line_lengths: Vec<usize> = meta.line_lengths.iter().map(|&v| v as usize).collect();
         if line_lengths.len() != h {
             return Err(AssetError::Custom(format!(
-                "Hill {hill_idx}: expected {h} line_lengths, got {}",
+                "Hill {terrain_id}: expected {h} line_lengths, got {}",
                 line_lengths.len()
             )));
         }
         let profile_y: Vec<i32> = meta.profile_y.iter().map(|&v| v as i32).collect();
         if profile_y.len() != HILL_PROFILE_LEN {
             return Err(AssetError::Custom(format!(
-                "Hill {hill_idx}: expected {HILL_PROFILE_LEN} profile_y entries, got {}",
+                "Hill {terrain_id}: expected {HILL_PROFILE_LEN} profile_y entries, got {}",
                 profile_y.len()
             )));
         }

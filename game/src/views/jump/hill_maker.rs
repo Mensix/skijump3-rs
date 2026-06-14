@@ -6,18 +6,64 @@ use engine::oxide::input::Key;
 use engine::oxide::widgets::menu::{MenuItem, PixelMenu};
 use engine::oxide::Widget;
 use engine::oxide::{PaintCx, Screen, ScreenBackground, ScreenEventCx, UiEvent};
+use serde::Deserialize;
+
+#[derive(Debug)]
+struct CustomHillListEntry {
+    filename: String,
+    hillname: String,
+}
+
+#[derive(Deserialize)]
+struct CustomHillCatalogToml {
+    hills: Vec<CustomHillToml>,
+}
+
+#[derive(Deserialize)]
+struct CustomHillToml {
+    name: String,
+}
 
 pub struct HillMakerView {
     resources: ResourcesRef,
     menu: PixelMenu,
+    custom_hills: Vec<CustomHillListEntry>,
 }
 
 impl HillMakerView {
     pub fn new(resources: ResourcesRef) -> Self {
-        let items = vec![MenuItem::new(1, lstr(&resources.langbase, 275, "*Add New Hill*"))];
+        let custom_hills = Self::load_custom_hills(&resources);
+        let items = vec![MenuItem::new(1, "")];
         let menu = PixelMenu::new(99, 14, 221, 8, items, FONT_DEFAULT, FONT_DEFAULT)
+            .with_exit("", 6 + custom_hills.len() as i32 * 8)
             .with_labels(false);
-        Self { resources, menu }
+        Self {
+            resources,
+            menu,
+            custom_hills,
+        }
+    }
+
+    fn load_custom_hills(resources: &ResourcesRef) -> Vec<CustomHillListEntry> {
+        let Ok(mut names) = resources
+            .files
+            .list_save_subdir_by_ext("custom_hills", "toml")
+        else {
+            return Vec::new();
+        };
+        names.sort();
+        names
+            .into_iter()
+            .filter_map(|name| {
+                let path = format!("custom_hills/{name}");
+                let data = resources.files.read(&path).ok()?;
+                let text = std::str::from_utf8(&data).ok()?;
+                let catalog = toml::from_str::<CustomHillCatalogToml>(text).ok()?;
+                let hillname = catalog.hills.first()?.name.clone();
+                let filename = name.strip_suffix(".toml").unwrap_or(&name).to_string();
+                Some(CustomHillListEntry { filename, hillname })
+            })
+            .collect()
     }
 }
 
@@ -30,6 +76,7 @@ impl Screen<RouteTarget> for HillMakerView {
         let mut ecx = engine::oxide::widget::EventCx::default();
         match self.menu.event(&mut ecx, event) {
             Some(1) => cx.navigate(RouteTarget::EditHill),
+            Some(0) => cx.back(),
             _ => {}
         }
         if ecx.is_consumed() {
@@ -61,9 +108,15 @@ impl Screen<RouteTarget> for HillMakerView {
         );
 
         cx.text((col1, 13), FONT_GOLD, lstr(lb, 275, "*Add New Hill*"));
+        for (i, hill) in self.custom_hills.iter().enumerate() {
+            let y = 21 + i as i32 * 8;
+            cx.text((col1, y), FONT_DEFAULT, &hill.filename);
+            cx.text((col2, y), FONT_GOLD, &hill.hillname);
+        }
         self.menu.paint(cx);
 
-        cx.text((col1, 29), FONT_DEFAULT, lstr(lb, 276, "-Exit-"));
+        let exit_y = 29 + self.custom_hills.len() as i32 * 8;
+        cx.text((col1, exit_y), FONT_DEFAULT, lstr(lb, 276, "-Exit-"));
     }
 
     fn background(&self) -> ScreenBackground {

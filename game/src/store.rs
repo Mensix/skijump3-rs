@@ -26,7 +26,7 @@ pub struct Resources {
     pub langbase: Rc<LangBase>,
     pub namesets: NameCatalog,
     pub hills: HillCatalog,
-    pub(crate) terrain_cache: RefCell<HashMap<usize, Rc<HillTerrain>>>,
+    pub(crate) terrain_cache: RefCell<HashMap<String, Rc<HillTerrain>>>,
     pub files: Rc<FileStore>,
     pub save_manager: SaveRef,
 }
@@ -61,16 +61,18 @@ impl Resources {
     /// Load (or retrieve cached) terrain for a given hill index.
     /// Loads pre-converted hill data from generated assets.
     pub(crate) fn terrain(&self, hill_idx: usize) -> Result<Rc<HillTerrain>, AssetError> {
-        self.hills
+        let hill = self
+            .hills
             .hill(hill_idx)
             .ok_or_else(|| AssetError::Custom(format!("Hill {hill_idx} not found")))?;
+        let terrain_id = &hill.terrain_id;
         let mut cache = self.terrain_cache.borrow_mut();
-        if let Some(terrain) = cache.get(&hill_idx) {
+        if let Some(terrain) = cache.get(terrain_id) {
             return Ok(terrain.clone());
         }
-        let terrain = HillTerrain::load(&self.files, hill_idx)?;
+        let terrain = HillTerrain::load(&self.files, terrain_id)?;
         let terrain = Rc::new(terrain);
-        cache.insert(hill_idx, terrain.clone());
+        cache.insert(terrain_id.clone(), terrain.clone());
         Ok(terrain)
     }
 }

@@ -66,6 +66,19 @@ impl FileStore {
         self.list_by_ext_in(&self.save_dir, ext)
     }
 
+    /// List filenames in a save dir subdirectory with a given extension.
+    pub fn list_save_subdir_by_ext(
+        &self,
+        subdir: &str,
+        ext: &str,
+    ) -> Result<Vec<String>, std::io::Error> {
+        match self.list_by_ext_in(&self.save_dir.join(subdir), ext) {
+            Ok(names) => Ok(names),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(Vec::new()),
+            Err(e) => Err(e),
+        }
+    }
+
     /// List filenames from both save dir and asset dir, deduplicated and sorted.
     pub fn list_by_ext_all(&self, ext: &str) -> Result<Vec<String>, std::io::Error> {
         let mut names = BTreeSet::new();

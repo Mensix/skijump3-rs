@@ -1,10 +1,10 @@
 use crate::gfx::theme::{BG_LEFT, BG_RIGHT, BLACK, FONT_DEFAULT, FONT_GOLD, FONT_HELP};
-use engine::oxide::Blinker;
 use crate::route::RouteTarget;
 use crate::store::ResourcesRef;
 use engine::oxide::input::Key;
 use engine::oxide::widgets::menu::{MenuItem, PixelMenu};
 use engine::oxide::widgets::text_input::{TextInput, TextInputMessage};
+use engine::oxide::Blinker;
 use engine::oxide::Widget;
 use engine::oxide::{PaintCx, Screen, ScreenBackground, ScreenEventCx, UiEvent};
 use serde::Serialize;
@@ -12,9 +12,19 @@ use serde::Serialize;
 #[derive(Debug)]
 enum EditMode {
     Viewing,
-    Editing { field: usize, input: TextInput },
-    Alert { message: String, subtitle: String, old_value: String, field: usize },
-    ConfirmOverwrite { filename: String },
+    Editing {
+        field: usize,
+        input: TextInput,
+    },
+    Alert {
+        message: String,
+        subtitle: String,
+        old_value: String,
+        field: usize,
+    },
+    ConfirmOverwrite {
+        filename: String,
+    },
 }
 
 #[derive(Serialize)]
@@ -28,6 +38,7 @@ struct CustomHillCatalogToml {
 struct CustomHillToml {
     id: String,
     name: String,
+    terrain_index: String,
     kr: i64,
     front_index: String,
     back_index: String,
@@ -52,9 +63,7 @@ pub struct EditHillView {
 
 impl EditHillView {
     pub fn new(resources: ResourcesRef) -> Self {
-        let items = (1..=12)
-            .map(|n| MenuItem::new(n, ""))
-            .collect();
+        let items = (1..=12).map(|n| MenuItem::new(n, "")).collect();
         let menu = PixelMenu::new(10, 8, 110, 13, items, FONT_DEFAULT, FONT_DEFAULT)
             .with_labels(false)
             .with_exit("", 13);
@@ -95,6 +104,7 @@ impl EditHillView {
             hills: vec![CustomHillToml {
                 id: filename.clone(),
                 name: self.values[0].clone(),
+                terrain_index: self.values[2].clone(),
                 kr: self.values[1].parse().unwrap_or(120),
                 front_index: self.values[2].clone(),
                 back_index: self.values[3].clone(),
@@ -221,7 +231,9 @@ impl Screen<RouteTarget> for EditHillView {
                 cx.consume();
                 return;
             }
-            EditMode::Alert { field, old_value, .. } => {
+            EditMode::Alert {
+                field, old_value, ..
+            } => {
                 if matches!(event, UiEvent::KeyDown(_) | UiEvent::Text(_)) {
                     self.values[*field - 1] = old_value.clone();
                     self.mode = EditMode::Viewing;
@@ -362,7 +374,11 @@ impl Screen<RouteTarget> for EditHillView {
             EditMode::Editing { input, .. } => {
                 input.paint(cx);
             }
-            EditMode::Alert { ref message, ref subtitle, .. } => {
+            EditMode::Alert {
+                ref message,
+                ref subtitle,
+                ..
+            } => {
                 cx.fill((59, 79, 203, 53), BLACK);
                 cx.fill((60, 80, 201, 51), BG_RIGHT);
                 cx.pattern_fill((60, 80, 201, 51), BG_RIGHT);
@@ -379,7 +395,11 @@ impl Screen<RouteTarget> for EditHillView {
                 cx.fill((59, 79, 203, 53), BLACK);
                 cx.fill((60, 80, 201, 51), BG_RIGHT);
                 cx.pattern_fill((60, 80, 201, 51), BG_RIGHT);
-                cx.text((80, 90), FONT_GOLD, format!("FILE {filename}.TOML ALREADY EXISTS."));
+                cx.text(
+                    (80, 90),
+                    FONT_GOLD,
+                    format!("FILE {filename}.TOML ALREADY EXISTS."),
+                );
                 let prompt = self.resources.langbase.lstr(346);
                 cx.text((80, 110), FONT_GOLD, format!("{} (Y/N):", prompt));
                 cx.fill((189, 108, 9, 11), BG_LEFT);

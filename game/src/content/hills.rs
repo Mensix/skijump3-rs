@@ -28,6 +28,8 @@ struct HillCatalogToml {
 struct HillToml {
     id: String,
     name: String,
+    #[serde(default)]
+    terrain_index: Option<TerrainIndexToml>,
     kr: i64,
     front_index: String,
     back_index: String,
@@ -39,6 +41,22 @@ struct HillToml {
     author: String,
     checksum: i64,
     profile_checksum: i64,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(untagged)]
+enum TerrainIndexToml {
+    String(String),
+    Number(usize),
+}
+
+impl TerrainIndexToml {
+    fn into_terrain_id(self) -> String {
+        match self {
+            Self::String(value) => value,
+            Self::Number(value) => value.to_string(),
+        }
+    }
 }
 
 pub(crate) fn load_hills(
@@ -98,73 +116,7 @@ pub(crate) fn load_hills(
                 entry.id
             )));
         }
-
-        for h in &cat.hills {
-            if h.name.is_empty() {
-                return Err(AssetError::Custom(format!(
-                    "Hill '{}' in {full_path} has empty name",
-                    h.id
-                )));
-            }
-            if h.front_index.is_empty() {
-                return Err(AssetError::Custom(format!(
-                    "Hill '{}' in {full_path} has empty front_index",
-                    h.id
-                )));
-            }
-            if h.back_index.is_empty() {
-                return Err(AssetError::Custom(format!(
-                    "Hill '{}' in {full_path} has empty back_index",
-                    h.id
-                )));
-            }
-            if h.author.is_empty() {
-                return Err(AssetError::Custom(format!(
-                    "Hill '{}' in {full_path} has empty author",
-                    h.id
-                )));
-            }
-            if h.kr <= 0 {
-                return Err(AssetError::Custom(format!(
-                    "Hill '{}' in {full_path} has non-positive kr ({})",
-                    h.id, h.kr
-                )));
-            }
-            if h.pk_hundred <= 0 {
-                return Err(AssetError::Custom(format!(
-                    "Hill '{}' in {full_path} has non-positive pk_hundred ({})",
-                    h.id, h.pk_hundred
-                )));
-            }
-            if h.pl_save_ten_thousand <= 0 {
-                return Err(AssetError::Custom(format!(
-                    "Hill '{}' in {full_path} has non-positive pl_save_ten_thousand ({})",
-                    h.id, h.pl_save_ten_thousand
-                )));
-            }
-
-            if !seen_hill_ids.insert(format!("{}:{}", cat.id, h.id)) {
-                return Err(AssetError::Custom(format!(
-                    "Duplicate hill id '{}' in catalog '{}'",
-                    h.id, cat.id
-                )));
-            }
-
-            all_hills.push(HillInfo {
-                name: h.name.clone(),
-                kr: h.kr,
-                front_index: h.front_index.clone(),
-                back_index: h.back_index.clone(),
-                back_brightness: h.back_brightness,
-                back_mirror: i64::from(h.back_mirror),
-                vx_final: h.vx_final,
-                pk_hundred: h.pk_hundred,
-                pl_save_ten_thousand: h.pl_save_ten_thousand,
-                author: h.author.clone(),
-                checksum: h.checksum,
-                profile_checksum: h.profile_checksum,
-            });
-        }
+        append_catalog(&mut all_hills, &mut seen_hill_ids, &cat, &full_path)?;
     }
 
     if !seen_catalog_ids.contains(&manifest.default) {
@@ -174,7 +126,97 @@ pub(crate) fn load_hills(
         )));
     }
 
+    let mut custom_names = files
+        .list_save_subdir_by_ext("custom_hills", "toml")
+        .map_err(|e| AssetError::io("custom_hills", e))?;
+    custom_names.sort();
+    for name in custom_names {
+        let full_path = format!("custom_hills/{name}");
+        let cat: HillCatalogToml = super::read_toml(files, &full_path)?;
+        append_catalog(&mut all_hills, &mut seen_hill_ids, &cat, &full_path)?;
+    }
+
     Ok(HillCatalog::new(all_hills))
+}
+
+fn append_catalog(
+    all_hills: &mut Vec<HillInfo>,
+    seen_hill_ids: &mut HashSet<String>,
+    cat: &HillCatalogToml,
+    full_path: &str,
+) -> Result<(), AssetError> {
+    for (idx, h) in cat.hills.iter().enumerate() {
+        if h.name.is_empty() {
+            return Err(AssetError::Custom(format!(
+                "Hill '{}' in {full_path} has empty name",
+                h.id
+            )));
+        }
+        if h.front_index.is_empty() {
+            return Err(AssetError::Custom(format!(
+                "Hill '{}' in {full_path} has empty front_index",
+                h.id
+            )));
+        }
+        if h.back_index.is_empty() {
+            return Err(AssetError::Custom(format!(
+                "Hill '{}' in {full_path} has empty back_index",
+                h.id
+            )));
+        }
+        if h.author.is_empty() {
+            return Err(AssetError::Custom(format!(
+                "Hill '{}' in {full_path} has empty author",
+                h.id
+            )));
+        }
+        if h.kr <= 0 {
+            return Err(AssetError::Custom(format!(
+                "Hill '{}' in {full_path} has non-positive kr ({})",
+                h.id, h.kr
+            )));
+        }
+        if h.pk_hundred <= 0 {
+            return Err(AssetError::Custom(format!(
+                "Hill '{}' in {full_path} has non-positive pk_hundred ({})",
+                h.id, h.pk_hundred
+            )));
+        }
+        if h.pl_save_ten_thousand <= 0 {
+            return Err(AssetError::Custom(format!(
+                "Hill '{}' in {full_path} has non-positive pl_save_ten_thousand ({})",
+                h.id, h.pl_save_ten_thousand
+            )));
+        }
+
+        if !seen_hill_ids.insert(format!("{}:{}", cat.id, h.id)) {
+            return Err(AssetError::Custom(format!(
+                "Duplicate hill id '{}' in catalog '{}'",
+                h.id, cat.id
+            )));
+        }
+
+        all_hills.push(HillInfo {
+            name: h.name.clone(),
+            kr: h.kr,
+            front_index: h.front_index.clone(),
+            back_index: h.back_index.clone(),
+            back_brightness: h.back_brightness,
+            back_mirror: i64::from(h.back_mirror),
+            vx_final: h.vx_final,
+            pk_hundred: h.pk_hundred,
+            pl_save_ten_thousand: h.pl_save_ten_thousand,
+            author: h.author.clone(),
+            checksum: h.checksum,
+            profile_checksum: h.profile_checksum,
+            terrain_id: h
+                .terrain_index
+                .clone()
+                .map(TerrainIndexToml::into_terrain_id)
+                .unwrap_or_else(|| idx.to_string()),
+        });
+    }
+    Ok(())
 }
 
 #[cfg(test)]

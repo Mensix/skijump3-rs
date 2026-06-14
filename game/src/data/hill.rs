@@ -12,6 +12,7 @@ pub struct HillInfo {
     pub author: String,
     pub checksum: i64,
     pub profile_checksum: i64,
+    pub terrain_id: String,
 }
 
 impl HillInfo {
