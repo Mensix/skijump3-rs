@@ -55,7 +55,7 @@ impl EditHillView {
         let value = self.values[field - 1].clone();
         let (max_width, max_chars) = match field {
             1 | 10 => (150, 130),
-            3 | 4 => (20, 3),
+            3 | 4 => (30, 3),
             2 | 5 | 6 | 7 | 8 | 9 => (30, 10),
             11 => (62, 8),
             _ => (150, 130),
