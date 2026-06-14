@@ -3,8 +3,8 @@ use crate::route::RouteTarget;
 use crate::save::SaveRef;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::views::{
-    CompetitionJumpView, CustomCupSetupView, HallOfFameView, HillMakerView, HillRecordsView,
-    JumpMenuView, KothHillPickerView, KothSetupView, MainMenuView, ProfilesView,
+    CompetitionJumpView, CustomCupSetupView, EditHillView, HallOfFameView, HillMakerView,
+    HillRecordsView, JumpMenuView, KothHillPickerView, KothSetupView, MainMenuView, ProfilesView,
     ReplayBrowserView, ReplayView, SetupView, TrainingSetupView, WelcomeScreenView,
 };
 use engine::oxide::{NavAction, PaintCx, Screen, ScreenBackground, ScreenEventCx, UiEvent};
@@ -137,6 +137,10 @@ impl RouteRegistry {
     fn initial_screen(&self, start_route: &RouteTarget) -> Box<dyn AppScreen> {
         match start_route {
             RouteTarget::Welcome => self.welcome_screen(),
+            RouteTarget::EditHill => {
+                let resources = self.resources.clone();
+                Box::new(EditHillView::new(resources))
+            }
             _ => self.main_menu_screen(),
         }
     }
@@ -242,6 +246,10 @@ impl RouteRegistry {
             (RouteTarget::HillMakerSetup, {
                 let resources = self.resources.clone();
                 Box::new(move || Box::new(HillMakerView::new(resources.clone())))
+            }),
+            (RouteTarget::EditHill, {
+                let resources = self.resources.clone();
+                Box::new(move || Box::new(EditHillView::new(resources.clone())))
             }),
             (
                 RouteTarget::Quit,

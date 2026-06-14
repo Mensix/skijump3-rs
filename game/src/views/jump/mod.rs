@@ -1,4 +1,5 @@
 pub(crate) mod competition;
+pub(crate) mod edit_hill;
 pub(crate) mod hill_maker;
 pub(crate) mod input;
 pub(crate) mod koth;
@@ -9,6 +10,7 @@ pub mod training_setup;
 pub(crate) mod world_cup;
 
 pub(crate) use competition::CompetitionJumpView;
+pub use edit_hill::EditHillView;
 pub use hill_maker::HillMakerView;
 pub use koth::{KothHillPickerView, KothSetupView};
 pub use training_setup::TrainingSetupView;
