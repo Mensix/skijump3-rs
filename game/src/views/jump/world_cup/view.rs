@@ -62,10 +62,10 @@ impl WorldCupJumpView {
                     .controller
                     .store()
                     .with_active(|active| {
-                        active.individual().map_or(false, |c| {
+                        active.individual().is_some_and(|c| {
                             c.overall_standings()
                                 .first()
-                                .map_or(false, |s| s.id == participant.id)
+                                .is_some_and(|s| s.id == participant.id)
                         })
                     })
                     .unwrap_or(false);
@@ -285,12 +285,10 @@ impl WorldCupJumpView {
                                 format_four_hills_best_result(p.four_hills_points, p.rank);
                         }
                     }
-                    CupStyle::FourHills => {
-                        if p.four_hills_points >= profile.best4points {
-                            profile.best4points = p.four_hills_points;
-                            profile.best_4h_result =
-                                format_four_hills_best_result(p.four_hills_points, p.rank);
-                        }
+                    CupStyle::FourHills if p.four_hills_points >= profile.best4points => {
+                        profile.best4points = p.four_hills_points;
+                        profile.best_4h_result =
+                            format_four_hills_best_result(p.four_hills_points, p.rank);
                     }
                     _ => {}
                 }

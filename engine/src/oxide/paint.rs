@@ -1,7 +1,6 @@
 use crate::color::Rgba;
 use crate::oxide::draw::{
-    CommandBuffer, DitherPattern, DrawCommand, ImageRegionDraw, Point, Rect, SpriteDraw, TextAlign,
-    TextRun,
+    CommandBuffer, DrawCommand, ImageRegionDraw, Point, Rect, SpriteDraw, TextAlign, TextRun,
 };
 use crate::sprite::SpriteMaterial;
 use std::rc::Rc;
@@ -23,15 +22,14 @@ impl<'a> PaintCx<'a> {
         self.commands.push(DrawCommand::Stroke(rect.into(), color));
     }
 
-    pub fn dither_overlay(
-        &mut self,
-        pattern: DitherPattern,
-        colors: impl IntoIterator<Item = Rgba>,
-    ) {
-        self.commands.push(DrawCommand::DitherOverlay {
-            pattern,
-            colors: colors.into_iter().collect(),
-        });
+    pub fn pattern_fill(&mut self, rect: impl Into<Rect>, color: Rgba) {
+        self.commands
+            .push(DrawCommand::PatternFill(rect.into(), color));
+    }
+
+    pub fn pattern_stroke(&mut self, rect: impl Into<Rect>, color: Rgba) {
+        self.commands
+            .push(DrawCommand::PatternStroke(rect.into(), color));
     }
 
     pub fn text(&mut self, position: impl Into<Point>, color: Rgba, text: impl Into<String>) {

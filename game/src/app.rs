@@ -25,6 +25,7 @@ pub struct Game {
     sprites: Vec<SpriteData>,
     baked_sprites: BakedSpriteTextures,
     main_background: TextureId,
+    pattern_texture: TextureId,
     frame_renderer: FrameRenderer,
 }
 
@@ -42,6 +43,7 @@ impl Game {
             main_background,
             sprites,
             baked_sprites,
+            pattern_texture,
         } = assets::load(&files, &mut renderer)?;
         let state = GameState::load(Rc::clone(&files), font.clone(), content_store)?;
         let start_route = if state.starts_with_welcome() {
@@ -65,6 +67,7 @@ impl Game {
             sprites,
             baked_sprites,
             main_background,
+            pattern_texture,
             frame_renderer: FrameRenderer::new(),
         })
     }
@@ -99,9 +102,9 @@ impl Game {
             &mut self.renderer,
             FrameAssets {
                 font: &self.font,
-                sprites: &self.sprites,
                 baked_sprites: &self.baked_sprites,
                 main_background: self.main_background,
+                pattern_texture: self.pattern_texture,
             },
             &self.router,
         )

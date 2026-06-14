@@ -135,8 +135,6 @@ pub const FILL_LINE: Rgba = THEME.fill.line;
 pub const FILL_DIM: Rgba = THEME.fill.dim;
 pub const BLACK: Rgba = THEME.black;
 
-pub const DITHER_OVERLAY_COLORS: [Rgba; 5] = [BG_LEFT, BG_RIGHT, FILL_DIM, BG_KOTH, BG_TEAMCUP];
-
 #[cfg(test)]
 mod tests {
     use super::*;

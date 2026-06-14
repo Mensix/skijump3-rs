@@ -2,96 +2,14 @@ use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 
 use crate::color::Rgba;
-use crate::consts::PATTERN_SPRITE;
-use crate::oxide::draw::DitherPattern;
+use crate::consts::{TILE_H, TILE_W};
 use crate::oxide::draw::{DrawCommand, SpriteDraw, TextAlign};
 use crate::oxide::Font;
-use crate::sprite::{BakedSpriteTexture, BakedSpriteTextures, SpriteData};
+use crate::sprite::{BakedSpriteTexture, BakedSpriteTextures};
 use crate::video::{Renderer, TextureId};
 
 const TEXT_SHADOW: Rgba = Rgba::rgb(0, 0, 0);
 const MAX_CACHE_SIZE: usize = 256;
-
-struct DitherOverlayRect {
-    x: i32,
-    y: i32,
-    w: i32,
-    h: i32,
-    color: Rgba,
-    is_box: bool,
-}
-
-impl DitherOverlayRect {
-    const fn new(x: i32, y: i32, w: i32, h: i32, color: Rgba, is_box: bool) -> Self {
-        Self {
-            x,
-            y,
-            w,
-            h,
-            color,
-            is_box,
-        }
-    }
-}
-
-struct DitherOverlayCollector {
-    pending: Vec<DitherOverlayRect>,
-}
-
-impl DitherOverlayCollector {
-    fn new(mut pending: Vec<DitherOverlayRect>) -> Self {
-        pending.clear();
-        Self { pending }
-    }
-
-    fn track_fillbox(&mut self, x: i32, y: i32, w: i32, h: i32, color: Rgba) {
-        self.track_rect(x, y, w, h, color, false);
-    }
-
-    fn track_box(&mut self, x: i32, y: i32, w: i32, h: i32, color: Rgba) {
-        self.track_rect(x, y, w, h, color, true);
-    }
-
-    fn track_rect(&mut self, x: i32, y: i32, w: i32, h: i32, color: Rgba, is_box: bool) {
-        self.pending
-            .push(DitherOverlayRect::new(x, y, w, h, color, is_box));
-    }
-
-    fn apply_overlay(
-        &mut self,
-        renderer: &mut Renderer,
-        sprites: &[SpriteData],
-        pattern: DitherPattern,
-        colors: &[Rgba],
-    ) -> Result<(), String> {
-        if let Some(pattern_sprite) = sprites.get(PATTERN_SPRITE) {
-            for rect in &self.pending {
-                if !colors.contains(&rect.color) {
-                    continue;
-                }
-                renderer.dither_overlay_rect(
-                    rect.x,
-                    rect.y,
-                    rect.w,
-                    rect.h,
-                    rect.color,
-                    rect.is_box,
-                    pattern,
-                    &pattern_sprite.pixels,
-                )?;
-            }
-        }
-        if !self.pending.is_empty() {
-            renderer.flush_dither_overlay()?;
-            self.pending.clear();
-        }
-        Ok(())
-    }
-
-    fn into_pending(self) -> Vec<DitherOverlayRect> {
-        self.pending
-    }
-}
 
 fn draw_baked_sprite_texture(
     renderer: &mut Renderer,
@@ -222,15 +140,14 @@ fn draw_text_texture(renderer: &mut Renderer, entry: &TextCacheEntry) -> Result<
 }
 
 pub struct DrawCommandRenderer {
-    pending_dither_rects: Vec<DitherOverlayRect>,
     text_cache: TextCache,
     frame_counter: u64,
 }
 
 pub(crate) struct DrawRenderAssets<'a> {
     pub(crate) font: &'a Font,
-    pub(crate) sprites: &'a [SpriteData],
     pub(crate) baked_sprites: &'a BakedSpriteTextures,
+    pub(crate) pattern_texture: TextureId,
 }
 
 impl Default for DrawCommandRenderer {
@@ -243,7 +160,6 @@ impl DrawCommandRenderer {
     #[must_use]
     pub fn new() -> Self {
         Self {
-            pending_dither_rects: Vec::new(),
             text_cache: TextCache::default(),
             frame_counter: 0,
         }
@@ -264,14 +180,10 @@ impl DrawCommandRenderer {
         let frame = self.frame_counter;
         self.frame_counter = self.frame_counter.wrapping_add(1);
 
-        let pending_dither_rects = std::mem::take(&mut self.pending_dither_rects);
-        let mut dither = DitherOverlayCollector::new(pending_dither_rects);
-
         for command in commands {
-            self.render_command(renderer, &assets, command, &mut dither, frame)?;
+            self.render_command(renderer, &assets, command, frame)?;
         }
 
-        self.pending_dither_rects = dither.into_pending();
         renderer.end_frame();
         Ok(())
     }
@@ -281,20 +193,34 @@ impl DrawCommandRenderer {
         renderer: &mut Renderer,
         assets: &DrawRenderAssets<'_>,
         command: &DrawCommand,
-        dither: &mut DitherOverlayCollector,
         frame: u64,
     ) -> Result<(), String> {
         match command {
             DrawCommand::Fill(rect, color) => {
                 renderer.draw_fill_rect(rect.x, rect.y, rect.w, rect.h, *color)?;
-                dither.track_fillbox(rect.x, rect.y, rect.w, rect.h, *color);
             }
             DrawCommand::Stroke(rect, color) => {
                 renderer.draw_box(rect.x, rect.y, rect.w, rect.h, *color)?;
-                dither.track_box(rect.x, rect.y, rect.w, rect.h, *color);
             }
-            DrawCommand::DitherOverlay { pattern, colors } => {
-                dither.apply_overlay(renderer, assets.sprites, *pattern, colors)?;
+            DrawCommand::PatternFill(rect, color) => {
+                renderer.draw_fill_rect(rect.x, rect.y, rect.w, rect.h, *color)?;
+                renderer.draw_tiled_pattern(
+                    sdl2::rect::Rect::new(rect.x, rect.y, rect.w as u32, rect.h as u32),
+                    *color,
+                    assets.pattern_texture,
+                    TILE_W,
+                    TILE_H,
+                )?;
+            }
+            DrawCommand::PatternStroke(rect, color) => {
+                renderer.draw_box(rect.x, rect.y, rect.w, rect.h, *color)?;
+                renderer.draw_tiled_pattern(
+                    sdl2::rect::Rect::new(rect.x, rect.y, rect.w as u32, rect.h as u32),
+                    *color,
+                    assets.pattern_texture,
+                    TILE_W,
+                    TILE_H,
+                )?;
             }
             DrawCommand::Text(run) => {
                 self.text_cache.draw(

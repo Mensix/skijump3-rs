@@ -3,7 +3,7 @@ use crate::gfx::theme::FONT_HELP;
 use engine::oxide::{
     Background, CommandBuffer, Font, OxideRenderer, PaintCx, RenderAssets, ScreenBackground,
 };
-use engine::sprite::{BakedSpriteTextures, SpriteData};
+use engine::sprite::BakedSpriteTextures;
 use engine::video::{Renderer, TextureId};
 use std::time::Instant;
 
@@ -42,8 +42,8 @@ impl FrameRenderer {
             renderer,
             RenderAssets {
                 font: assets.font,
-                sprites: assets.sprites,
                 baked_sprites: assets.baked_sprites,
+                pattern_texture: assets.pattern_texture,
             },
             &commands,
             background,
@@ -62,9 +62,9 @@ impl FrameRenderer {
 
 pub(super) struct FrameAssets<'a> {
     pub(super) font: &'a Font,
-    pub(super) sprites: &'a [SpriteData],
     pub(super) baked_sprites: &'a BakedSpriteTextures,
     pub(super) main_background: TextureId,
+    pub(super) pattern_texture: TextureId,
 }
 
 struct FpsCounter {

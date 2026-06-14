@@ -2,10 +2,10 @@ use super::{truncate_name, OTHER_DISTANCE, OTHER_NAME, OTHER_RANK};
 use crate::competition::machine::Competition;
 use crate::competition::types::{Participant, QualificationStatus};
 use crate::gfx::sprites;
-use crate::gfx::theme::{BG_LEFT, BLACK, DITHER_OVERLAY_COLORS, FILL_DIM, FONT_DEFAULT};
+use crate::gfx::theme::{BG_LEFT, BLACK, FILL_DIM, FONT_DEFAULT};
 use crate::store::ResourcesRef;
 use crate::text::format::format_decimal;
-use engine::oxide::{DitherPattern, PaintCx};
+use engine::oxide::PaintCx;
 
 const KO_LEFT_POINTS: i32 = 40;
 const KO_LEFT_NAME: i32 = 145;
@@ -22,9 +22,8 @@ pub fn render_ko_pairs(
     show_cursor: bool,
 ) {
     cx.fill((0, 0, 320, 200), BLACK);
-    cx.fill((0, 0, 320, 19), FILL_DIM);
-    cx.fill((0, 20, 320, 180), BG_LEFT);
-    cx.dither_overlay(DitherPattern::Normal, DITHER_OVERLAY_COLORS);
+    cx.pattern_fill((0, 0, 320, 19), FILL_DIM);
+    cx.pattern_fill((0, 20, 320, 180), BG_LEFT);
     cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
 
     cx.text((30, 6), FONT_DEFAULT, resources.langbase.lstr(94));

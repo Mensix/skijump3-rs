@@ -6,20 +6,14 @@ use std::time::{Duration, Instant};
 
 use crate::color::Rgba;
 use crate::consts::{HEIGHT, TARGET_FPS, WIDTH};
-use crate::oxide::draw::DitherPattern;
-
-mod dither;
-use dither::dither_rect_rgba;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct TextureId(u32);
 
 pub struct Renderer {
     canvas: sdl2::render::WindowCanvas,
-    overlay_rgba: Vec<u8>,
     scratch_rgba: Vec<u8>,
     last_tick: Instant,
-    frame_texture: Texture,
     scratch_texture: Texture,
     textures: HashMap<TextureId, Texture>,
     next_texture_id: u32,
@@ -47,16 +41,6 @@ impl Renderer {
             .map_err(|e| e.to_string())?;
 
         let tc = canvas.texture_creator();
-        let mut frame_texture = tc
-            .create_texture(
-                PixelFormatEnum::ABGR8888,
-                sdl2::render::TextureAccess::Streaming,
-                WIDTH,
-                HEIGHT,
-            )
-            .map_err(|e| e.to_string())?;
-        frame_texture.set_blend_mode(BlendMode::Blend);
-
         let mut scratch_texture = tc
             .create_texture(
                 PixelFormatEnum::ABGR8888,
@@ -69,10 +53,8 @@ impl Renderer {
 
         Ok(Self {
             canvas,
-            overlay_rgba: vec![0u8; (WIDTH * HEIGHT * 4) as usize],
             scratch_rgba: Vec::new(),
             last_tick: Instant::now(),
-            frame_texture,
             scratch_texture,
             textures: HashMap::new(),
             next_texture_id: 1,
@@ -146,15 +128,89 @@ impl Renderer {
         self.canvas.present();
     }
 
-    /// Upload the current `overlay_rgba` as a transparent overlay via
-    /// `frame_texture` and copy it to the canvas.  Clears `overlay_rgba`
-    /// afterwards so the next frame starts fresh.
-    pub fn flush_dither_overlay(&mut self) -> Result<(), String> {
-        self.frame_texture
-            .update(None, &self.overlay_rgba, (WIDTH * 4) as usize)
-            .map_err(|e: sdl2::render::UpdateTextureError| e.to_string())?;
-        self.canvas.copy(&self.frame_texture, None, None)?;
-        self.overlay_rgba.fill(0);
+    // Pattern-tile support ------------------------------------------------
+
+    /// Create a 19×13 white-on-transparent pattern texture from indexed
+    /// sprite pixel data.  Non-zero bytes become white (255,255,255,255);
+    /// zero bytes become transparent (0,0,0,0).  Use `draw_tiled_pattern`
+    /// to tile this over a rectangle with a given colour.
+    pub fn create_pattern_texture(
+        &mut self,
+        pattern_pixels: &[u8],
+        tile_w: u32,
+        tile_h: u32,
+    ) -> Result<TextureId, String> {
+        let mut rgba = Vec::with_capacity((tile_w * tile_h * 4) as usize);
+        for &pixel in pattern_pixels {
+            if pixel != 0 {
+                rgba.extend_from_slice(&[255, 255, 255, 255]);
+            } else {
+                rgba.extend_from_slice(&[0, 0, 0, 0]);
+            }
+        }
+        self.create_rgba_texture(&rgba, tile_w, tile_h)
+    }
+
+    /// Tile a white-on-transparent pattern texture over `rect`, tinted by
+    /// `color` brightened by 130 %.  The fill must already be drawn
+    /// underneath – this only adds the pattern overlay.  Tiling is
+    /// screen-aligned (same as the old dither behaviour).
+    pub fn draw_tiled_pattern(
+        &mut self,
+        rect: sdl2::rect::Rect,
+        color: Rgba,
+        pattern_id: TextureId,
+        tile_w: u32,
+        tile_h: u32,
+    ) -> Result<(), String> {
+        let brighten = |c: u8| (u32::from(c) * 130 / 100).min(255) as u8;
+        let tint = Color::RGBA(brighten(color.r), brighten(color.g), brighten(color.b), 255);
+
+        // Save old colour tint and set new one
+        let (old_r, old_g, old_b) = {
+            let Some(t) = self.textures.get_mut(&pattern_id) else {
+                return Err("Pattern texture not found".into());
+            };
+            let old = t.color_mod();
+            t.set_color_mod(tint.r, tint.g, tint.b);
+            old
+        };
+
+        // Tile the pattern (immutable borrow for copy)
+        let Some(texture) = self.textures.get(&pattern_id) else {
+            return Err("Pattern texture not found".into());
+        };
+        let tw = tile_w as i32;
+        let th = tile_h as i32;
+        let end_x = (rect.x() + rect.width() as i32).min(WIDTH as i32);
+        let end_y = (rect.y() + rect.height() as i32).min(HEIGHT as i32);
+
+        let mut ty = rect.y();
+        while ty < end_y {
+            let src_y = ty % th;
+            let vis_h = (th - src_y).min(end_y - ty) as u32;
+
+            let mut tx = rect.x();
+            while tx < end_x {
+                let src_x = tx % tw;
+                let vis_w = (tw - src_x).min(end_x - tx) as u32;
+
+                self.canvas.copy(
+                    texture,
+                    sdl2::rect::Rect::new(src_x.max(0), src_y.max(0), vis_w, vis_h),
+                    sdl2::rect::Rect::new(tx.max(0), ty.max(0), vis_w, vis_h),
+                )?;
+
+                tx += vis_w as i32;
+            }
+            ty += vis_h as i32;
+        }
+
+        // Restore colour tint
+        if let Some(t) = self.textures.get_mut(&pattern_id) {
+            t.set_color_mod(old_r, old_g, old_b);
+        }
+
         Ok(())
     }
 
@@ -233,48 +289,6 @@ impl Renderer {
         self.draw_fill_rect(x, y + h - 1, w, 1, color)?;
         self.draw_fill_rect(x, y, 1, h, color)?;
         self.draw_fill_rect(x + w - 1, y, 1, h, color)?;
-        Ok(())
-    }
-
-    /// Brighten an RGBA colour for dither overlay (replaces old
-    /// palette-index-offset brightening).
-    fn brighten_overlay(color: Rgba) -> Rgba {
-        let scale = |c: u8| (u32::from(c) * 130 / 100).min(255) as u8;
-        Rgba::rgb(scale(color.r), scale(color.g), scale(color.b))
-    }
-
-    /// Write bright RGBA pixels into `overlay_rgba` for a single rect,
-    /// at positions where the dither pattern sprite has a non-zero pixel.
-    pub fn dither_overlay_rect(
-        &mut self,
-        x: i32,
-        y: i32,
-        w: i32,
-        h: i32,
-        color: Rgba,
-        is_box: bool,
-        dither_pattern: DitherPattern,
-        pattern_pixels: &[u8],
-    ) -> Result<(), String> {
-        let bright = Self::brighten_overlay(color);
-        let r = bright.r;
-        let g = bright.g;
-        let b = bright.b;
-        dither_rect_rgba(
-            &mut self.overlay_rgba,
-            WIDTH as usize,
-            HEIGHT as usize,
-            x,
-            y,
-            w,
-            h,
-            r,
-            g,
-            b,
-            is_box,
-            dither_pattern,
-            pattern_pixels,
-        );
         Ok(())
     }
 }

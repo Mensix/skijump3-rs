@@ -2,14 +2,13 @@ use crate::components::layout::MainLayout;
 use crate::components::page_nav::cycle_index;
 use crate::files::FileStore;
 use crate::gfx::theme::{
-    BG_ERASE, BG_LEFT, DITHER_OVERLAY_COLORS, FILL_BORDER, FONT_DEFAULT, FONT_GOLD, FONT_HEADER,
-    FONT_HELP,
+    BG_ERASE, BG_LEFT, FILL_BORDER, FONT_DEFAULT, FONT_GOLD, FONT_HEADER, FONT_HELP,
 };
 use crate::jump::replay::ReplayTrace;
 use crate::route::RouteTarget;
 use crate::store::{Resources, ResourcesRef, StoreRef};
 use engine::oxide::input::Key;
-use engine::oxide::{DitherPattern, PaintCx, Screen, ScreenBackground, ScreenEventCx, UiEvent};
+use engine::oxide::{PaintCx, Screen, ScreenBackground, ScreenEventCx, UiEvent};
 use std::path::Path;
 
 #[derive(Debug, Clone)]
@@ -103,9 +102,8 @@ fn paint_replay_panel(
     let langbase = &resources.langbase;
 
     // Pascal clearscreen: right panel background with dither + labels
-    cx.fill((145, 50, 174, 149), BG_LEFT);
-    cx.fill((128, 70, 17, 129), BG_LEFT);
-    cx.dither_overlay(DitherPattern::Shifted, DITHER_OVERLAY_COLORS);
+    cx.pattern_fill((145, 50, 174, 149), BG_LEFT);
+    cx.pattern_fill((128, 70, 17, 129), BG_LEFT);
     cx.text((170, 51), FONT_HELP, format!("{}:", langbase.lstr(25)));
     cx.text((150, 185), FONT_HELP, langbase.lstr(146));
 

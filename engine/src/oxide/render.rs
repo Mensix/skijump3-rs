@@ -1,7 +1,7 @@
 use crate::oxide::draw::CommandBuffer;
 use crate::oxide::draw_renderer::{DrawCommandRenderer, DrawRenderAssets};
 use crate::oxide::Font;
-use crate::sprite::{BakedSpriteTextures, SpriteData};
+use crate::sprite::BakedSpriteTextures;
 use crate::video::{Renderer, TextureId};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -16,8 +16,8 @@ pub struct OxideRenderer {
 
 pub struct RenderAssets<'a> {
     pub font: &'a Font,
-    pub sprites: &'a [SpriteData],
     pub baked_sprites: &'a BakedSpriteTextures,
+    pub pattern_texture: TextureId,
 }
 
 impl Default for OxideRenderer {
@@ -49,8 +49,8 @@ impl OxideRenderer {
             renderer,
             DrawRenderAssets {
                 font: assets.font,
-                sprites: assets.sprites,
                 baked_sprites: assets.baked_sprites,
+                pattern_texture: assets.pattern_texture,
             },
             commands.commands(),
             texture,

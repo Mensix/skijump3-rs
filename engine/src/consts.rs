@@ -5,9 +5,6 @@ pub const TARGET_FPS: u32 = 60;
 
 pub const FONT_GLYPH_COUNT: usize = 67;
 pub const SHADOW_PIXEL: u8 = 242;
-
-// FillArea dither pattern constants
-pub const FILL_RANGE_MAX: u8 = 245;
 pub const FILL_BRIGHTEN: u8 = 5;
 pub const PATTERN_SPRITE: usize = 62;
 pub const TILE_W: u32 = 19;

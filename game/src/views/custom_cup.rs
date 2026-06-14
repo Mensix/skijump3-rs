@@ -1,14 +1,13 @@
 use crate::competition::factory;
 use crate::gfx::sprites;
 use crate::gfx::theme::{
-    BG_LEFT, BLACK, DITHER_OVERLAY_COLORS, FILL_BORDER, FILL_DIM, FONT_DEFAULT, FONT_GREET,
-    FONT_HEADER, FONT_HELP,
+    BG_LEFT, BLACK, FILL_BORDER, FILL_DIM, FONT_DEFAULT, FONT_GREET, FONT_HEADER, FONT_HELP,
 };
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::format;
 use engine::oxide::input::Key;
-use engine::oxide::{DitherPattern, PaintCx, Screen, ScreenEventCx, UiEvent};
+use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent};
 
 const MAX_HILLS: usize = 40;
 
@@ -60,10 +59,9 @@ impl CustomCupSetupView {
         let lang = &self.resources.langbase;
         let help_line = format!("{}, {}, {}", lang.lstr(285), lang.lstr(286), lang.lstr(287));
         cx.fill((0, 0, 320, 200), BLACK);
-        cx.fill((0, 0, 11, 200), FILL_DIM);
-        cx.fill((12, 0, 296, 200), BG_LEFT);
-        cx.fill((309, 0, 11, 200), FILL_DIM);
-        cx.dither_overlay(DitherPattern::Normal, DITHER_OVERLAY_COLORS);
+        cx.pattern_fill((0, 0, 11, 200), FILL_DIM);
+        cx.pattern_fill((12, 0, 296, 200), BG_LEFT);
+        cx.pattern_fill((309, 0, 11, 200), FILL_DIM);
         cx.sprite(sprites::Sprite::Logo as u16, (30, 8));
         cx.text((68, 8), FONT_DEFAULT, lang.lstr(118));
         cx.text((78, 16), FONT_HELP, lang.lstr(119));

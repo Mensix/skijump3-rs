@@ -1,5 +1,4 @@
 use crate::color::Rgba;
-use crate::oxide::draw::DitherPattern;
 use crate::oxide::input::{Key, UiEvent};
 use crate::oxide::paint::PaintCx;
 use crate::oxide::widget::{EventCx, Widget};
@@ -23,7 +22,6 @@ pub struct ConfirmDialog {
     subtitle: Option<String>,
     yes: String,
     no: String,
-    dither: bool,
 }
 
 impl ConfirmDialog {
@@ -51,7 +49,6 @@ impl ConfirmDialog {
             subtitle: None,
             yes: yes.into(),
             no: no.into(),
-            dither: true,
         }
     }
 
@@ -59,10 +56,6 @@ impl ConfirmDialog {
     pub fn with_subtitle(mut self, subtitle: impl Into<String>) -> Self {
         self.subtitle = Some(subtitle.into());
         self
-    }
-
-    pub fn set_dither(&mut self, dither: bool) {
-        self.dither = dither;
     }
 }
 
@@ -84,9 +77,6 @@ impl Widget for ConfirmDialog {
     fn paint(&self, cx: &mut PaintCx<'_>) {
         cx.fill((self.x, self.y, self.w, self.h), self.border);
         cx.fill((self.x + 1, self.y + 1, self.w - 2, self.h - 2), self.bg);
-        if self.dither {
-            cx.dither_overlay(DitherPattern::Normal, [self.bg]);
-        }
         cx.text((self.x + 8, self.y + 8), self.fg, &self.message);
         if let Some(sub) = &self.subtitle {
             cx.text((self.x + 8, self.y + self.h - 22), self.fg, sub);

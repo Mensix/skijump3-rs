@@ -3,12 +3,6 @@ use crate::sprite::SpriteMaterial;
 use std::rc::Rc;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum DitherPattern {
-    Normal,
-    Shifted,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Point {
     pub x: i32,
     pub y: i32,
@@ -98,10 +92,8 @@ pub enum DrawCommand {
     },
     Fill(Rect, Rgba),
     Stroke(Rect, Rgba),
-    DitherOverlay {
-        pattern: DitherPattern,
-        colors: Vec<Rgba>,
-    },
+    PatternFill(Rect, Rgba),
+    PatternStroke(Rect, Rgba),
 }
 
 #[derive(Debug, Default, Clone)]

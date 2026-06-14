@@ -3,6 +3,7 @@ use crate::files::FileStore;
 use crate::gfx::materials;
 use crate::gfx::palette::Rgb6Palette;
 use crate::gfx::png::load_png;
+use engine::consts::{PATTERN_SPRITE, TILE_H, TILE_W};
 use engine::oxide::Font;
 use engine::sprite::{BakedSpriteTextures, SpriteData};
 use engine::video::{Renderer, TextureId};
@@ -16,6 +17,7 @@ pub(super) struct LoadedAssets {
     pub(super) main_background: TextureId,
     pub(super) sprites: Vec<SpriteData>,
     pub(super) baked_sprites: BakedSpriteTextures,
+    pub(super) pattern_texture: TextureId,
 }
 
 pub(super) fn load(files: &FileStore, renderer: &mut Renderer) -> Result<LoadedAssets, String> {
@@ -34,12 +36,19 @@ pub(super) fn load(files: &FileStore, renderer: &mut Renderer) -> Result<LoadedA
         &materials::prebaked_sprite_materials(),
     )?;
 
+    let pattern_sprite = sprites
+        .get(PATTERN_SPRITE)
+        .ok_or_else(|| "Pattern sprite 62 not found".to_string())?;
+    let pattern_texture =
+        renderer.create_pattern_texture(&pattern_sprite.pixels, TILE_W, TILE_H)?;
+
     Ok(LoadedAssets {
         content_store,
         font,
         main_background,
         sprites,
         baked_sprites,
+        pattern_texture,
     })
 }
 

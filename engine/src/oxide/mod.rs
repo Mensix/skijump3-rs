@@ -14,8 +14,7 @@ pub mod widgets;
 pub use app::{Screen, ScreenBackground, ScreenEventCx};
 pub use blinker::Blinker;
 pub use draw::{
-    CommandBuffer, DitherPattern, DrawCommand, ImageRegionDraw, Point, Rect, SpriteDraw, TextAlign,
-    TextRun,
+    CommandBuffer, DrawCommand, ImageRegionDraw, Point, Rect, SpriteDraw, TextAlign, TextRun,
 };
 pub use input::{Key, UiEvent};
 pub use paint::PaintCx;

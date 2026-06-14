@@ -1,14 +1,13 @@
 use crate::competition::koth::types::KothRuntime;
 use crate::gfx::sprites;
 use crate::gfx::theme::{
-    BG_KOTH, BLACK, DITHER_OVERLAY_COLORS, FILL_DIM, FILL_HIGHLIGHT, FONT_DEFAULT, FONT_GOLD,
-    FONT_HEADER, FONT_HELP,
+    BG_KOTH, BLACK, FILL_DIM, FILL_HIGHLIGHT, FONT_DEFAULT, FONT_GOLD, FONT_HEADER, FONT_HELP,
 };
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::format::format_decimal;
 use crate::text::lang::LangBase;
 use engine::color::Rgba;
-use engine::oxide::{DitherPattern, PaintCx};
+use engine::oxide::PaintCx;
 
 // Pascal column positions (columnX[1]): rank, name, points, distance, qual, extra
 const COL_RANK: i32 = 24;
@@ -142,14 +141,13 @@ pub fn render(cx: &mut PaintCx<'_>, resources: &ResourcesRef, store: &StoreRef) 
 
         let kp = KothPage {
             items: entries,
-            title: title.to_string(),
+            title: title,
         };
 
         // new_screen_with_bg(1, KOTH_BG) — like Hall of Fame
         cx.fill((0, 0, 320, 200), BLACK);
-        cx.fill((0, 0, 320, 19), FILL_DIM);
-        cx.fill((0, 20, 320, 180), KOTH_BG);
-        cx.dither_overlay(DitherPattern::Normal, DITHER_OVERLAY_COLORS);
+        cx.pattern_fill((0, 0, 320, 19), FILL_DIM);
+        cx.pattern_fill((0, 20, 320, 180), KOTH_BG);
         cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
 
         // Pascal-style: just "Done" hint (no prev/next pagination for KOTH)

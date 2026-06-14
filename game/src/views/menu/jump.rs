@@ -2,14 +2,12 @@ use std::cell::Cell;
 
 use crate::competition::factory;
 use crate::components::layout::MainLayout;
-use crate::gfx::theme::{
-    BG_ERASE, BG_LIST, BG_RIGHT, BLACK, DITHER_OVERLAY_COLORS, FONT_DEFAULT, FONT_GOLD, FONT_HEADER,
-};
+use crate::gfx::theme::{BG_ERASE, BG_LIST, BG_RIGHT, BLACK, FONT_DEFAULT, FONT_GOLD, FONT_HEADER};
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use engine::oxide::widgets::menu::PixelMenu;
 use engine::oxide::Widget;
-use engine::oxide::{DitherPattern, PaintCx, Screen, ScreenBackground, ScreenEventCx, UiEvent};
+use engine::oxide::{PaintCx, Screen, ScreenBackground, ScreenEventCx, UiEvent};
 
 pub struct JumpMenuView {
     menu: PixelMenu,
@@ -178,8 +176,7 @@ impl JumpMenuView {
     fn paint_team_warning(cx: &mut PaintCx<'_>, layout: &MainLayout) {
         let lang = &layout.langbase;
         cx.fill((59, 59, 203, 83), BLACK);
-        cx.fill((60, 60, 201, 81), BG_RIGHT);
-        cx.dither_overlay(DitherPattern::Normal, DITHER_OVERLAY_COLORS);
+        cx.pattern_fill((60, 60, 201, 81), BG_RIGHT);
         cx.text((80, 72), FONT_GOLD, lang.lstr(261));
         cx.text((80, 82), FONT_GOLD, lang.lstr(262));
         cx.text((80, 92), FONT_GOLD, lang.lstr(263));

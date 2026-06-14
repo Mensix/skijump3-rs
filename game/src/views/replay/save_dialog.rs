@@ -1,13 +1,11 @@
 use crate::components::page_nav::cycle_index;
 use crate::gfx::sprites;
-use crate::gfx::theme::{
-    BG_LEFT, BG_RIGHT, BLACK, DITHER_OVERLAY_COLORS, FILL_DIM, FONT_DEFAULT, FONT_GOLD,
-};
+use crate::gfx::theme::{BG_LEFT, BG_RIGHT, BLACK, FILL_DIM, FONT_DEFAULT, FONT_GOLD};
 use crate::jump::replay::ReplayTrace;
 use crate::store::ResourcesRef;
 use engine::oxide::input::{Key, UiEvent};
+use engine::oxide::PaintCx;
 use engine::oxide::{Blinker, TextEditState};
-use engine::oxide::{DitherPattern, PaintCx};
 
 #[derive(Debug, Clone, Copy)]
 enum SaveField {
@@ -172,9 +170,8 @@ impl SaveReplayDialog {
 
     pub fn paint(&self, cx: &mut PaintCx<'_>) {
         cx.fill((0, 0, 320, 200), BLACK);
-        cx.fill((0, 0, 320, 19), FILL_DIM);
-        cx.fill((0, 20, 320, 180), BG_LEFT);
-        cx.dither_overlay(DitherPattern::Normal, DITHER_OVERLAY_COLORS);
+        cx.pattern_fill((0, 0, 320, 19), FILL_DIM);
+        cx.pattern_fill((0, 20, 320, 180), BG_LEFT);
         cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
 
         let is_overlay = matches!(self.state, SaveDialogState::ConfirmOverwrite { .. });
