@@ -59,6 +59,7 @@ pub(crate) fn paint_content(view: &SetupView, cx: &mut PaintCx<'_>) {
             cx.fill((69, 79, 183, 53), FILL_BORDER);
             cx.fill((70, 80, 181, 51), BG_LEFT);
             cx.pattern_fill((70, 80, 181, 51), FILL_DIM);
+            cx.stroke((69, 79, 183, 53), FILL_BORDER);
             let label = if kind == 1 {
                 view.langbase().lstr(190)
             } else {
@@ -66,10 +67,18 @@ pub(crate) fn paint_content(view: &SetupView, cx: &mut PaintCx<'_>) {
             };
             cx.text(
                 (80, 90),
-                FONT_DEFAULT,
+                FONT_HEADER,
                 format!("{} {}", label, view.langbase().lstr(192)),
             );
-            cx.text((80, 110), FONT_DEFAULT, view.langbase().lstr(193));
+            let sure = view.langbase().lstr(193);
+            cx.text((80, 110), FONT_HEADER, sure);
+            let tw = view.resources.font.string_width(sure) as i32;
+            let xx = 88 + tw;
+            let yy = 110;
+            cx.fill((xx - 2, yy - 2, 9, 11), BG_LEFT);
+            if view.cursor_blink.visible(11, 10) {
+                cx.fill((xx, yy + 6, 5, 1), FONT_DEFAULT);
+            }
         }
         Some(SetupModal::LanguagePicker(sel)) => {
             let langs = &view.langbase().languages;
