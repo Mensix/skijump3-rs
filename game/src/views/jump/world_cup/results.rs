@@ -427,7 +427,7 @@ pub fn render_results_page(cx: &mut PaintCx<'_>, page: &ResultsPage, resources: 
     let bg = list_background(page.phase, page.style);
     cx.fill((0, 0, 320, 200), BLACK);
     cx.pattern_fill((0, 0, 320, 19), FILL_DIM);
-    cx.fill((0, 20, 320, 180), bg);
+    cx.pattern_fill((0, 20, 320, 180), bg);
     cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
 
     let prev = resources.langbase.lstr(246);
@@ -540,7 +540,7 @@ pub fn render_stats_page(
         let bg = list_background(competition.phase(), competition.style());
         cx.fill((0, 0, 320, 200), BLACK);
         cx.pattern_fill((0, 0, 320, 19), FILL_DIM);
-        cx.fill((0, 20, 320, 180), bg);
+        cx.pattern_fill((0, 20, 320, 180), bg);
 
         cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
         return;
@@ -549,7 +549,7 @@ pub fn render_stats_page(
     let bg = list_background(competition.phase(), competition.style());
     cx.fill((0, 0, 320, 200), BLACK);
     cx.pattern_fill((0, 0, 320, 19), FILL_DIM);
-    cx.fill((0, 20, 320, 180), bg);
+    cx.pattern_fill((0, 20, 320, 180), bg);
     cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
 
     cx.text((30, 6), FONT_DEFAULT, resources.langbase.lstr(89));

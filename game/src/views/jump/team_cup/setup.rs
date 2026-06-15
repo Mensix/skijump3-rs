@@ -215,8 +215,8 @@ fn ready_elements(
     cursor_visible: bool,
 ) {
     cx.fill((0, 0, 320, 200), BLACK);
-    cx.fill((0, 0, 320, 19), FILL_DIM);
-    cx.fill((0, 20, 320, 180), BG_TEAMCUP);
+    cx.pattern_fill((0, 0, 320, 19), FILL_DIM);
+    cx.pattern_fill((0, 20, 320, 180), BG_TEAMCUP);
 
     cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
     push_team_cup_header(cx, resources, store);

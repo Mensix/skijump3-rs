@@ -15,7 +15,7 @@ pub(crate) fn render(
 ) {
     cx.fill((0, 0, 320, 200), BLACK);
     cx.fill((0, 0, 320, 19), FILL_DIM);
-    cx.fill((0, 20, 320, 180), BG_TEAMCUP);
+    cx.pattern_fill((0, 20, 320, 180), BG_TEAMCUP);
     let standings_kind = match results_kind {
         TeamCupResultsKind::Standings => TeamCupStandingsKind::Overall,
         TeamCupResultsKind::LegResults => TeamCupStandingsKind::Leg,
