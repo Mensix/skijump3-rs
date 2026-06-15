@@ -148,8 +148,8 @@ fn handle_name_set_input(view: &mut SetupView, event: UiEvent) -> Option<RouteTa
             if idx < ns_len {
                 view.save_manager()
                     .update_config(|cfg| cfg.namenumber = idx as i32);
+                view.modal.set(None);
             }
-            view.modal.set(None);
         }
         UiEvent::KeyDown(Key::Escape) => view.modal.set(None),
         _ => {}
