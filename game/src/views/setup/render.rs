@@ -48,9 +48,10 @@ pub(crate) fn paint_content(view: &SetupView, cx: &mut PaintCx<'_>) {
             cx.text((85, 85), FONT_DEFAULT, view.langbase().lstr(220));
             cx.text((85, 95), FONT_HELP, view.langbase().lstr(150));
             let opts = super::actions::seecomp_options(view);
-            let display = opts.get(idx).map(|(_, label)| label.as_str()).unwrap_or("?");
+            let (val, display) = opts.get(idx).map(|(v, l)| (*v, l.as_str())).unwrap_or((0, "?"));
             cx.fill((85, 105, 235 - 85 + 1, 125 - 105 + 1), FILL_DIM);
-            cx.text((95, 112), FONT_HEADER, display);
+            let color = if val >= 235 { FONT_DEFAULT } else { FONT_HEADER };
+            cx.text((95, 112), color, display);
         }
         Some(SetupModal::ConfirmReset(kind)) => {
             cx.fill((69, 79, 182, 52), FILL_BORDER);
