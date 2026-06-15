@@ -1,4 +1,4 @@
-use crate::gfx::theme::FONT_DEFAULT;
+use crate::gfx::theme::FONT_BODY;
 use crate::route::RouteTarget;
 use crate::save::config::Config;
 use crate::save::SaveManager;
@@ -43,7 +43,7 @@ impl SetupView {
             _ => 0,
         };
         let items = (0..entries).map(|_| OxideMenuItem::new(0, "")).collect();
-        let mut m = PixelMenu::new(35, 40, 221, 10, items, FONT_DEFAULT, FONT_DEFAULT)
+        let mut m = PixelMenu::new(35, 40, 221, 10, items, FONT_BODY, FONT_BODY)
             .with_labels(false)
             .with_box(false)
             .trailing("", 0);

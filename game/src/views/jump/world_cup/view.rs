@@ -3,7 +3,7 @@ use crate::competition::machine::Competition;
 use crate::competition::runtime::{IndividualJumpContext, IndividualResultsKind};
 use crate::competition::scoring::wc_points_for_rank;
 use crate::competition::types::{CompetitionPhase, CupStyle};
-use crate::gfx::theme::{BLACK, FONT_DEFAULT, FONT_GREET, FONT_HELP};
+use crate::gfx::theme::{BLACK, FONT_BODY, FONT_TEAL, FONT_GRAY};
 use crate::jump::types::JumpPhase;
 use crate::jump::JumpParticipant;
 use crate::jump::JumpPolicy;
@@ -152,7 +152,7 @@ impl WorldCupJumpView {
             })
             .flatten()
         {
-            cx.right_text((255, 45), FONT_GREET, format!("(${rank}.)"));
+            cx.right_text((255, 45), FONT_TEAL, format!("(${rank}.)"));
         }
     }
 
@@ -167,8 +167,8 @@ impl WorldCupJumpView {
             RenderMode::Error => {
                 let msg = self.controller.ui_state().error_message();
                 cx.fill((0, 0, 320, 200), BLACK);
-                cx.text((20, 80), FONT_DEFAULT, &msg);
-                cx.text((20, 95), FONT_HELP, "Press any key to return");
+                cx.text((20, 80), FONT_BODY, &msg);
+                cx.text((20, 95), FONT_GRAY, "Press any key to return");
             }
         }
     }

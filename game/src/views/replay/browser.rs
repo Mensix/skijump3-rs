@@ -2,7 +2,7 @@ use crate::components::layout::MainLayout;
 use crate::components::page_nav::cycle_index;
 use crate::files::FileStore;
 use crate::gfx::theme::{
-    BG_ERASE, BG_LEFT, FILL_BORDER, FONT_DEFAULT, FONT_GOLD, FONT_HEADER, FONT_HELP,
+    BG_DARK, BG_PURPLE, FILL_PURPLE, FONT_BODY, FONT_GOLD, FONT_GRAY,
 };
 use crate::jump::replay::ReplayTrace;
 use crate::route::RouteTarget;
@@ -51,8 +51,8 @@ impl ReplayBrowserView {
     }
 
     fn paint_content(&self, cx: &mut PaintCx<'_>) {
-        cx.fill((11, 80, 100, 6), BG_ERASE);
-        cx.text((11, 80), FONT_HEADER, self.layout.langbase.lstr(17));
+        cx.fill((11, 80, 100, 6), BG_DARK);
+        cx.text((11, 80), FONT_GOLD, self.layout.langbase.lstr(17));
         paint_replay_menu(cx, &self.layout);
         self.layout.footer(cx);
         paint_replay_panel(cx, &self.resources, &self.entries, self.selected);
@@ -102,10 +102,10 @@ fn paint_replay_panel(
     let langbase = &resources.langbase;
 
     // Pascal clearscreen: right panel background with dither + labels
-    cx.pattern_fill((145, 50, 174, 149), BG_LEFT);
-    cx.pattern_fill((128, 70, 17, 129), BG_LEFT);
-    cx.text((170, 51), FONT_HELP, format!("{}:", langbase.lstr(25)));
-    cx.text((150, 185), FONT_HELP, langbase.lstr(146));
+    cx.pattern_fill((145, 50, 174, 149), BG_PURPLE);
+    cx.pattern_fill((128, 70, 17, 129), BG_PURPLE);
+    cx.text((170, 51), FONT_GRAY, format!("{}:", langbase.lstr(25)));
+    cx.text((150, 185), FONT_GRAY, langbase.lstr(146));
 
     if entries.is_empty() {
         cx.text((170, 80), FONT_GOLD, langbase.lstr(290));
@@ -115,15 +115,15 @@ fn paint_replay_panel(
     let entry = &entries[selected];
     cx.text(
         (272, 85),
-        FONT_HELP,
+        FONT_GRAY,
         format!("{}/{}", selected + 1, entries.len()),
     );
-    cx.text((150, 71), FONT_HELP, langbase.lstr(293));
-    cx.text((150, 106), FONT_HELP, langbase.lstr(291));
-    cx.text((150, 126), FONT_HELP, langbase.lstr(292));
-    cx.text((150, 146), FONT_HELP, langbase.lstr(294));
-    cx.fill((163, 78, 95, 21), FILL_BORDER);
-    cx.fill((164, 79, 93, 19), BG_LEFT);
+    cx.text((150, 71), FONT_GRAY, langbase.lstr(293));
+    cx.text((150, 106), FONT_GRAY, langbase.lstr(291));
+    cx.text((150, 126), FONT_GRAY, langbase.lstr(292));
+    cx.text((150, 146), FONT_GRAY, langbase.lstr(294));
+    cx.fill((163, 78, 95, 21), FILL_PURPLE);
+    cx.fill((164, 79, 93, 19), BG_PURPLE);
     cx.text((170, 85), FONT_GOLD, &entry.filename);
 
     if let Some(trace) = &entry.trace {
@@ -131,14 +131,14 @@ fn paint_replay_panel(
             || "?".to_string(),
             |hill| format!("{} K{}", hill.name, hill.kr),
         );
-        cx.text((170, 115), FONT_DEFAULT, &trace.meta.author);
-        cx.text((170, 135), FONT_DEFAULT, &trace.meta.name);
-        cx.text((170, 155), FONT_DEFAULT, hill);
-        cx.text((170, 163), FONT_HELP, &trace.meta.saved_at);
+        cx.text((170, 115), FONT_BODY, &trace.meta.author);
+        cx.text((170, 135), FONT_BODY, &trace.meta.name);
+        cx.text((170, 155), FONT_BODY, hill);
+        cx.text((170, 163), FONT_GRAY, &trace.meta.saved_at);
     } else if let Some(error) = &entry.error {
-        cx.text((170, 115), FONT_HELP, "Unknown");
-        cx.text((170, 135), FONT_HELP, "Not a valid replay.");
-        cx.text((170, 155), FONT_HELP, error);
+        cx.text((170, 115), FONT_GRAY, "Unknown");
+        cx.text((170, 135), FONT_GRAY, "Not a valid replay.");
+        cx.text((170, 155), FONT_GRAY, error);
     }
 }
 
@@ -148,7 +148,7 @@ fn paint_replay_menu(cx: &mut PaintCx<'_>, layout: &MainLayout) {
         let y = 98 + (i as i32) * 12 + if i == 6 { 12 } else { 0 };
         cx.text(
             (11, y),
-            FONT_DEFAULT,
+            FONT_BODY,
             format!("{} - {}", num, layout.langbase.lstr(*label)),
         );
     }

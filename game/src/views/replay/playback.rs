@@ -4,7 +4,7 @@ use crate::error::AssetError;
 use crate::gfx::materials;
 use crate::gfx::sprites;
 use crate::gfx::theme::{
-    BG_LEFT, BLACK, FILL_BORDER, FONT_DEFAULT, FONT_GOLD, FONT_GREET, FONT_HELP,
+    BG_PURPLE, BLACK, FILL_PURPLE, FONT_BODY, FONT_GOLD, FONT_TEAL, FONT_GRAY,
 };
 use crate::jump::hud;
 use crate::jump::math;
@@ -114,15 +114,15 @@ impl ReplayView {
     fn paint_content(&self, cx: &mut PaintCx<'_>) {
         let Ok(terrain) = &self.terrain else {
             cx.fill((0, 0, 320, 200), BLACK);
-            cx.text((20, 80), FONT_DEFAULT, "Replay hill not found");
-            cx.text((20, 95), FONT_HELP, "PRESS ESC");
+            cx.text((20, 80), FONT_BODY, "Replay hill not found");
+            cx.text((20, 95), FONT_GRAY, "PRESS ESC");
             return;
         };
         let mut session_ref = self.session.borrow_mut();
         let Some(session) = session_ref.as_mut() else {
             cx.fill((0, 0, 320, 200), BLACK);
-            cx.text((20, 80), FONT_DEFAULT, "No replay selected");
-            cx.text((20, 95), FONT_HELP, "PRESS ESC");
+            cx.text((20, 80), FONT_BODY, "No replay selected");
+            cx.text((20, 95), FONT_GRAY, "PRESS ESC");
             return;
         };
         let Some(frame) = session.render_frame() else {
@@ -182,8 +182,8 @@ impl ReplayView {
                     || "?".to_string(),
                     |hill| format!("{} K{}", hill.name, hill.kr),
                 );
-            cx.right_text((308, 9), FONT_DEFAULT, hill_text);
-            cx.right_text((308, 19), FONT_DEFAULT, &session.trace().meta.author);
+            cx.right_text((308, 9), FONT_BODY, hill_text);
+            cx.right_text((308, 19), FONT_BODY, &session.trace().meta.author);
             cx.sprite_with_material(
                 sprites::Sprite::ReplayModeIcon as u16,
                 (150, 30),
@@ -191,7 +191,7 @@ impl ReplayView {
             );
             cx.right_text(
                 (309, 29),
-                FONT_GREET,
+                FONT_TEAL,
                 format!(
                     "{} {}",
                     self.resources.langbase.lstr(340),
@@ -204,7 +204,7 @@ impl ReplayView {
             );
             cx.right_text(
                 (309, 39),
-                FONT_GREET,
+                FONT_TEAL,
                 format!(
                     "{} {}",
                     self.resources.langbase.lstr(341),
@@ -219,7 +219,7 @@ impl ReplayView {
             );
             cx.right_text(
                 (309, 49),
-                FONT_GREET,
+                FONT_TEAL,
                 format!(
                     "{} {}",
                     self.resources.langbase.lstr(342),
@@ -230,7 +230,7 @@ impl ReplayView {
                 &self.resources.langbase,
                 session.trace().meta.start_gate_or_competition,
             ) {
-                cx.right_text((309, 59), FONT_GREET, gate_text);
+                cx.right_text((309, 59), FONT_TEAL, gate_text);
             }
         }
         presentation::wind_elements(cx, wind_pos, i32::from(replay_frame.wind));
@@ -389,8 +389,8 @@ fn replay_speed_text(speed: PlaybackSpeed, langbase: &LangBase) -> String {
 fn intro_box_elements(cx: &mut PaintCx<'_>, langbase: &LangBase, phase: u8, cursor_visible: bool) {
     let ix = 30;
     let iy = if phase <= 3 { 140 } else { 30 };
-    cx.fill((ix - 7, iy - 7, 269, 40), FILL_BORDER);
-    cx.fill((ix - 6, iy - 6, 267, 38), BG_LEFT);
+    cx.fill((ix - 7, iy - 7, 269, 40), FILL_PURPLE);
+    cx.fill((ix - 6, iy - 6, 267, 38), BG_PURPLE);
     cx.text((ix, iy), FONT_GOLD, langbase.lstr(360 + phase as usize * 2));
     cx.text(
         (ix, iy + 10),
@@ -399,11 +399,11 @@ fn intro_box_elements(cx: &mut PaintCx<'_>, langbase: &LangBase, phase: u8, curs
     );
     cx.right_text(
         (ix + 246, iy + 21),
-        FONT_DEFAULT,
+        FONT_BODY,
         langbase.lstr(15).to_string(),
     );
-    cx.fill((ix + 246 + 1 - 2 + 1, iy + 21 - 2, 9, 11), BG_LEFT);
+    cx.fill((ix + 246 + 1 - 2 + 1, iy + 21 - 2, 9, 11), BG_PURPLE);
     if cursor_visible {
-        cx.fill((ix + 246 + 1, iy + 21 + 6, 5, 1), FONT_DEFAULT);
+        cx.fill((ix + 246 + 1, iy + 21 + 6, 5, 1), FONT_BODY);
     }
 }

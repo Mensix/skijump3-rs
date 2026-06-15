@@ -2,7 +2,7 @@ use std::cell::Cell;
 
 use crate::competition::factory;
 use crate::components::layout::MainLayout;
-use crate::gfx::theme::{BG_ERASE, BG_LIST, BG_RIGHT, BLACK, FONT_DEFAULT, FONT_GOLD, FONT_HEADER};
+use crate::gfx::theme::{BG_DARK, BG_RED, BLACK, FONT_BODY, FONT_GOLD};
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
 use engine::oxide::widgets::menu::PixelMenu;
@@ -42,7 +42,7 @@ impl JumpMenuView {
             OxideMenuItem::new(0, "").with_y(12),
         ];
         Self {
-            menu: PixelMenu::new(11, 97, 108, 12, items, FONT_DEFAULT, FONT_DEFAULT)
+            menu: PixelMenu::new(11, 97, 108, 12, items, FONT_BODY, FONT_BODY)
                 .with_labels(false)
                 .with_box(false),
             layout,
@@ -56,9 +56,9 @@ impl JumpMenuView {
         self.layout.background(cx);
         self.layout.jumpers(cx);
         self.layout.registration(cx);
-        cx.fill((1, 94, 116, 106), BG_LIST);
-        cx.fill((11, 80, 100, 6), BG_ERASE);
-        cx.text((11, 80), FONT_HEADER, self.layout.langbase.lstr(18));
+        cx.fill((1, 94, 116, 106), BG_DARK);
+        cx.fill((11, 80, 100, 6), BG_DARK);
+        cx.text((11, 80), FONT_GOLD, self.layout.langbase.lstr(18));
         paint_jump_menu(cx, &self.menu, &self.layout);
         self.layout.footer(cx);
         if self.show_team_warning.get() {
@@ -176,7 +176,7 @@ impl JumpMenuView {
     fn paint_team_warning(cx: &mut PaintCx<'_>, layout: &MainLayout) {
         let lang = &layout.langbase;
         cx.fill((59, 59, 203, 83), BLACK);
-        cx.pattern_fill((60, 60, 201, 81), BG_RIGHT);
+        cx.pattern_fill((60, 60, 201, 81), BG_RED);
         cx.text((80, 72), FONT_GOLD, lang.lstr(261));
         cx.text((80, 82), FONT_GOLD, lang.lstr(262));
         cx.text((80, 92), FONT_GOLD, lang.lstr(263));
@@ -192,11 +192,11 @@ fn paint_jump_menu(cx: &mut PaintCx<'_>, menu: &PixelMenu, layout: &MainLayout) 
         let y = 98 + (i as i32) * 12 + y_offsets[i];
         cx.text(
             (11, y),
-            FONT_DEFAULT,
+            FONT_BODY,
             format!("{} - {}", num, layout.langbase.lstr(*label)),
         );
     }
     let selected = menu.selected().min(y_offsets.len().saturating_sub(1));
     let y = 94 + (selected as i32) * 12 + y_offsets[selected];
-    cx.stroke((5, y, 109, 13), FONT_DEFAULT);
+    cx.stroke((5, y, 109, 13), FONT_BODY);
 }

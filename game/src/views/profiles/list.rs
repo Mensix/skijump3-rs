@@ -1,7 +1,7 @@
 use crate::components::page_nav::cycle_index;
 use crate::data::profile::Profile;
 use crate::gfx::jumper_colors::{ski_color, suit_color_shade};
-use crate::gfx::theme::{BG_RIGHT, BLACK, FILL_DIM, FONT_DEFAULT};
+use crate::gfx::theme::{BG_RED, BLACK, FILL_GRAY, FONT_BODY};
 use crate::route::RouteTarget;
 use crate::save::SaveRef;
 use crate::store::{ResourcesRef, StoreRef};
@@ -186,7 +186,7 @@ impl ProfilesView {
                 );
                 cx.stroke(
                     (*color_x, *color_y, width, 5 + ((*color_max + 1) as i32 * 8)),
-                    BG_RIGHT,
+                    BG_RED,
                 );
                 for v in 0..=*color_max {
                     let by = *color_y + 4 + v as i32 * 8;
@@ -202,13 +202,13 @@ impl ProfilesView {
                 }
                 cx.stroke(
                     (*color_x + 3, *color_y + 2 + value as i32 * 8, 25, 9),
-                    FONT_DEFAULT,
+                    FONT_BODY,
                 );
             }
             Mode::ReplaceSelect { selector, .. } => {
                 let value = selector.value();
                 let x = self.resources.font.string_width("Replace:") as i32 + 170;
-                cx.fill((x - 2, 43, 320 - x, 8), FILL_DIM);
+                cx.fill((x - 2, 43, 320 - x, 8), FILL_GRAY);
                 if value > 0 {
                     if value <= self.resources.player_names().len() {
                         let n = replace_display_name(
@@ -217,15 +217,15 @@ impl ProfilesView {
                             &self.resources.font,
                             x,
                         );
-                        cx.text((x, 44), FONT_DEFAULT, n);
-                        cx.right_text((316, 44), FONT_DEFAULT, format!("#{value}"));
+                        cx.text((x, 44), FONT_BODY, n);
+                        cx.right_text((316, 44), FONT_BODY, format!("#{value}"));
                     } else {
-                        cx.text((x, 44), FONT_DEFAULT, format!("#{value}"));
+                        cx.text((x, 44), FONT_BODY, format!("#{value}"));
                     }
                 } else {
                     cx.text(
                         (x, 44),
-                        FONT_DEFAULT,
+                        FONT_BODY,
                         lstr(&self.resources.langbase, 9, "None"),
                     );
                 }

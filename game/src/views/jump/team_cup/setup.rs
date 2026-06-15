@@ -1,5 +1,5 @@
 use crate::gfx::sprites;
-use crate::gfx::theme::{BG_TEAMCUP, BLACK, FILL_DIM, FONT_DEFAULT, FONT_GOLD, FONT_HELP};
+use crate::gfx::theme::{BG_TEAM, BLACK, FILL_GRAY, FONT_BODY, FONT_GOLD, FONT_GRAY};
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::layout::shorten_name;
 
@@ -178,8 +178,8 @@ fn naming_elements(
     cursor_visible: bool,
 ) {
     cx.fill((0, 0, 320, 200), BLACK);
-    cx.pattern_fill((0, 0, 320, 19), FILL_DIM);
-    cx.pattern_fill((0, 20, 320, 180), BG_TEAMCUP);
+    cx.pattern_fill((0, 0, 320, 19), FILL_GRAY);
+    cx.pattern_fill((0, 20, 320, 180), BG_TEAM);
 
     cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
     push_team_cup_header(cx, resources, store);
@@ -192,14 +192,14 @@ fn naming_elements(
         if is_current {
             cx.text(
                 (xx, 30),
-                FONT_DEFAULT,
+                FONT_BODY,
                 format!("{} {}:", resources.langbase.lstr(113), n + 1),
             );
             cx.fill((xx - 2, 40, 125, 10), BLACK);
-            cx.text((xx, 42), FONT_DEFAULT, name_buffer.to_string());
+            cx.text((xx, 42), FONT_BODY, name_buffer.to_string());
             if cursor_visible {
                 let cw = resources.font.string_width(name_buffer) as i32;
-                cx.fill((xx + cw, 48, 5, 1), FONT_DEFAULT);
+                cx.fill((xx + cw, 48, 5, 1), FONT_BODY);
             }
         } else {
             push_named_team(cx, resources, team_names, n, xx);
@@ -215,8 +215,8 @@ fn ready_elements(
     cursor_visible: bool,
 ) {
     cx.fill((0, 0, 320, 200), BLACK);
-    cx.pattern_fill((0, 0, 320, 19), FILL_DIM);
-    cx.pattern_fill((0, 20, 320, 180), BG_TEAMCUP);
+    cx.pattern_fill((0, 0, 320, 19), FILL_GRAY);
+    cx.pattern_fill((0, 20, 320, 180), BG_TEAM);
 
     cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
     push_team_cup_header(cx, resources, store);
@@ -229,12 +229,12 @@ fn ready_elements(
 
     cx.right_text(
         (305, 180),
-        FONT_DEFAULT,
+        FONT_BODY,
         resources.langbase.lstr(15).to_string(),
     );
-    cx.fill((305 - 1, 180 - 2, 9, 11), BG_TEAMCUP);
+    cx.fill((305 - 1, 180 - 2, 9, 11), BG_TEAM);
     if cursor_visible {
-        cx.fill((305 + 1, 180 + 6, 5, 1), FONT_DEFAULT);
+        cx.fill((305 + 1, 180 + 6, 5, 1), FONT_BODY);
     }
 }
 
@@ -245,13 +245,13 @@ fn showteams_elements(
     cursor_visible: bool,
 ) {
     cx.fill((0, 0, 320, 200), BLACK);
-    cx.pattern_fill((0, 0, 320, 19), FILL_DIM);
-    cx.pattern_fill((0, 20, 320, 180), BG_TEAMCUP);
+    cx.pattern_fill((0, 0, 320, 19), FILL_GRAY);
+    cx.pattern_fill((0, 20, 320, 180), BG_TEAM);
 
     cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
     cx.text(
         (30, 6),
-        FONT_DEFAULT,
+        FONT_BODY,
         resources.langbase.lstr(111).to_string(),
     );
 
@@ -267,11 +267,11 @@ fn showteams_elements(
 
             cx.text(
                 (x, y),
-                FONT_DEFAULT,
+                FONT_BODY,
                 shorten_name(&team.name, &resources.font, 95),
             );
 
-            let jcolor = if is_human { FONT_GOLD } else { FONT_HELP };
+            let jcolor = if is_human { FONT_GOLD } else { FONT_GRAY };
             for (j, member) in team.members.iter().enumerate() {
                 cx.text(
                     (x + 4, y + 7 + j as i32 * 6),
@@ -290,12 +290,12 @@ fn showteams_elements(
 
     cx.right_text(
         (305, 6),
-        FONT_DEFAULT,
+        FONT_BODY,
         resources.langbase.lstr(15).to_string(),
     );
-    cx.fill((305 - 1, 6 - 2, 9, 11), BG_TEAMCUP);
+    cx.fill((305 - 1, 6 - 2, 9, 11), BG_TEAM);
     if cursor_visible {
-        cx.fill((305 + 1, 6 + 6, 5, 1), FONT_DEFAULT);
+        cx.fill((305 + 1, 6 + 6, 5, 1), FONT_BODY);
     }
 }
 
@@ -306,25 +306,25 @@ fn push_named_team(
     n: usize,
     xx: i32,
 ) {
-    cx.pattern_fill((xx - 10, 30, 135, 25), BG_TEAMCUP);
+    cx.pattern_fill((xx - 10, 30, 135, 25), BG_TEAM);
 
     cx.text(
         (xx, 30),
-        FONT_HELP,
+        FONT_GRAY,
         format!("{} {}:", resources.langbase.lstr(114), n + 1),
     );
-    cx.text((xx, 42), FONT_DEFAULT, team_names[n].clone());
+    cx.text((xx, 42), FONT_BODY, team_names[n].clone());
 }
 
 fn push_team_cup_header(cx: &mut PaintCx<'_>, resources: &ResourcesRef, store: &StoreRef) {
     cx.text(
         (30, 6),
-        FONT_DEFAULT,
+        FONT_BODY,
         resources.langbase.lstr(111).to_string(),
     );
     cx.text(
         (30, 110),
-        FONT_DEFAULT,
+        FONT_BODY,
         resources.langbase.lstr(112).to_string(),
     );
 

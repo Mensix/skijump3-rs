@@ -1,7 +1,7 @@
 use crate::data::records::{HillRecord, Hiscore};
 use crate::gfx::sprites;
 use crate::gfx::theme::{
-    BG_KOTH, BG_LEFT, BLACK, FILL_DIM, FONT_DEFAULT, FONT_GREET, FONT_HELP, FONT_NEW,
+    BG_GREEN, BG_PURPLE, BLACK, FILL_GRAY, FONT_BODY, FONT_TEAL, FONT_GRAY, FONT_GOLD,
 };
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
@@ -31,11 +31,11 @@ impl HallOfFameView {
 
     fn paint_content(&self, cx: &mut PaintCx<'_>) {
         if self.page >= 2 {
-            paint_screen(cx, 1, BG_KOTH);
+            paint_screen(cx, 1, BG_GREEN);
         } else {
             match self.page {
-                1 => paint_screen(cx, 4, BG_LEFT),
-                _ => paint_screen(cx, 1, BG_LEFT),
+                1 => paint_screen(cx, 4, BG_PURPLE),
+                _ => paint_screen(cx, 1, BG_PURPLE),
             };
         }
 
@@ -85,27 +85,27 @@ impl HallOfFameView {
             }
         };
 
-        cx.text((30, yy), FONT_DEFAULT, title);
+        cx.text((30, yy), FONT_BODY, title);
         yy += 17;
 
         cx.text(
             (col[0], yy),
-            FONT_NEW,
+            FONT_GOLD,
             lstr(&self.resources.langbase, 166, "Name"),
         );
         cx.text(
             (col[1], yy),
-            FONT_NEW,
+            FONT_GOLD,
             lstr(&self.resources.langbase, 167, "Pos"),
         );
         cx.text(
             (col[2], yy),
-            FONT_NEW,
+            FONT_GOLD,
             lstr(&self.resources.langbase, 168, "Points"),
         );
         cx.text(
             (col[3], yy),
-            FONT_NEW,
+            FONT_GOLD,
             lstr(&self.resources.langbase, 169, "Date"),
         );
 
@@ -129,11 +129,11 @@ impl HallOfFameView {
         sortby_points: bool,
     ) {
         let name_color = if is_computer_name(&hi.name) {
-            FONT_GREET
+            FONT_TEAL
         } else {
-            FONT_DEFAULT
+            FONT_BODY
         };
-        cx.right_text((24, y), FONT_NEW, ordinal_dot(place));
+        cx.right_text((24, y), FONT_GOLD, ordinal_dot(place));
         cx.text(
             (col[0], y),
             name_color,
@@ -146,7 +146,7 @@ impl HallOfFameView {
             format!("{:.0}", hi.score)
         };
         cx.right_text((col[2] + 24, y), name_color, score);
-        cx.text((col[3], y), FONT_HELP, &hi.time);
+        cx.text((col[3], y), FONT_GRAY, &hi.time);
     }
 
     fn paint_koth_records(&self, cx: &mut PaintCx<'_>) {
@@ -154,7 +154,7 @@ impl HallOfFameView {
         let mut yy = 12;
         cx.text(
             (30, 6),
-            FONT_DEFAULT,
+            FONT_BODY,
             lstr(&self.resources.langbase, 160, "King of the Hill"),
         );
 
@@ -163,7 +163,7 @@ impl HallOfFameView {
             yy += 18;
             cx.text(
                 (col[0], yy),
-                FONT_NEW,
+                FONT_GOLD,
                 format!(
                     "{}. {}",
                     idx,
@@ -174,15 +174,15 @@ impl HallOfFameView {
 
             let name = lstr(&self.resources.langbase, 161, "Nobody");
             let Some(hi) = records.top(idx + 35) else {
-                cx.text((col[1], yy), FONT_HELP, name);
+                cx.text((col[1], yy), FONT_GRAY, name);
                 continue;
             };
             if hi.score > 0.0 {
-                cx.text((col[2], yy), FONT_HELP, &hi.time);
-                cx.text((col[3], yy), FONT_DEFAULT, format!("{:.0} X", hi.score));
-                cx.text((col[1], yy), FONT_DEFAULT, &hi.name);
+                cx.text((col[2], yy), FONT_GRAY, &hi.time);
+                cx.text((col[3], yy), FONT_BODY, format!("{:.0} X", hi.score));
+                cx.text((col[1], yy), FONT_BODY, &hi.name);
             } else {
-                cx.text((col[1], yy), FONT_HELP, name);
+                cx.text((col[1], yy), FONT_GRAY, name);
             }
         }
     }
@@ -227,7 +227,7 @@ impl HillRecordsView {
 
     fn paint_content(&self, cx: &mut PaintCx<'_>) {
         let pages = self.pages();
-        paint_screen(cx, 1, BG_LEFT);
+        paint_screen(cx, 1, BG_PURPLE);
         self.paint_hill_records(cx);
         paint_page_hints(
             cx,
@@ -249,26 +249,26 @@ impl HillRecordsView {
         } else {
             lstr(&self.resources.langbase, 156, "Extra Hill Records")
         };
-        cx.text((30, 6), FONT_DEFAULT, title);
+        cx.text((30, 6), FONT_BODY, title);
         cx.text(
             (col[0], 23),
-            FONT_DEFAULT,
+            FONT_BODY,
             lstr(&self.resources.langbase, 106, "Hill"),
         );
         cx.text(
             (col[1], 23),
-            FONT_DEFAULT,
+            FONT_BODY,
             lstr(&self.resources.langbase, 171, "Who"),
         );
         cx.right_text(
             (col[2], 23),
-            FONT_DEFAULT,
+            FONT_BODY,
             lstr(&self.resources.langbase, 172, "Length"),
         );
-        cx.text((col[3], 23), FONT_DEFAULT, "(K)");
+        cx.text((col[3], 23), FONT_BODY, "(K)");
         cx.text(
             (col[4], 23),
-            FONT_DEFAULT,
+            FONT_BODY,
             lstr(&self.resources.langbase, 169, "Date"),
         );
 
@@ -288,13 +288,13 @@ impl HillRecordsView {
 
             cx.text(
                 (col[0], y),
-                FONT_NEW,
+                FONT_GOLD,
                 shorten_name(&hill.name, &self.resources.font, 64),
             );
             let record_color = if is_computer_name(&record.name) {
-                FONT_GREET
+                FONT_TEAL
             } else {
-                FONT_DEFAULT
+                FONT_BODY
             };
             cx.text(
                 (col[1], y),
@@ -302,13 +302,13 @@ impl HillRecordsView {
                 shorten_name(&record.name, &self.resources.font, 80),
             );
             let length_color = if is_computer_name(&record.name) {
-                FONT_GREET
+                FONT_TEAL
             } else {
-                FONT_NEW
+                FONT_GOLD
             };
             cx.right_text((col[2], y), length_color, format_decimal(record.len));
             cx.right_text((col[3] + 11, y), length_color, format!("({})", hill.kr));
-            cx.text((col[4], y), FONT_HELP, record.time);
+            cx.text((col[4], y), FONT_GRAY, record.time);
         }
 
         if phase == 0 {
@@ -316,8 +316,8 @@ impl HillRecordsView {
                 .filter_map(|idx| self.resources.hills.hill(idx).map(|hill| hill.kr as f64))
                 .sum();
             if total > 0.0 {
-                cx.text((130, 192), FONT_HELP, "A.H.I.");
-                cx.right_text((197, 192), FONT_HELP, format_ahi(ahi_sum, total));
+                cx.text((130, 192), FONT_GRAY, "A.H.I.");
+                cx.right_text((197, 192), FONT_GRAY, format_ahi(ahi_sum, total));
             }
         }
     }
@@ -361,13 +361,13 @@ fn paint_screen(cx: &mut PaintCx<'_>, style: u8, bg: engine::color::Rgba) {
     cx.fill((0, 0, 320, 200), BLACK);
     match style {
         1 => {
-            cx.pattern_fill((0, 0, 320, 19), FILL_DIM);
+            cx.pattern_fill((0, 0, 320, 19), FILL_GRAY);
             cx.fill((0, 20, 320, 180), bg);
         }
         4 => {
-            cx.pattern_fill((0, 0, 320, 19), FILL_DIM);
+            cx.pattern_fill((0, 0, 320, 19), FILL_GRAY);
             cx.fill((0, 20, 320, 99), bg);
-            cx.pattern_fill((0, 120, 320, 19), FILL_DIM);
+            cx.pattern_fill((0, 120, 320, 19), FILL_GRAY);
             cx.fill((0, 140, 320, 60), bg);
         }
         _ => {}
@@ -391,10 +391,10 @@ fn paint_page_hints(
     end: &str,
 ) {
     if page > 0 {
-        cx.right_text((319, 5), FONT_HELP, format!("(-{prev}"));
+        cx.right_text((319, 5), FONT_GRAY, format!("(-{prev}"));
     }
     let text = if page + 1 == pages { end } else { next };
-    cx.right_text((319, 13), FONT_HELP, format!("{text}-)"));
+    cx.right_text((319, 13), FONT_GRAY, format!("{text}-)"));
 }
 
 fn handle_paged_ui_event(event: UiEvent, page: &mut usize, pages: usize) -> Option<RouteTarget> {

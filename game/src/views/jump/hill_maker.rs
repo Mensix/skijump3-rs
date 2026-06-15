@@ -1,4 +1,4 @@
-use crate::gfx::theme::{BG_LEFT, BLACK, FONT_DEFAULT, FONT_GOLD, FONT_GREET, FONT_HELP};
+use crate::gfx::theme::{BG_PURPLE, BLACK, FONT_BODY, FONT_GOLD, FONT_TEAL, FONT_GRAY};
 use crate::route::RouteTarget;
 use crate::store::ResourcesRef;
 use crate::text::layout::lstr;
@@ -34,7 +34,7 @@ impl HillMakerView {
     pub fn new(resources: ResourcesRef) -> Self {
         let custom_hills = Self::load_custom_hills(&resources);
         let items = vec![MenuItem::new(1, "")];
-        let menu = PixelMenu::new(99, 14, 221, 8, items, FONT_DEFAULT, FONT_DEFAULT)
+        let menu = PixelMenu::new(99, 14, 221, 8, items, FONT_BODY, FONT_BODY)
             .trailing("", 6 + custom_hills.len() as i32 * 8)
             .with_labels(false);
         Self {
@@ -88,35 +88,35 @@ impl Screen<RouteTarget> for HillMakerView {
         let lb = &*self.resources.langbase;
 
         cx.fill((0, 0, 320, 200), BLACK);
-        cx.pattern_fill((0, 0, 320, 200), BG_LEFT);
+        cx.pattern_fill((0, 0, 320, 200), BG_PURPLE);
 
         cx.text((5, 5), FONT_GOLD, lstr(lb, 270, "SJ3 Hill Maker"));
 
-        cx.text((5, 21), FONT_HELP, lstr(lb, 271, "(use arrows, DEL,"));
-        cx.text((5, 29), FONT_HELP, lstr(lb, 272, " ENTER or ESC)"));
+        cx.text((5, 21), FONT_GRAY, lstr(lb, 271, "(use arrows, DEL,"));
+        cx.text((5, 29), FONT_GRAY, lstr(lb, 272, " ENTER or ESC)"));
 
         let col1 = 100i32;
         let col2 = 160i32;
 
-        cx.text((col1, 5), FONT_GREET, lstr(lb, 273, "Filename"));
-        cx.text((col2, 5), FONT_GREET, lstr(lb, 274, "Hillname"));
+        cx.text((col1, 5), FONT_TEAL, lstr(lb, 273, "Filename"));
+        cx.text((col2, 5), FONT_TEAL, lstr(lb, 274, "Hillname"));
 
         cx.text(
             (5, 45),
-            FONT_GREET,
+            FONT_TEAL,
             format!("{} 1 {} 1", lstr(lb, 157, "Page"), lstr(lb, 8, "of")),
         );
 
         cx.text((col1, 13), FONT_GOLD, lstr(lb, 275, "*Add New Hill*"));
         for (i, hill) in self.custom_hills.iter().enumerate() {
             let y = 21 + i as i32 * 8;
-            cx.text((col1, y), FONT_DEFAULT, &hill.filename);
+            cx.text((col1, y), FONT_BODY, &hill.filename);
             cx.text((col2, y), FONT_GOLD, &hill.hillname);
         }
         self.menu.paint(cx);
 
         let exit_y = 29 + self.custom_hills.len() as i32 * 8;
-        cx.text((col1, exit_y), FONT_DEFAULT, lstr(lb, 276, "-Exit-"));
+        cx.text((col1, exit_y), FONT_BODY, lstr(lb, 276, "-Exit-"));
     }
 
     fn background(&self) -> ScreenBackground {

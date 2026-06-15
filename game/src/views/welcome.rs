@@ -1,5 +1,5 @@
 use crate::gfx::sprites;
-use crate::gfx::theme::{BG_LEFT, BLACK, FILL_DIM, FONT_DEFAULT, FONT_GOLD, FONT_GREET};
+use crate::gfx::theme::{BG_PURPLE, BLACK, FILL_GRAY, FONT_BODY, FONT_GOLD, FONT_TEAL};
 use crate::route::RouteTarget;
 use crate::save::SaveRef;
 use engine::oxide::widgets::menu::MenuItem as OxideMenuItem;
@@ -20,7 +20,7 @@ impl WelcomeScreenView {
             .map(|i| OxideMenuItem::new((i + 1) as u8, format!("{}", i)))
             .collect();
         Self {
-            menu: PixelMenu::new(112, 64, 100, 8, items, FONT_DEFAULT, FONT_DEFAULT)
+            menu: PixelMenu::new(112, 64, 100, 8, items, FONT_BODY, FONT_BODY)
                 .with_labels(false)
                 .with_box(false),
             languages,
@@ -30,15 +30,15 @@ impl WelcomeScreenView {
 
     fn paint_content(&self, cx: &mut PaintCx<'_>) {
         cx.fill((0, 0, 320, 200), BLACK);
-        cx.pattern_fill((0, 0, 51, 200), FILL_DIM);
-        cx.pattern_fill((52, 0, 216, 200), BG_LEFT);
-        cx.pattern_fill((269, 0, 51, 200), FILL_DIM);
+        cx.pattern_fill((0, 0, 51, 200), FILL_GRAY);
+        cx.pattern_fill((52, 0, 216, 200), BG_PURPLE);
+        cx.pattern_fill((269, 0, 51, 200), FILL_GRAY);
         cx.sprite(sprites::Sprite::Logo as u16, (80, 6));
-        cx.right_text((240, 6), FONT_DEFAULT, "WELCOME!");
+        cx.right_text((240, 6), FONT_BODY, "WELCOME!");
         cx.right_text((240, 16), FONT_GOLD, "TERVETULOA!");
-        cx.right_text((240, 26), FONT_GREET, "WILLKOMMEN!");
-        cx.right_text((240, 36), FONT_DEFAULT, "VALKOMMEN!");
-        cx.text((100, 50), FONT_DEFAULT, "PLEASE CHOOSE A LANGUAGE:");
+        cx.right_text((240, 26), FONT_TEAL, "WILLKOMMEN!");
+        cx.right_text((240, 36), FONT_BODY, "VALKOMMEN!");
+        cx.text((100, 50), FONT_BODY, "PLEASE CHOOSE A LANGUAGE:");
 
         for (i, name) in self.languages.iter().enumerate() {
             let y = ((i + 1) * 8 + 55) as i32;
@@ -46,7 +46,7 @@ impl WelcomeScreenView {
         }
 
         let y = 61 + (self.menu.selected() as i32) * 8;
-        cx.stroke((106, y, 101, 9), FONT_DEFAULT);
+        cx.stroke((106, y, 101, 9), FONT_BODY);
     }
 }
 

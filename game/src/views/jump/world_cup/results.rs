@@ -3,8 +3,8 @@ use crate::competition::types::{CompetitionPhase, CupStyle, Participant, Qualifi
 
 use crate::gfx::sprites;
 use crate::gfx::theme::{
-    BG_4HILLS, BG_LEFT, BG_RIGHT_BRIGHT, BG_WC, BLACK, FILL_DIM, FILL_HIGHLIGHT, FILL_TURQUOISE,
-    FONT_DEFAULT, FONT_GREET, FONT_HEADER, FONT_HELP,
+    BG_DARKEST, BG_PURPLE, BG_RED_BRIGHT, BG_WORLDCUP, BLACK, FILL_GRAY, FILL_GOLD, FILL_TEAL,
+    FONT_BODY, FONT_TEAL, FONT_GOLD, FONT_GRAY,
 };
 use crate::store::ResourcesRef;
 use crate::text::format::{format_decimal, ordinal_dot};
@@ -15,16 +15,16 @@ pub const QUALIFICATION_ITEMS_PER_PAGE: usize = 25;
 
 fn list_background(phase: CompetitionPhase, style: CupStyle) -> Rgba {
     match phase {
-        CompetitionPhase::FourHillsStandings => BG_4HILLS,
-        CompetitionPhase::WorldCupStandings => BG_WC,
+        CompetitionPhase::FourHillsStandings => BG_DARKEST,
+        CompetitionPhase::WorldCupStandings => BG_WORLDCUP,
         CompetitionPhase::SeasonComplete => {
             if matches!(style, CupStyle::FourHills | CupStyle::CustomCup) {
-                BG_4HILLS
+                BG_DARKEST
             } else {
-                BG_WC
+                BG_WORLDCUP
             }
         }
-        _ => BG_LEFT,
+        _ => BG_PURPLE,
     }
 }
 
@@ -49,10 +49,10 @@ const WC_NAME: i32 = 23;
 const WC_POINTS: i32 = 153;
 const WC_COL2_OFFSET: i32 = 160;
 
-const OTHER_NAME: Rgba = FONT_HELP;
-const OTHER_RANK: Rgba = FILL_HIGHLIGHT;
-const OTHER_DISTANCE: Rgba = FILL_TURQUOISE;
-const INJURY_COLOR: Rgba = BG_RIGHT_BRIGHT;
+const OTHER_NAME: Rgba = FONT_GRAY;
+const OTHER_RANK: Rgba = FILL_GOLD;
+const OTHER_DISTANCE: Rgba = FILL_TEAL;
+const INJURY_COLOR: Rgba = BG_RED_BRIGHT;
 
 pub struct ResultsPage {
     pub(crate) phase: CompetitionPhase,
@@ -346,7 +346,7 @@ pub fn render_header(cx: &mut PaintCx<'_>, competition: &Competition, resources:
         _ => String::new(),
     };
 
-    cx.text((30, 6), FONT_DEFAULT, header);
+    cx.text((30, 6), FONT_BODY, header);
 }
 
 fn round_header(
@@ -372,7 +372,7 @@ fn render_results_entry(
     show_extra: bool,
 ) {
     let (col_text, col_rank, col_dist) = if entry.is_own {
-        (FONT_DEFAULT, FONT_HEADER, FONT_GREET)
+        (FONT_BODY, FONT_GOLD, FONT_TEAL)
     } else {
         (OTHER_NAME, OTHER_RANK, OTHER_DISTANCE)
     };
@@ -426,7 +426,7 @@ fn render_results_entry(
 pub fn render_results_page(cx: &mut PaintCx<'_>, page: &ResultsPage, resources: &ResourcesRef) {
     let bg = list_background(page.phase, page.style);
     cx.fill((0, 0, 320, 200), BLACK);
-    cx.pattern_fill((0, 0, 320, 19), FILL_DIM);
+    cx.pattern_fill((0, 0, 320, 19), FILL_GRAY);
     cx.pattern_fill((0, 20, 320, 180), bg);
     cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
 
@@ -434,17 +434,17 @@ pub fn render_results_page(cx: &mut PaintCx<'_>, page: &ResultsPage, resources: 
     let next = resources.langbase.lstr(247);
     let end = resources.langbase.lstr(248);
     if page.page > 0 {
-        cx.right_text((319, 5), FONT_HELP, format!("(-{prev}"));
+        cx.right_text((319, 5), FONT_GRAY, format!("(-{prev}"));
     }
     let hint_text = if page.page + 1 == page.total_pages {
         end
     } else {
         next
     };
-    cx.right_text((319, 13), FONT_HELP, format!("{hint_text}-)"));
+    cx.right_text((319, 13), FONT_GRAY, format!("{hint_text}-)"));
 
     if page.total_pages == 1 && page.items.len() <= 20 {
-        cx.text((30, 190), FONT_GREET, resources.langbase.lstr(86));
+        cx.text((30, 190), FONT_TEAL, resources.langbase.lstr(86));
     }
 
     let is_wc = page.phase == CompetitionPhase::FourHillsStandings
@@ -494,7 +494,7 @@ pub fn render_results_page(cx: &mut PaintCx<'_>, page: &ResultsPage, resources: 
                 && (i > 0 && page.items[i - 1].rank <= 30 || i == 0 && page.prev_last_rank <= 30)
             {
                 let half = row_step / 2;
-                cx.text((COL_NAME, y + half), FONT_HEADER, "- - -");
+                cx.text((COL_NAME, y + half), FONT_GOLD, "- - -");
                 y += half + row_step + half;
                 if y > 191 {
                     break;
@@ -539,7 +539,7 @@ pub fn render_stats_page(
     let Some(player) = humans.get(idx) else {
         let bg = list_background(competition.phase(), competition.style());
         cx.fill((0, 0, 320, 200), BLACK);
-        cx.pattern_fill((0, 0, 320, 19), FILL_DIM);
+        cx.pattern_fill((0, 0, 320, 19), FILL_GRAY);
         cx.pattern_fill((0, 20, 320, 180), bg);
 
         cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
@@ -548,23 +548,23 @@ pub fn render_stats_page(
 
     let bg = list_background(competition.phase(), competition.style());
     cx.fill((0, 0, 320, 200), BLACK);
-    cx.pattern_fill((0, 0, 320, 19), FILL_DIM);
+    cx.pattern_fill((0, 0, 320, 19), FILL_GRAY);
     cx.pattern_fill((0, 20, 320, 180), bg);
     cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
 
-    cx.text((30, 6), FONT_DEFAULT, resources.langbase.lstr(89));
+    cx.text((30, 6), FONT_BODY, resources.langbase.lstr(89));
     cx.text(
         (36 + resources.langbase.lstr(89).len() as i32 * 6, 6),
-        FONT_DEFAULT,
+        FONT_BODY,
         player.display_name(),
     );
-    cx.text((16, 23), FONT_GREET, resources.langbase.lstr(106));
-    cx.right_text((70, 23), FONT_GREET, resources.langbase.lstr(108));
-    cx.right_text((90, 23), FONT_GREET, resources.langbase.lstr(109));
-    cx.right_text((110, 23), FONT_GREET, resources.langbase.lstr(98));
-    cx.right_text((140, 23), FONT_GREET, resources.langbase.lstr(97));
-    cx.right_text((170, 23), FONT_GREET, "R 1");
-    cx.right_text((268, 23), FONT_GREET, "R 2");
+    cx.text((16, 23), FONT_TEAL, resources.langbase.lstr(106));
+    cx.right_text((70, 23), FONT_TEAL, resources.langbase.lstr(108));
+    cx.right_text((90, 23), FONT_TEAL, resources.langbase.lstr(109));
+    cx.right_text((110, 23), FONT_TEAL, resources.langbase.lstr(98));
+    cx.right_text((140, 23), FONT_TEAL, resources.langbase.lstr(97));
+    cx.right_text((170, 23), FONT_TEAL, "R 1");
+    cx.right_text((268, 23), FONT_TEAL, "R 2");
 
     let y = 37;
     let hill_name = resources
@@ -574,34 +574,34 @@ pub fn render_stats_page(
         .unwrap_or_default();
     cx.right_text(
         (15, y),
-        FONT_DEFAULT,
+        FONT_BODY,
         ordinal_dot(competition.current_event + 1),
     );
-    cx.text((16, y), FONT_DEFAULT, hill_name);
-    cx.right_text((70, y), FONT_DEFAULT, ordinal_dot(player.rank));
-    cx.right_text((90, y), FONT_DEFAULT, player.wc_points.to_string());
-    cx.right_text((110, y), FONT_DEFAULT, ordinal_dot(player.rank));
+    cx.text((16, y), FONT_BODY, hill_name);
+    cx.right_text((70, y), FONT_BODY, ordinal_dot(player.rank));
+    cx.right_text((90, y), FONT_BODY, player.wc_points.to_string());
+    cx.right_text((110, y), FONT_BODY, ordinal_dot(player.rank));
     cx.right_text(
         (140, y),
-        FONT_DEFAULT,
+        FONT_BODY,
         format_decimal(player.points.unwrap_or(0.0)),
     );
     if player.round1_len > 0.0 {
         cx.right_text(
             (170, y),
-            FONT_DEFAULT,
+            FONT_BODY,
             format_decimal(player.points.unwrap_or(0.0) - player.round2_len),
         );
         cx.right_text(
             (210, y),
-            FONT_GREET,
+            FONT_TEAL,
             format!("({}µ)", format_decimal(player.round1_len)),
         );
     }
     if player.round2_len > 0.0 {
         cx.right_text(
             (308, y),
-            FONT_GREET,
+            FONT_TEAL,
             format!("({}µ)", format_decimal(player.round2_len)),
         );
     }
@@ -610,14 +610,14 @@ pub fn render_stats_page(
     let next = resources.langbase.lstr(247);
     let end = resources.langbase.lstr(248);
     if idx > 0 {
-        cx.right_text((319, 5), FONT_HELP, format!("(-{prev}"));
+        cx.right_text((319, 5), FONT_GRAY, format!("(-{prev}"));
     }
     let hint_text = if idx + 1 == humans.len().max(1) {
         end
     } else {
         next
     };
-    cx.right_text((319, 13), FONT_HELP, format!("{hint_text}-)"));
+    cx.right_text((319, 13), FONT_GRAY, format!("{hint_text}-)"));
 }
 
 fn truncate_name(name: &str) -> String {

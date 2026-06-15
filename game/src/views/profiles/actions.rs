@@ -1,5 +1,5 @@
 use crate::data::profile::{Profile, NUM_SKIS, NUM_SUITS};
-use crate::gfx::theme::{BG_RIGHT, BLACK, FILL_DIM, FONT_DEFAULT, FONT_HEADER, FONT_NEW};
+use crate::gfx::theme::{BG_RED, BLACK, FILL_GRAY, FONT_BODY, FONT_GOLD};
 use crate::route::RouteTarget;
 use crate::text::layout::{lstr, replace_display_name};
 use engine::oxide::widgets::confirm::ConfirmDialog as OxideConfirmDialog;
@@ -68,9 +68,9 @@ pub(super) fn handle_list_delete(view: &mut ProfilesView) {
             action: QuestionAction::DeleteProfile(view.selected),
             dialog: OxideConfirmDialog::new(
                 (59, 79, 203, 53),
-                BG_RIGHT,
+                BG_RED,
                 BLACK,
-                FONT_HEADER,
+                FONT_GOLD,
                 format!(
                     "{}: {}",
                     lstr(&view.resources.langbase, 328, "Delete"),
@@ -108,7 +108,7 @@ pub(super) fn handle_edit_enter(view: &mut ProfilesView, profile: usize, selecte
                     NUM_SUITS - 1,
                     value,
                     BLACK,
-                    FONT_DEFAULT,
+                    FONT_BODY,
                     "",
                 ),
                 color_x: x,
@@ -137,7 +137,7 @@ pub(super) fn handle_edit_enter(view: &mut ProfilesView, profile: usize, selecte
                     NUM_SKIS - 1,
                     value,
                     BLACK,
-                    FONT_DEFAULT,
+                    FONT_BODY,
                     "",
                 ),
                 color_x: x,
@@ -167,8 +167,8 @@ pub(super) fn handle_edit_enter(view: &mut ProfilesView, profile: usize, selecte
                 320 - x,
                 REPLACE_MAX,
                 value,
-                FILL_DIM,
-                FONT_DEFAULT,
+                FILL_GRAY,
+                FONT_BODY,
                 display,
             );
             selector.set_wrap(false);
@@ -200,9 +200,9 @@ pub(super) fn handle_edit_enter(view: &mut ProfilesView, profile: usize, selecte
                 action: QuestionAction::ResetProfile(profile),
                 dialog: OxideConfirmDialog::new(
                     (59, 79, 203, 53),
-                    BG_RIGHT,
+                    BG_RED,
                     BLACK,
-                    FONT_HEADER,
+                    FONT_GOLD,
                     lstr(&view.resources.langbase, 329, "Reset jumper?"),
                     "Y",
                     "N",
@@ -245,9 +245,9 @@ pub(super) fn start_text_input(view: &mut ProfilesView, profile: usize, field: T
             max_width,
             old,
             130,
-            FILL_DIM,
-            FONT_NEW,
-            FONT_DEFAULT,
+            FILL_GRAY,
+            FONT_GOLD,
+            FONT_BODY,
             view.resources.font.clone(),
         ),
     };

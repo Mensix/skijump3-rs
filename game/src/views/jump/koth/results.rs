@@ -1,7 +1,7 @@
 use crate::competition::koth::types::KothRuntime;
 use crate::gfx::sprites;
 use crate::gfx::theme::{
-    BG_KOTH, BLACK, FILL_DIM, FILL_HIGHLIGHT, FONT_DEFAULT, FONT_GOLD, FONT_HEADER, FONT_HELP,
+    BG_GREEN, BLACK, FILL_GRAY, FONT_BODY, FONT_GOLD, FONT_GRAY,
 };
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::format::format_decimal;
@@ -19,9 +19,9 @@ const START_Y: i32 = 23;
 const ROW_STEP: i32 = 8;
 const ITEMS_PER_PAGE: usize = 22;
 
-const KOTH_BG: Rgba = BG_KOTH;
+const KOTH_BG: Rgba = BG_GREEN;
 // Pascal kothlista phase=4: computer col3 = setcol3+5 = 251 (dimmed gold)
-const FONT_GOLD_DIM: Rgba = engine::color::Rgba::from_rgb6(52, 47, 0);
+
 
 fn separator_label(lang: &LangBase, round: u8) -> String {
     let idx = 101 + (round as usize % 5);
@@ -146,19 +146,19 @@ pub fn render(cx: &mut PaintCx<'_>, resources: &ResourcesRef, store: &StoreRef) 
 
         // new_screen_with_bg(1, KOTH_BG) — like Hall of Fame
         cx.fill((0, 0, 320, 200), BLACK);
-        cx.pattern_fill((0, 0, 320, 19), FILL_DIM);
+        cx.pattern_fill((0, 0, 320, 19), FILL_GRAY);
         cx.pattern_fill((0, 20, 320, 180), KOTH_BG);
         cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
 
         // Pascal-style: just "Done" hint (no prev/next pagination for KOTH)
         cx.right_text(
             (319, 13),
-            FONT_HELP,
+            FONT_GRAY,
             format!("{}-)", resources.langbase.lstr(248)),
         );
 
         // Title
-        cx.text((30, 6), FONT_DEFAULT, &kp.title);
+        cx.text((30, 6), FONT_BODY, &kp.title);
 
         let mut y = START_Y;
         let mut last_rank = 0usize;
@@ -183,9 +183,9 @@ pub fn render(cx: &mut PaintCx<'_>, resources: &ResourcesRef, store: &StoreRef) 
             }
 
             let (col_name, col_rank, col_extra) = if entry.is_human {
-                (FONT_DEFAULT, FONT_HEADER, FONT_HEADER)
+                (FONT_BODY, FONT_GOLD, FONT_GOLD)
             } else {
-                (FONT_HELP, FILL_HIGHLIGHT, FONT_GOLD_DIM)
+                (FONT_GRAY, FONT_GOLD, FONT_GRAY)
             };
 
             if entry.rank != last_rank {

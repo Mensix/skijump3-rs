@@ -1,5 +1,5 @@
 use crate::components::layout::MainLayout;
-use crate::gfx::theme::{BG_ERASE, FONT_DEFAULT, FONT_HEADER};
+use crate::gfx::theme::{BG_DARK, FONT_BODY, FONT_GOLD};
 use crate::route::RouteTarget;
 use crate::store::StoreRef;
 use engine::oxide::widgets::menu::PixelMenu;
@@ -38,7 +38,7 @@ impl MainMenuView {
         let selection = store
             .selected_main_menu()
             .min(items.len().saturating_sub(1));
-        let mut menu = PixelMenu::new(11, 97, 108, 12, items, FONT_DEFAULT, FONT_DEFAULT)
+        let mut menu = PixelMenu::new(11, 97, 108, 12, items, FONT_BODY, FONT_BODY)
             .with_labels(false)
             .with_box(false);
         menu.set_selected(selection);
@@ -49,8 +49,8 @@ impl MainMenuView {
         self.layout.background(cx);
         self.layout.jumpers(cx);
         self.layout.registration(cx);
-        cx.fill((11, 80, 100, 6), BG_ERASE);
-        cx.text((11, 80), FONT_HEADER, self.layout.langbase.lstr(17));
+        cx.fill((11, 80, 100, 6), BG_DARK);
+        cx.text((11, 80), FONT_GOLD, self.layout.langbase.lstr(17));
         paint_main_menu(cx, &self.menu, &self.layout);
         self.layout.footer(cx);
     }
@@ -89,11 +89,11 @@ fn paint_main_menu(cx: &mut PaintCx<'_>, menu: &PixelMenu, layout: &MainLayout) 
         let y = 98 + (i as i32) * 12 + y_offsets[i];
         cx.text(
             (11, y),
-            FONT_DEFAULT,
+            FONT_BODY,
             format!("{} - {}", num, layout.langbase.lstr(*label)),
         );
     }
     let selected = menu.selected().min(y_offsets.len().saturating_sub(1));
     let y = 94 + (selected as i32) * 12 + y_offsets[selected];
-    cx.stroke((5, y, 109, 13), FONT_DEFAULT);
+    cx.stroke((5, y, 109, 13), FONT_BODY);
 }

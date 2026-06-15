@@ -1,6 +1,6 @@
 use crate::data::hill::HillCatalog;
 use crate::data::records::RecordStore;
-use crate::gfx::theme::{BLACK, FONT_DEFAULT, FONT_HELP};
+use crate::gfx::theme::{BLACK, FONT_BODY, FONT_GRAY};
 use crate::jump::config::JumpConfig;
 use crate::jump::frame::JumpRenderFrame;
 use crate::jump::presentation;
@@ -226,6 +226,6 @@ impl JumpRunner {
 
 fn unavailable_render(cx: &mut PaintCx<'_>, message: &str) {
     cx.fill((0, 0, 320, 200), BLACK);
-    cx.text((20, 80), FONT_DEFAULT, message);
-    cx.text((20, 95), FONT_HELP, "PRESS ESC");
+    cx.text((20, 80), FONT_BODY, message);
+    cx.text((20, 95), FONT_GRAY, "PRESS ESC");
 }

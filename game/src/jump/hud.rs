@@ -1,6 +1,6 @@
 use crate::data::records::HillRecord;
 use crate::gfx::sprites;
-use crate::gfx::theme::{FONT_DEFAULT, FONT_GOLD, FONT_GREET, FONT_HELP};
+use crate::gfx::theme::{FONT_BODY, FONT_GOLD, FONT_TEAL, FONT_GRAY};
 use crate::text::lang::LangBase;
 use engine::color::Rgba;
 use engine::oxide::Font;
@@ -57,11 +57,11 @@ pub(crate) fn push_jumper_info_box(
     cx.sprite(sprites::Sprite::JumperInfoBox as u16, (3, 150));
     let label56 = langbase.lstr(56);
     let label_w = font.string_width(label56) as i32;
-    cx.text((12, 160), FONT_GREET, phase_label);
-    cx.text((12, 172), FONT_GREET, label56);
-    cx.text((12 + label_w, 172), FONT_DEFAULT, jumper_name);
+    cx.text((12, 160), FONT_TEAL, phase_label);
+    cx.text((12, 172), FONT_TEAL, label56);
+    cx.text((12 + label_w, 172), FONT_BODY, jumper_name);
     if let Some((text, color)) = subline {
         cx.text((14 + label_w, 179), color, text);
     }
-    cx.text((12, 191), FONT_HELP, langbase.lstr(59));
+    cx.text((12, 191), FONT_GRAY, langbase.lstr(59));
 }

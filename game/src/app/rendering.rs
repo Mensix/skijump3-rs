@@ -1,5 +1,5 @@
 use crate::app::router::AppRouter;
-use crate::gfx::theme::FONT_HELP;
+use crate::gfx::theme::FONT_GRAY;
 use engine::oxide::{
     Background, CommandBuffer, Font, OxideRenderer, PaintCx, RenderAssets, ScreenBackground,
 };
@@ -55,7 +55,7 @@ impl FrameRenderer {
     fn add_debug_overlay(&mut self, cx: &mut PaintCx<'_>) {
         let fps = self.fps.tick();
         if cfg!(debug_assertions) {
-            cx.right_text((319, 192), FONT_HELP, format!("{fps:.0} fps"));
+            cx.right_text((319, 192), FONT_GRAY, format!("{fps:.0} fps"));
         }
     }
 }

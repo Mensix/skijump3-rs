@@ -1,4 +1,4 @@
-use crate::gfx::theme::{BG_LEFT, BG_RIGHT, BLACK, FONT_DEFAULT, FONT_GOLD, FONT_HELP};
+use crate::gfx::theme::{BG_PURPLE, BG_RED, BLACK, FONT_BODY, FONT_GOLD, FONT_GRAY};
 use crate::route::RouteTarget;
 use crate::store::ResourcesRef;
 use engine::oxide::input::Key;
@@ -64,7 +64,7 @@ pub struct EditHillView {
 impl EditHillView {
     pub fn new(resources: ResourcesRef) -> Self {
         let items = (1..=12).map(|n| MenuItem::new(n, "")).collect();
-        let menu = PixelMenu::new(10, 8, 110, 13, items, FONT_DEFAULT, FONT_DEFAULT)
+        let menu = PixelMenu::new(10, 8, 110, 13, items, FONT_BODY, FONT_BODY)
             .with_labels(false)
             .trailing("", 13);
         let values = [
@@ -147,7 +147,7 @@ impl EditHillView {
             max_chars,
             BLACK,
             FONT_GOLD,
-            FONT_DEFAULT,
+            FONT_BODY,
             self.resources.font.clone(),
         );
         self.mode = EditMode::Editing { field, input };
@@ -313,7 +313,7 @@ impl Screen<RouteTarget> for EditHillView {
         let xx2 = 120i32;
 
         cx.fill((0, 0, 320, 200), BLACK);
-        cx.pattern_fill((0, 0, 320, 200), BG_LEFT);
+        cx.pattern_fill((0, 0, 320, 200), BG_PURPLE);
 
         let labels = [
             "HILL.NAME",
@@ -353,10 +353,10 @@ impl Screen<RouteTarget> for EditHillView {
                 format!("{}. {}", temp, labels[temp - 1])
             };
 
-            cx.text((xx, yy), FONT_DEFAULT, &label);
+            cx.text((xx, yy), FONT_BODY, &label);
 
             if !descriptions[temp - 1].is_empty() {
-                cx.text((xx2 + 40, yy), FONT_HELP, descriptions[temp - 1]);
+                cx.text((xx2 + 40, yy), FONT_GRAY, descriptions[temp - 1]);
             }
 
             if !self.values[temp - 1].is_empty() {
@@ -380,21 +380,21 @@ impl Screen<RouteTarget> for EditHillView {
                 ..
             } => {
                 cx.fill((59, 79, 203, 53), BLACK);
-                cx.fill((60, 80, 201, 51), BG_RIGHT);
-                cx.pattern_fill((60, 80, 201, 51), BG_RIGHT);
+                cx.fill((60, 80, 201, 51), BG_RED);
+                cx.pattern_fill((60, 80, 201, 51), BG_RED);
                 cx.text((80, 90), FONT_GOLD, message);
                 cx.text((80, 100), FONT_GOLD, subtitle);
                 let prompt = self.resources.langbase.lstr(15);
-                cx.right_text((190, 110), FONT_DEFAULT, prompt);
-                cx.fill((189, 108, 9, 11), BG_LEFT);
+                cx.right_text((190, 110), FONT_BODY, prompt);
+                cx.fill((189, 108, 9, 11), BG_PURPLE);
                 if self.blinker.visible(11, 10) {
-                    cx.fill((191, 116, 5, 1), FONT_DEFAULT);
+                    cx.fill((191, 116, 5, 1), FONT_BODY);
                 }
             }
             EditMode::ConfirmOverwrite { filename } => {
                 cx.fill((59, 79, 203, 53), BLACK);
-                cx.fill((60, 80, 201, 51), BG_RIGHT);
-                cx.pattern_fill((60, 80, 201, 51), BG_RIGHT);
+                cx.fill((60, 80, 201, 51), BG_RED);
+                cx.pattern_fill((60, 80, 201, 51), BG_RED);
                 cx.text(
                     (80, 90),
                     FONT_GOLD,
@@ -402,9 +402,9 @@ impl Screen<RouteTarget> for EditHillView {
                 );
                 let prompt = self.resources.langbase.lstr(346);
                 cx.text((80, 110), FONT_GOLD, format!("{} (Y/N):", prompt));
-                cx.fill((189, 108, 9, 11), BG_LEFT);
+                cx.fill((189, 108, 9, 11), BG_PURPLE);
                 if self.blinker.visible(11, 10) {
-                    cx.fill((191, 116, 5, 1), FONT_DEFAULT);
+                    cx.fill((191, 116, 5, 1), FONT_BODY);
                 }
             }
             EditMode::Viewing => {}

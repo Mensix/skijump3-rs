@@ -5,7 +5,7 @@ use crate::competition::team_cup::types::TeamCupStandingsKind;
 use crate::competition::types::{CompetitionPhase, CupStyle, Participant, QualificationStatus};
 use crate::competition::ActiveCompetition;
 use crate::gfx::sprites::Sprite;
-use crate::gfx::theme::{FONT_GOLD, FONT_GREET, FONT_HELP};
+use crate::gfx::theme::{FONT_GOLD, FONT_TEAL, FONT_GRAY};
 use crate::jump::hud;
 use crate::jump::types::{JumpPhase, JumpTelemetry};
 use crate::store::{ResourcesRef, StoreRef};
@@ -345,8 +345,8 @@ impl CompetitionOverlay {
         let lang = &self.resources.langbase;
 
         cx.sprite(Sprite::JumperInfoBox as u16, (3, 150));
-        cx.text((12, 150), FONT_GREET, lang.lstr(400));
-        cx.text((12, 160), FONT_GREET, "\"");
+        cx.text((12, 150), FONT_TEAL, lang.lstr(400));
+        cx.text((12, 160), FONT_TEAL, "\"");
 
         let cstr0 = self.coach_range(lang, base + 2, t.angle_counter, &[49, 61, 200]);
         let cstr1 = if t.grade < 10 {
@@ -394,18 +394,18 @@ impl CompetitionOverlay {
                 if y < 190 {
                     y += 8;
                 }
-                cx.text((18, y), FONT_GREET, line.clone());
+                cx.text((18, y), FONT_TEAL, line.clone());
                 line.clear();
             }
         }
         if !line.is_empty() {
             if line.len() < 2 {
-                cx.text((18, y), FONT_GREET, format!("{line}\""));
+                cx.text((18, y), FONT_TEAL, format!("{line}\""));
             } else {
                 if y < 192 {
                     y += 8;
                 }
-                cx.text((18, y), FONT_GREET, format!("{line}\""));
+                cx.text((18, y), FONT_TEAL, format!("{line}\""));
             }
         }
     }
@@ -478,7 +478,7 @@ impl CompetitionOverlay {
             &self.resources.langbase,
             &phase_label,
             &name,
-            r1text.as_deref().map(|text| (text, FONT_HELP)),
+            r1text.as_deref().map(|text| (text, FONT_GRAY)),
         );
     }
 

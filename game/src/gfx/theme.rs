@@ -13,37 +13,31 @@ impl Rgb6 {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TextTheme {
-    pub default: Rgba,
-    pub header: Rgba,
+    pub body: Rgba,
     pub gold: Rgba,
-    pub greet: Rgba,
-    pub name: Rgba,
-    pub new: Rgba,
-    pub back: Rgba,
-    pub help: Rgba,
+    pub teal: Rgba,
+    pub gray: Rgba,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BackgroundTheme {
-    pub erase: Rgba,
-    pub list: Rgba,
-    pub left: Rgba,
-    pub right: Rgba,
-    pub order: Rgba,
-    pub right_bright: Rgba,
-    pub koth: Rgba,
-    pub team_cup: Rgba,
-    pub world_cup: Rgba,
-    pub four_hills: Rgba,
+    pub dark: Rgba,
+    pub purple: Rgba,
+    pub red: Rgba,
+    pub red_bright: Rgba,
+    pub green: Rgba,
+    pub team: Rgba,
+    pub worldcup: Rgba,
+    pub darkest: Rgba,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct FillTheme {
-    pub border: Rgba,
-    pub highlight: Rgba,
-    pub turquoise: Rgba,
-    pub line: Rgba,
-    pub dim: Rgba,
+    pub purple: Rgba,
+    pub gold: Rgba,
+    pub teal: Rgba,
+    pub dark: Rgba,
+    pub gray: Rgba,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -68,33 +62,27 @@ pub struct Theme {
 impl Theme {
     pub const DEFAULT: Self = Self {
         text: TextTheme {
-            default: Rgb6(63, 63, 63).rgba(),
-            header: Rgb6(63, 57, 9).rgba(),
+            body: Rgb6(63, 63, 63).rgba(),
             gold: Rgb6(63, 57, 9).rgba(),
-            greet: Rgb6(9, 57, 63).rgba(),
-            name: Rgb6(63, 63, 63).rgba(),
-            new: Rgb6(63, 57, 9).rgba(),
-            back: Rgb6(63, 63, 63).rgba(),
-            help: Rgb6(44, 44, 44).rgba(),
+            teal: Rgb6(9, 57, 63).rgba(),
+            gray: Rgb6(44, 44, 44).rgba(),
         },
         background: BackgroundTheme {
-            erase: Rgb6(5, 8, 20).rgba(),
-            list: Rgb6(5, 8, 20).rgba(),
-            left: Rgb6(18, 13, 34).rgba(),
-            right: Rgb6(34, 13, 18).rgba(),
-            order: Rgb6(18, 13, 34).rgba(),
-            right_bright: Rgb6(43, 16, 23).rgba(),
-            koth: Rgb6(0, 25, 0).rgba(),
-            team_cup: Rgb6(28, 8, 24).rgba(),
-            world_cup: Rgb6(47, 0, 0).rgba(),
-            four_hills: Rgb6(10, 10, 10).rgba(),
+            dark: Rgb6(5, 8, 20).rgba(),
+            purple: Rgb6(18, 13, 34).rgba(),
+            red: Rgb6(34, 13, 18).rgba(),
+            red_bright: Rgb6(43, 16, 23).rgba(),
+            green: Rgb6(0, 25, 0).rgba(),
+            team: Rgb6(28, 8, 24).rgba(),
+            worldcup: Rgb6(47, 0, 0).rgba(),
+            darkest: Rgb6(10, 10, 10).rgba(),
         },
         fill: FillTheme {
-            border: Rgb6(23, 16, 43).rgba(),
-            highlight: Rgb6(52, 47, 0).rgba(),
-            turquoise: Rgb6(0, 47, 52).rgba(),
-            line: Rgb6(5, 8, 22).rgba(),
-            dim: Rgb6(20, 20, 20).rgba(),
+            purple: Rgb6(23, 16, 43).rgba(),
+            gold: Rgb6(52, 47, 0).rgba(),
+            teal: Rgb6(0, 47, 52).rgba(),
+            dark: Rgb6(5, 8, 22).rgba(),
+            gray: Rgb6(20, 20, 20).rgba(),
         },
         material: MaterialTheme {
             start_dq_lit: Rgb6(54, 10, 10).rgba(),
@@ -110,27 +98,21 @@ impl Theme {
 
 pub const THEME: Theme = Theme::DEFAULT;
 
-pub const FONT_DEFAULT: Rgba = THEME.text.default;
-pub const FONT_HEADER: Rgba = THEME.text.header;
+pub const FONT_BODY: Rgba = THEME.text.body;
 pub const FONT_GOLD: Rgba = THEME.text.gold;
-pub const FONT_GREET: Rgba = THEME.text.greet;
-pub const FONT_NAME: Rgba = THEME.text.name;
-pub const FONT_NEW: Rgba = THEME.text.new;
-pub const FONT_BACK: Rgba = THEME.text.back;
-pub const FONT_HELP: Rgba = THEME.text.help;
-pub const BG_ERASE: Rgba = THEME.background.erase;
-pub const BG_LIST: Rgba = THEME.background.list;
-pub const BG_LEFT: Rgba = THEME.background.left;
-pub const BG_RIGHT: Rgba = THEME.background.right;
-pub const BG_ORDER: Rgba = THEME.background.order;
-pub const BG_RIGHT_BRIGHT: Rgba = THEME.background.right_bright;
-pub const BG_KOTH: Rgba = THEME.background.koth;
-pub const BG_TEAMCUP: Rgba = THEME.background.team_cup;
-pub const BG_WC: Rgba = THEME.background.world_cup;
-pub const BG_4HILLS: Rgba = THEME.background.four_hills;
-pub const FILL_BORDER: Rgba = THEME.fill.border;
-pub const FILL_HIGHLIGHT: Rgba = THEME.fill.highlight;
-pub const FILL_TURQUOISE: Rgba = THEME.fill.turquoise;
-pub const FILL_LINE: Rgba = THEME.fill.line;
-pub const FILL_DIM: Rgba = THEME.fill.dim;
+pub const FONT_TEAL: Rgba = THEME.text.teal;
+pub const FONT_GRAY: Rgba = THEME.text.gray;
+pub const BG_DARK: Rgba = THEME.background.dark;
+pub const BG_PURPLE: Rgba = THEME.background.purple;
+pub const BG_RED: Rgba = THEME.background.red;
+pub const BG_RED_BRIGHT: Rgba = THEME.background.red_bright;
+pub const BG_GREEN: Rgba = THEME.background.green;
+pub const BG_TEAM: Rgba = THEME.background.team;
+pub const BG_WORLDCUP: Rgba = THEME.background.worldcup;
+pub const BG_DARKEST: Rgba = THEME.background.darkest;
+pub const FILL_PURPLE: Rgba = THEME.fill.purple;
+pub const FILL_GOLD: Rgba = THEME.fill.gold;
+pub const FILL_TEAL: Rgba = THEME.fill.teal;
+pub const FILL_DARK: Rgba = THEME.fill.dark;
+pub const FILL_GRAY: Rgba = THEME.fill.gray;
 pub const BLACK: Rgba = THEME.black;

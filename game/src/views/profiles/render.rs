@@ -1,6 +1,6 @@
 use crate::gfx::jumper_colors::{ski_color, suit_color_shade};
 use crate::gfx::theme::{
-    BG_LEFT, BG_ORDER, BG_RIGHT, BLACK, FONT_BACK, FONT_DEFAULT, FONT_HELP, FONT_NAME, FONT_NEW,
+    BG_PURPLE, BG_RED, BLACK, FONT_BODY, FONT_GRAY, FONT_GOLD,
 };
 use crate::text::layout::lstr;
 use crate::views::profiles::format::format_profile_value;
@@ -10,12 +10,12 @@ use super::list::{Mode, ProfilesView};
 
 pub(super) fn draw_screen_base(view: &ProfilesView, cx: &mut PaintCx<'_>) {
     cx.fill((0, 0, 320, 200), BLACK);
-    cx.pattern_fill((0, 0, 159, 200), BG_LEFT);
-    cx.pattern_fill((160, 0, 160, 200), BG_RIGHT);
+    cx.pattern_fill((0, 0, 159, 200), BG_PURPLE);
+    cx.pattern_fill((160, 0, 160, 200), BG_RED);
 
     cx.text(
         (40, 3),
-        FONT_HELP,
+        FONT_GRAY,
         lstr(&view.resources.langbase, 34, "Jumpers:"),
     );
 }
@@ -26,17 +26,17 @@ pub(super) fn draw_list(view: &ProfilesView, cx: &mut PaintCx<'_>) {
 
     for (i, profile) in store.profiles.iter().enumerate() {
         let y = ProfilesView::y_for(i + 1);
-        cx.fill((10, y - 1, 21, 8), BG_ORDER);
+        cx.fill((10, y - 1, 21, 8), BG_PURPLE);
         if let Some(order_pos) = store.order_pos(i) {
-            cx.text((18, y), FONT_NEW, format!("{}.", order_pos + 1));
+            cx.text((18, y), FONT_GOLD, format!("{}.", order_pos + 1));
         }
-        cx.text((40, y), FONT_NAME, &profile.name);
+        cx.text((40, y), FONT_BODY, &profile.name);
     }
 
     if store.has_slot() {
         cx.text(
             (40, ProfilesView::y_for(np + 1)),
-            FONT_NEW,
+            FONT_GOLD,
             lstr(&view.resources.langbase, 302, "*Create New Jumper*"),
         );
     }
@@ -44,7 +44,7 @@ pub(super) fn draw_list(view: &ProfilesView, cx: &mut PaintCx<'_>) {
     let back_temp = if store.has_slot() { np + 3 } else { np + 2 };
     cx.text(
         (40, ProfilesView::y_for(back_temp)),
-        FONT_BACK,
+        FONT_BODY,
         lstr(&view.resources.langbase, 33, "Back to Main Menu"),
     );
 
@@ -55,7 +55,7 @@ pub(super) fn draw_list(view: &ProfilesView, cx: &mut PaintCx<'_>) {
         } else {
             10 + (entries as i32 + 1) * 8
         };
-        cx.stroke((34, box_y, 123, 9), FONT_DEFAULT);
+        cx.stroke((34, box_y, 123, 9), FONT_BODY);
     }
 }
 
@@ -65,35 +65,35 @@ pub(super) fn draw_help(view: &ProfilesView, cx: &mut PaintCx<'_>, profile: Opti
         return;
     }
 
-    cx.pattern_fill((1, 175, 158, 25), BG_LEFT);
+    cx.pattern_fill((1, 175, 158, 25), BG_PURPLE);
 
     if let Some(profile) = profile {
         let in_order = store.order_pos(profile).is_some();
         cx.text(
             (8, 175),
-            FONT_HELP,
+            FONT_GRAY,
             lstr(&view.resources.langbase, 322, "(Use arrows,"),
         );
         if in_order {
             cx.text(
                 (11, 183),
-                FONT_HELP,
+                FONT_GRAY,
                 lstr(&view.resources.langbase, 323, "ENTER edits jumper,"),
             );
             cx.text(
                 (11, 191),
-                FONT_HELP,
+                FONT_GRAY,
                 lstr(&view.resources.langbase, 324, "DEL removes from order)"),
             );
         } else {
             cx.text(
                 (11, 183),
-                FONT_HELP,
+                FONT_GRAY,
                 lstr(&view.resources.langbase, 325, "ENTER adds jumper,"),
             );
             cx.text(
                 (11, 191),
-                FONT_HELP,
+                FONT_GRAY,
                 lstr(&view.resources.langbase, 326, "DEL deletes jumper)"),
             );
         }
@@ -101,7 +101,7 @@ pub(super) fn draw_help(view: &ProfilesView, cx: &mut PaintCx<'_>, profile: Opti
 }
 
 pub(super) fn draw_empty_edit(cx: &mut PaintCx<'_>) {
-    cx.pattern_fill((166, 4, 154, 195), BG_RIGHT);
+    cx.pattern_fill((166, 4, 154, 195), BG_RED);
 }
 
 pub(super) fn draw_suit_ski(
@@ -162,11 +162,11 @@ pub(super) fn draw_profile(
     let Some(profile) = store.profiles.get(profile_index) else {
         return;
     };
-    let label_color = if edit_phase { FONT_DEFAULT } else { FONT_HELP };
-    let value_color = FONT_NEW;
+    let label_color = if edit_phase { FONT_BODY } else { FONT_GRAY };
+    let value_color = FONT_GOLD;
 
     if edit_phase {
-        cx.fill((175, 85, 131, 1), FONT_HELP);
+        cx.fill((175, 85, 131, 1), FONT_GRAY);
     }
 
     draw_suit_ski(view, cx, profile.suit_color, profile.ski_color);
@@ -178,7 +178,7 @@ pub(super) fn draw_profile(
         let label = profile_label(view, field);
         if !label.is_empty() {
             let lc = if edit_phase && field >= 10 {
-                FONT_HELP
+                FONT_GRAY
             } else {
                 label_color
             };
@@ -210,6 +210,6 @@ pub(super) fn draw_profile(
     }
 
     if let Some(selected) = view.menu_selected() {
-        cx.stroke((162, 10 + (selected as i32 * 8), 155, 9), FONT_DEFAULT);
+        cx.stroke((162, 10 + (selected as i32 * 8), 155, 9), FONT_BODY);
     }
 }

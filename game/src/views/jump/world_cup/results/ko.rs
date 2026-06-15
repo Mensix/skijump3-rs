@@ -2,7 +2,7 @@ use super::{truncate_name, OTHER_DISTANCE, OTHER_NAME, OTHER_RANK};
 use crate::competition::machine::Competition;
 use crate::competition::types::{Participant, QualificationStatus};
 use crate::gfx::sprites;
-use crate::gfx::theme::{BG_LEFT, BLACK, FILL_DIM, FONT_DEFAULT};
+use crate::gfx::theme::{BG_PURPLE, BLACK, FILL_GRAY, FONT_BODY};
 use crate::store::ResourcesRef;
 use crate::text::format::format_decimal;
 use engine::oxide::PaintCx;
@@ -22,11 +22,11 @@ pub fn render_ko_pairs(
     show_cursor: bool,
 ) {
     cx.fill((0, 0, 320, 200), BLACK);
-    cx.pattern_fill((0, 0, 320, 19), FILL_DIM);
-    cx.pattern_fill((0, 20, 320, 180), BG_LEFT);
+    cx.pattern_fill((0, 0, 320, 19), FILL_GRAY);
+    cx.pattern_fill((0, 20, 320, 180), BG_PURPLE);
     cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
 
-    cx.text((30, 6), FONT_DEFAULT, resources.langbase.lstr(94));
+    cx.text((30, 6), FONT_BODY, resources.langbase.lstr(94));
 
     let standings = if show_results {
         competition.ko_pairing_standings()
@@ -46,12 +46,12 @@ pub fn render_ko_pairs(
 
     cx.right_text(
         (305, 6),
-        FONT_DEFAULT,
+        FONT_BODY,
         resources.langbase.lstr(15).to_string(),
     );
-    cx.fill((304, 4, 9, 11), BG_LEFT);
+    cx.fill((304, 4, 9, 11), BG_PURPLE);
     if show_cursor {
-        cx.fill((306, 12, 5, 1), FONT_DEFAULT);
+        cx.fill((306, 12, 5, 1), FONT_BODY);
     }
 }
 
@@ -66,7 +66,7 @@ fn render_ko_side(
     let own = !p.is_computer;
 
     let name_color = if own {
-        FONT_DEFAULT
+        FONT_BODY
     } else if show_results {
         match p.qual {
             QualificationStatus::Qualified => OTHER_RANK,

@@ -1,7 +1,7 @@
 use crate::data::records::HillRecord;
 use crate::gfx::materials;
 use crate::gfx::sprites;
-use crate::gfx::theme::{FILL_BORDER, FILL_TURQUOISE, FONT_DEFAULT, FONT_GOLD, FONT_GREET};
+use crate::gfx::theme::{FILL_PURPLE, FILL_TEAL, FONT_BODY, FONT_GOLD, FONT_TEAL};
 use crate::jump::frame::JumpRenderFrame;
 use crate::jump::hud;
 use crate::jump::types::JumpPhase;
@@ -103,13 +103,13 @@ fn gate_info_elements(
     if ctx.allow_gate_adjust {
         let label58 = ctx.langbase.lstr(58);
         let label58_w = ctx.font.string_width(label58) as i32;
-        cx.text((64, 19), FONT_DEFAULT, label58);
+        cx.text((64, 19), FONT_BODY, label58);
         cx.text(
             (70 + label58_w, 19),
             FONT_GOLD,
             format!("{}", frame.start_gate),
         );
-        cx.text((67 + label58_w, 27), FONT_GREET, "(+/-)");
+        cx.text((67 + label58_w, 27), FONT_TEAL, "(+/-)");
     }
 }
 
@@ -123,7 +123,7 @@ fn jumper_info_box_elements(
     } else {
         ctx.phase_label
     };
-    let subline = (!ctx.team_name.is_empty()).then_some((ctx.team_name, FILL_TURQUOISE));
+    let subline = (!ctx.team_name.is_empty()).then_some((ctx.team_name, FILL_TEAL));
     hud::push_jumper_info_box(
         cx,
         ctx.font,
@@ -162,7 +162,7 @@ fn panel_header(cx: &mut PaintCx<'_>, name: &str, color: Rgba) {
 }
 
 fn panel_distance(cx: &mut PaintCx<'_>, distance: f64) {
-    cx.right_text((308, 33), FONT_GREET, format!("{distance:.1}m"));
+    cx.right_text((308, 33), FONT_TEAL, format!("{distance:.1}m"));
 }
 
 fn result_elements(
@@ -170,7 +170,7 @@ fn result_elements(
     frame: &JumpRenderFrame,
     ctx: &JumpPresentationContext<'_>,
 ) {
-    panel_header(cx, ctx.jumper_name, FONT_DEFAULT);
+    panel_header(cx, ctx.jumper_name, FONT_BODY);
     let style_min = *frame.style_points.iter().min().unwrap_or(&0);
     let style_max = *frame.style_points.iter().max().unwrap_or(&0);
     let first_min_idx = frame.style_points.iter().position(|&p| p == style_min);
@@ -179,7 +179,7 @@ fn result_elements(
         let color = if Some(i) == first_min_idx || Some(i) == first_max_idx {
             FONT_DIM_TURQUOISE
         } else {
-            FONT_GREET
+            FONT_TEAL
         };
         cx.right_text(
             (308 - (i as i32) * 24, 21),
@@ -201,7 +201,7 @@ fn result_elements(
         FONT_GOLD,
         format!("{:.1}", f64::from(frame.score) / 10.0),
     );
-    cx.right_text((308, 73), FONT_GREET, ctx.langbase.lstr(298));
+    cx.right_text((308, 73), FONT_TEAL, ctx.langbase.lstr(298));
 }
 
 fn landing_elements(
@@ -209,7 +209,7 @@ fn landing_elements(
     frame: &JumpRenderFrame,
     ctx: &JumpPresentationContext<'_>,
 ) {
-    panel_header(cx, ctx.jumper_name, FONT_GREET);
+    panel_header(cx, ctx.jumper_name, FONT_TEAL);
 
     // Pascal 2529: distance always at (temp2,33) where temp2=308
     panel_distance(cx, frame.distance);
@@ -221,7 +221,7 @@ fn landing_elements(
         }
         // Pascal 2536: if random(2)=0 then ewritefont(temp2-1+random(3),32+random(3),...)
         if let Some((x, y)) = frame.hr_shake_position {
-            cx.right_text((x, y), FONT_GREET, format!("{:.1}m", frame.distance));
+            cx.right_text((x, y), FONT_TEAL, format!("{:.1}m", frame.distance));
         }
     }
 
@@ -229,7 +229,7 @@ fn landing_elements(
         if frame.style_revealed[i] {
             cx.right_text(
                 (308 - (i as i32) * 24, 21),
-                FONT_GREET,
+                FONT_TEAL,
                 format!("{:.1}", f64::from(point) / 10.0),
             );
         }
@@ -247,7 +247,7 @@ fn dq_elements(cx: &mut PaintCx<'_>, frame: &JumpRenderFrame, ctx: &JumpPresenta
     cx.sprite(sprites::Sprite::JumperInfoBox as u16, (3, 150));
     cx.text(
         (12, 160),
-        FONT_DEFAULT,
+        FONT_BODY,
         format!("{} {}", ctx.jumper_name, ctx.langbase.lstr(79)),
     );
 }
@@ -255,9 +255,9 @@ fn dq_elements(cx: &mut PaintCx<'_>, frame: &JumpRenderFrame, ctx: &JumpPresenta
 pub fn wind_elements(cx: &mut PaintCx<'_>, position: WindPosition, value: i32) {
     let x = position.x;
     let y = position.y;
-    cx.fill((x + 4, y + 1, 35, 2), FILL_BORDER);
-    cx.fill((x + 21, y + 1, 1, 2), FONT_DEFAULT);
-    cx.fill((x + 21, y + 9, 1, 1), FONT_GREET);
+    cx.fill((x + 4, y + 1, 35, 2), FILL_PURPLE);
+    cx.fill((x + 21, y + 1, 1, 2), FONT_BODY);
+    cx.fill((x + 21, y + 9, 1, 1), FONT_TEAL);
     if value > 0 {
         cx.fill(
             (x + 22, y + 1, value / 3 + 1, 2),
@@ -271,13 +271,13 @@ pub fn wind_elements(cx: &mut PaintCx<'_>, position: WindPosition, value: i32) {
 
     let text = format!("{:.1}", f64::from(value.abs()) / 10.0);
     if value < 0 {
-        cx.text((x + 10, y + 5), FONT_GREET, "-");
+        cx.text((x + 10, y + 5), FONT_TEAL, "-");
     }
     let mut chars = text.chars();
     if let Some(ones) = chars.next() {
-        cx.text((x + 15, y + 5), FONT_GREET, ones.to_string());
+        cx.text((x + 15, y + 5), FONT_TEAL, ones.to_string());
     }
     if let Some(tenths) = text.chars().nth(2) {
-        cx.text((x + 24, y + 5), FONT_GREET, tenths.to_string());
+        cx.text((x + 24, y + 5), FONT_TEAL, tenths.to_string());
     }
 }

@@ -1,7 +1,7 @@
 use crate::competition::factory;
 use crate::competition::koth::builder;
 use crate::gfx::theme::{
-    BG_LEFT, BG_RIGHT, BLACK, FILL_DIM, FONT_DEFAULT, FONT_GOLD, FONT_GREET, FONT_HELP,
+    BG_PURPLE, BG_RED, BLACK, FILL_GRAY, FONT_BODY, FONT_GOLD, FONT_TEAL, FONT_GRAY,
 };
 use crate::route::RouteTarget;
 use crate::save::config::Config;
@@ -57,16 +57,16 @@ impl KothSetupView {
     fn col1(&self) -> engine::color::Rgba {
         let cfg = self.config();
         if cfg.kothpack > 0 {
-            FONT_HELP
+            FONT_GRAY
         } else {
-            FONT_DEFAULT
+            FONT_BODY
         }
     }
 
     fn col2(&self) -> engine::color::Rgba {
         let cfg = self.config();
         if cfg.kothpack > 0 {
-            FONT_HELP
+            FONT_GRAY
         } else {
             FONT_GOLD
         }
@@ -74,22 +74,22 @@ impl KothSetupView {
 
     fn paint_content(&self, cx: &mut PaintCx<'_>) {
         cx.fill((0, 0, 320, 200), BLACK);
-        cx.pattern_fill((0, 0, 169, 99), FILL_DIM);
-        cx.pattern_fill((0, 100, 169, 100), BG_RIGHT);
-        cx.pattern_fill((170, 0, 150, 200), BG_LEFT);
+        cx.pattern_fill((0, 0, 169, 99), FILL_GRAY);
+        cx.pattern_fill((0, 100, 169, 100), BG_RED);
+        cx.pattern_fill((170, 0, 150, 200), BG_PURPLE);
         let lang = &self.resources.langbase;
         let cfg = self.config();
 
         if self.mode.get() == KothMode::Opponents {
-            cx.pattern_fill((170, 0, 150, 200), BG_LEFT);
-            cx.text((180, 2), FONT_DEFAULT, lang.lstr(138));
-            cx.text((180, 9), FONT_HELP, lang.lstr(139));
-            cx.text((180, 16), FONT_HELP, lang.lstr(140));
-            cx.text((180, 24), FONT_GREET, lang.lstr(141));
-            cx.right_text((310, 24), FONT_GREET, lang.lstr(142));
+            cx.pattern_fill((170, 0, 150, 200), BG_PURPLE);
+            cx.text((180, 2), FONT_BODY, lang.lstr(138));
+            cx.text((180, 9), FONT_GRAY, lang.lstr(139));
+            cx.text((180, 16), FONT_GRAY, lang.lstr(140));
+            cx.text((180, 24), FONT_TEAL, lang.lstr(141));
+            cx.right_text((310, 24), FONT_TEAL, lang.lstr(142));
         } else {
             // --- right panel: "Computer Jumpers:" (white, Pascal 240) ---
-            cx.text((180, 10), FONT_DEFAULT, lang.lstr(120));
+            cx.text((180, 10), FONT_BODY, lang.lstr(120));
             if cfg.koth_count > 0 {
                 for i in 0..cfg.koth_count.min(20) as usize {
                     let idx = cfg.kothpel.get(i).copied().unwrap_or(1) as usize;
@@ -108,12 +108,12 @@ impl KothSetupView {
         }
 
         // --- left panel: menu background (Pascal MakeMenu bgcolor=245) ---
-        cx.pattern_fill((4, 7, 160, 63), FILL_DIM);
+        cx.pattern_fill((4, 7, 160, 63), FILL_GRAY);
 
         // --- left panel: menu items ---
-        cx.text((10, 10), FONT_DEFAULT, format!("1 - {}", lang.lstr(121)));
-        cx.text((10, 20), FONT_DEFAULT, format!("2 - {}", lang.lstr(122)));
-        cx.text((10, 30), FONT_DEFAULT, format!("3 - {}", lang.lstr(123)));
+        cx.text((10, 10), FONT_BODY, format!("1 - {}", lang.lstr(121)));
+        cx.text((10, 20), FONT_BODY, format!("2 - {}", lang.lstr(122)));
+        cx.text((10, 30), FONT_BODY, format!("3 - {}", lang.lstr(123)));
         cx.text((10, 40), self.col1(), format!("4 - {}", lang.lstr(124)));
         let hill_name = if cfg.kothmaki == 0 {
             lang.lstr(155)
@@ -134,7 +134,7 @@ impl KothSetupView {
         cx.text((80, 50), self.col2(), wind_str);
         cx.text((10, 60), self.col1(), format!("6 - {}", lang.lstr(126)));
         cx.text((80, 60), self.col2(), lang.lstr(cfg.kothrounds as usize));
-        cx.text((10, 80), FONT_DEFAULT, format!("0 - {}", lang.lstr(127)));
+        cx.text((10, 80), FONT_BODY, format!("0 - {}", lang.lstr(127)));
 
         // --- left panel bottom: K.O.T.H Challenge Level (gold, Pascal 246) ---
         cx.text((10, 110), FONT_GOLD, lang.lstr(130));
@@ -146,7 +146,7 @@ impl KothSetupView {
             let title = koth_pack_title(pack, lang);
             // In pack mode all items are white (Pascal kothchallenge(x,255))
             let color = if is_pack_mode {
-                FONT_DEFAULT
+                FONT_BODY
             } else {
                 let selected_pack = if cfg.kothpack == 0 {
                     7u8
@@ -154,9 +154,9 @@ impl KothSetupView {
                     cfg.kothpack as u8
                 };
                 if selected_pack == pack {
-                    FONT_DEFAULT
+                    FONT_BODY
                 } else {
-                    FONT_HELP
+                    FONT_GRAY
                 }
             };
             cx.text((10, py), color, title);
@@ -170,16 +170,16 @@ impl KothSetupView {
             KothMode::Main => {
                 let sel = self.selected.get();
                 if sel == 0 {
-                    cx.stroke((4, 77, 160, 10), FONT_DEFAULT);
+                    cx.stroke((4, 77, 160, 10), FONT_BODY);
                 } else if sel <= 6 {
                     let sy = (10 + (sel - 1) * 10) as i32;
-                    cx.stroke((4, sy - 3, 160, 10), FONT_DEFAULT);
+                    cx.stroke((4, sy - 3, 160, 10), FONT_BODY);
                 }
             }
             KothMode::Packs => {
                 let cur = self.pack_cursor.get();
                 let pcy = pack_cursor_y(cur);
-                cx.stroke((4, pcy - 3, 160, 10), FONT_DEFAULT);
+                cx.stroke((4, pcy - 3, 160, 10), FONT_BODY);
             }
             _ => {}
         }
@@ -193,7 +193,7 @@ impl KothSetupView {
             for (i, &id) in sel.iter().enumerate() {
                 let name = names.get(id - 1).map(|s| s.as_str()).unwrap_or("?");
                 let y = (i as i32 + 1) * 8 + 25;
-                cx.fill((178, y - 2, 137, 10), BG_LEFT);
+                cx.fill((178, y - 2, 137, 10), BG_PURPLE);
                 cx.text(
                     (180, y),
                     FONT_GOLD,
@@ -205,13 +205,13 @@ impl KothSetupView {
             if sel.len() < 20 {
                 let y = (sel.len() as i32 + 1) * 8 + 25;
                 let name = names.get(prev).map(|s| s.as_str()).unwrap_or("?");
-                cx.fill((178, y - 2, 137, 10), BG_LEFT);
+                cx.fill((178, y - 2, 137, 10), BG_PURPLE);
                 cx.text(
                     (180, y),
-                    FONT_DEFAULT,
+                    FONT_BODY,
                     shorten_name(name, &self.resources.font, 110),
                 );
-                cx.right_text((310, y), FONT_DEFAULT, format!("#{}", prev + 1));
+                cx.right_text((310, y), FONT_BODY, format!("#{}", prev + 1));
             }
         }
     }

@@ -1,6 +1,6 @@
 use crate::competition::team_cup::types::{TeamCupResultsKind, TeamCupStandingsKind};
 use crate::gfx::theme::{
-    BG_TEAMCUP, BLACK, FILL_DIM, FILL_HIGHLIGHT, FONT_DEFAULT, FONT_GOLD, FONT_HELP,
+    BG_TEAM, BLACK, FILL_GRAY, FILL_GOLD, FONT_BODY, FONT_GOLD, FONT_GRAY,
 };
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::format::format_decimal;
@@ -14,8 +14,8 @@ pub(crate) fn render(
     results_kind: TeamCupResultsKind,
 ) {
     cx.fill((0, 0, 320, 200), BLACK);
-    cx.fill((0, 0, 320, 19), FILL_DIM);
-    cx.pattern_fill((0, 20, 320, 180), BG_TEAMCUP);
+    cx.fill((0, 0, 320, 19), FILL_GRAY);
+    cx.pattern_fill((0, 20, 320, 180), BG_TEAM);
     let standings_kind = match results_kind {
         TeamCupResultsKind::Standings => TeamCupStandingsKind::Overall,
         TeamCupResultsKind::LegResults => TeamCupStandingsKind::Leg,
@@ -54,7 +54,7 @@ pub(crate) fn render(
         .flatten()
         .unwrap_or_default();
 
-    cx.text((30, 6), FONT_DEFAULT, header);
+    cx.text((30, 6), FONT_BODY, header);
 
     let mut last_rank = 0usize;
     let mut y = 23i32;
@@ -66,12 +66,12 @@ pub(crate) fn render(
 
         // Pascal Entry: rank in col2, name in col1, points in col1
         if entry.rank != last_rank && entry.rank > 0 {
-            let c = if is_human { FONT_GOLD } else { FILL_HIGHLIGHT };
+            let c = if is_human { FONT_GOLD } else { FILL_GOLD };
             cx.right_text((24, y), c, format!("{}.", entry.rank));
         }
         last_rank = entry.rank;
 
-        let nc = if is_human { FONT_DEFAULT } else { FONT_HELP };
+        let nc = if is_human { FONT_BODY } else { FONT_GRAY };
         let name = shorten_name(&entry.name, &resources.font, 122);
         cx.text((32, y), nc, name);
 
@@ -84,7 +84,7 @@ pub(crate) fn render(
     // Pascal WaitForKey: Done-) at bottom right
     cx.right_text(
         (319, 13),
-        FONT_HELP,
+        FONT_GRAY,
         format!("{}-)", resources.langbase.lstr(248)),
     );
 }

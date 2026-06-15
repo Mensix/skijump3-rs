@@ -1,7 +1,7 @@
 use crate::competition::factory;
 use crate::gfx::sprites;
 use crate::gfx::theme::{
-    BG_LEFT, BLACK, FILL_BORDER, FILL_DIM, FONT_DEFAULT, FONT_GREET, FONT_HEADER, FONT_HELP,
+    BG_PURPLE, BLACK, FILL_PURPLE, FILL_GRAY, FONT_BODY, FONT_TEAL, FONT_GOLD, FONT_GRAY,
 };
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
@@ -37,20 +37,20 @@ impl CustomCupSetupView {
         } else {
             (162, (slot as i32 - 20) * 7 + 39)
         };
-        cx.fill((x, y - 1, 143, 9), FILL_BORDER);
+        cx.fill((x, y - 1, 143, 9), FILL_PURPLE);
         if let Some(h) = self.resources.hills.hill(hill_idx) {
             if is_preview {
-                cx.text((x + 15, y), FONT_HELP, &h.name);
+                cx.text((x + 15, y), FONT_GRAY, &h.name);
                 let name_w = self.resources.font.string_width(&h.name) as i32;
                 let kr_str = format!("K{}", h.kr);
-                cx.text((x + 18 + name_w, y), FONT_HELP, kr_str);
+                cx.text((x + 18 + name_w, y), FONT_GRAY, kr_str);
             } else {
                 let num_str = format::ordinal_dot(slot + 1);
-                cx.right_text((x + 14, y), FONT_HEADER, num_str);
-                cx.text((x + 15, y), FONT_DEFAULT, &h.name);
+                cx.right_text((x + 14, y), FONT_GOLD, num_str);
+                cx.text((x + 15, y), FONT_BODY, &h.name);
                 let name_w = self.resources.font.string_width(&h.name) as i32;
                 let kr_str = format!("K{}", h.kr);
-                cx.text((x + 18 + name_w, y), FONT_GREET, kr_str);
+                cx.text((x + 18 + name_w, y), FONT_TEAL, kr_str);
             }
         }
     }
@@ -59,14 +59,14 @@ impl CustomCupSetupView {
         let lang = &self.resources.langbase;
         let help_line = format!("{}, {}, {}", lang.lstr(285), lang.lstr(286), lang.lstr(287));
         cx.fill((0, 0, 320, 200), BLACK);
-        cx.pattern_fill((0, 0, 11, 200), FILL_DIM);
-        cx.pattern_fill((12, 0, 296, 200), BG_LEFT);
-        cx.pattern_fill((309, 0, 11, 200), FILL_DIM);
+        cx.pattern_fill((0, 0, 11, 200), FILL_GRAY);
+        cx.pattern_fill((12, 0, 296, 200), BG_PURPLE);
+        cx.pattern_fill((309, 0, 11, 200), FILL_GRAY);
         cx.sprite(sprites::Sprite::Logo as u16, (30, 8));
-        cx.text((68, 8), FONT_DEFAULT, lang.lstr(118));
-        cx.text((78, 16), FONT_HELP, lang.lstr(119));
-        cx.text((78, 23), FONT_HELP, help_line);
-        cx.text((78, 30), FONT_HELP, lang.lstr(288));
+        cx.text((68, 8), FONT_BODY, lang.lstr(118));
+        cx.text((78, 16), FONT_GRAY, lang.lstr(119));
+        cx.text((78, 23), FONT_GRAY, help_line);
+        cx.text((78, 30), FONT_GRAY, lang.lstr(288));
 
         for (i, &hill_idx) in self.selected.iter().enumerate() {
             self.paint_hill(cx, i, hill_idx, false);

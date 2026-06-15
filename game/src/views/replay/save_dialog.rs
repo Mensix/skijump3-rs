@@ -1,6 +1,6 @@
 use crate::components::page_nav::cycle_index;
 use crate::gfx::sprites;
-use crate::gfx::theme::{BG_LEFT, BG_RIGHT, BLACK, FILL_DIM, FONT_DEFAULT, FONT_GOLD};
+use crate::gfx::theme::{BG_PURPLE, BG_RED, BLACK, FILL_GRAY, FONT_BODY, FONT_GOLD};
 use crate::jump::replay::ReplayTrace;
 use crate::store::ResourcesRef;
 use engine::oxide::input::{Key, UiEvent};
@@ -173,8 +173,8 @@ impl SaveReplayDialog {
 
     pub fn paint(&self, cx: &mut PaintCx<'_>) {
         cx.fill((0, 0, 320, 200), BLACK);
-        cx.pattern_fill((0, 0, 320, 19), FILL_DIM);
-        cx.pattern_fill((0, 20, 320, 180), BG_LEFT);
+        cx.pattern_fill((0, 0, 320, 19), FILL_GRAY);
+        cx.pattern_fill((0, 20, 320, 180), BG_PURPLE);
         cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
 
         let is_overlay = matches!(self.state, SaveDialogState::ConfirmOverwrite { .. });
@@ -200,7 +200,7 @@ impl SaveReplayDialog {
 
         cx.text(
             (30, 6),
-            FONT_DEFAULT,
+            FONT_BODY,
             format!(
                 "{}: {}µ at {}",
                 self.resources.langbase.lstr(25),
@@ -212,7 +212,7 @@ impl SaveReplayDialog {
         for i in 0..5 {
             let yy = (i * 16 + 42) as i32;
             let final_yy = if i == 4 { yy + 16 } else { yy };
-            let label_color = if i < 4 { FONT_DEFAULT } else { FONT_GOLD };
+            let label_color = if i < 4 { FONT_BODY } else { FONT_GOLD };
             let label = match i {
                 0..=2 => format!("{}. {}", i + 1, self.resources.langbase.lstr(291 + i)),
                 3 => format!("4. {}", self.resources.langbase.lstr(295)),
@@ -256,7 +256,7 @@ impl SaveReplayDialog {
                                 .string_width(&editor.buffer()[..editor.cursor_byte()])
                                 as i32;
                         if self.cursor_blink.visible(11, 10) {
-                            cx.fill((cx_pos, final_yy + 6, 5, 1), FONT_DEFAULT);
+                            cx.fill((cx_pos, final_yy + 6, 5, 1), FONT_BODY);
                         }
                     }
                 }
@@ -269,13 +269,13 @@ impl SaveReplayDialog {
             } else {
                 36 + 5 * 16
             };
-            cx.stroke((9, box_y as i32, 135, 17), FONT_DEFAULT);
+            cx.stroke((9, box_y as i32, 135, 17), FONT_BODY);
         }
     }
 
     fn paint_overwrite(&self, cx: &mut PaintCx<'_>, filename: &str) {
         cx.fill((59, 79, 203, 53), BLACK);
-        cx.fill((60, 80, 201, 51), BG_RIGHT);
+        cx.fill((60, 80, 201, 51), BG_RED);
         cx.text(
             (80, 90),
             FONT_GOLD,
@@ -286,9 +286,9 @@ impl SaveReplayDialog {
             FONT_GOLD,
             format!("{} (Y/N):", self.resources.langbase.lstr(346)),
         );
-        cx.fill((190 - 2, 110 - 2, 9, 11), BG_LEFT);
+        cx.fill((190 - 2, 110 - 2, 9, 11), BG_PURPLE);
         if self.cursor_blink.visible(11, 10) {
-            cx.fill((190, 110 + 6, 5, 1), FONT_DEFAULT);
+            cx.fill((190, 110 + 6, 5, 1), FONT_BODY);
         }
     }
 

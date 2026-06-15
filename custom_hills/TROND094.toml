@@ -1,0 +1,18 @@
+id = "TROND094"
+name = "Trondheim custom hill"
+
+[[hills]]
+id = "TROND094"
+name = "Trondheim"
+terrain_index = "TRN"
+kr = 94
+front_index = "TRN"
+back_index = "TRO"
+back_brightness = 100
+back_mirror = false
+vx_final = 139
+pk_hundred = 84
+pl_save_ten_thousand = 3233
+author = "Olaf Kryus"
+checksum = 14509473
+profile_checksum = 1230366
