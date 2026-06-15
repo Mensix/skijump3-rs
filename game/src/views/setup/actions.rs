@@ -185,14 +185,13 @@ fn handle_wind_place(view: &mut SetupView, event: UiEvent, pos: usize) -> Option
 
 pub(crate) fn seecomp_options(view: &SetupView) -> Vec<(usize, String)> {
     let names = view.resources.namesets.names_for_config(view.config().namenumber);
-    let cat_values = [239, 235, 236, 237, 238, 240];
-    let cat_keys = [221, 222, 223, 224, 225, 226];
+    let cats = [239, 235, 236, 237, 238, 240];
     let mut opts = Vec::new();
     for (i, name) in names.iter().enumerate() {
         opts.push((i + 1, format!("#{} {}", i + 1, name)));
     }
-    for (&v, &k) in cat_values.iter().zip(&cat_keys) {
-        opts.push((v, view.langbase().lstr(k).to_string()));
+    for &v in &cats {
+        opts.push((v, view.langbase().lstr(v).to_string()));
     }
     opts
 }
