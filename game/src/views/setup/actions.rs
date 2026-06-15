@@ -159,20 +159,23 @@ fn handle_name_set_input(view: &mut SetupView, event: UiEvent) -> Option<RouteTa
 
 fn handle_wind_place(view: &mut SetupView, event: UiEvent, pos: usize) -> Option<RouteTarget> {
     let winds = 11;
+    let items = winds + 1; // 11 places + 0. exit
     match event {
         UiEvent::KeyDown(Key::Up) => {
-            let new_pos = if pos == 0 { winds - 1 } else { pos - 1 };
+            let new_pos = if pos == 0 { items - 1 } else { pos - 1 };
             view.modal.set(Some(SetupModal::WindPlace(new_pos)));
         }
         UiEvent::KeyDown(Key::Down) => {
-            let new_pos = if pos >= winds - 1 { 0 } else { pos + 1 };
+            let new_pos = if pos >= items - 1 { 0 } else { pos + 1 };
             view.modal.set(Some(SetupModal::WindPlace(new_pos)));
         }
         UiEvent::KeyDown(Key::Enter) | UiEvent::Text(' ') => {
-            let place = if pos < 8 { pos + 1 } else { pos + 3 };
-            view.save_manager()
-                .update_config(|cfg| cfg.windplace = place as i32);
-            view.store.set_wind_place(place as u8);
+            if pos < winds {
+                let place = if pos < 8 { pos + 1 } else { pos + 3 };
+                view.save_manager()
+                    .update_config(|cfg| cfg.windplace = place as i32);
+                view.store.set_wind_place(place as u8);
+            }
             view.modal.set(None);
         }
         UiEvent::KeyDown(Key::Escape) => {

@@ -34,13 +34,15 @@ pub(crate) fn paint_content(view: &SetupView, cx: &mut PaintCx<'_>) {
                 cx.text((90, yy), FONT_DEFAULT, name);
             }
 
-            let yy = (winds * 10 + 34 + 20) as i32;
-            cx.right_text((85, yy), FONT_HEADER, "0.");
-            cx.text((90, yy), FONT_DEFAULT, view.langbase().lstr(154));
-            cx.stroke(
-                (70 - 6, 44 - 3 + (pos as i32) * 10, 140 + 1, 10 + 1),
-                FONT_DEFAULT,
-            );
+            let yy_exit = (winds * 10 + 34 + 20) as i32;
+            cx.right_text((85, yy_exit), FONT_HEADER, "0.");
+            cx.text((90, yy_exit), FONT_DEFAULT, view.langbase().lstr(154));
+            let stroke_y = if pos < winds {
+                44 - 3 + (pos as i32) * 10
+            } else {
+                yy_exit - 3
+            };
+            cx.stroke((70 - 6, stroke_y, 140 + 1, 10 + 1), FONT_DEFAULT);
         }
         Some(SetupModal::SeeComps(idx)) => {
             cx.fill((74, 79, 172, 54), FILL_BORDER);
