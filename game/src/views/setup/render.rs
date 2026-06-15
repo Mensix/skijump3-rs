@@ -144,7 +144,7 @@ fn render_configure_keys(
                     cx.fill((185, y + 6, 5, 1), FONT_DEFAULT);
                 }
             }
-            cx.text((x + 160, y), FONT_HELP, key_text);
+            cx.text((x + 160, y), FONT_HEADER, key_text);
         }
     }
 
