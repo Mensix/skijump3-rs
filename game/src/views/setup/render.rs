@@ -82,7 +82,13 @@ pub(crate) fn paint_content(view: &SetupView, cx: &mut PaintCx<'_>) {
             cx.stroke((112 - 6, 64 - 3 + (sel as i32) * 8, 100 + 1, 8 + 1), FONT_DEFAULT);
         }
         Some(SetupModal::ConfigureKeys { .. }) => {}
-        Some(SetupModal::NameSetInput) => {}
+        Some(SetupModal::NameSetInput) => {
+            cx.fill((253, 68, 9, 11), FILL_DIM);
+            let cursor_on = view.cursor_blink.visible(11, 10);
+            if cursor_on {
+                cx.fill((255, 76, 5, 1), FONT_DEFAULT);
+            }
+        }
         None => {}
     }
 }
@@ -287,14 +293,16 @@ fn render_screen(view: &SetupView, cx: &mut PaintCx<'_>) {
         setup_item(view, cx, temp, entries, &value_str);
     }
 
-    let sel = view.menu.selected();
-    if sel <= entries {
-        let by = if sel < entries {
-            40 - 3 + (sel as i32) * 10
-        } else {
-            (entries as i32) * 10 + 50 - 3
-        };
-        cx.stroke((35 - 6, by, 221 + 1, 10 + 1), FONT_DEFAULT);
+    if !matches!(view.modal.get(), Some(SetupModal::NameSetInput | SetupModal::LanguagePicker(_))) {
+        let sel = view.menu.selected();
+        if sel <= entries {
+            let by = if sel < entries {
+                40 - 3 + (sel as i32) * 10
+            } else {
+                (entries as i32) * 10 + 50 - 3
+            };
+            cx.stroke((35 - 6, by, 221 + 1, 10 + 1), FONT_DEFAULT);
+        }
     }
 }
 

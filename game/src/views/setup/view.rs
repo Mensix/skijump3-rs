@@ -5,7 +5,7 @@ use crate::save::SaveManager;
 use crate::store::{ResourcesRef, StoreRef};
 use crate::text::lang::LangBase;
 use engine::oxide::widgets::menu::{MenuItem as OxideMenuItem, PixelMenu};
-use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent};
+use engine::oxide::{Blinker, PaintCx, Screen, ScreenEventCx, UiEvent};
 use std::cell::Cell;
 
 use super::state::SetupModal;
@@ -17,6 +17,7 @@ pub struct SetupView {
     pub(crate) selected_by_screen: [Cell<usize>; 4],
     pub(crate) menu: PixelMenu,
     pub(crate) modal: Cell<Option<SetupModal>>,
+    pub(crate) cursor_blink: Blinker,
 }
 
 impl SetupView {
@@ -29,6 +30,7 @@ impl SetupView {
             selected_by_screen: [Cell::new(0), Cell::new(0), Cell::new(0), Cell::new(0)],
             menu,
             modal: Cell::new(None),
+            cursor_blink: Blinker::new(),
         }
     }
 
