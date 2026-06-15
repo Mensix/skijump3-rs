@@ -56,8 +56,9 @@ pub(crate) fn paint_content(view: &SetupView, cx: &mut PaintCx<'_>) {
             cx.text((95, 112), color, display);
         }
         Some(SetupModal::ConfirmReset(kind)) => {
-            cx.fill((69, 79, 182, 52), FILL_BORDER);
-            cx.fill((70, 80, 180, 50), BG_LEFT);
+            cx.fill((69, 79, 183, 53), FILL_BORDER);
+            cx.fill((70, 80, 181, 51), BG_LEFT);
+            cx.pattern_fill((70, 80, 181, 51), FILL_DIM);
             let label = if kind == 1 {
                 view.langbase().lstr(190)
             } else {
