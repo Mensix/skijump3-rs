@@ -82,6 +82,11 @@ pub(crate) fn paint_content(view: &SetupView, cx: &mut PaintCx<'_>) {
             cx.stroke((112 - 6, 64 - 3 + (sel as i32) * 8, 100 + 1, 8 + 1), FONT_DEFAULT);
         }
         Some(SetupModal::ConfigureKeys { .. }) => {}
+        Some(SetupModal::NameSetInput) => {
+            let yy = 70;
+            cx.fill((248, yy - 2, 71, 10), FILL_DIM);
+            cx.stroke((248, yy - 2, 71, 10), FONT_DEFAULT);
+        }
         None => {}
     }
 }

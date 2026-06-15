@@ -10,6 +10,7 @@ pub(crate) enum SetupModal {
         selected: usize,
         capture: Option<usize>,
     },
+    NameSetInput,
 }
 
 pub(crate) fn hex_char(index: usize) -> &'static str {

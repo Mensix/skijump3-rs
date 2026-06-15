@@ -17,6 +17,7 @@ pub(crate) fn handle_event(view: &mut SetupView, event: UiEvent) -> Option<Route
         Some(SetupModal::ConfigureKeys { selected, capture }) => {
             handle_configure_keys(view, event, selected, capture)
         }
+        Some(SetupModal::NameSetInput) => handle_name_set_input(view, event),
         None => handle_screen_event(view, event),
     }
 }
@@ -126,6 +127,31 @@ fn handle_configure_keys(
                 }
             }
         }
+        _ => {}
+    }
+    None
+}
+
+fn handle_name_set_input(view: &mut SetupView, event: UiEvent) -> Option<RouteTarget> {
+    match event {
+        UiEvent::Text(c) => {
+            let ns_len = view.resources.namesets.len();
+            let idx = if c.is_ascii_digit() {
+                (c as u8 - b'0') as usize
+            } else if c.is_ascii_uppercase() {
+                (c as u8 - b'A') as usize + 10
+            } else if c.is_ascii_lowercase() {
+                (c.to_ascii_uppercase() as u8 - b'A') as usize + 10
+            } else {
+                return None;
+            };
+            if idx < ns_len {
+                view.save_manager()
+                    .update_config(|cfg| cfg.namenumber = idx as i32);
+            }
+            view.modal.set(None);
+        }
+        UiEvent::KeyDown(Key::Escape) => view.modal.set(None),
         _ => {}
     }
     None
@@ -342,11 +368,7 @@ fn activate_item(view: &mut SetupView, screen: usize, item: usize) {
         (1, 2) => view
             .save_manager()
             .update_config(|cfg| cfg.gdetail = i32::from(cfg.gdetail == 0)),
-        (1, 3) => {
-            let ns_len = view.resources.namesets.len();
-            view.save_manager()
-                .update_config(|cfg| cfg.namenumber = (cfg.namenumber + 1) % ns_len as i32);
-        }
+        (1, 3) => view.modal.set(Some(SetupModal::NameSetInput)),
         (2, 0) => view
             .save_manager()
             .update_config(|cfg| cfg.trainrounds = (cfg.trainrounds + 1) % 4),
