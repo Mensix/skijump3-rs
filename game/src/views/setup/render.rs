@@ -1,6 +1,6 @@
 use crate::gfx::sprites;
 use crate::gfx::theme::{
-    BG_LEFT, BLACK, FILL_BORDER, FILL_DIM, FONT_DEFAULT, FONT_GOLD, FONT_GREET, FONT_HEADER,
+    BG_LEFT, BLACK, FILL_BORDER, FILL_DIM, FONT_DEFAULT, FONT_HEADER,
     FONT_HELP,
 };
 use engine::oxide::PaintCx;
@@ -72,21 +72,14 @@ pub(crate) fn paint_content(view: &SetupView, cx: &mut PaintCx<'_>) {
         }
         Some(SetupModal::LanguagePicker(sel)) => {
             let langs = &view.langbase().languages;
-            cx.fill((0, 0, 320, 200), BLACK);
-            cx.pattern_fill((0, 0, 51, 200), FILL_DIM);
-            cx.pattern_fill((52, 0, 216, 200), BG_LEFT);
-            cx.pattern_fill((269, 0, 51, 200), FILL_DIM);
-            cx.sprite(sprites::Sprite::Logo as u16, (80, 6));
-            cx.right_text((240, 6), FONT_DEFAULT, "WELCOME!");
-            cx.right_text((240, 16), FONT_GOLD, "TERVETULOA!");
-            cx.right_text((240, 26), FONT_GREET, "WILLKOMMEN!");
-            cx.right_text((240, 36), FONT_DEFAULT, "VALKOMMEN!");
+            cx.fill((74, 41, 172, 145), FILL_BORDER);
+            cx.fill((75, 42, 170, 143), BG_LEFT);
             cx.text((100, 50), FONT_DEFAULT, "PLEASE CHOOSE A LANGUAGE:");
             for (i, name) in langs.iter().enumerate() {
                 let yy = ((i + 1) as i32) * 8 + 55;
-                cx.center_text((155, yy), FONT_GOLD, name);
+                cx.center_text((155, yy), FONT_HEADER, name);
             }
-            cx.stroke((106, 61 + (sel as i32) * 8, 101, 9), FONT_DEFAULT);
+            cx.stroke((112 - 6, 64 - 3 + (sel as i32) * 8, 100 + 1, 8 + 1), FONT_DEFAULT);
         }
         Some(SetupModal::ConfigureKeys { .. }) => {}
         None => {}
