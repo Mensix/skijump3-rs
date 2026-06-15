@@ -27,15 +27,11 @@ impl TrainingSetupView {
     }
 
     fn item_row(&self, idx: usize) -> usize {
-        if self.has_more() && idx == self.page_items() {
-            idx + 1
-        } else {
-            idx
-        }
+        idx
     }
 
     fn exit_row(&self) -> usize {
-        self.page_items() + if self.has_more() { 3 } else { 2 }
+        self.page_items() + 3
     }
 
     pub fn new(resources: ResourcesRef, store: StoreRef) -> Self {
@@ -76,7 +72,7 @@ impl TrainingSetupView {
             return Some(RouteTarget::MainMenu);
         }
         if self.has_more() && sel == self.page_items() {
-            self.start = (self.start + 20) % self.total;
+            self.start = if self.start + 20 >= self.total { 0 } else { self.start + 20 };
             self.menu = self.rebuild_menu();
             None
         } else {

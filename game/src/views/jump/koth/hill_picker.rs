@@ -49,8 +49,8 @@ impl KothHillPickerView {
         (self.total.saturating_sub(self.start)).min(20)
     }
 
-    const fn has_more(&self) -> bool {
-        self.total > 20
+    fn has_more(&self) -> bool {
+        self.total > self.start + 20
     }
 
     fn item_row(&self, idx: usize) -> usize {
@@ -62,7 +62,7 @@ impl KothHillPickerView {
     }
 
     fn exit_row(&self) -> usize {
-        self.page_items() + if self.has_more() { 3 } else { 2 }
+        self.page_items() + if self.has_more() { 4 } else { 3 }
     }
 
     fn rebuild_menu(&self) -> PixelMenu {
@@ -78,7 +78,7 @@ impl KothHillPickerView {
     fn select_hill(&mut self) {
         let sel = self.menu.selected();
         if self.has_more() && sel == self.page_items() {
-            self.start = (self.start + 20) % self.total;
+            self.start = if self.start + 20 >= self.total { 0 } else { self.start + 20 };
             self.menu = self.rebuild_menu();
         } else if sel == self.menu.item_count() {
             self.resources
