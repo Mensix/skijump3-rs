@@ -137,10 +137,14 @@ fn render_configure_keys(
                 key_name(keys[item], view.langbase())
             };
             if capture == Some(item) {
-                cx.fill((180, y - 2, 139, 9), BG_LEFT);
-                cx.pattern_fill((180, y - 2, 139, 9), FILL_DIM);
+                cx.fill((180, y - 2, 140, 10), FILL_DIM);
+                cx.pattern_fill((180, y - 2, 140, 10), BG_LEFT);
+                cx.fill((183, y - 2, 9, 11), FILL_DIM);
+                if view.cursor_blink.visible(11, 10) {
+                    cx.fill((185, y + 6, 5, 1), FONT_DEFAULT);
+                }
             }
-            cx.text((x + 160, y), FONT_HEADER, key_text);
+            cx.text((x + 160, y), FONT_HELP, key_text);
         }
     }
 
