@@ -141,7 +141,7 @@ pub fn render(cx: &mut PaintCx<'_>, resources: &ResourcesRef, store: &StoreRef) 
 
         let kp = KothPage {
             items: entries,
-            title: title,
+            title,
         };
 
         // new_screen_with_bg(1, KOTH_BG) — like Hall of Fame

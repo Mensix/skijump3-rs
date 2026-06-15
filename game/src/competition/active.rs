@@ -2,6 +2,7 @@ use crate::competition::koth::types::KothRuntime;
 use crate::competition::machine::Competition;
 use crate::competition::team_cup::types::TeamCupRuntime;
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone)]
 pub enum ActiveCompetition {
     Training,

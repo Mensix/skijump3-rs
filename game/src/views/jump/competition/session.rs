@@ -54,6 +54,7 @@ impl CompetitionSession {
             .unwrap_or(false)
     }
 
+    #[allow(clippy::type_complexity)]
     pub(crate) fn drive_competition<R>(
         &self,
         scene: &JumpScene,
@@ -82,6 +83,7 @@ impl CompetitionSession {
         Ok(Some(command))
     }
 
+    #[allow(clippy::type_complexity)]
     pub(crate) fn advance_results_and_drive<R>(
         &self,
         scene: &JumpScene,

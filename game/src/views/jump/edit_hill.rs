@@ -191,11 +191,8 @@ impl EditHillView {
     }
 
     fn validate_int(value: &mut String, low: i32, high: i32) {
-        match value.trim().parse::<i32>() {
-            Ok(n) => {
-                *value = n.clamp(low, high).to_string();
-            }
-            Err(_) => {}
+        if let Ok(n) = value.trim().parse::<i32>() {
+            *value = n.clamp(low, high).to_string();
         }
     }
 

@@ -65,6 +65,7 @@ impl TextCache {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn draw(
         &mut self,
         renderer: &mut Renderer,

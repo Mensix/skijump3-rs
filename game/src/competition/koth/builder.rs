@@ -17,8 +17,8 @@ pub fn build_koth(
 ) -> KothRuntime {
     let kothpel: Vec<usize> = config.kothpel.iter().map(|&v| v as usize).collect();
 
-    let jump_rounds_per_elimination = config.kothrounds.max(1).min(2) as u8;
-    let _pack = config.kothpack.max(1).min(6) as u8;
+    let jump_rounds_per_elimination = config.kothrounds.clamp(1, 2) as u8;
+    let _pack = config.kothpack.clamp(1, 6) as u8;
     let packed_hill = if config.kothmaki > 0 {
         Some(config.kothmaki as usize - 1)
     } else {

@@ -2,6 +2,7 @@ use crate::competition::core::ranking::ranked_order;
 use crate::competition::types::{CompetitionPhase, Participant, QualificationStatus};
 
 /// Criterion for sorting the participant list.
+#[allow(clippy::enum_variant_names)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SortBy {
     WcPoints,

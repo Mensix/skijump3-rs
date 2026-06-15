@@ -360,6 +360,7 @@ fn round_header(
     format!("{prefix} {event} {of} {total} - {hill} - R {round}")
 }
 
+#[allow(clippy::too_many_arguments)]
 fn render_results_entry(
     cx: &mut PaintCx<'_>,
     entry: &ResultsEntry,

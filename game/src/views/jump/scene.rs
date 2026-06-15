@@ -38,7 +38,7 @@ impl JumpScene {
         store: &StoreRef,
         existing: Option<SnowSystem>,
     ) -> SnowSystem {
-        let mut snow = existing.unwrap_or_else(SnowSystem::new);
+        let mut snow = existing.unwrap_or_default();
         if store.consume_first_jump_event() {
             let low_detail = resources.save_manager.config.borrow().gdetail == 1;
             store.with_jump_rng_wind_mut(|rng, wind| {
