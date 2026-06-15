@@ -184,36 +184,27 @@ fn handle_wind_place(view: &mut SetupView, event: UiEvent, pos: usize) -> Option
 }
 
 fn handle_see_comps(view: &mut SetupView, event: UiEvent, mut val: usize) -> Option<RouteTarget> {
-    let num_players: i32 = 250;
     match event {
         UiEvent::KeyDown(Key::Up | Key::Left) => {
-            if val > 1 {
-                val -= 1
-            } else {
-                val = 240;
-            }
-            if val < 235 && val > num_players as usize {
-                val = (num_players as usize).saturating_sub(11);
-            }
+            val = if val > 1 { val - 1 } else { 240 };
             view.modal.set(Some(SetupModal::SeeComps(val)));
         }
         UiEvent::KeyDown(Key::Down | Key::Right) => {
-            if val >= 240 {
-                val = 1;
-            } else {
-                val += 1;
-            }
-            if val > num_players as usize - 11 && val < 235 {
-                val = 235;
-            }
+            val = if val >= 240 { 1 } else { val + 1 };
             view.modal.set(Some(SetupModal::SeeComps(val)));
+        }
+        UiEvent::KeyDown(Key::Home) => {
+            view.modal.set(Some(SetupModal::SeeComps(1)));
+        }
+        UiEvent::KeyDown(Key::End) => {
+            view.modal.set(Some(SetupModal::SeeComps(240)));
         }
         UiEvent::KeyDown(Key::Enter) => {
             view.save_manager()
                 .update_config(|cfg| cfg.seecomps = val as i32);
             view.modal.set(None);
         }
-        UiEvent::KeyDown(Key::Escape) => {
+        UiEvent::KeyDown(Key::Escape | Key::Delete) => {
             view.modal.set(None);
         }
         _ => {}

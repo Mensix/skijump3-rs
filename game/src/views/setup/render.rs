@@ -47,7 +47,7 @@ pub(crate) fn paint_content(view: &SetupView, cx: &mut PaintCx<'_>) {
             cx.fill((75, 80, 170, 52), BG_LEFT);
             cx.text((85, 85), FONT_DEFAULT, view.langbase().lstr(220));
             cx.text((85, 95), FONT_HELP, view.langbase().lstr(150));
-            let display = if val > 240 {
+            let display = if val >= 235 {
                 view.langbase().lstr(val).to_string()
             } else {
                 format!("#{val}")
