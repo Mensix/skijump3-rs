@@ -104,6 +104,11 @@ impl SnowSystem {
         self.reset(rng);
     }
 
+    pub fn clear_count(&mut self) {
+        self.count = 0;
+        self.max = 0;
+    }
+
     #[must_use]
     pub const fn count(&self) -> u16 {
         self.count

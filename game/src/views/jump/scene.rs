@@ -32,15 +32,30 @@ impl JumpScene {
     /// Create a snow system, optionally sampling snow count and wind
     /// on the very first event (Pascal-faithful one-time init).
     /// Also initializes wind for the event if this is the first scene.
-    fn prepare_snow(store: &StoreRef) -> SnowSystem {
-        let mut snow = SnowSystem::new();
+    fn prepare_snow(
+        resources: &ResourcesRef,
+        store: &StoreRef,
+        existing: Option<SnowSystem>,
+    ) -> SnowSystem {
+        let mut snow = existing.unwrap_or_else(SnowSystem::new);
         if store.consume_first_jump_event() {
+            let low_detail = resources.save_manager.config.borrow().gdetail == 1;
             store.with_jump_rng_wind_mut(|rng, wind| {
                 wind.initialize(rng, store.wind_place());
                 let snow_count = calculate_snow_count(rng);
                 snow.set_count(snow_count, rng);
+                let snow_count = if low_detail { 0 } else { snow_count };
+                if snow_count == 0 {
+                    snow.clear_count();
+                }
+                store.set_jump_snow_count(snow_count);
                 wind.sample(rng);
             });
+        } else if snow.count() == 0 {
+            let snow_count = store.jump_snow_count();
+            if snow_count > 0 {
+                store.with_jump_rng_wind_mut(|rng, _| snow.set_count(snow_count, rng));
+            }
         }
         snow
     }
@@ -53,7 +68,7 @@ impl JumpScene {
         participant: JumpParticipant,
         policy: JumpPolicy,
     ) -> Self {
-        let snow = Self::prepare_snow(&store);
+        let snow = Self::prepare_snow(&resources, &store, None);
         let runner = RefCell::new(Self::build_runner(
             resources.clone(),
             &store,
@@ -82,7 +97,8 @@ impl JumpScene {
         phase_label: String,
     ) {
         *self.telemetry.borrow_mut() = None;
-        let snow = Self::prepare_snow(&self.store);
+        let existing_snow = self.runner.borrow().clone_snow();
+        let snow = Self::prepare_snow(&self.resources, &self.store, Some(existing_snow));
         *self.runner.borrow_mut() = Self::build_runner(
             self.resources.clone(),
             &self.store,

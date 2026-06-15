@@ -135,7 +135,7 @@ impl ReplayView {
 
         let (viewport_rgba, viewport_mask) = terrain.viewport_rgba_and_mask(sx, sy, WIDTH, HEIGHT);
         let mut viewport_rgba = viewport_rgba;
-        if !session.trace().meta.intro {
+        if !session.trace().meta.intro && self.snow.borrow().count() > 0 {
             let previous = *self.snow_camera.borrow();
             *self.snow_camera.borrow_mut() = (sx, sy);
             let draw = self.snow_advance.replace(false);

@@ -87,6 +87,7 @@ pub struct JumpRuntime {
     wind: RefCell<Wind>,
     wind_place: Cell<u8>,
     first_event: Cell<bool>,
+    snow_count: Cell<u16>,
 }
 
 impl JumpRuntime {
@@ -102,6 +103,7 @@ impl JumpRuntime {
             wind: RefCell::new(Wind::default()),
             wind_place: Cell::new(0),
             first_event: Cell::new(true),
+            snow_count: Cell::new(0),
         }
     }
 
@@ -148,6 +150,14 @@ impl JumpRuntime {
     pub fn with_wind<R>(&self, f: impl FnOnce(&Wind) -> R) -> R {
         let wind = self.wind.borrow();
         f(&wind)
+    }
+
+    pub fn set_snow_count(&self, count: u16) {
+        self.snow_count.set(count);
+    }
+
+    pub fn snow_count(&self) -> u16 {
+        self.snow_count.get()
     }
 }
 
@@ -371,6 +381,14 @@ impl Store {
 
     pub fn with_jump_wind<R>(&self, f: impl FnOnce(&Wind) -> R) -> R {
         self.jump_runtime.with_wind(f)
+    }
+
+    pub fn set_jump_snow_count(&self, count: u16) {
+        self.jump_runtime.set_snow_count(count);
+    }
+
+    pub fn jump_snow_count(&self) -> u16 {
+        self.jump_runtime.snow_count()
     }
 
     pub fn select_replay(&self, trace: ReplayTrace) {

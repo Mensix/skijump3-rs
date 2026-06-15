@@ -94,6 +94,10 @@ impl JumpRunner {
         self.session.replay_trace()
     }
 
+    pub(crate) fn clone_snow(&self) -> SnowSystem {
+        self.snow.clone()
+    }
+
     pub(crate) fn reset_state(&mut self, start_gate: i32, record_distance: f64) {
         self.config.start_gate = start_gate;
         self.config.record_distance = record_distance;
@@ -203,6 +207,9 @@ impl JumpRunner {
     }
 
     fn apply_snow_to_viewport(&mut self, frame: &mut JumpRenderFrame, wind: i32) {
+        if self.snow.count() == 0 {
+            return;
+        }
         let draw = self.session.draws_snow();
         if let Some(camera) = self.session.camera() {
             let delta_x = self.prev_camera.0 - camera.0;
