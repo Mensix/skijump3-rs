@@ -311,6 +311,10 @@ impl Store {
         self.records.borrow()
     }
 
+    pub fn replace_records(&self, records: RecordStore) {
+        *self.records.borrow_mut() = records;
+    }
+
     pub fn try_records(&self) -> Option<Ref<'_, RecordStore>> {
         self.records.try_borrow().ok()
     }

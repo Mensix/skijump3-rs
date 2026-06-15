@@ -25,6 +25,25 @@ pub struct RecordStore {
 
 impl RecordStore {
     #[must_use]
+    pub fn bundled_default() -> Self {
+        let data = include_bytes!("../../assets/hiscores.toml");
+        Self::from_toml_bytes(data).unwrap_or_default()
+    }
+
+    #[must_use]
+    pub fn cleared_default() -> Self {
+        let mut records = Self::bundled_default();
+        for top in &mut records.top {
+            top.pos = 0;
+            top.score = 0.0;
+        }
+        for hill in &mut records.hill_records {
+            hill.len = 0.0;
+        }
+        records
+    }
+
+    #[must_use]
     pub fn top(&self, idx: usize) -> Option<&Hiscore> {
         self.top.get(idx)
     }

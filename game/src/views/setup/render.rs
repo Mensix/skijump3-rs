@@ -1,13 +1,19 @@
 use crate::gfx::sprites;
 use crate::gfx::theme::{
-    BG_LEFT, BLACK, FILL_BORDER, FILL_DIM, FONT_DEFAULT, FONT_HEADER, FONT_HELP,
+    BG_LEFT, BLACK, FILL_BORDER, FILL_DIM, FONT_DEFAULT, FONT_GOLD, FONT_GREET, FONT_HEADER,
+    FONT_HELP,
 };
 use engine::oxide::PaintCx;
 
-use super::state::{hex_char, wind_place_name, SetupModal};
+use super::state::{hex_char, key_name, wind_place_name, SetupModal};
 use super::view::SetupView;
 
 pub(crate) fn paint_content(view: &SetupView, cx: &mut PaintCx<'_>) {
+    if let Some(SetupModal::ConfigureKeys { selected, capture }) = view.modal.get() {
+        render_configure_keys(view, cx, selected, capture);
+        return;
+    }
+
     render_screen(view, cx);
 
     match view.modal.get() {
@@ -25,21 +31,16 @@ pub(crate) fn paint_content(view: &SetupView, cx: &mut PaintCx<'_>) {
                     wind_place_name(view.langbase(), apu1 + 2)
                 };
                 cx.right_text((85, yy), FONT_HEADER, format!("{apu1}."));
-                let color = if (apu1 - 1) == pos {
-                    FONT_HEADER
-                } else {
-                    FONT_DEFAULT
-                };
-                cx.text((90, yy), color, name);
+                cx.text((90, yy), FONT_DEFAULT, name);
             }
 
             let yy = (winds * 10 + 34 + 20) as i32;
-            cx.text(
-                (85, yy),
+            cx.right_text((85, yy), FONT_HEADER, "0.");
+            cx.text((90, yy), FONT_DEFAULT, view.langbase().lstr(154));
+            cx.stroke(
+                (70 - 6, 44 - 3 + (pos as i32) * 10, 140 + 1, 10 + 1),
                 FONT_DEFAULT,
-                format!("0.{}", view.langbase().lstr(154)),
             );
-            cx.text((75, 175), FONT_HELP, view.langbase().lstr(150));
         }
         Some(SetupModal::SeeComps(val)) => {
             cx.fill((74, 79, 172, 54), FILL_BORDER);
@@ -71,19 +72,80 @@ pub(crate) fn paint_content(view: &SetupView, cx: &mut PaintCx<'_>) {
         }
         Some(SetupModal::LanguagePicker(sel)) => {
             let langs = &view.langbase().languages;
-            cx.fill((74, 41, 173, 146), FILL_BORDER);
-            cx.fill((75, 42, 171, 144), BG_LEFT);
+            cx.fill((0, 0, 320, 200), BLACK);
+            cx.pattern_fill((0, 0, 51, 200), FILL_DIM);
+            cx.pattern_fill((52, 0, 216, 200), BG_LEFT);
+            cx.pattern_fill((269, 0, 51, 200), FILL_DIM);
+            cx.sprite(sprites::Sprite::Logo as u16, (80, 6));
+            cx.right_text((240, 6), FONT_DEFAULT, "WELCOME!");
+            cx.right_text((240, 16), FONT_GOLD, "TERVETULOA!");
+            cx.right_text((240, 26), FONT_GREET, "WILLKOMMEN!");
+            cx.right_text((240, 36), FONT_DEFAULT, "VALKOMMEN!");
             cx.text((100, 50), FONT_DEFAULT, "PLEASE CHOOSE A LANGUAGE:");
             for (i, name) in langs.iter().enumerate() {
                 let yy = ((i + 1) as i32) * 8 + 55;
-                cx.center_text((155, yy), FONT_HEADER, name);
+                cx.center_text((155, yy), FONT_GOLD, name);
             }
-            let bx = 112 - 6;
-            let by = 64 - 3 + (sel as i32) * 8;
-            cx.stroke((bx, by, 100 + 1, 8 + 1), FONT_DEFAULT);
+            cx.stroke((106, 61 + (sel as i32) * 8, 101, 9), FONT_DEFAULT);
         }
+        Some(SetupModal::ConfigureKeys { .. }) => {}
         None => {}
     }
+}
+
+fn render_configure_keys(
+    view: &SetupView,
+    cx: &mut PaintCx<'_>,
+    selected: usize,
+    capture: Option<usize>,
+) {
+    cx.fill((0, 0, 320, 200), BLACK);
+    cx.pattern_fill((0, 0, 320, 19), FILL_DIM);
+    cx.pattern_fill((0, 20, 320, 180), BG_LEFT);
+    cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
+    cx.text((30, 6), FONT_DEFAULT, view.langbase().lstr(199));
+
+    let cfg = view.config();
+    let keys = [
+        cfg.key_up,
+        cfg.key_right,
+        cfg.key_left,
+        cfg.key_telemark,
+        cfg.key_replay,
+    ];
+    drop(cfg);
+
+    let x = 25;
+    let mut y = 0;
+    for temp in 1..=6 {
+        let item = temp - 1;
+        y = (temp as i32) * 10 + 30;
+        cx.right_text((x, y), FONT_HEADER, format!("{temp}."));
+        cx.text((x + 10, y), FONT_DEFAULT, view.langbase().lstr(temp + 330));
+        if temp < 6 {
+            let key_text = if capture == Some(item) {
+                "".to_string()
+            } else {
+                key_name(keys[item], view.langbase())
+            };
+            if capture == Some(item) {
+                cx.fill((180, y - 2, 139, 9), BG_LEFT);
+                cx.pattern_fill((180, y - 2, 139, 9), FILL_DIM);
+            }
+            cx.text((x + 160, y), FONT_HEADER, key_text);
+        }
+    }
+
+    y += 20;
+    cx.right_text((x, y), FONT_HEADER, "0.");
+    cx.text((x + 10, y), FONT_DEFAULT, view.langbase().lstr(337));
+
+    let by = if selected < 6 {
+        40 - 3 + (selected as i32) * 10
+    } else {
+        y - 3
+    };
+    cx.stroke((35 - 6, by, 150 + 1, 10 + 1), FONT_DEFAULT);
 }
 
 fn render_screen(view: &SetupView, cx: &mut PaintCx<'_>) {

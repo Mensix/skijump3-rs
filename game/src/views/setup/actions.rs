@@ -1,6 +1,8 @@
 use crate::components::page_nav::cycle_index;
+use crate::data::records::RecordStore;
 use crate::route::RouteTarget;
 use crate::save::config::Config;
+use crate::views::jump::input::JumpKeyBindings;
 use engine::oxide::input::{Key, UiEvent};
 
 use super::state::SetupModal;
@@ -12,8 +14,121 @@ pub(crate) fn handle_event(view: &mut SetupView, event: UiEvent) -> Option<Route
         Some(SetupModal::SeeComps(val)) => handle_see_comps(view, event, val),
         Some(SetupModal::ConfirmReset(_)) => handle_confirm_reset(view, event),
         Some(SetupModal::LanguagePicker(sel)) => handle_language_picker(view, event, sel),
+        Some(SetupModal::ConfigureKeys { selected, capture }) => {
+            handle_configure_keys(view, event, selected, capture)
+        }
         None => handle_screen_event(view, event),
     }
+}
+
+fn config_key(config: &Config, item: usize) -> i32 {
+    match item {
+        0 => config.key_up,
+        1 => config.key_right,
+        2 => config.key_left,
+        3 => config.key_telemark,
+        4 => config.key_replay,
+        _ => 0,
+    }
+}
+
+fn set_config_key(config: &mut Config, item: usize, code: i32) {
+    match item {
+        0 => config.key_up = code,
+        1 => config.key_right = code,
+        2 => config.key_left = code,
+        3 => config.key_telemark = code,
+        4 => config.key_replay = code,
+        _ => {}
+    }
+}
+
+fn handle_configure_keys(
+    view: &mut SetupView,
+    event: UiEvent,
+    selected: usize,
+    capture: Option<usize>,
+) -> Option<RouteTarget> {
+    if let Some(item) = capture {
+        match event {
+            UiEvent::KeyDown(Key::Escape) => {
+                view.modal.set(Some(SetupModal::ConfigureKeys {
+                    selected,
+                    capture: None,
+                }));
+            }
+            _ => {
+                if let Some(code) = JumpKeyBindings::code_for(event) {
+                    let duplicate = {
+                        let cfg = view.config();
+                        (0..5).any(|idx| idx != item && config_key(&cfg, idx) == code)
+                    };
+                    if !duplicate {
+                        view.save_manager()
+                            .update_config(|cfg| set_config_key(cfg, item, code));
+                        view.modal.set(Some(SetupModal::ConfigureKeys {
+                            selected,
+                            capture: None,
+                        }));
+                    }
+                }
+            }
+        }
+        return None;
+    }
+
+    match event {
+        UiEvent::KeyDown(Key::Up) => {
+            view.modal.set(Some(SetupModal::ConfigureKeys {
+                selected: cycle_index(selected, 7, -1),
+                capture: None,
+            }));
+        }
+        UiEvent::KeyDown(Key::Down) => {
+            view.modal.set(Some(SetupModal::ConfigureKeys {
+                selected: cycle_index(selected, 7, 1),
+                capture: None,
+            }));
+        }
+        UiEvent::KeyDown(Key::Escape) => view.modal.set(None),
+        UiEvent::KeyDown(Key::Enter) | UiEvent::Text(' ') => match selected {
+            0..=4 => view.modal.set(Some(SetupModal::ConfigureKeys {
+                selected,
+                capture: Some(selected),
+            })),
+            5 => view.save_manager().update_config(|cfg| {
+                let defaults = Config::default();
+                cfg.key_up = defaults.key_up;
+                cfg.key_right = defaults.key_right;
+                cfg.key_left = defaults.key_left;
+                cfg.key_telemark = defaults.key_telemark;
+                cfg.key_replay = defaults.key_replay;
+            }),
+            6 => view.modal.set(None),
+            _ => {}
+        },
+        UiEvent::Text(c) if c.is_ascii_digit() => {
+            if let Some(d) = c.to_digit(10) {
+                match d as usize {
+                    1..=5 => view.modal.set(Some(SetupModal::ConfigureKeys {
+                        selected: d as usize - 1,
+                        capture: None,
+                    })),
+                    6 => view.modal.set(Some(SetupModal::ConfigureKeys {
+                        selected: 5,
+                        capture: None,
+                    })),
+                    0 => view.modal.set(Some(SetupModal::ConfigureKeys {
+                        selected: 6,
+                        capture: None,
+                    })),
+                    _ => {}
+                }
+            }
+        }
+        _ => {}
+    }
+    None
 }
 
 fn handle_wind_place(view: &mut SetupView, event: UiEvent, pos: usize) -> Option<RouteTarget> {
@@ -83,6 +198,17 @@ fn handle_see_comps(view: &mut SetupView, event: UiEvent, mut val: usize) -> Opt
 fn handle_confirm_reset(view: &mut SetupView, event: UiEvent) -> Option<RouteTarget> {
     match event {
         UiEvent::Text(c) if c == 'y' || c == 'Y' => {
+            if let Some(SetupModal::ConfirmReset(kind)) = view.modal.get() {
+                let records = if kind == 1 {
+                    RecordStore::bundled_default()
+                } else {
+                    RecordStore::cleared_default()
+                };
+                view.store.replace_records(records.clone());
+                if let Err(e) = view.save_manager().save_records(&records) {
+                    eprintln!("Warning: failed to save records: {e}");
+                }
+            }
             view.modal.set(None);
         }
         UiEvent::KeyDown(Key::Escape | Key::Enter) => {
@@ -111,6 +237,14 @@ fn handle_language_picker(view: &mut SetupView, event: UiEvent, sel: usize) -> O
             view.save_manager().set_language(sel);
             view.modal.set(None);
         }
+        UiEvent::Text(c) if c.is_ascii_digit() => {
+            if let Some(d) = c.to_digit(10) {
+                let idx = d as usize;
+                if idx >= 1 && idx <= langs.len() {
+                    view.modal.set(Some(SetupModal::LanguagePicker(idx - 1)));
+                }
+            }
+        }
         UiEvent::KeyDown(Key::Escape) => {
             view.modal.set(None);
         }
@@ -126,11 +260,19 @@ fn handle_screen_event(view: &mut SetupView, event: UiEvent) -> Option<RouteTarg
     match event {
         UiEvent::KeyDown(Key::Up) => {
             let sel = view.menu.selected();
-            view.menu.set_selected(cycle_index(sel, entries + 1, -1));
+            let selected = cycle_index(sel, entries + 1, -1);
+            view.menu.set_selected(selected);
+            if screen < view.selected_by_screen.len() {
+                view.selected_by_screen[screen].set(selected);
+            }
         }
         UiEvent::KeyDown(Key::Down) => {
             let sel = view.menu.selected();
-            view.menu.set_selected(cycle_index(sel, entries + 1, 1));
+            let selected = cycle_index(sel, entries + 1, 1);
+            view.menu.set_selected(selected);
+            if screen < view.selected_by_screen.len() {
+                view.selected_by_screen[screen].set(selected);
+            }
         }
         UiEvent::KeyDown(Key::Escape) => {
             if screen == 0 {
@@ -140,6 +282,13 @@ fn handle_screen_event(view: &mut SetupView, event: UiEvent) -> Option<RouteTarg
         }
         UiEvent::KeyDown(Key::Enter) | UiEvent::Text(' ') => {
             let sel = view.menu.selected();
+            if screen == 0 && sel == 3 {
+                view.modal.set(Some(SetupModal::ConfigureKeys {
+                    selected: 0,
+                    capture: None,
+                }));
+                return None;
+            }
             if screen == 0 && sel == 5 {
                 return Some(RouteTarget::HillMakerSetup);
             }
@@ -157,8 +306,14 @@ fn handle_screen_event(view: &mut SetupView, event: UiEvent) -> Option<RouteTarg
                 let n = d as usize;
                 if n >= 1 && n <= entries {
                     view.menu.set_selected(n - 1);
+                    if screen < view.selected_by_screen.len() {
+                        view.selected_by_screen[screen].set(n - 1);
+                    }
                 } else if n == 0 {
                     view.menu.set_selected(entries);
+                    if screen < view.selected_by_screen.len() {
+                        view.selected_by_screen[screen].set(entries);
+                    }
                 }
             }
         }
@@ -170,6 +325,10 @@ fn handle_screen_event(view: &mut SetupView, event: UiEvent) -> Option<RouteTarg
 fn activate_item(view: &mut SetupView, screen: usize, item: usize) {
     match (screen, item) {
         (0, 0..=2) => view.switch_screen(item + 1),
+        (0, 3) => view.modal.set(Some(SetupModal::ConfigureKeys {
+            selected: 0,
+            capture: None,
+        })),
         (1, 0) => {
             let current = view.config().languagenumber;
             let idx = if current >= 0 { current as usize } else { 0 };
@@ -233,9 +392,13 @@ fn activate_item(view: &mut SetupView, screen: usize, item: usize) {
             .update_config(|cfg| cfg.nosamename = i32::from(cfg.nosamename == 0)),
         (3, 2) => view.modal.set(Some(SetupModal::ConfirmReset(1))),
         (3, 3) => view.modal.set(Some(SetupModal::ConfirmReset(0))),
-        (3, 4) => view.save_manager().update_config(|cfg| {
-            *cfg = Config::default();
-        }),
+        (3, 4) => {
+            view.save_manager().update_config(|cfg| {
+                *cfg = Config::default();
+            });
+            let cfg = view.config();
+            view.store.set_wind_place(cfg.windplace as u8);
+        }
         _ => {}
     }
 }

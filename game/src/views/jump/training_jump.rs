@@ -1,7 +1,7 @@
 use crate::jump::{JumpParticipant, JumpPolicy};
 use crate::route::RouteTarget;
 use crate::store::{ResourcesRef, StoreRef};
-use crate::views::jump::input::{JumpInputAction, JumpInputController};
+use crate::views::jump::input::JumpInputAction;
 use crate::views::jump::scene::JumpScene;
 use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent};
 use std::cell::RefCell;
@@ -32,11 +32,7 @@ impl TrainingJumpView {
     }
 
     fn handle_jump_event(&self, event: UiEvent) -> Option<RouteTarget> {
-        let action = {
-            let scene = self.scene.borrow();
-            let mut session = scene.session_mut();
-            JumpInputController.handle_event(event, &mut session)
-        };
+        let action = self.scene.borrow().handle_jump_input(event);
         match action {
             JumpInputAction::None => None,
             JumpInputAction::RouteBack => Some(RouteTarget::Back),

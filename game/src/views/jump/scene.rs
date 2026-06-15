@@ -6,6 +6,7 @@ use crate::jump::snow::{calculate_snow_count, SnowSystem};
 use crate::jump::types::{JumpOutcome, JumpPhase, JumpTelemetry};
 use crate::jump::{JumpParticipant, JumpPolicy, JumpRunner, JumpRunnerRenderEnv, JumpSession};
 use crate::store::{ResourcesRef, StoreRef};
+use crate::views::jump::input::{JumpInputAction, JumpInputController, JumpKeyBindings};
 use crate::views::replay::save_dialog::{SaveAction, SaveReplayDialog};
 use engine::oxide::input::UiEvent;
 use engine::oxide::PaintCx;
@@ -157,6 +158,14 @@ impl JumpScene {
 
     pub fn session_mut(&self) -> impl std::ops::DerefMut<Target = JumpSession> + use<'_> {
         std::cell::RefMut::map(self.runner.borrow_mut(), |r| r.session_mut())
+    }
+
+    pub fn handle_jump_input(&self, event: UiEvent) -> JumpInputAction {
+        let config = self.resources.save_manager.config.borrow();
+        let keys = JumpKeyBindings::from_config(&config);
+        drop(config);
+        let mut session = self.session_mut();
+        JumpInputController.handle_event(event, &mut session, keys)
     }
 
     pub fn phase(&self) -> Option<JumpPhase> {

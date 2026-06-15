@@ -14,6 +14,7 @@ pub struct SetupView {
     pub(crate) resources: ResourcesRef,
     pub(crate) store: StoreRef,
     pub(crate) screen: Cell<usize>,
+    pub(crate) selected_by_screen: [Cell<usize>; 4],
     pub(crate) menu: PixelMenu,
     pub(crate) modal: Cell<Option<SetupModal>>,
 }
@@ -25,6 +26,7 @@ impl SetupView {
             resources,
             store,
             screen: Cell::new(0),
+            selected_by_screen: [Cell::new(0), Cell::new(0), Cell::new(0), Cell::new(0)],
             menu,
             modal: Cell::new(None),
         }
@@ -48,7 +50,15 @@ impl SetupView {
     }
 
     pub(crate) fn switch_screen(&mut self, new_screen: usize) {
-        let selected = self.menu.selected();
+        let old_screen = self.screen.get();
+        if old_screen < self.selected_by_screen.len() {
+            self.selected_by_screen[old_screen].set(self.menu.selected());
+        }
+        let selected = self
+            .selected_by_screen
+            .get(new_screen)
+            .map(Cell::get)
+            .unwrap_or_default();
         self.screen.set(new_screen);
         self.menu = Self::make_menu(new_screen, selected);
     }

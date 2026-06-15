@@ -8,7 +8,7 @@ use crate::views::jump::competition::overlay::{CompetitionOverlay, OverlayKind};
 use crate::views::jump::competition::session::{CompetitionSession, SessionError};
 use crate::views::jump::competition::ui_state::CompetitionUiState;
 use crate::views::jump::competition::ui_state::RenderMode;
-use crate::views::jump::input::{JumpInputAction, JumpInputController};
+use crate::views::jump::input::JumpInputAction;
 use crate::views::jump::scene::JumpScene;
 use engine::oxide::input::{Key, UiEvent};
 use engine::oxide::PaintCx;
@@ -230,10 +230,7 @@ pub(crate) fn handle_competition_jump_input(
     event: UiEvent,
     consume_other_actions: bool,
 ) -> JumpInputResult {
-    let action = {
-        let mut session = scene.session_mut();
-        JumpInputController.handle_event(event, &mut session)
-    };
+    let action = scene.handle_jump_input(event);
     match action {
         JumpInputAction::SaveReplay => {
             scene.open_save_dialog();
