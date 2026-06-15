@@ -162,6 +162,9 @@ impl SaveReplayDialog {
     pub fn write_replay(&mut self, trace: &ReplayTrace) {
         let safe_name = sanitize_filename(&self.filename);
         let filename = format!("{safe_name}.SJR");
+        let mut trace = trace.clone();
+        trace.meta.author.clone_from(&self.author);
+        trace.meta.name.clone_from(&self.name);
         if let Err(e) = self.resources.files.write(&filename, &trace.to_sjr_bytes()) {
             eprintln!("Warning: failed to save replay {filename}: {e}");
         }

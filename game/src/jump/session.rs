@@ -79,6 +79,7 @@ impl JumpSession {
             replay.start(Self::replay_meta(
                 state,
                 hill_idx,
+                hill.as_ref(),
                 snow_count,
                 &participant,
                 start_gate,
@@ -108,6 +109,7 @@ impl JumpSession {
     fn replay_meta(
         state: &JumpState,
         hill_idx: usize,
+        hill: Option<&HillInfo>,
         snow_count: u16,
         participant: &JumpParticipant,
         start_gate: i32,
@@ -122,7 +124,9 @@ impl JumpSession {
             flight_stop: 0,
             hill_record_marker: None,
             hill_filename: "HILLBASE".to_string(),
-            hill_profile: 0,
+            hill_profile: hill
+                .and_then(|hill| i32::try_from(hill.profile_checksum).ok())
+                .unwrap_or_default(),
             suit_color: participant.suit_color,
             ski_color: participant.ski_color,
             saved_at: String::new(),
@@ -187,6 +191,7 @@ impl JumpSession {
             self.replay.start(Self::replay_meta(
                 state,
                 self.hill_idx,
+                Some(hill),
                 self.snow_count,
                 &self.participant,
                 start_gate,
@@ -320,7 +325,9 @@ impl JumpSession {
                 style_points: state.style_points,
                 style_revealed: state.style_revealed,
                 hill_record_marker: self.record_marker,
-                is_hill_record: self.policy.save_hill_records && self.record_distance > 0.0 && state.distance > self.record_distance,
+                is_hill_record: self.policy.save_hill_records
+                    && self.record_distance > 0.0
+                    && state.distance > self.record_distance,
                 hr_shake_position: None,
             };
             (frame, current_pos, body_anim, ski_anim)
