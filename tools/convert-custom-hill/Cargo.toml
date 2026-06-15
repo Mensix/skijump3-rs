@@ -1,0 +1,10 @@
+[package]
+name = "convert-custom-hill"
+version.workspace = true
+edition.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+png = "0.18.1"

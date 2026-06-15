@@ -1,0 +1,18 @@
+id = "VDF-26-N"
+name = "Predazzo custom hill"
+
+[[hills]]
+id = "VDF-26-N"
+name = "Predazzo"
+terrain_index = "DBN"
+kr = 98
+front_index = "DBN"
+back_index = "2"
+back_brightness = 100
+back_mirror = false
+vx_final = 132
+pk_hundred = 88
+pl_save_ten_thousand = 3207
+author = "Olaf Kryus"
+checksum = 4330563
+profile_checksum = 1536034
