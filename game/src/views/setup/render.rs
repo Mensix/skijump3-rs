@@ -1,7 +1,6 @@
 use crate::gfx::sprites;
 use crate::gfx::theme::{
-    BG_LEFT, BLACK, FILL_BORDER, FILL_DIM, FONT_DEFAULT, FONT_HEADER,
-    FONT_HELP,
+    BG_LEFT, BG_RIGHT, BLACK, FILL_BORDER, FILL_DIM, FONT_DEFAULT, FONT_HEADER, FONT_HELP,
 };
 use engine::oxide::PaintCx;
 
@@ -56,9 +55,9 @@ pub(crate) fn paint_content(view: &SetupView, cx: &mut PaintCx<'_>) {
             cx.text((95, 112), color, display);
         }
         Some(SetupModal::ConfirmReset(kind)) => {
-            cx.fill((69, 79, 183, 53), FILL_BORDER);
-            cx.fill((70, 80, 181, 51), BG_LEFT);
-            cx.pattern_fill((70, 80, 181, 51), BG_LEFT);
+            cx.fill((69, 79, 183, 53), BLACK);
+            cx.fill((70, 80, 181, 51), BG_RIGHT);
+            cx.pattern_fill((70, 80, 181, 51), BG_RIGHT);
             let label = if kind == 1 {
                 view.langbase().lstr(190)
             } else {
