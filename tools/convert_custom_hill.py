@@ -83,6 +83,22 @@ def terrain_from_front(front: Image.Image) -> tuple[list[int], list[int], int]:
     return line_lengths, profile_y, tip_x
 
 
+def bake_markers(
+    img: Image.Image, profile_y: list[int], tip_x: int, kr: int, pk: float
+) -> None:
+    px = img.load()
+    for x in range(tip_x, img.width - 10):
+        x2 = x - tip_x
+        y2 = profile_y[x] - profile_y[tip_x]
+        hp = round((x2 * x2 + y2 * y2) ** 0.5 * pk * 0.5) * 5
+        if hp >= (2 / 3 * kr) * 10 and hp <= kr * 12:
+            color = (255, 93, 93, 255) if hp < kr * 10 else (93, 93, 255, 255)
+            for dy in range(3):
+                y = profile_y[x] + 1 + dy
+                if 0 <= y < img.height:
+                    px[x, y] = color
+
+
 def toml_array(values: list[int]) -> str:
     return "[" + ", ".join(str(v) for v in values) + "]"
 
@@ -109,12 +125,15 @@ def write_custom_hill(root: Path, source_dir: Path, sjh_path: Path) -> None:
         transparent_zero=False,
     )
 
+    line_lengths, profile_y, tip_x = terrain_from_front(front)
+
+    bake_markers(front, profile_y, tip_x, int(hill["kr"]), int(hill["pk_hundred"]) / 100.0)
+
     terrain_dir = root / "hills" / "generated" / f"HILL{terrain_id}"
     terrain_dir.mkdir(parents=True, exist_ok=True)
     front.save(terrain_dir / "front_visual.png")
     back.save(terrain_dir / "back_visual.png")
 
-    line_lengths, profile_y, tip_x = terrain_from_front(front)
     (terrain_dir / "terrain.toml").write_text(
         "\n".join(
             [
