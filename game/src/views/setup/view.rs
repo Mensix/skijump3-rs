@@ -46,7 +46,7 @@ impl SetupView {
         let mut m = PixelMenu::new(35, 40, 221, 10, items, FONT_DEFAULT, FONT_DEFAULT)
             .with_labels(false)
             .with_box(false)
-            .with_exit("", 0);
+            .trailing("", 0);
         m.set_selected(selected.min(entries));
         m
     }

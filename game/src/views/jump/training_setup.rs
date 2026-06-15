@@ -44,7 +44,7 @@ impl TrainingSetupView {
         let mut menu = PixelMenu::new(110, 11, 170, 8, items, FONT_DEFAULT, FONT_DEFAULT)
             .with_labels(false)
             .with_box(false)
-            .with_exit("", 16);
+            .trailing("", 16);
         menu.set_selected(selected.saturating_sub(start).min(page_n.saturating_sub(1)));
 
         Self {
@@ -63,12 +63,12 @@ impl TrainingSetupView {
         PixelMenu::new(110, 11, 170, 8, items, FONT_DEFAULT, FONT_DEFAULT)
             .with_labels(false)
             .with_box(false)
-            .with_exit("", 16)
+            .trailing("", 16)
     }
 
     fn confirm(&mut self) -> Option<RouteTarget> {
         let sel = self.menu.selected();
-        if self.menu.has_exit() && sel == self.menu.item_count() {
+        if self.menu.has_trailing() && sel == self.menu.item_count() {
             return Some(RouteTarget::MainMenu);
         }
         if self.has_more() && sel == self.page_items() {
@@ -121,7 +121,7 @@ impl TrainingSetupView {
         // so subtract 1 for the box to match Pascal.
         let bx = 104;
         let sel = self.menu.selected();
-        let sel_row = if self.menu.has_exit() && sel == self.menu.item_count() {
+        let sel_row = if self.menu.has_trailing() && sel == self.menu.item_count() {
             self.exit_row() - 1
         } else {
             self.item_row(sel)

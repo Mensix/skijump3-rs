@@ -35,7 +35,7 @@ impl HillMakerView {
         let custom_hills = Self::load_custom_hills(&resources);
         let items = vec![MenuItem::new(1, "")];
         let menu = PixelMenu::new(99, 14, 221, 8, items, FONT_DEFAULT, FONT_DEFAULT)
-            .with_exit("", 6 + custom_hills.len() as i32 * 8)
+            .trailing("", 6 + custom_hills.len() as i32 * 8)
             .with_labels(false);
         Self {
             resources,

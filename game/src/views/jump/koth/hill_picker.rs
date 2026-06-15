@@ -30,7 +30,7 @@ impl KothHillPickerView {
         let mut menu = PixelMenu::new(110, 11, 170, 8, items, FONT_DEFAULT, FONT_DEFAULT)
             .with_labels(false)
             .with_box(false)
-            .with_exit("", 16);
+            .trailing("", 16);
         if kothmaki == 0 {
             menu.set_selected(menu.item_count());
         } else if kothmaki as usize - 1 < start + page_n {
@@ -72,7 +72,7 @@ impl KothHillPickerView {
         PixelMenu::new(110, 11, 170, 8, items, FONT_DEFAULT, FONT_DEFAULT)
             .with_labels(false)
             .with_box(false)
-            .with_exit("", 16)
+            .trailing("", 16)
     }
 
     fn select_hill(&mut self) {

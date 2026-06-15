@@ -39,7 +39,7 @@ pub struct PixelMenu {
     box_color: Rgba,
     show_labels: bool,
     show_box: bool,
-    exit_label: Option<(String, i32)>,
+    trailing: Option<(String, i32)>, // (label, gap above)
 }
 
 impl PixelMenu {
@@ -65,7 +65,7 @@ impl PixelMenu {
             box_color,
             show_labels: true,
             show_box: true,
-            exit_label: None,
+            trailing: None,
         }
     }
 
@@ -82,22 +82,18 @@ impl PixelMenu {
         self.show_box = show;
     }
 
-    pub fn set_show_labels(&mut self, show: bool) {
-        self.show_labels = show;
-    }
-
     #[must_use]
     pub const fn item_count(&self) -> usize {
         self.items.len()
     }
 
     #[must_use]
-    pub const fn has_exit(&self) -> bool {
-        self.exit_label.is_some()
+    pub const fn has_trailing(&self) -> bool {
+        self.trailing.is_some()
     }
 
     #[must_use]
-    pub const fn with_labels(mut self, show_labels: bool) -> Self {
+    pub fn with_labels(mut self, show_labels: bool) -> Self {
         self.show_labels = show_labels;
         self
     }
@@ -108,16 +104,18 @@ impl PixelMenu {
         self
     }
 
+    /// Add a trailing "0." item rendered below the regular items with a gap.
+    /// The label is shown as "0. {label}" and is always drawn regardless of `show_labels`.
     #[must_use]
-    pub fn with_exit(mut self, label: impl Into<String>, y_offset: i32) -> Self {
-        self.exit_label = Some((label.into(), y_offset));
+    pub fn trailing(mut self, label: impl Into<String>, gap: i32) -> Self {
+        self.trailing = Some((label.into(), gap));
         self.set_selected(self.selected);
         self
     }
 
     #[must_use]
     fn total_items(&self) -> usize {
-        self.items.len() + usize::from(self.exit_label.is_some())
+        self.items.len() + usize::from(self.trailing.is_some())
     }
 
     fn move_up(&mut self) {
@@ -137,6 +135,23 @@ impl PixelMenu {
             self.selected + 1
         };
     }
+
+    /// Y-offset for a trailing item below regular items.
+    fn trailing_y_offset(&self) -> i32 {
+        self.trailing
+            .as_ref()
+            .map_or(0, |(_, gap)| self.items.len() as i32 * self.item_h + *gap)
+    }
+
+    /// Return the y position (before -3 stroke offset) for the given selection index.
+    pub fn item_y(&self, sel: usize) -> i32 {
+        if self.trailing.is_some() && sel == self.items.len() {
+            self.y + self.trailing_y_offset()
+        } else {
+            let idx = sel.min(self.items.len().saturating_sub(1));
+            self.y + idx as i32 * self.item_h + self.items[idx].y_offset
+        }
+    }
 }
 
 impl Widget for PixelMenu {
@@ -153,7 +168,7 @@ impl Widget for PixelMenu {
                 None
             }
             UiEvent::KeyDown(Key::Enter) | UiEvent::Text(' ') => {
-                if self.exit_label.is_some() && self.selected == self.items.len() {
+                if self.trailing.is_some() && self.selected == self.items.len() {
                     Some(0)
                 } else {
                     Some(self.selected + 1)
@@ -189,25 +204,21 @@ impl Widget for PixelMenu {
                     format!("{} - {}", item.number, item.label),
                 );
             }
-            if let Some((label, y_offset)) = &self.exit_label {
-                let y = self.y + 1 + (self.items.len() as i32) * self.item_h + *y_offset;
-                cx.text((self.x, y), self.font_color, format!("0. {label}"));
-            }
+        }
+
+        // Always render the trailing "0." item, even without show_labels.
+        if let Some((label, _gap)) = &self.trailing {
+            let y = self.y + 1 + self.trailing_y_offset();
+            cx.text((self.x, y), self.font_color, format!("0. {label}"));
         }
 
         if self.show_box && self.total_items() > 0 {
             let selected = self.selected.min(self.total_items().saturating_sub(1));
-            let (row, y_offset) = if self.exit_label.is_some() && selected == self.items.len() {
-                let y_offset = self.exit_label.as_ref().map_or(0, |(_, offset)| *offset);
-                (self.items.len() as i32, y_offset)
-            } else {
-                let idx = selected.min(self.items.len().saturating_sub(1));
-                (idx as i32, self.items[idx].y_offset)
-            };
+            let item_y = self.item_y(selected);
             cx.stroke(
                 (
                     self.x - 6,
-                    self.y - 3 + row * self.item_h + y_offset,
+                    item_y - 3,
                     self.item_w + 1,
                     self.item_h + 1,
                 ),
