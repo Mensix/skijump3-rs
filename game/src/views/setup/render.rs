@@ -152,12 +152,14 @@ fn render_configure_keys(
     cx.right_text((x, y), FONT_HEADER, "0.");
     cx.text((x + 10, y), FONT_DEFAULT, view.langbase().lstr(337));
 
-    let by = if selected < 6 {
-        40 - 3 + (selected as i32) * 10
-    } else {
-        y - 3
-    };
-    cx.stroke((35 - 6, by, 150 + 1, 10 + 1), FONT_DEFAULT);
+    if capture.is_none() {
+        let by = if selected < 6 {
+            40 - 3 + (selected as i32) * 10
+        } else {
+            y - 3
+        };
+        cx.stroke((35 - 6, by, 150 + 1, 10 + 1), FONT_DEFAULT);
+    }
 }
 
 fn render_screen(view: &SetupView, cx: &mut PaintCx<'_>) {
