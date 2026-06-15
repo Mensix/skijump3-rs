@@ -204,7 +204,7 @@ fn render_screen(view: &SetupView, cx: &mut PaintCx<'_>) {
                     if cfg.trainrounds == 0 {
                         view.langbase().lstr(9).to_string()
                     } else {
-                        format!("{}", cfg.trainrounds)
+                        view.langbase().lstr(cfg.trainrounds as usize).to_string()
                     }
                 }
                 (2, 1) => {
