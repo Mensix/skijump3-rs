@@ -183,25 +183,35 @@ fn handle_wind_place(view: &mut SetupView, event: UiEvent, pos: usize) -> Option
     None
 }
 
-fn handle_see_comps(view: &mut SetupView, event: UiEvent, mut val: usize) -> Option<RouteTarget> {
+pub(crate) fn seecomp_options(view: &SetupView) -> Vec<(usize, String)> {
+    let names = view.resources.namesets.names_for_config(view.config().namenumber);
+    let cat_values = [239, 235, 236, 237, 238, 240];
+    let cat_keys = [221, 222, 223, 224, 225, 226];
+    let mut opts = Vec::new();
+    for (i, name) in names.iter().enumerate() {
+        opts.push((i + 1, format!("#{} {}", i + 1, name)));
+    }
+    for (&v, &k) in cat_values.iter().zip(&cat_keys) {
+        opts.push((v, view.langbase().lstr(k).to_string()));
+    }
+    opts
+}
+
+fn handle_see_comps(view: &mut SetupView, event: UiEvent, idx: usize) -> Option<RouteTarget> {
+    let opts = seecomp_options(view);
     match event {
         UiEvent::KeyDown(Key::Up | Key::Left) => {
-            val = if val > 1 { val - 1 } else { 240 };
-            view.modal.set(Some(SetupModal::SeeComps(val)));
+            let new_idx = if idx == 0 { opts.len() - 1 } else { idx - 1 };
+            view.modal.set(Some(SetupModal::SeeComps(new_idx)));
         }
         UiEvent::KeyDown(Key::Down | Key::Right) => {
-            val = if val >= 240 { 1 } else { val + 1 };
-            view.modal.set(Some(SetupModal::SeeComps(val)));
-        }
-        UiEvent::KeyDown(Key::Home) => {
-            view.modal.set(Some(SetupModal::SeeComps(1)));
-        }
-        UiEvent::KeyDown(Key::End) => {
-            view.modal.set(Some(SetupModal::SeeComps(240)));
+            let new_idx = if idx >= opts.len() - 1 { 0 } else { idx + 1 };
+            view.modal.set(Some(SetupModal::SeeComps(new_idx)));
         }
         UiEvent::KeyDown(Key::Enter) => {
+            let cfg_val = opts[idx].0;
             view.save_manager()
-                .update_config(|cfg| cfg.seecomps = val as i32);
+                .update_config(|cfg| cfg.seecomps = cfg_val as i32);
             view.modal.set(None);
         }
         UiEvent::KeyDown(Key::Escape | Key::Delete) => {
@@ -386,7 +396,8 @@ fn activate_item(view: &mut SetupView, screen: usize, item: usize) {
             .update_config(|cfg| cfg.goals = i32::from(cfg.goals == 0)),
         (2, 8) => {
             let current = view.config().seecomps;
-            let idx = if current >= 1 { current as usize } else { 240 };
+            let opts = seecomp_options(view);
+            let idx = opts.iter().position(|(v, _)| *v == current as usize).unwrap_or(0);
             view.modal.set(Some(SetupModal::SeeComps(idx)));
         }
         (2, 9) => {

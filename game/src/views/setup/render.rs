@@ -42,17 +42,14 @@ pub(crate) fn paint_content(view: &SetupView, cx: &mut PaintCx<'_>) {
                 FONT_DEFAULT,
             );
         }
-        Some(SetupModal::SeeComps(val)) => {
+        Some(SetupModal::SeeComps(idx)) => {
             cx.fill((74, 79, 172, 54), FILL_BORDER);
             cx.fill((75, 80, 170, 52), BG_LEFT);
             cx.text((85, 85), FONT_DEFAULT, view.langbase().lstr(220));
             cx.text((85, 95), FONT_HELP, view.langbase().lstr(150));
-            let display = if val >= 235 {
-                view.langbase().lstr(val).to_string()
-            } else {
-                format!("#{val}")
-            };
-            cx.fill((85, 105, 150, 20), FILL_DIM);
+            let opts = super::actions::seecomp_options(view);
+            let display = opts.get(idx).map(|(_, label)| label.as_str()).unwrap_or("?");
+            cx.fill((85, 105, 235 - 85 + 1, 125 - 105 + 1), FILL_DIM);
             cx.text((95, 112), FONT_HEADER, display);
         }
         Some(SetupModal::ConfirmReset(kind)) => {
@@ -257,7 +254,7 @@ fn render_screen(view: &SetupView, cx: &mut PaintCx<'_>) {
                     }
                 }
                 (2, 8) => {
-                    if cfg.seecomps > 240 {
+                    if cfg.seecomps >= 235 {
                         view.langbase().lstr(cfg.seecomps as usize).to_string()
                     } else {
                         format!("#{}", cfg.seecomps)
