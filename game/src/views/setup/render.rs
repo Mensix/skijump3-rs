@@ -293,7 +293,7 @@ fn render_screen(view: &SetupView, cx: &mut PaintCx<'_>) {
         setup_item(view, cx, temp, entries, &value_str);
     }
 
-    if !matches!(view.modal.get(), Some(SetupModal::NameSetInput | SetupModal::LanguagePicker(_))) {
+    if !matches!(view.modal.get(), Some(SetupModal::NameSetInput | SetupModal::LanguagePicker(_) | SetupModal::SeeComps(_))) {
         let sel = view.menu.selected();
         if sel <= entries {
             let by = if sel < entries {
