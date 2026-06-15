@@ -197,7 +197,7 @@ fn render_screen(view: &SetupView, cx: &mut PaintCx<'_>) {
                 (1, 3) => {
                     let n = cfg.namenumber;
                     let hint = view.resources.namesets.title_for_config(n);
-                    cx.text((40, 78), FONT_HELP, hint);
+                    cx.text((40, 78), FONT_HELP, format!("*** {hint} ***"));
                     format!("{n}")
                 }
                 (2, 0) => {
