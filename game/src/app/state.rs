@@ -43,9 +43,6 @@ impl GameState {
         })
     }
 
-    pub(super) fn starts_with_welcome(&self) -> bool {
-        self.save_manager.config.borrow().languagenumber == 255
-    }
 }
 
 fn load_records(files: &FileStore) -> Result<RecordStore, String> {
