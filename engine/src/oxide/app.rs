@@ -55,7 +55,7 @@ impl<R> ScreenEventCx<R> {
 pub trait Screen<R> {
     fn update(&mut self) {}
     fn event(&mut self, cx: &mut ScreenEventCx<R>, event: UiEvent);
-    fn paint(&self, cx: &mut PaintCx<'_>);
+    fn paint(&mut self, cx: &mut PaintCx<'_>);
     fn background(&self) -> ScreenBackground {
         ScreenBackground::NoneBlack
     }

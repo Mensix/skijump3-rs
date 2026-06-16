@@ -193,7 +193,9 @@ impl KothSetupView {
 
         // Draw opponent rows — stack + preview (like CustomCupSetupView)
         if self.mode.get() == KothMode::Opponents {
-            let names = self.resources.player_names(self.store.borrow().config.namenumber as usize);
+            let names = self
+                .resources
+                .player_names(self.store.borrow().config.namenumber as usize);
             let sel = self.selected_opponents.borrow();
             let prev = self.preview_opponent.get();
             // selected opponents in gold
@@ -239,7 +241,7 @@ impl Screen<RouteTarget> for KothSetupView {
         }
     }
 
-    fn paint(&self, cx: &mut PaintCx<'_>) {
+    fn paint(&mut self, cx: &mut PaintCx<'_>) {
         self.paint_content(cx);
     }
 }
@@ -304,7 +306,10 @@ impl KothSetupView {
     }
 
     fn handle_opponents(&mut self, event: UiEvent) -> Option<RouteTarget> {
-        let max_idx = self.resources.player_names(self.store.borrow().config.namenumber as usize).len();
+        let max_idx = self
+            .resources
+            .player_names(self.store.borrow().config.namenumber as usize)
+            .len();
         match event {
             UiEvent::KeyDown(Key::Escape) => {
                 self.update_config(|cfg| {

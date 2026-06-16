@@ -89,14 +89,31 @@ where
         command_or_error(&self.ui_state, self.drive_competition(scene))
     }
 
-    pub(crate) fn record_acknowledged_human_jump(&self) -> bool {
+    pub(crate) fn record_acknowledged_human_jump(&mut self) -> bool {
         if !self.ui_state.is_result_acknowledged() || self.ui_state.is_outcome_recorded() {
             return false;
         }
-        let Some(scene) = self.scene.as_ref() else {
+        let outcome = self.scene.as_mut().and_then(|scene| {
+            let outcome = scene.outcome()?;
+            scene.collect_telemetry();
+            Some(outcome)
+        });
+        let Some(outcome) = outcome else {
             return false;
         };
-        if !self.record_finished_human_jump(scene) {
+        let recorded = self
+            .state
+            .borrow_mut()
+            .with_runtime_mut(|runtime: &mut R| {
+                if !runtime.is_human_current() {
+                    return false;
+                }
+                let ctx = runtime.current_jump_context();
+                runtime.record_jump_runtime(&ctx, outcome);
+                true
+            })
+            .unwrap_or(false);
+        if !recorded {
             return false;
         }
         self.ui_state.mark_outcome_recorded();
@@ -109,20 +126,20 @@ where
         }
     }
 
-    pub(crate) fn render_jump(&self, cx: &mut PaintCx<'_>) {
-        if let Some(scene) = self.scene.as_ref() {
+    pub(crate) fn render_jump(&mut self, cx: &mut PaintCx<'_>) {
+        if let Some(scene) = self.scene.as_mut() {
             render_jump_scene_with_overlay(cx, scene, &self.overlay, &self.ui_state);
         }
     }
 
     pub(crate) fn handle_jump_scene_event(
-        &self,
+        &mut self,
         event: UiEvent,
         consume_other_actions: bool,
         accepts_only_enter_escape: bool,
         acknowledge_only_unrecorded: bool,
     ) -> JumpInputResult {
-        let Some(scene) = self.scene.as_ref() else {
+        let Some(scene) = self.scene.as_mut() else {
             return JumpInputResult::None;
         };
         handle_jump_scene_event(
@@ -202,25 +219,6 @@ where
             JumpParticipant::trainee(),
             JumpPolicy::competition(),
         ));
-    }
-
-    fn record_finished_human_jump(&self, scene: &JumpScene) -> bool {
-        let outcome = match scene.outcome() {
-            Some(outcome) => outcome,
-            None => return false,
-        };
-        scene.collect_telemetry();
-        self.state
-            .borrow_mut()
-            .with_runtime_mut(|runtime: &mut R| {
-                if !runtime.is_human_current() {
-                    return false;
-                }
-                let ctx = runtime.current_jump_context();
-                runtime.record_jump_runtime(&ctx, outcome);
-                true
-            })
-            .unwrap_or(false)
     }
 
     #[allow(clippy::type_complexity)]

@@ -107,7 +107,7 @@ impl Screen<RouteTarget> for JumpMenuView {
         }
     }
 
-    fn paint(&self, cx: &mut PaintCx<'_>) {
+    fn paint(&mut self, cx: &mut PaintCx<'_>) {
         self.paint_content(cx);
     }
 
@@ -122,7 +122,8 @@ impl JumpMenuView {
         let trainrounds = self.store.borrow().config.trainrounds;
         let comp = factory::world_cup(
             &profiles,
-            self.resources.player_names(self.store.borrow().config.namenumber as usize),
+            self.resources
+                .player_names(self.store.borrow().config.namenumber as usize),
             self.resources.hills.len(),
             trainrounds as usize,
         );
@@ -135,7 +136,8 @@ impl JumpMenuView {
         let trainrounds = self.store.borrow().config.trainrounds;
         let comp = factory::four_hills(
             &profiles,
-            self.resources.player_names(self.store.borrow().config.namenumber as usize),
+            self.resources
+                .player_names(self.store.borrow().config.namenumber as usize),
             self.resources.hills.len(),
             trainrounds as usize,
         );
@@ -147,7 +149,10 @@ impl JumpMenuView {
         let profiles = self.store.borrow().profiles.clone();
         let num_players = profiles.active_order.len();
         let human_teams = num_players / 4;
-        let names = self.resources.player_names(self.store.borrow().config.namenumber as usize).to_vec();
+        let names = self
+            .resources
+            .player_names(self.store.borrow().config.namenumber as usize)
+            .to_vec();
         let namenumber = self.store.borrow().config.namenumber as usize;
         let teams_def = self
             .resources

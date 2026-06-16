@@ -16,11 +16,7 @@ pub(crate) enum CompetitionJumpView {
 }
 
 impl CompetitionJumpView {
-    pub(crate) fn new(
-        resources: ResourcesRef,
-        store: GameStateRef,
-        save_manager: SaveRef,
-    ) -> Self {
+    pub(crate) fn new(resources: ResourcesRef, store: GameStateRef, save_manager: SaveRef) -> Self {
         let kind = store
             .borrow()
             .active_competition
@@ -63,7 +59,7 @@ impl Screen<RouteTarget> for CompetitionJumpView {
         }
     }
 
-    fn paint(&self, cx: &mut PaintCx<'_>) {
+    fn paint(&mut self, cx: &mut PaintCx<'_>) {
         match self {
             Self::Training(view) => Screen::paint(view, cx),
             Self::Individual(view) => Screen::paint(view, cx),

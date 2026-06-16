@@ -24,7 +24,7 @@ impl FrameRenderer {
         &mut self,
         renderer: &mut Renderer,
         assets: FrameAssets<'_>,
-        router: &AppRouter,
+        router: &mut AppRouter,
     ) -> Result<(), String> {
         let mut commands = CommandBuffer::new();
         {

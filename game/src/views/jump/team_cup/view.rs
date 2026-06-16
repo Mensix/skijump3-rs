@@ -87,7 +87,7 @@ impl TeamCupJumpView {
         }
     }
 
-    fn paint_content(&self, cx: &mut PaintCx<'_>) {
+    fn paint_content(&mut self, cx: &mut PaintCx<'_>) {
         if self.phase == ViewPhase::Setup {
             self.setup.paint(
                 cx,
@@ -217,7 +217,7 @@ impl Screen<RouteTarget> for TeamCupJumpView {
         }
     }
 
-    fn paint(&self, cx: &mut PaintCx<'_>) {
+    fn paint(&mut self, cx: &mut PaintCx<'_>) {
         self.paint_content(cx);
     }
 }

@@ -132,7 +132,7 @@ impl AppRouter {
         }
     }
 
-    pub fn paint(&self, cx: &mut PaintCx<'_>) {
+    pub fn paint(&mut self, cx: &mut PaintCx<'_>) {
         self.current.paint(cx);
     }
 

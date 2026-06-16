@@ -1,4 +1,4 @@
-use crate::gfx::theme::{BG_PURPLE, BLACK, FONT_BODY, FONT_GOLD, FONT_TEAL, FONT_GRAY};
+use crate::gfx::theme::{BG_PURPLE, BLACK, FONT_BODY, FONT_GOLD, FONT_GRAY, FONT_TEAL};
 use crate::route::RouteTarget;
 use crate::store::ResourcesRef;
 use crate::text::layout::lstr;
@@ -84,7 +84,7 @@ impl Screen<RouteTarget> for HillMakerView {
         }
     }
 
-    fn paint(&self, cx: &mut PaintCx<'_>) {
+    fn paint(&mut self, cx: &mut PaintCx<'_>) {
         let lb = &*self.resources.langbase;
 
         cx.fill((0, 0, 320, 200), BLACK);

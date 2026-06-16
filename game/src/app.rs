@@ -91,15 +91,16 @@ impl Game {
 
     fn render_frame(&mut self) -> Result<(), String> {
         self.router.update();
+        let font = &self.font;
         self.frame_renderer.render(
             &mut self.renderer,
             FrameAssets {
-                font: &self.font,
+                font,
                 baked_sprites: &self.baked_sprites,
                 main_background: self.main_background,
                 pattern_texture: self.pattern_texture,
             },
-            &self.router,
+            &mut self.router,
         )
     }
 }

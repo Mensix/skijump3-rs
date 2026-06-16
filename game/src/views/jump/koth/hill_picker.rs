@@ -83,7 +83,11 @@ impl KothHillPickerView {
     fn select_hill(&mut self) {
         let sel = self.menu.selected();
         if self.has_more() && sel == self.page_items() {
-            self.start = if self.start + 20 >= self.total { 0 } else { self.start + 20 };
+            self.start = if self.start + 20 >= self.total {
+                0
+            } else {
+                self.start + 20
+            };
             self.menu = self.rebuild_menu();
         } else if sel == self.menu.item_count() {
             self.store.borrow_mut().config.kothmaki = 0;
@@ -139,7 +143,7 @@ impl Screen<RouteTarget> for KothHillPickerView {
         }
     }
 
-    fn paint(&self, cx: &mut PaintCx<'_>) {
+    fn paint(&mut self, cx: &mut PaintCx<'_>) {
         cx.fill((0, 0, 320, 200), BLACK);
         cx.pattern_fill((0, 0, 11, 200), FILL_GRAY);
         cx.pattern_fill((12, 0, 296, 200), BG_PURPLE);

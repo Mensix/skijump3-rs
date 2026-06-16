@@ -5,11 +5,9 @@ use crate::store::{GameStateRef, ResourcesRef};
 use crate::views::jump::input::JumpInputAction;
 use crate::views::jump::scene::JumpScene;
 use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent};
-use std::cell::RefCell;
-
 pub struct TrainingJumpView {
     store: GameStateRef,
-    scene: RefCell<JumpScene>,
+    scene: JumpScene,
 }
 
 impl TrainingJumpView {
@@ -26,19 +24,16 @@ impl TrainingJumpView {
             JumpPolicy::training(),
         );
 
-        Self {
-            store,
-            scene: RefCell::new(scene),
-        }
+        Self { store, scene }
     }
 
-    fn handle_jump_event(&self, event: UiEvent) -> Option<RouteTarget> {
-        let action = self.scene.borrow().handle_jump_input(event);
+    fn handle_jump_event(&mut self, event: UiEvent) -> Option<RouteTarget> {
+        let action = self.scene.handle_jump_input(event);
         match action {
             JumpInputAction::None => None,
             JumpInputAction::RouteBack => Some(RouteTarget::Back),
             JumpInputAction::SaveReplay => {
-                self.scene.borrow().open_save_dialog();
+                self.scene.open_save_dialog();
                 None
             }
             JumpInputAction::ResetWind => {
@@ -46,10 +41,9 @@ impl TrainingJumpView {
                 None
             }
             JumpInputAction::ResetJump => {
-                let _ = self.scene.borrow().outcome();
-                let _ = self.scene.borrow().replay_trace();
+                let _ = self.scene.outcome();
+                let _ = self.scene.replay_trace();
                 self.scene
-                    .borrow()
                     .reset_state(self.store.borrow().practice_start_gate);
                 None
             }
@@ -60,17 +54,15 @@ impl TrainingJumpView {
         }
     }
 
-    fn paint_content(&self, cx: &mut PaintCx<'_>) {
-        self.scene.borrow().render(cx);
+    fn paint_content(&mut self, cx: &mut PaintCx<'_>) {
+        self.scene.render(cx);
     }
 
-    fn handle_input(&self, event: UiEvent) -> Option<RouteTarget> {
-        let scene = self.scene.borrow();
-        if scene.is_save_dialog_active() {
-            scene.handle_save_dialog_event(&event);
+    fn handle_input(&mut self, event: UiEvent) -> Option<RouteTarget> {
+        if self.scene.is_save_dialog_active() {
+            self.scene.handle_save_dialog_event(&event);
             None
         } else {
-            drop(scene);
             self.handle_jump_event(event)
         }
     }
@@ -78,7 +70,7 @@ impl TrainingJumpView {
 
 impl Screen<RouteTarget> for TrainingJumpView {
     fn update(&mut self) {
-        self.scene.borrow_mut().update();
+        self.scene.update();
     }
 
     fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
@@ -97,7 +89,7 @@ impl Screen<RouteTarget> for TrainingJumpView {
         }
     }
 
-    fn paint(&self, cx: &mut PaintCx<'_>) {
+    fn paint(&mut self, cx: &mut PaintCx<'_>) {
         self.paint_content(cx);
     }
 }

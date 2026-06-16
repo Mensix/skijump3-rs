@@ -38,7 +38,7 @@ pub(crate) fn handle_human_jump(
     if scene.is_none() {
         ui_state.reset_acknowledged();
         ui_state.reset_outcome_recorded();
-        let new_scene = JumpScene::new(
+        let mut new_scene = JumpScene::new(
             ResourcesRef::clone(resources),
             GameStateRef::clone(state),
             hill_idx,
@@ -51,13 +51,13 @@ pub(crate) fn handle_human_jump(
             new_scene.set_team_name(name);
         }
         *scene = Some(new_scene);
-    } else if let Some(ref s) = scene {
+    } else if let Some(s) = scene {
         prepare_human_jump_scene(s, ui_state, participant, hill_idx, phase_label, team_name);
     }
 }
 
 pub(crate) fn prepare_human_jump_scene(
-    scene: &JumpScene,
+    scene: &mut JumpScene,
     ui_state: &CompetitionUiState,
     participant: JumpParticipant,
     hill_idx: usize,
@@ -103,7 +103,7 @@ pub(crate) fn command_or_error<C, R>(
 
 pub(crate) fn render_jump_scene_with_overlay(
     cx: &mut PaintCx<'_>,
-    scene: &JumpScene,
+    scene: &mut JumpScene,
     overlay: &CompetitionOverlay,
     ui_state: &CompetitionUiState,
 ) {
@@ -147,7 +147,7 @@ pub(crate) fn acknowledge_finished_jump(
     true
 }
 
-pub(crate) fn handle_save_dialog(scene: &JumpScene, event: &UiEvent) -> bool {
+pub(crate) fn handle_save_dialog(scene: &mut JumpScene, event: &UiEvent) -> bool {
     if !scene.is_save_dialog_active() {
         return false;
     }
@@ -162,7 +162,7 @@ pub(crate) enum JumpInputResult {
 }
 
 pub(crate) fn handle_competition_jump_input(
-    scene: &JumpScene,
+    scene: &mut JumpScene,
     event: UiEvent,
     consume_other_actions: bool,
 ) -> JumpInputResult {
@@ -180,7 +180,7 @@ pub(crate) fn handle_competition_jump_input(
 }
 
 pub(crate) fn handle_jump_scene_event(
-    scene: &JumpScene,
+    scene: &mut JumpScene,
     ui_state: &CompetitionUiState,
     event: UiEvent,
     consume_other_actions: bool,

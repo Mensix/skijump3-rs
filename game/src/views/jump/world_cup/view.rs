@@ -166,7 +166,7 @@ impl WorldCupJumpView {
         }
     }
 
-    fn paint_content(&self, cx: &mut PaintCx<'_>) {
+    fn paint_content(&mut self, cx: &mut PaintCx<'_>) {
         match self.controller.render_mode() {
             RenderMode::Jump => {
                 self.controller.render_jump(cx);
@@ -238,7 +238,7 @@ impl Screen<RouteTarget> for WorldCupJumpView {
         }
     }
 
-    fn paint(&self, cx: &mut PaintCx<'_>) {
+    fn paint(&mut self, cx: &mut PaintCx<'_>) {
         self.paint_content(cx);
     }
 }

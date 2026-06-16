@@ -88,7 +88,8 @@ impl CustomCupSetupView {
                 let state = self.store.borrow();
                 let comp = factory::custom_cup(
                     &state.profiles,
-                    self.resources.player_names(state.config.namenumber as usize),
+                    self.resources
+                        .player_names(state.config.namenumber as usize),
                     self.selected.clone(),
                     0,
                 );
@@ -152,7 +153,7 @@ impl Screen<RouteTarget> for CustomCupSetupView {
         }
     }
 
-    fn paint(&self, cx: &mut PaintCx<'_>) {
+    fn paint(&mut self, cx: &mut PaintCx<'_>) {
         self.paint_content(cx);
     }
 }

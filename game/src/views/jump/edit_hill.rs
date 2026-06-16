@@ -305,7 +305,7 @@ impl Screen<RouteTarget> for EditHillView {
         }
     }
 
-    fn paint(&self, cx: &mut PaintCx<'_>) {
+    fn paint(&mut self, cx: &mut PaintCx<'_>) {
         let xx = 15i32;
         let xx2 = 120i32;
 

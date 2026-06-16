@@ -92,7 +92,7 @@ impl Screen<RouteTarget> for SetupView {
         }
     }
 
-    fn paint(&self, cx: &mut PaintCx<'_>) {
+    fn paint(&mut self, cx: &mut PaintCx<'_>) {
         super::render::paint_content(self, cx);
     }
 }
