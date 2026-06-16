@@ -118,8 +118,8 @@ mod tests {
     use super::*;
     use crate::data::hill_profile::HillTerrain;
     use crate::files::FileStore;
+    use crate::jump::state::JumpState;
     use crate::jump::types::FlightWind;
-    use crate::jump::JumpState;
 
     fn test_files() -> FileStore {
         let assets = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets");

@@ -1,4 +1,4 @@
-use crate::jump::{JumpInput, JumpPhase, JumpSession};
+use crate::jump::{JumpInput, JumpPhase, JumpRunner};
 use crate::save::config::Config;
 use engine::oxide::input::{Key, UiEvent};
 
@@ -128,48 +128,48 @@ impl JumpInputController {
     pub(crate) fn handle_event(
         self,
         event: UiEvent,
-        session: &mut JumpSession,
+        runner: &mut JumpRunner,
         keys: JumpKeyBindings,
     ) -> JumpInputAction {
         match event {
             UiEvent::KeyDown(Key::Escape) => JumpInputAction::RouteBack,
             UiEvent::KeyDown(Key::F5) => {
-                if session.policy().allow_wind_reset {
+                if runner.policy().allow_wind_reset {
                     JumpInputAction::ResetWind
                 } else {
                     JumpInputAction::None
                 }
             }
-            UiEvent::KeyDown(Key::Enter) => Self::enter(session),
-            UiEvent::Text('+') => Self::adjust_gate(session, 1),
-            UiEvent::Text('-') => Self::adjust_gate(session, -1),
-            _ if keys.matches_right(event) => Self::right(session),
+            UiEvent::KeyDown(Key::Enter) => Self::enter(runner),
+            UiEvent::Text('+') => Self::adjust_gate(runner, 1),
+            UiEvent::Text('-') => Self::adjust_gate(runner, -1),
+            _ if keys.matches_right(event) => Self::right(runner),
             _ if keys.matches_left(event) => {
-                if session.phase() == Some(JumpPhase::Flight) {
-                    session.handle_input(JumpInput::LeanBack);
+                if runner.phase() == Some(JumpPhase::Flight) {
+                    runner.handle_input(JumpInput::LeanBack);
                 }
                 JumpInputAction::None
             }
             _ if keys.matches_up(event) => {
-                if session.phase() == Some(JumpPhase::Inrun) {
-                    session.handle_input(JumpInput::Takeoff);
+                if runner.phase() == Some(JumpPhase::Inrun) {
+                    runner.handle_input(JumpInput::Takeoff);
                 }
                 JumpInputAction::None
             }
             _ if keys.matches_telemark(event) => {
-                if session.phase() == Some(JumpPhase::Flight) {
-                    session.handle_input(JumpInput::Telemark);
+                if runner.phase() == Some(JumpPhase::Flight) {
+                    runner.handle_input(JumpInput::Telemark);
                 }
                 JumpInputAction::None
             }
             _ if keys.matches_replay(event) => {
-                if session.phase() == Some(JumpPhase::Flight) {
-                    session.handle_input(JumpInput::TwoFooted);
+                if runner.phase() == Some(JumpPhase::Flight) {
+                    runner.handle_input(JumpInput::TwoFooted);
                 }
                 JumpInputAction::None
             }
             UiEvent::Text('s' | 'S') => {
-                if session.phase() == Some(JumpPhase::Result) {
+                if runner.phase() == Some(JumpPhase::Result) {
                     JumpInputAction::SaveReplay
                 } else {
                     JumpInputAction::None
@@ -179,48 +179,48 @@ impl JumpInputController {
         }
     }
 
-    fn enter(session: &mut JumpSession) -> JumpInputAction {
-        match session.phase() {
+    fn enter(runner: &mut JumpRunner) -> JumpInputAction {
+        match runner.phase() {
             Some(JumpPhase::Result) => JumpInputAction::ResetJump,
             Some(JumpPhase::Info) => {
-                let start_gate = session.start_gate().unwrap_or_default();
-                session.handle_input(JumpInput::LeaveInfo);
+                let start_gate = runner.start_gate().unwrap_or_default();
+                runner.handle_input(JumpInput::LeaveInfo);
                 JumpInputAction::PersistStartGate(start_gate)
             }
             Some(JumpPhase::Landing) => {
-                session.handle_input(JumpInput::ShowResult);
+                runner.handle_input(JumpInput::ShowResult);
                 JumpInputAction::None
             }
             _ => {
-                session.handle_input(JumpInput::Start);
+                runner.handle_input(JumpInput::Start);
                 JumpInputAction::None
             }
         }
     }
 
-    fn right(session: &mut JumpSession) -> JumpInputAction {
-        match session.phase() {
+    fn right(runner: &mut JumpRunner) -> JumpInputAction {
+        match runner.phase() {
             Some(JumpPhase::Info) => {
-                let start_gate = session.start_gate().unwrap_or_default();
-                session.handle_input(JumpInput::LeaveInfo);
+                let start_gate = runner.start_gate().unwrap_or_default();
+                runner.handle_input(JumpInput::LeaveInfo);
                 JumpInputAction::PersistStartGate(start_gate)
             }
             Some(JumpPhase::OnBar) => {
-                session.handle_input(JumpInput::Start);
+                runner.handle_input(JumpInput::Start);
                 JumpInputAction::None
             }
             _ => {
-                session.handle_input(JumpInput::LeanForward);
+                runner.handle_input(JumpInput::LeanForward);
                 JumpInputAction::None
             }
         }
     }
 
-    fn adjust_gate(session: &mut JumpSession, delta: i32) -> JumpInputAction {
-        if session.phase() != Some(JumpPhase::Info) {
+    fn adjust_gate(runner: &mut JumpRunner, delta: i32) -> JumpInputAction {
+        if runner.phase() != Some(JumpPhase::Info) {
             return JumpInputAction::None;
         }
-        session
+        runner
             .handle_start_gate_adjust(delta)
             .map_or(JumpInputAction::None, JumpInputAction::PersistStartGate)
     }

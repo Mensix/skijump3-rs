@@ -4,7 +4,7 @@ use crate::jump::replay::ReplayTrace;
 use crate::jump::sim;
 use crate::jump::snow::{calculate_snow_count, SnowSystem};
 use crate::jump::types::{JumpOutcome, JumpPhase, JumpTelemetry};
-use crate::jump::{JumpParticipant, JumpPolicy, JumpRunner, JumpRunnerRenderEnv, JumpSession};
+use crate::jump::{JumpParticipant, JumpPolicy, JumpRunner, JumpRunnerRenderEnv};
 use crate::store::{ResourcesRef, StoreRef};
 use crate::views::jump::input::{JumpInputAction, JumpInputController, JumpKeyBindings};
 use crate::views::replay::save_dialog::{SaveAction, SaveReplayDialog};
@@ -156,16 +156,11 @@ impl JumpScene {
             .reset_state(start_gate, record_distance);
     }
 
-    pub fn session_mut(&self) -> impl std::ops::DerefMut<Target = JumpSession> + use<'_> {
-        std::cell::RefMut::map(self.runner.borrow_mut(), |r| r.session_mut())
-    }
-
     pub fn handle_jump_input(&self, event: UiEvent) -> JumpInputAction {
         let config = self.resources.save_manager.config.borrow();
         let keys = JumpKeyBindings::from_config(&config);
         drop(config);
-        let mut session = self.session_mut();
-        JumpInputController.handle_event(event, &mut session, keys)
+        JumpInputController.handle_event(event, &mut self.runner.borrow_mut(), keys)
     }
 
     pub fn phase(&self) -> Option<JumpPhase> {
