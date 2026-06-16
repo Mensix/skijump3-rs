@@ -119,10 +119,10 @@ impl Screen<RouteTarget> for JumpMenuView {
 impl JumpMenuView {
     fn start_world_cup(&self) -> RouteTarget {
         let profiles = self.store.borrow().profiles.clone();
-        let trainrounds = self.resources.save_manager.config.borrow().trainrounds;
+        let trainrounds = self.store.borrow().config.trainrounds;
         let comp = factory::world_cup(
             &profiles,
-            self.resources.player_names(),
+            self.resources.player_names(self.store.borrow().config.namenumber as usize),
             self.resources.hills.len(),
             trainrounds as usize,
         );
@@ -132,10 +132,10 @@ impl JumpMenuView {
 
     fn start_four_hills(&self) -> RouteTarget {
         let profiles = self.store.borrow().profiles.clone();
-        let trainrounds = self.resources.save_manager.config.borrow().trainrounds;
+        let trainrounds = self.store.borrow().config.trainrounds;
         let comp = factory::four_hills(
             &profiles,
-            self.resources.player_names(),
+            self.resources.player_names(self.store.borrow().config.namenumber as usize),
             self.resources.hills.len(),
             trainrounds as usize,
         );
@@ -147,12 +147,12 @@ impl JumpMenuView {
         let profiles = self.store.borrow().profiles.clone();
         let num_players = profiles.active_order.len();
         let human_teams = num_players / 4;
-        let names = self.resources.player_names().to_vec();
-        let namenumber = self.resources.save_manager.config.borrow().namenumber;
+        let names = self.resources.player_names(self.store.borrow().config.namenumber as usize).to_vec();
+        let namenumber = self.store.borrow().config.namenumber as usize;
         let teams_def = self
             .resources
             .namesets
-            .teams_for_config(namenumber)
+            .teams_for_config(namenumber as i32)
             .to_vec();
         let hill_count = self.resources.hills.len();
 

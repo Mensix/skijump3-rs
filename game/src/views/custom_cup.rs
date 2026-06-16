@@ -88,7 +88,7 @@ impl CustomCupSetupView {
                 let state = self.store.borrow();
                 let comp = factory::custom_cup(
                     &state.profiles,
-                    self.resources.player_names(),
+                    self.resources.player_names(state.config.namenumber as usize),
                     self.selected.clone(),
                     0,
                 );

@@ -1,5 +1,6 @@
 use crate::competition::active::ActiveCompetitionKind;
 use crate::route::RouteTarget;
+use crate::save::SaveRef;
 use crate::store::{GameStateRef, ResourcesRef};
 use crate::views::jump::koth::KothJumpView;
 use crate::views::jump::team_cup::TeamCupJumpView;
@@ -15,7 +16,11 @@ pub(crate) enum CompetitionJumpView {
 }
 
 impl CompetitionJumpView {
-    pub(crate) fn new(resources: ResourcesRef, store: GameStateRef) -> Self {
+    pub(crate) fn new(
+        resources: ResourcesRef,
+        store: GameStateRef,
+        save_manager: SaveRef,
+    ) -> Self {
         let kind = store
             .borrow()
             .active_competition
@@ -24,13 +29,17 @@ impl CompetitionJumpView {
             .unwrap_or(ActiveCompetitionKind::Individual);
         match kind {
             ActiveCompetitionKind::Training => {
-                Self::Training(TrainingJumpView::new(resources, store))
+                Self::Training(TrainingJumpView::new(resources, store, save_manager))
             }
             ActiveCompetitionKind::Individual => {
-                Self::Individual(WorldCupJumpView::new(resources, store))
+                Self::Individual(WorldCupJumpView::new(resources, store, save_manager))
             }
-            ActiveCompetitionKind::TeamCup => Self::TeamCup(TeamCupJumpView::new(resources, store)),
-            ActiveCompetitionKind::Koth => Self::Koth(KothJumpView::new(resources, store)),
+            ActiveCompetitionKind::TeamCup => {
+                Self::TeamCup(TeamCupJumpView::new(resources, store, save_manager))
+            }
+            ActiveCompetitionKind::Koth => {
+                Self::Koth(KothJumpView::new(resources, store, save_manager))
+            }
         }
     }
 }

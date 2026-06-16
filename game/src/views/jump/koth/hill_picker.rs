@@ -1,7 +1,8 @@
 use crate::gfx::sprites;
 use crate::gfx::theme::{BG_PURPLE, BLACK, FILL_GRAY, FONT_BODY, FONT_GOLD, FONT_TEAL};
 use crate::route::RouteTarget;
-use crate::store::ResourcesRef;
+use crate::save::SaveRef;
+use crate::store::{GameStateRef, ResourcesRef};
 use crate::text::format;
 use engine::oxide::input::Key;
 use engine::oxide::widget::EventCx;
@@ -10,14 +11,16 @@ use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent, Widget};
 
 pub struct KothHillPickerView {
     resources: ResourcesRef,
+    store: GameStateRef,
+    save_manager: SaveRef,
     menu: PixelMenu,
     start: usize,
     total: usize,
 }
 
 impl KothHillPickerView {
-    pub fn new(resources: ResourcesRef) -> Self {
-        let kothmaki = resources.save_manager.config.borrow().kothmaki;
+    pub fn new(resources: ResourcesRef, store: GameStateRef, save_manager: SaveRef) -> Self {
+        let kothmaki = store.borrow().config.kothmaki;
         let total = resources.hills.len();
         let start = if kothmaki > 0 {
             ((kothmaki as usize - 1) / 20) * 20
@@ -39,6 +42,8 @@ impl KothHillPickerView {
 
         Self {
             resources,
+            store,
+            save_manager,
             menu,
             start,
             total,
@@ -81,14 +86,14 @@ impl KothHillPickerView {
             self.start = if self.start + 20 >= self.total { 0 } else { self.start + 20 };
             self.menu = self.rebuild_menu();
         } else if sel == self.menu.item_count() {
-            self.resources
-                .save_manager
-                .update_config(|cfg| cfg.kothmaki = 0);
+            self.store.borrow_mut().config.kothmaki = 0;
+            let cfg = self.store.borrow().config.clone();
+            let _ = self.save_manager.save_config(&cfg);
         } else {
             let hill_idx = self.start + sel;
-            self.resources
-                .save_manager
-                .update_config(|cfg| cfg.kothmaki = hill_idx as i32 + 1);
+            self.store.borrow_mut().config.kothmaki = hill_idx as i32 + 1;
+            let cfg = self.store.borrow().config.clone();
+            let _ = self.save_manager.save_config(&cfg);
         }
     }
 

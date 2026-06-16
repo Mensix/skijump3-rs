@@ -1,5 +1,6 @@
 use crate::competition::koth::types::{KothJumpContext, KothResultsKind, KothRuntime};
 use crate::route::RouteTarget;
+use crate::save::SaveRef;
 use crate::store::{GameStateRef, ResourcesRef};
 use crate::views::jump::competition::controller::CompetitionJumpController;
 use crate::views::jump::competition::flow::{CompetitionFlowCommand, JumpInputResult};
@@ -12,9 +13,9 @@ pub struct KothJumpView {
 }
 
 impl KothJumpView {
-    pub(crate) fn new(resources: ResourcesRef, store: GameStateRef) -> Self {
+    pub(crate) fn new(resources: ResourcesRef, store: GameStateRef, save_manager: SaveRef) -> Self {
         Self {
-            controller: CompetitionJumpController::new(resources, store, None),
+            controller: CompetitionJumpController::new(resources, store, save_manager, None),
         }
     }
 

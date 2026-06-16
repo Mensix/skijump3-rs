@@ -4,6 +4,7 @@ use std::marker::PhantomData;
 use crate::competition::runtime::{CompetitionDecision, CompetitionRuntime};
 use crate::jump::types::JumpOutcome;
 use crate::jump::{JumpParticipant, JumpPolicy};
+use crate::save::SaveRef;
 use crate::store::{GameState, GameStateRef, HasRuntime, ResourcesRef};
 use crate::views::jump::competition::flow::{
     command_or_error, handle_human_jump, handle_jump_scene_event, render_jump_scene_with_overlay,
@@ -29,6 +30,7 @@ where
 {
     resources: ResourcesRef,
     state: GameStateRef,
+    save_manager: SaveRef,
     scene: Option<JumpScene>,
     ui_state: CompetitionUiState,
     overlay: CompetitionOverlay,
@@ -45,11 +47,13 @@ where
     pub(crate) fn new(
         resources: ResourcesRef,
         state: GameStateRef,
+        save_manager: SaveRef,
         scene: Option<JumpScene>,
     ) -> Self {
         Self {
             resources: resources.clone(),
             state: state.clone(),
+            save_manager,
             scene,
             ui_state: CompetitionUiState::new(),
             overlay: CompetitionOverlay::new(resources.clone(), state.clone()),
@@ -174,7 +178,7 @@ where
         }
         persistence::save_profiles_and_records_once(
             &self.profiles_saved,
-            &self.resources,
+            &self.save_manager,
             &self.state,
         );
     }

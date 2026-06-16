@@ -53,71 +53,45 @@ where
 
 #[derive(Debug)]
 pub struct SaveManager {
-    pub config: RefCell<Config>,
-    langbase: Rc<LangBase>,
     pub files: Rc<FileStore>,
     profiles_loaded: RefCell<bool>,
 }
 
+pub fn load_initial_config(files: &FileStore, langbase: &Rc<LangBase>) -> Config {
+    let config = match files.read("config.toml") {
+        Ok(bytes) => match Config::from_toml_bytes(&bytes) {
+            Ok(cfg) => cfg,
+            Err(e) => {
+                eprintln!("Warning: failed to parse config.toml: {e}");
+                Config::default()
+            }
+        },
+        Err(_) => Config::default(),
+    };
+
+    if config.languagenumber >= 0 && (config.languagenumber as usize) < langbase.languages.len()
+    {
+        langbase.selected.set(config.languagenumber as usize);
+    }
+    config
+}
+
 impl SaveManager {
-    pub fn new(files: Rc<FileStore>, langbase: Rc<LangBase>) -> Self {
-        let config = Self::load_initial_config(&files, &langbase);
+    pub fn new(files: Rc<FileStore>) -> Self {
         Self {
-            config: RefCell::new(config),
-            langbase,
             files,
             profiles_loaded: RefCell::new(false),
         }
     }
 
-    fn load_initial_config(files: &FileStore, langbase: &Rc<LangBase>) -> Config {
-        let config = match files.read("config.toml") {
-            Ok(bytes) => match Config::from_toml_bytes(&bytes) {
-                Ok(cfg) => cfg,
-                Err(e) => {
-                    eprintln!("Warning: failed to parse config.toml: {e}");
-                    Config::default()
-                }
-            },
-            Err(_) => Config::default(),
-        };
-
-        if config.languagenumber >= 0 && (config.languagenumber as usize) < langbase.languages.len()
-        {
-            langbase.selected.set(config.languagenumber as usize);
-        }
-        config
-    }
-
-    /// Apply a mutation to the config and persist immediately.
-    /// Pascal: modifies globals then calls `WriteConfig` at end of setupmenu.
-    pub fn update_config(&self, f: impl FnOnce(&mut Config)) {
-        {
-            let mut config = self.config.borrow_mut();
-            f(&mut config);
-        }
-        if let Err(e) = self.save_config() {
-            eprintln!("Warning: failed to save config: {e}");
-        }
-    }
-
-    pub fn set_language(&self, idx: usize) {
-        self.langbase.selected.set(idx);
-        self.config.borrow_mut().languagenumber = idx as i32;
-        if let Err(e) = self.save_config() {
-            eprintln!("Warning: failed to save config: {e}");
-        }
+    pub fn save_config(&self, config: &Config) -> Result<(), SaveError> {
+        let data = config.to_toml_bytes()?;
+        self.files.write("config.toml", &data).map_err(SaveError::Io)
     }
 
     fn save_bytes(&self, filename: &str, data: &[u8]) -> Result<(), SaveError> {
         self.files.write(filename, data).map_err(SaveError::Io)?;
         Ok(())
-    }
-
-    fn save_config(&self) -> Result<(), SaveError> {
-        let config = self.config.borrow();
-        let data = config.to_toml_bytes()?;
-        self.save_bytes("config.toml", &data)
     }
 
     pub fn save_players(&self, store: &ProfileStore) -> Result<(), SaveError> {

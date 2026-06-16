@@ -5,6 +5,7 @@ use crate::gfx::theme::{
 };
 use crate::route::RouteTarget;
 use crate::save::config::Config;
+use crate::save::SaveRef;
 use crate::store::{GameStateRef, ResourcesRef};
 use crate::text::layout::shorten_name;
 use engine::oxide::input::Key;
@@ -23,6 +24,7 @@ enum KothMode {
 pub struct KothSetupView {
     resources: ResourcesRef,
     store: GameStateRef,
+    save_manager: SaveRef,
     selected: Cell<usize>,
     mode: Cell<KothMode>,
     pack_cursor: Cell<usize>,
@@ -32,12 +34,13 @@ pub struct KothSetupView {
 }
 
 impl KothSetupView {
-    pub fn new(resources: ResourcesRef, store: GameStateRef) -> Self {
-        let pack = resources.save_manager.config.borrow().kothpack;
-        builder::apply_koth_pack(&resources.save_manager, pack as u8);
+    pub fn new(resources: ResourcesRef, store: GameStateRef, save_manager: SaveRef) -> Self {
+        let pack = store.borrow().config.kothpack;
+        builder::apply_koth_pack(&store, &save_manager, pack as u8);
         Self {
             resources,
             store,
+            save_manager,
             selected: Cell::new(1),
             mode: Cell::new(KothMode::Main),
             pack_cursor: Cell::new(0),
@@ -47,11 +50,15 @@ impl KothSetupView {
     }
 
     fn config(&self) -> std::cell::Ref<'_, Config> {
-        self.resources.save_manager.config.borrow()
+        std::cell::Ref::map(self.store.borrow(), |s| &s.config)
     }
 
     fn update_config(&self, f: impl FnOnce(&mut Config)) {
-        self.resources.save_manager.update_config(f);
+        let mut state = self.store.borrow_mut();
+        f(&mut state.config);
+        if let Err(e) = self.save_manager.save_config(&state.config) {
+            eprintln!("Warning: failed to save config: {e}");
+        }
     }
 
     fn col1(&self) -> engine::color::Rgba {
@@ -95,7 +102,7 @@ impl KothSetupView {
                     let idx = cfg.kothpel.get(i).copied().unwrap_or(1) as usize;
                     let name = self
                         .resources
-                        .player_names()
+                        .player_names(self.store.borrow().config.namenumber as usize)
                         .get(idx - 1)
                         .map(|s| shorten_name(s, &self.resources.font, 110))
                         .unwrap_or_else(|| "?".to_string());
@@ -186,7 +193,7 @@ impl KothSetupView {
 
         // Draw opponent rows — stack + preview (like CustomCupSetupView)
         if self.mode.get() == KothMode::Opponents {
-            let names = self.resources.player_names();
+            let names = self.resources.player_names(self.store.borrow().config.namenumber as usize);
             let sel = self.selected_opponents.borrow();
             let prev = self.preview_opponent.get();
             // selected opponents in gold
@@ -297,7 +304,7 @@ impl KothSetupView {
     }
 
     fn handle_opponents(&mut self, event: UiEvent) -> Option<RouteTarget> {
-        let max_idx = self.resources.player_names().len();
+        let max_idx = self.resources.player_names(self.store.borrow().config.namenumber as usize).len();
         match event {
             UiEvent::KeyDown(Key::Escape) => {
                 self.update_config(|cfg| {
@@ -382,7 +389,7 @@ impl KothSetupView {
 
     fn apply_pack(&self, pack: i32) {
         self.update_config(|cfg| cfg.kothpack = pack);
-        builder::apply_koth_pack(&self.resources.save_manager, pack as u8);
+        builder::apply_koth_pack(&self.store, &self.save_manager, pack as u8);
         self.mode.set(KothMode::Main);
     }
 
@@ -429,12 +436,13 @@ impl KothSetupView {
         let profiles = self.store.borrow().profiles.clone();
         let config = self.config();
         let hill_count = self.resources.hills.len();
+        let namenumber = self.store.borrow().config.namenumber as usize;
         let comp = {
             let s = self.store.borrow_mut();
             factory::koth(
                 &config,
                 &profiles,
-                self.resources.player_names(),
+                self.resources.player_names(namenumber),
                 hill_count,
                 s.rng.clone(),
             )

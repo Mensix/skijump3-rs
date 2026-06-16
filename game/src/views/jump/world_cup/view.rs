@@ -8,6 +8,7 @@ use crate::jump::types::JumpPhase;
 use crate::jump::JumpParticipant;
 use crate::jump::JumpPolicy;
 use crate::route::RouteTarget;
+use crate::save::SaveRef;
 use crate::store::{GameStateRef, ResourcesRef};
 use crate::text::format::format_decimal;
 use crate::views::jump::competition::controller::CompetitionJumpController;
@@ -28,7 +29,7 @@ pub struct WorldCupJumpView {
 }
 
 impl WorldCupJumpView {
-    pub(crate) fn new(resources: ResourcesRef, state: GameStateRef) -> Self {
+    pub(crate) fn new(resources: ResourcesRef, state: GameStateRef, save_manager: SaveRef) -> Self {
         let scene = JumpScene::new(
             ResourcesRef::clone(&resources),
             state.clone(),
@@ -38,7 +39,7 @@ impl WorldCupJumpView {
             JumpPolicy::competition(),
         );
         Self {
-            controller: CompetitionJumpController::new(resources, state, Some(scene)),
+            controller: CompetitionJumpController::new(resources, state, save_manager, Some(scene)),
             blinker: Blinker::new(),
         }
     }

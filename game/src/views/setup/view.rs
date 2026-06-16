@@ -1,7 +1,7 @@
 use crate::gfx::theme::FONT_BODY;
 use crate::route::RouteTarget;
 use crate::save::config::Config;
-use crate::save::SaveManager;
+use crate::save::SaveRef;
 use crate::store::{GameStateRef, ResourcesRef};
 use crate::text::lang::LangBase;
 use engine::oxide::widgets::menu::{MenuItem as OxideMenuItem, PixelMenu};
@@ -13,6 +13,7 @@ use super::state::SetupModal;
 pub struct SetupView {
     pub(crate) resources: ResourcesRef,
     pub(crate) store: GameStateRef,
+    pub(crate) save_manager: SaveRef,
     pub(crate) screen: Cell<usize>,
     pub(crate) selected_by_screen: [Cell<usize>; 4],
     pub(crate) menu: PixelMenu,
@@ -21,11 +22,12 @@ pub struct SetupView {
 }
 
 impl SetupView {
-    pub fn new(resources: ResourcesRef, store: GameStateRef) -> Self {
+    pub fn new(resources: ResourcesRef, store: GameStateRef, save_manager: SaveRef) -> Self {
         let menu = Self::make_menu(0, 0);
         Self {
             resources,
             store,
+            save_manager,
             screen: Cell::new(0),
             selected_by_screen: [Cell::new(0), Cell::new(0), Cell::new(0), Cell::new(0)],
             menu,
@@ -70,11 +72,11 @@ impl SetupView {
     }
 
     pub(crate) fn config(&self) -> std::cell::Ref<'_, Config> {
-        self.resources.save_manager.config.borrow()
+        std::cell::Ref::map(self.store.borrow(), |s| &s.config)
     }
 
-    pub(crate) fn save_manager(&self) -> &SaveManager {
-        &self.resources.save_manager
+    pub(crate) fn save_manager(&self) -> &SaveRef {
+        &self.save_manager
     }
 }
 

@@ -1,7 +1,7 @@
 use crate::content::ContentStore;
 use crate::data::records::RecordStore;
 use crate::files::FileStore;
-use crate::save::{SaveManager, SaveRef};
+use crate::save::{load_initial_config, SaveManager, SaveRef};
 use crate::store::{GameStateRef, Resources, ResourcesRef};
 use engine::oxide::Font;
 use std::cell::RefCell;
@@ -22,7 +22,8 @@ impl AppState {
         content_store: ContentStore,
     ) -> Result<Self, String> {
         let langbase = Rc::new(content_store.langbase);
-        let save_manager: SaveRef = Rc::new(SaveManager::new(files.clone(), langbase.clone()));
+        let config = load_initial_config(&files, &langbase);
+        let save_manager: SaveRef = Rc::new(SaveManager::new(files.clone()));
         let records = load_records(&files)?;
         let profiles = save_manager.load_players();
 
@@ -32,12 +33,10 @@ impl AppState {
             content_store.namesets,
             content_store.hills,
             files,
-            save_manager.clone(),
         ));
         let state: GameStateRef = Rc::new(RefCell::new(crate::store::GameState::new(
-            records, profiles,
+            records, profiles, config,
         )));
-        state.borrow_mut().configure_from_save(&save_manager);
 
         Ok(Self {
             resources,

@@ -33,18 +33,16 @@ impl JumpScene {
     /// Create a snow system, optionally sampling snow count and wind
     /// on the very first event (Pascal-faithful one-time init).
     /// Also initializes wind for the event if this is the first scene.
-    fn prepare_snow(
-        resources: &ResourcesRef,
-        store: &GameStateRef,
-        existing: Option<SnowSystem>,
-    ) -> SnowSystem {
+    fn prepare_snow(store: &GameStateRef, existing: Option<SnowSystem>) -> SnowSystem {
         let mut snow = existing.unwrap_or_default();
         let is_first = store.borrow_mut().consume_first_jump_event();
         if is_first {
-            let low_detail = resources.save_manager.config.borrow().gdetail == 1;
+            let low_detail = store.borrow().config.gdetail == 1;
             {
                 let guard = &mut *store.borrow_mut();
-                guard.wind.initialize(&mut guard.rng, guard.wind_place);
+                guard
+                    .wind
+                    .initialize(&mut guard.rng, guard.config.windplace as u8);
                 let snow_count = calculate_snow_count(&mut guard.rng);
                 snow.set_count(snow_count, &mut guard.rng);
                 let snow_count = if low_detail { 0 } else { snow_count };
@@ -65,7 +63,7 @@ impl JumpScene {
         participant: JumpParticipant,
         policy: JumpPolicy,
     ) -> Self {
-        let snow = Self::prepare_snow(&resources, &store, None);
+        let snow = Self::prepare_snow(&store, None);
         let runner = RefCell::new(Self::build_runner(
             resources.clone(),
             &store,
@@ -95,7 +93,7 @@ impl JumpScene {
     ) {
         *self.telemetry.borrow_mut() = None;
         let existing_snow = self.runner.borrow().clone_snow();
-        let snow = Self::prepare_snow(&self.resources, &self.store, Some(existing_snow));
+        let snow = Self::prepare_snow(&self.store, Some(existing_snow));
         *self.runner.borrow_mut() = Self::build_runner(
             self.resources.clone(),
             &self.store,
@@ -154,9 +152,8 @@ impl JumpScene {
     }
 
     pub fn handle_jump_input(&self, event: UiEvent) -> JumpInputAction {
-        let config = self.resources.save_manager.config.borrow();
-        let keys = JumpKeyBindings::from_config(&config);
-        drop(config);
+        let config = &self.store.borrow().config;
+        let keys = JumpKeyBindings::from_config(config);
         JumpInputController.handle_event(event, &mut self.runner.borrow_mut(), keys)
     }
 

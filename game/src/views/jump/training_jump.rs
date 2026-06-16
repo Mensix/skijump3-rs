@@ -1,5 +1,6 @@
 use crate::jump::{JumpParticipant, JumpPolicy};
 use crate::route::RouteTarget;
+use crate::save::SaveRef;
 use crate::store::{GameStateRef, ResourcesRef};
 use crate::views::jump::input::JumpInputAction;
 use crate::views::jump::scene::JumpScene;
@@ -12,7 +13,7 @@ pub struct TrainingJumpView {
 }
 
 impl TrainingJumpView {
-    pub fn new(resources: ResourcesRef, store: GameStateRef) -> Self {
+    pub fn new(resources: ResourcesRef, store: GameStateRef, _save_manager: SaveRef) -> Self {
         let hill_idx = store.borrow().practice_hill;
         let participant = JumpParticipant::trainee();
         let start_gate = store.borrow().practice_start_gate;

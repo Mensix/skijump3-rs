@@ -2,6 +2,7 @@ use super::setup::{SetupAction, TeamCupSetup};
 use crate::competition::team_cup::types::{TeamCupJumpContext, TeamCupResultsKind, TeamCupRuntime};
 use crate::gfx::theme::{BLACK, FONT_BODY, FONT_GRAY};
 use crate::route::RouteTarget;
+use crate::save::SaveRef;
 use crate::store::{GameStateRef, ResourcesRef};
 use crate::views::jump::competition::controller::CompetitionJumpController;
 use crate::views::jump::competition::flow::{
@@ -29,10 +30,10 @@ pub struct TeamCupJumpView {
 }
 
 impl TeamCupJumpView {
-    pub(crate) fn new(resources: ResourcesRef, state: GameStateRef) -> Self {
+    pub(crate) fn new(resources: ResourcesRef, state: GameStateRef, save_manager: SaveRef) -> Self {
         let setup = TeamCupSetup::new(&state);
         Self {
-            controller: CompetitionJumpController::new(resources, state, None),
+            controller: CompetitionJumpController::new(resources, state, save_manager, None),
             phase: ViewPhase::Setup,
             blinker: Blinker::new(),
             setup,

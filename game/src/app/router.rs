@@ -171,15 +171,33 @@ impl RouteRegistry {
             ),
             (
                 RouteTarget::Jump,
-                self.resources_store(|resources, store| {
-                    Box::new(CompetitionJumpView::new(resources, store))
-                }),
+                {
+                    let resources = self.resources.clone();
+                    let state = self.state.clone();
+                    let save_manager = self.save_manager.clone();
+                    Box::new(move || {
+                        Box::new(CompetitionJumpView::new(
+                            resources.clone(),
+                            state.clone(),
+                            save_manager.clone(),
+                        ))
+                    })
+                },
             ),
             (
                 RouteTarget::CompetitionJump,
-                self.resources_store(|resources, store| {
-                    Box::new(CompetitionJumpView::new(resources, store))
-                }),
+                {
+                    let resources = self.resources.clone();
+                    let state = self.state.clone();
+                    let save_manager = self.save_manager.clone();
+                    Box::new(move || {
+                        Box::new(CompetitionJumpView::new(
+                            resources.clone(),
+                            state.clone(),
+                            save_manager.clone(),
+                        ))
+                    })
+                },
             ),
             (
                 RouteTarget::CustomCupSetup,
@@ -229,19 +247,44 @@ impl RouteRegistry {
                     Box::new(HillRecordsView::new(resources, store))
                 }),
             ),
-            (
-                RouteTarget::OptionsMenu,
-                self.resources_store(|resources, store| Box::new(SetupView::new(resources, store))),
-            ),
+            (RouteTarget::OptionsMenu, {
+                let resources = self.resources.clone();
+                let state = self.state.clone();
+                let save_manager = self.save_manager.clone();
+                Box::new(move || {
+                    Box::new(SetupView::new(
+                        resources.clone(),
+                        state.clone(),
+                        save_manager.clone(),
+                    ))
+                })
+            }),
             (RouteTarget::KothHillPicker, {
                 let resources = self.resources.clone();
-                Box::new(move || Box::new(KothHillPickerView::new(resources.clone())))
+                let state = self.state.clone();
+                let save_manager = self.save_manager.clone();
+                Box::new(move || {
+                    Box::new(KothHillPickerView::new(
+                        resources.clone(),
+                        state.clone(),
+                        save_manager.clone(),
+                    ))
+                })
             }),
             (
                 RouteTarget::KothSetup,
-                self.resources_store(|resources, store| {
-                    Box::new(KothSetupView::new(resources, store))
-                }),
+                {
+                    let resources = self.resources.clone();
+                    let state = self.state.clone();
+                    let save_manager = self.save_manager.clone();
+                    Box::new(move || {
+                        Box::new(KothSetupView::new(
+                            resources.clone(),
+                            state.clone(),
+                            save_manager.clone(),
+                        ))
+                    })
+                },
             ),
             (RouteTarget::HillMakerSetup, {
                 let resources = self.resources.clone();
@@ -257,8 +300,9 @@ impl RouteRegistry {
             ),
             (RouteTarget::Welcome, {
                 let resources = self.resources;
+                let state = self.state.clone();
                 let save_manager = self.save_manager;
-                Box::new(move || welcome_screen(&resources, save_manager.clone()))
+                Box::new(move || welcome_screen(&resources, state.clone(), save_manager.clone()))
             }),
         ]
     }
@@ -268,7 +312,7 @@ impl RouteRegistry {
     }
 
     fn welcome_screen(&self) -> Box<dyn AppScreen> {
-        welcome_screen(&self.resources, self.save_manager.clone())
+        welcome_screen(&self.resources, self.state.clone(), self.save_manager.clone())
     }
 
     fn resources_store<F>(&self, ctor: F) -> ScreenFactory
@@ -290,8 +334,14 @@ impl RouteRegistry {
     }
 }
 
-fn welcome_screen(resources: &ResourcesRef, save_manager: SaveRef) -> Box<dyn AppScreen> {
+fn welcome_screen(
+    resources: &ResourcesRef,
+    state: GameStateRef,
+    save_manager: SaveRef,
+) -> Box<dyn AppScreen> {
     Box::new(WelcomeScreenView::new(
+        resources.clone(),
+        state,
         resources.langbase.languages.clone(),
         save_manager,
     ))

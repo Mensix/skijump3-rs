@@ -172,7 +172,7 @@ pub(super) fn handle_edit_enter(view: &mut ProfilesView, profile: usize, selecte
             let display = if value > 0 {
                 replace_display_name(
                     value,
-                    view.resources.player_names(),
+                    view.resources.player_names(view.store.borrow().config.namenumber as usize),
                     &view.resources.font,
                     x,
                 )

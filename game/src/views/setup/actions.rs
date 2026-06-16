@@ -65,8 +65,13 @@ fn handle_configure_keys(
                         (0..5).any(|idx| idx != item && config_key(&cfg, idx) == code)
                     };
                     if !duplicate {
-                        view.save_manager()
-                            .update_config(|cfg| set_config_key(cfg, item, code));
+                        {
+                            let mut state = view.store.borrow_mut();
+                            set_config_key(&mut state.config, item, code);
+                            if let Err(e) = view.save_manager().save_config(&state.config) {
+                                eprintln!("Warning: failed to save config: {e}");
+                            }
+                        }
                         view.modal.set(Some(SetupModal::ConfigureKeys {
                             selected,
                             capture: None,
@@ -97,14 +102,18 @@ fn handle_configure_keys(
                 selected,
                 capture: Some(selected),
             })),
-            5 => view.save_manager().update_config(|cfg| {
+            5 => {
+                let mut state = view.store.borrow_mut();
                 let defaults = Config::default();
-                cfg.key_up = defaults.key_up;
-                cfg.key_right = defaults.key_right;
-                cfg.key_left = defaults.key_left;
-                cfg.key_telemark = defaults.key_telemark;
-                cfg.key_replay = defaults.key_replay;
-            }),
+                state.config.key_up = defaults.key_up;
+                state.config.key_right = defaults.key_right;
+                state.config.key_left = defaults.key_left;
+                state.config.key_telemark = defaults.key_telemark;
+                state.config.key_replay = defaults.key_replay;
+                if let Err(e) = view.save_manager().save_config(&state.config) {
+                    eprintln!("Warning: failed to save config: {e}");
+                }
+            }
             6 => view.modal.set(None),
             _ => {}
         },
@@ -146,8 +155,13 @@ fn handle_name_set_input(view: &mut SetupView, event: UiEvent) -> Option<RouteTa
                 return None;
             };
             if idx < ns_len {
-                view.save_manager()
-                    .update_config(|cfg| cfg.namenumber = idx as i32);
+                {
+                    let mut state = view.store.borrow_mut();
+                    state.config.namenumber = idx as i32;
+                    if let Err(e) = view.save_manager().save_config(&state.config) {
+                        eprintln!("Warning: failed to save config: {e}");
+                    }
+                }
                 view.modal.set(None);
             }
         }
@@ -172,9 +186,14 @@ fn handle_wind_place(view: &mut SetupView, event: UiEvent, pos: usize) -> Option
         UiEvent::KeyDown(Key::Enter) | UiEvent::Text(' ') => {
             if pos < winds {
                 let place = if pos < 8 { pos + 1 } else { pos + 3 };
-                view.save_manager()
-                    .update_config(|cfg| cfg.windplace = place as i32);
-                view.store.borrow_mut().wind_place = place as u8;
+                {
+                    let mut state = view.store.borrow_mut();
+                    state.config.windplace = place as i32;
+                    if let Err(e) = view.save_manager().save_config(&state.config) {
+                        eprintln!("Warning: failed to save config: {e}");
+                    }
+
+                }
             }
             view.modal.set(None);
         }
@@ -217,8 +236,13 @@ fn handle_see_comps(view: &mut SetupView, event: UiEvent, idx: usize) -> Option<
         }
         UiEvent::KeyDown(Key::Enter) => {
             let cfg_val = opts[idx].0;
-            view.save_manager()
-                .update_config(|cfg| cfg.seecomps = cfg_val as i32);
+            {
+                let mut state = view.store.borrow_mut();
+                state.config.seecomps = cfg_val as i32;
+                if let Err(e) = view.save_manager().save_config(&state.config) {
+                    eprintln!("Warning: failed to save config: {e}");
+                }
+            }
             view.modal.set(None);
         }
         UiEvent::KeyDown(Key::Escape | Key::Delete) => {
@@ -268,7 +292,14 @@ fn handle_language_picker(view: &mut SetupView, event: UiEvent, sel: usize) -> O
             view.modal.set(Some(SetupModal::LanguagePicker(new_sel)));
         }
         UiEvent::KeyDown(Key::Enter) | UiEvent::Text(' ') => {
-            view.save_manager().set_language(sel);
+            {
+                let mut state = view.store.borrow_mut();
+                state.config.languagenumber = sel as i32;
+                if let Err(e) = view.save_manager().save_config(&state.config) {
+                    eprintln!("Warning: failed to save config: {e}");
+                }
+            }
+            view.resources.langbase.selected.set(sel);
             view.modal.set(None);
         }
         UiEvent::Text(c) if c.is_ascii_digit() => {
@@ -370,37 +401,77 @@ fn activate_item(view: &mut SetupView, screen: usize, item: usize) {
             let idx = idx.min(langs.len().saturating_sub(1));
             view.modal.set(Some(SetupModal::LanguagePicker(idx)));
         }
-        (1, 1) => view
-            .save_manager()
-            .update_config(|cfg| cfg.beeppi = i32::from(cfg.beeppi == 0)),
-        (1, 2) => view
-            .save_manager()
-            .update_config(|cfg| cfg.gdetail = i32::from(cfg.gdetail == 0)),
+        (1, 1) => {
+            let mut state = view.store.borrow_mut();
+            state.config.beeppi = i32::from(state.config.beeppi == 0);
+            if let Err(e) = view.save_manager().save_config(&state.config) {
+                eprintln!("Warning: failed to save config: {e}");
+            }
+        }
+        (1, 2) => {
+            let mut state = view.store.borrow_mut();
+            state.config.gdetail = i32::from(state.config.gdetail == 0);
+            if let Err(e) = view.save_manager().save_config(&state.config) {
+                eprintln!("Warning: failed to save config: {e}");
+            }
+        }
         (1, 3) => view.modal.set(Some(SetupModal::NameSetInput)),
-        (2, 0) => view
-            .save_manager()
-            .update_config(|cfg| cfg.trainrounds = (cfg.trainrounds + 1) % 4),
-        (2, 1) => view
-            .save_manager()
-            .update_config(|cfg| cfg.lct = i32::from(cfg.lct == 0)),
-        (2, 2) => view
-            .save_manager()
-            .update_config(|cfg| cfg.diff = i32::from(cfg.diff == 0)),
-        (2, 3) => view
-            .save_manager()
-            .update_config(|cfg| cfg.diffwc = i32::from(cfg.diffwc == 0)),
-        (2, 4) => view
-            .save_manager()
-            .update_config(|cfg| cfg.compactlist = i32::from(cfg.compactlist == 0)),
-        (2, 5) => view
-            .save_manager()
-            .update_config(|cfg| cfg.invback = i32::from(cfg.invback == 0)),
-        (2, 6) => view
-            .save_manager()
-            .update_config(|cfg| cfg.automatichrr = i32::from(cfg.automatichrr == 0)),
-        (2, 7) => view
-            .save_manager()
-            .update_config(|cfg| cfg.goals = i32::from(cfg.goals == 0)),
+        (2, 0) => {
+            let mut state = view.store.borrow_mut();
+            state.config.trainrounds = (state.config.trainrounds + 1) % 4;
+            if let Err(e) = view.save_manager().save_config(&state.config) {
+                eprintln!("Warning: failed to save config: {e}");
+            }
+        }
+        (2, 1) => {
+            let mut state = view.store.borrow_mut();
+            state.config.lct = i32::from(state.config.lct == 0);
+            if let Err(e) = view.save_manager().save_config(&state.config) {
+                eprintln!("Warning: failed to save config: {e}");
+            }
+        }
+        (2, 2) => {
+            let mut state = view.store.borrow_mut();
+            state.config.diff = i32::from(state.config.diff == 0);
+            if let Err(e) = view.save_manager().save_config(&state.config) {
+                eprintln!("Warning: failed to save config: {e}");
+            }
+        }
+        (2, 3) => {
+            let mut state = view.store.borrow_mut();
+            state.config.diffwc = i32::from(state.config.diffwc == 0);
+            if let Err(e) = view.save_manager().save_config(&state.config) {
+                eprintln!("Warning: failed to save config: {e}");
+            }
+        }
+        (2, 4) => {
+            let mut state = view.store.borrow_mut();
+            state.config.compactlist = i32::from(state.config.compactlist == 0);
+            if let Err(e) = view.save_manager().save_config(&state.config) {
+                eprintln!("Warning: failed to save config: {e}");
+            }
+        }
+        (2, 5) => {
+            let mut state = view.store.borrow_mut();
+            state.config.invback = i32::from(state.config.invback == 0);
+            if let Err(e) = view.save_manager().save_config(&state.config) {
+                eprintln!("Warning: failed to save config: {e}");
+            }
+        }
+        (2, 6) => {
+            let mut state = view.store.borrow_mut();
+            state.config.automatichrr = i32::from(state.config.automatichrr == 0);
+            if let Err(e) = view.save_manager().save_config(&state.config) {
+                eprintln!("Warning: failed to save config: {e}");
+            }
+        }
+        (2, 7) => {
+            let mut state = view.store.borrow_mut();
+            state.config.goals = i32::from(state.config.goals == 0);
+            if let Err(e) = view.save_manager().save_config(&state.config) {
+                eprintln!("Warning: failed to save config: {e}");
+            }
+        }
         (2, 8) => {
             let current = view.config().seecomps;
             let opts = seecomp_options(view);
@@ -415,23 +486,36 @@ fn activate_item(view: &mut SetupView, screen: usize, item: usize) {
             let pos = if place <= 8 { place - 1 } else { place - 3 };
             view.modal.set(Some(SetupModal::WindPlace(pos as usize)));
         }
-        (2, 10) => view
-            .save_manager()
-            .update_config(|cfg| cfg.kosystem = i32::from(cfg.kosystem == 0)),
-        (3, 0) => view
-            .save_manager()
-            .update_config(|cfg| cfg.comphrs = i32::from(cfg.comphrs == 0)),
-        (3, 1) => view
-            .save_manager()
-            .update_config(|cfg| cfg.nosamename = i32::from(cfg.nosamename == 0)),
+        (2, 10) => {
+            let mut state = view.store.borrow_mut();
+            state.config.kosystem = i32::from(state.config.kosystem == 0);
+            if let Err(e) = view.save_manager().save_config(&state.config) {
+                eprintln!("Warning: failed to save config: {e}");
+            }
+        }
+        (3, 0) => {
+            let mut state = view.store.borrow_mut();
+            state.config.comphrs = i32::from(state.config.comphrs == 0);
+            if let Err(e) = view.save_manager().save_config(&state.config) {
+                eprintln!("Warning: failed to save config: {e}");
+            }
+        }
+        (3, 1) => {
+            let mut state = view.store.borrow_mut();
+            state.config.nosamename = i32::from(state.config.nosamename == 0);
+            if let Err(e) = view.save_manager().save_config(&state.config) {
+                eprintln!("Warning: failed to save config: {e}");
+            }
+        }
         (3, 2) => view.modal.set(Some(SetupModal::ConfirmReset(1))),
         (3, 3) => view.modal.set(Some(SetupModal::ConfirmReset(0))),
         (3, 4) => {
-            view.save_manager().update_config(|cfg| {
-                *cfg = Config::default();
-            });
-            let cfg = view.config();
-            view.store.borrow_mut().wind_place = cfg.windplace as u8;
+            let mut state = view.store.borrow_mut();
+            state.config = Config::default();
+            if let Err(e) = view.save_manager().save_config(&state.config) {
+                eprintln!("Warning: failed to save config: {e}");
+            }
+
         }
         _ => {}
     }

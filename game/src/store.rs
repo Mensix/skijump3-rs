@@ -13,7 +13,7 @@ use crate::jump::replay::ReplayTrace;
 use crate::jump::types::DEFAULT_START_GATE;
 use crate::jump::wind::Wind;
 use crate::rng::Random;
-use crate::save::{SaveManager, SaveRef};
+use crate::save::config::Config;
 use crate::text::lang::LangBase;
 use engine::oxide::Font;
 use std::cell::RefCell;
@@ -28,22 +28,15 @@ pub struct Resources {
     pub hills: HillCatalog,
     pub(crate) terrain_cache: RefCell<HashMap<String, Rc<HillTerrain>>>,
     pub files: Rc<FileStore>,
-    pub save_manager: SaveRef,
 }
 
 impl Resources {
-    pub fn player_names(&self) -> &[String] {
-        self.namesets
-            .names_for_config(self.save_manager.config.borrow().namenumber)
-    }
-
     pub fn new(
         font: Font,
         langbase: Rc<LangBase>,
         namesets: NameCatalog,
         hills: HillCatalog,
         files: Rc<FileStore>,
-        save_manager: SaveRef,
     ) -> Self {
         Self {
             font,
@@ -52,8 +45,11 @@ impl Resources {
             hills,
             terrain_cache: RefCell::new(HashMap::new()),
             files,
-            save_manager,
         }
+    }
+
+    pub fn player_names(&self, namenumber: usize) -> &[String] {
+        self.namesets.names_for_config(namenumber as i32)
     }
 
     pub(crate) fn terrain(&self, hill_idx: usize) -> Result<Rc<HillTerrain>, AssetError> {
@@ -77,9 +73,9 @@ pub type ResourcesRef = Rc<Resources>;
 
 #[derive(Debug, Clone)]
 pub struct GameState {
+    pub config: Config,
     pub rng: Random,
     pub wind: Wind,
-    pub wind_place: u8,
     pub first_event: bool,
     pub practice_hill: usize,
     pub practice_start_gate: i32,
@@ -91,8 +87,9 @@ pub struct GameState {
 }
 
 impl GameState {
-    pub fn new(records: RecordStore, profiles: ProfileStore) -> Self {
+    pub fn new(records: RecordStore, profiles: ProfileStore, config: Config) -> Self {
         Self {
+            config,
             rng: Random::new(
                 std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
@@ -100,7 +97,6 @@ impl GameState {
                     .as_secs() as u32,
             ),
             wind: Wind::default(),
-            wind_place: 0,
             first_event: true,
             practice_hill: 0,
             practice_start_gate: DEFAULT_START_GATE,
@@ -112,10 +108,6 @@ impl GameState {
         }
     }
 
-    pub fn configure_from_save(&mut self, save_manager: &SaveManager) {
-        self.wind_place = save_manager.config.borrow().windplace as u8;
-    }
-
     pub fn start_active(&mut self, comp: ActiveCompetition) {
         self.wind.set_enabled(true);
         self.active_competition = Some(comp);
@@ -123,7 +115,7 @@ impl GameState {
 
     pub fn setup_jump_event(&mut self) {
         self.first_event = true;
-        self.wind.initialize(&mut self.rng, self.wind_place);
+        self.wind.initialize(&mut self.rng, self.config.windplace as u8);
     }
 
     pub fn consume_first_jump_event(&mut self) -> bool {
@@ -133,13 +125,17 @@ impl GameState {
     }
 
     pub fn reset_practice_wind(&mut self) {
-        self.wind.initialize(&mut self.rng, self.wind_place);
+        self.wind.initialize(&mut self.rng, self.config.windplace as u8);
     }
 }
 
 impl Default for GameState {
     fn default() -> Self {
-        Self::new(RecordStore::default(), ProfileStore::new())
+        Self::new(
+            RecordStore::default(),
+            ProfileStore::default(),
+            Config::default(),
+        )
     }
 }
 
