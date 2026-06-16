@@ -5,7 +5,7 @@ use crate::competition::team_cup::types::TeamCupStandingsKind;
 use crate::competition::types::{CompetitionPhase, CupStyle, Participant, QualificationStatus};
 use crate::competition::ActiveCompetition;
 use crate::gfx::sprites::Sprite;
-use crate::gfx::theme::{FONT_GOLD, FONT_TEAL, FONT_GRAY};
+use crate::gfx::theme::{FONT_GOLD, FONT_GRAY, FONT_TEAL};
 use crate::jump::hud;
 use crate::jump::types::{JumpPhase, JumpTelemetry};
 use crate::store::{ResourcesRef, StoreRef};

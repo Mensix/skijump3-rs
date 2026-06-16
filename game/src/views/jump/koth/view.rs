@@ -41,7 +41,7 @@ impl KothJumpView {
     }
 
     fn on_complete(&self) {
-        self.controller.session().save_results();
+        self.controller.save_results();
         // TODO: KOTH records update (top[35+pack], profile.koth_level)
     }
 

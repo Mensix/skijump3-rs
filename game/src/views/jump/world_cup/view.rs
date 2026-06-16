@@ -3,7 +3,7 @@ use crate::competition::machine::Competition;
 use crate::competition::runtime::{IndividualJumpContext, IndividualResultsKind};
 use crate::competition::scoring::wc_points_for_rank;
 use crate::competition::types::{CompetitionPhase, CupStyle};
-use crate::gfx::theme::{BLACK, FONT_BODY, FONT_TEAL, FONT_GRAY};
+use crate::gfx::theme::{BLACK, FONT_BODY, FONT_GRAY, FONT_TEAL};
 use crate::jump::types::JumpPhase;
 use crate::jump::JumpParticipant;
 use crate::jump::JumpPolicy;
@@ -252,7 +252,7 @@ impl WorldCupJumpView {
     }
 
     fn save_competition_results(&self) {
-        self.controller.session().save_results();
+        self.controller.save_results();
         // WC-specific profile updates (bestpoints, etc.)
         self.controller.store().with_active(|active| {
             let Some(c) = active.individual() else {
