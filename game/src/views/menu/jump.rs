@@ -4,7 +4,7 @@ use crate::competition::factory;
 use crate::components::layout::MainLayout;
 use crate::gfx::theme::{BG_DARK, BG_RED, BLACK, FONT_BODY, FONT_GOLD};
 use crate::route::RouteTarget;
-use crate::store::{ResourcesRef, StoreRef};
+use crate::store::{GameStateRef, ResourcesRef};
 use engine::oxide::widgets::menu::PixelMenu;
 use engine::oxide::Widget;
 use engine::oxide::{PaintCx, Screen, ScreenBackground, ScreenEventCx, UiEvent};
@@ -12,7 +12,7 @@ use engine::oxide::{PaintCx, Screen, ScreenBackground, ScreenEventCx, UiEvent};
 pub struct JumpMenuView {
     menu: PixelMenu,
     layout: MainLayout,
-    store: StoreRef,
+    store: GameStateRef,
     resources: ResourcesRef,
     show_team_warning: Cell<bool>,
 }
@@ -29,7 +29,7 @@ const JUMP_MENU_ACTIONS: &[Option<RouteTarget>] = &[
 
 impl JumpMenuView {
     #[must_use]
-    pub fn new(layout: MainLayout, store: StoreRef, resources: ResourcesRef) -> Self {
+    pub fn new(layout: MainLayout, store: GameStateRef, resources: ResourcesRef) -> Self {
         use engine::oxide::widgets::menu::MenuItem as OxideMenuItem;
 
         let items = vec![
@@ -85,7 +85,7 @@ impl Screen<RouteTarget> for JumpMenuView {
             Some(2) => cx.navigate(RouteTarget::CustomCupSetup),
             Some(3) => cx.navigate(self.start_four_hills()),
             Some(4) => {
-                let num_players = self.store.profiles().active_order.len();
+                let num_players = self.store.borrow().profiles.active_order.len();
                 if num_players == 4 || num_players == 8 {
                     cx.navigate(self.start_team_cup());
                 } else {
@@ -118,7 +118,7 @@ impl Screen<RouteTarget> for JumpMenuView {
 
 impl JumpMenuView {
     fn start_world_cup(&self) -> RouteTarget {
-        let profiles = self.store.profiles();
+        let profiles = self.store.borrow().profiles.clone();
         let trainrounds = self.resources.save_manager.config.borrow().trainrounds;
         let comp = factory::world_cup(
             &profiles,
@@ -126,13 +126,12 @@ impl JumpMenuView {
             self.resources.hills.len(),
             trainrounds as usize,
         );
-        drop(profiles);
-        self.store.start_active(comp);
+        self.store.borrow_mut().start_active(comp);
         RouteTarget::CompetitionJump
     }
 
     fn start_four_hills(&self) -> RouteTarget {
-        let profiles = self.store.profiles();
+        let profiles = self.store.borrow().profiles.clone();
         let trainrounds = self.resources.save_manager.config.borrow().trainrounds;
         let comp = factory::four_hills(
             &profiles,
@@ -140,13 +139,14 @@ impl JumpMenuView {
             self.resources.hills.len(),
             trainrounds as usize,
         );
-        drop(profiles);
-        self.store.start_active(comp);
+        self.store.borrow_mut().start_active(comp);
         RouteTarget::CompetitionJump
     }
 
     fn start_team_cup(&self) -> RouteTarget {
-        let profiles = self.store.profiles();
+        let profiles = self.store.borrow().profiles.clone();
+        let num_players = profiles.active_order.len();
+        let human_teams = num_players / 4;
         let names = self.resources.player_names().to_vec();
         let namenumber = self.resources.save_manager.config.borrow().namenumber;
         let teams_def = self
@@ -154,22 +154,20 @@ impl JumpMenuView {
             .namesets
             .teams_for_config(namenumber)
             .to_vec();
-        let num_players = profiles.active_order.len();
-        let human_teams = num_players / 4;
         let hill_count = self.resources.hills.len();
-        drop(profiles);
 
-        let comp = self.store.with_jump_rng_wind_mut(|rng, _| {
+        let comp = {
+            let mut s = self.store.borrow_mut();
             factory::team_cup(
                 &names,
                 &teams_def,
-                &self.store.profiles(),
+                &profiles,
                 human_teams,
                 hill_count,
-                rng,
+                &mut s.rng,
             )
-        });
-        self.store.start_active(comp);
+        };
+        self.store.borrow_mut().start_active(comp);
         RouteTarget::CompetitionJump
     }
 

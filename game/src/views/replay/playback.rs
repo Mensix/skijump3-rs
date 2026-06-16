@@ -4,7 +4,7 @@ use crate::error::AssetError;
 use crate::gfx::materials;
 use crate::gfx::sprites;
 use crate::gfx::theme::{
-    BG_PURPLE, BLACK, FILL_PURPLE, FONT_BODY, FONT_GOLD, FONT_TEAL, FONT_GRAY,
+    BG_PURPLE, BLACK, FILL_PURPLE, FONT_BODY, FONT_GOLD, FONT_GRAY, FONT_TEAL,
 };
 use crate::jump::hud;
 use crate::jump::math;
@@ -13,7 +13,7 @@ use crate::jump::replay_player::ReplaySession;
 use crate::jump::snow::SnowSystem;
 use crate::jump::visuals::{self, JumperSpriteSpec};
 use crate::route::RouteTarget;
-use crate::store::{ResourcesRef, StoreRef};
+use crate::store::{GameStateRef, ResourcesRef};
 use crate::text::format;
 use crate::text::lang::LangBase;
 use crate::views::replay::playback_controls::{PlaybackMode, PlaybackSpeed, ReplayPlayback};
@@ -41,15 +41,16 @@ pub struct ReplayView {
 
 impl ReplayView {
     #[allow(clippy::needless_pass_by_value)]
-    pub fn new(resources: ResourcesRef, store: StoreRef) -> Self {
-        let trace = store.clone_selected_replay();
+    pub fn new(resources: ResourcesRef, store: GameStateRef) -> Self {
+        let trace = store.borrow().selected_replay.clone();
         let terrain: Result<HillTerrain, AssetError> = trace.as_ref().map_or_else(
             || Err(AssetError::Custom("Replay hill not found".to_string())),
             |trace| HillTerrain::load(&resources.files, trace.meta.hill_idx),
         );
         let mut snow = SnowSystem::new();
         if let Some(trace) = &trace {
-            store.with_jump_rng_wind_mut(|rng, _| snow.set_count(trace.meta.snow_count, rng));
+            let mut s = store.borrow_mut();
+            snow.set_count(trace.meta.snow_count, &mut s.rng);
         }
         Self {
             resources,

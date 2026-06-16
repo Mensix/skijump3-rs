@@ -1,11 +1,11 @@
 use crate::competition::factory;
 use crate::competition::koth::builder;
 use crate::gfx::theme::{
-    BG_PURPLE, BG_RED, BLACK, FILL_GRAY, FONT_BODY, FONT_GOLD, FONT_TEAL, FONT_GRAY,
+    BG_PURPLE, BG_RED, BLACK, FILL_GRAY, FONT_BODY, FONT_GOLD, FONT_GRAY, FONT_TEAL,
 };
 use crate::route::RouteTarget;
 use crate::save::config::Config;
-use crate::store::{ResourcesRef, StoreRef};
+use crate::store::{GameStateRef, ResourcesRef};
 use crate::text::layout::shorten_name;
 use engine::oxide::input::Key;
 use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent};
@@ -22,7 +22,7 @@ enum KothMode {
 
 pub struct KothSetupView {
     resources: ResourcesRef,
-    store: StoreRef,
+    store: GameStateRef,
     selected: Cell<usize>,
     mode: Cell<KothMode>,
     pack_cursor: Cell<usize>,
@@ -32,7 +32,7 @@ pub struct KothSetupView {
 }
 
 impl KothSetupView {
-    pub fn new(resources: ResourcesRef, store: StoreRef) -> Self {
+    pub fn new(resources: ResourcesRef, store: GameStateRef) -> Self {
         let pack = resources.save_manager.config.borrow().kothpack;
         builder::apply_koth_pack(&resources.save_manager, pack as u8);
         Self {
@@ -426,21 +426,24 @@ impl KothSetupView {
     }
 
     fn start_koth(&self) -> Option<RouteTarget> {
-        let profiles = self.store.profiles();
+        let profiles = self.store.borrow().profiles.clone();
         let config = self.config();
         let hill_count = self.resources.hills.len();
-        let comp = self.store.with_jump_rng_wind_mut(|rng, _| {
+        let comp = {
+            let s = self.store.borrow_mut();
             factory::koth(
                 &config,
                 &profiles,
                 self.resources.player_names(),
                 hill_count,
-                rng.clone(),
+                s.rng.clone(),
             )
-        });
-        drop(profiles);
-        self.store.start_active(comp);
-        self.store.set_wind_enabled(config.kothwind != 0);
+        };
+        self.store.borrow_mut().start_active(comp);
+        self.store
+            .borrow_mut()
+            .wind
+            .set_enabled(config.kothwind != 0);
         Some(RouteTarget::CompetitionJump)
     }
 }

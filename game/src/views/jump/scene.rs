@@ -5,7 +5,7 @@ use crate::jump::sim;
 use crate::jump::snow::{calculate_snow_count, SnowSystem};
 use crate::jump::types::{JumpOutcome, JumpPhase, JumpTelemetry};
 use crate::jump::{JumpParticipant, JumpPolicy, JumpRunner, JumpRunnerRenderEnv};
-use crate::store::{ResourcesRef, StoreRef};
+use crate::store::{GameStateRef, ResourcesRef};
 use crate::views::jump::input::{JumpInputAction, JumpInputController, JumpKeyBindings};
 use crate::views::replay::save_dialog::{SaveAction, SaveReplayDialog};
 use engine::oxide::input::UiEvent;
@@ -25,7 +25,7 @@ pub struct JumpScene {
     runner: RefCell<JumpRunner>,
     save_dialog: RefCell<SaveReplayDialog>,
     resources: ResourcesRef,
-    store: StoreRef,
+    store: GameStateRef,
     telemetry: RefCell<Option<JumpTelemetry>>,
 }
 
@@ -35,27 +35,23 @@ impl JumpScene {
     /// Also initializes wind for the event if this is the first scene.
     fn prepare_snow(
         resources: &ResourcesRef,
-        store: &StoreRef,
+        store: &GameStateRef,
         existing: Option<SnowSystem>,
     ) -> SnowSystem {
         let mut snow = existing.unwrap_or_default();
-        if store.consume_first_jump_event() {
+        let is_first = store.borrow_mut().consume_first_jump_event();
+        if is_first {
             let low_detail = resources.save_manager.config.borrow().gdetail == 1;
-            store.with_jump_rng_wind_mut(|rng, wind| {
-                wind.initialize(rng, store.wind_place());
-                let snow_count = calculate_snow_count(rng);
-                snow.set_count(snow_count, rng);
+            {
+                let guard = &mut *store.borrow_mut();
+                guard.wind.initialize(&mut guard.rng, guard.wind_place);
+                let snow_count = calculate_snow_count(&mut guard.rng);
+                snow.set_count(snow_count, &mut guard.rng);
                 let snow_count = if low_detail { 0 } else { snow_count };
                 if snow_count == 0 {
                     snow.clear_count();
                 }
-                store.set_jump_snow_count(snow_count);
-                wind.sample(rng);
-            });
-        } else if snow.count() == 0 {
-            let snow_count = store.jump_snow_count();
-            if snow_count > 0 {
-                store.with_jump_rng_wind_mut(|rng, _| snow.set_count(snow_count, rng));
+                guard.wind.sample(&mut guard.rng);
             }
         }
         snow
@@ -63,7 +59,7 @@ impl JumpScene {
 
     pub fn new(
         resources: ResourcesRef,
-        store: StoreRef,
+        store: GameStateRef,
         hill_idx: usize,
         start_gate: i32,
         participant: JumpParticipant,
@@ -148,7 +144,8 @@ impl JumpScene {
         let hill_idx = self.runner.borrow().hill_idx();
         let record_distance = self
             .store
-            .records()
+            .borrow()
+            .records
             .hill_record(hill_idx)
             .map_or(0.0, |r| r.len);
         self.runner
@@ -216,7 +213,7 @@ impl JumpScene {
             .hill(self.runner.borrow().hill_idx())
             .map(|h| format!("{} K{}", h.name, h.kr))
             .unwrap_or_default();
-        let pb = self.store.profiles();
+        let pb = &self.store.borrow().profiles;
         let author_name = pb
             .active_order
             .first()
@@ -280,9 +277,17 @@ impl JumpScene {
             .hills
             .hill(hill_idx)
             .ok_or(JumpSceneError::MissingHill(hill_idx))?;
-        Ok(self.store.with_jump_rng_wind_mut(|rng, wind| {
-            sim::simulate_computer(&participant, &terrain, hill, rng, wind)
-        }))
+        Ok({
+            let mut guard = self.store.borrow_mut();
+            let state = &mut *guard;
+            sim::simulate_computer(
+                &participant,
+                &terrain,
+                hill,
+                &mut state.rng,
+                &mut state.wind,
+            )
+        })
     }
 
     pub fn render(&self, cx: &mut PaintCx<'_>) {
@@ -290,19 +295,17 @@ impl JumpScene {
             self.save_dialog.borrow().paint(cx);
             return;
         }
-        let records = self.store.records();
-        self.store.with_jump_wind(|wind| {
-            self.runner.borrow_mut().render(
-                cx,
-                JumpRunnerRenderEnv {
-                    font: &self.resources.font,
-                    langbase: &self.resources.langbase,
-                    hills: &self.resources.hills,
-                    records: &records,
-                    wind,
-                },
-            )
-        })
+        let s = self.store.borrow();
+        self.runner.borrow_mut().render(
+            cx,
+            JumpRunnerRenderEnv {
+                font: &self.resources.font,
+                langbase: &self.resources.langbase,
+                hills: &self.resources.hills,
+                records: &s.records,
+                wind: &s.wind,
+            },
+        )
     }
 
     /// Advance physics, AI, and wind by one frame for the visible runner.
@@ -310,14 +313,19 @@ impl JumpScene {
         if self.is_save_dialog_active() {
             return;
         }
-        self.store
-            .with_jump_rng_wind_mut(|rng, wind| self.runner.borrow_mut().update(rng, wind));
+        {
+            let mut guard = self.store.borrow_mut();
+            let state = &mut *guard;
+            self.runner
+                .borrow_mut()
+                .update(&mut state.rng, &mut state.wind);
+        }
     }
 
     #[allow(clippy::too_many_arguments)]
     fn build_runner(
         resources: ResourcesRef,
-        store: &StoreRef,
+        store: &GameStateRef,
         hill_idx: usize,
         start_gate: i32,
         participant: JumpParticipant,
@@ -327,7 +335,11 @@ impl JumpScene {
     ) -> JumpRunner {
         let hill = resources.hills.hill(hill_idx).cloned();
         let terrain = resources.terrain(hill_idx).map(|t| (*t).clone());
-        let record_distance = store.records().hill_record(hill_idx).map_or(0.0, |r| r.len);
+        let record_distance = store
+            .borrow()
+            .records
+            .hill_record(hill_idx)
+            .map_or(0.0, |r| r.len);
         let snow_count = snow.count();
         JumpRunner::new(
             JumpConfig {

@@ -2,19 +2,20 @@ use crate::content::ContentStore;
 use crate::data::records::RecordStore;
 use crate::files::FileStore;
 use crate::save::{SaveManager, SaveRef};
-use crate::store::{Resources, ResourcesRef, Store, StoreRef};
+use crate::store::{GameStateRef, Resources, ResourcesRef};
 use engine::oxide::Font;
+use std::cell::RefCell;
 use std::rc::Rc;
 
 const HISCORES_TOML: &str = "hiscores.toml";
 
-pub(super) struct GameState {
+pub(super) struct AppState {
     pub(super) resources: ResourcesRef,
     pub(super) save_manager: SaveRef,
-    pub(super) store: StoreRef,
+    pub(super) state: GameStateRef,
 }
 
-impl GameState {
+impl AppState {
     pub(super) fn load(
         files: Rc<FileStore>,
         font: Font,
@@ -33,16 +34,17 @@ impl GameState {
             files,
             save_manager.clone(),
         ));
-        let store: StoreRef = Rc::new(Store::from_loaded_data(records, profiles));
-        store.configure_from_save(&save_manager);
+        let state: GameStateRef = Rc::new(RefCell::new(crate::store::GameState::new(
+            records, profiles,
+        )));
+        state.borrow_mut().configure_from_save(&save_manager);
 
         Ok(Self {
             resources,
             save_manager,
-            store,
+            state,
         })
     }
-
 }
 
 fn load_records(files: &FileStore) -> Result<RecordStore, String> {

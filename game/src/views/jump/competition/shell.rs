@@ -1,6 +1,6 @@
 use crate::competition::active::ActiveCompetitionKind;
 use crate::route::RouteTarget;
-use crate::store::{ResourcesRef, StoreRef};
+use crate::store::{GameStateRef, ResourcesRef};
 use crate::views::jump::koth::KothJumpView;
 use crate::views::jump::team_cup::TeamCupJumpView;
 use crate::views::jump::training_jump::TrainingJumpView;
@@ -15,11 +15,14 @@ pub(crate) enum CompetitionJumpView {
 }
 
 impl CompetitionJumpView {
-    pub(crate) fn new(resources: ResourcesRef, store: StoreRef) -> Self {
-        match store
-            .with_active(|active| active.kind())
-            .unwrap_or(ActiveCompetitionKind::Individual)
-        {
+    pub(crate) fn new(resources: ResourcesRef, store: GameStateRef) -> Self {
+        let kind = store
+            .borrow()
+            .active_competition
+            .as_ref()
+            .map(|a| a.kind())
+            .unwrap_or(ActiveCompetitionKind::Individual);
+        match kind {
             ActiveCompetitionKind::Training => {
                 Self::Training(TrainingJumpView::new(resources, store))
             }

@@ -1,12 +1,10 @@
 use crate::components::layout::MainLayout;
 use crate::components::page_nav::cycle_index;
 use crate::files::FileStore;
-use crate::gfx::theme::{
-    BG_DARK, BG_PURPLE, FILL_PURPLE, FONT_BODY, FONT_GOLD, FONT_GRAY,
-};
+use crate::gfx::theme::{BG_DARK, BG_PURPLE, FILL_PURPLE, FONT_BODY, FONT_GOLD, FONT_GRAY};
 use crate::jump::replay::ReplayTrace;
 use crate::route::RouteTarget;
-use crate::store::{Resources, ResourcesRef, StoreRef};
+use crate::store::{GameStateRef, Resources, ResourcesRef};
 use engine::oxide::input::Key;
 use engine::oxide::{PaintCx, Screen, ScreenBackground, ScreenEventCx, UiEvent};
 use std::path::Path;
@@ -20,14 +18,14 @@ struct ReplayEntry {
 
 pub struct ReplayBrowserView {
     resources: ResourcesRef,
-    store: StoreRef,
+    store: GameStateRef,
     layout: MainLayout,
     entries: Vec<ReplayEntry>,
     selected: usize,
 }
 
 impl ReplayBrowserView {
-    pub fn new(resources: ResourcesRef, store: StoreRef, layout: MainLayout) -> Self {
+    pub fn new(resources: ResourcesRef, store: GameStateRef, layout: MainLayout) -> Self {
         let entries = load_replays(&resources.files);
         Self {
             resources,
@@ -63,7 +61,7 @@ impl Screen<RouteTarget> for ReplayBrowserView {
     fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
         match event {
             UiEvent::KeyDown(Key::Escape) => {
-                self.store.set_selected_main_menu(5);
+                self.store.borrow_mut().selected_main_menu = 5;
                 cx.back();
             }
             UiEvent::KeyDown(Key::Right | Key::Down) | UiEvent::Text(' ' | '+') => {
@@ -76,7 +74,7 @@ impl Screen<RouteTarget> for ReplayBrowserView {
             }
             UiEvent::KeyDown(Key::Enter) => {
                 if let Some(trace) = self.selected_entry().and_then(|entry| entry.trace.clone()) {
-                    self.store.select_replay(trace);
+                    self.store.borrow_mut().selected_replay = Some(trace);
                     cx.navigate(RouteTarget::ReplayPlayback);
                 }
             }

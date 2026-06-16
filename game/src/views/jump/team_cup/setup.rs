@@ -1,6 +1,6 @@
 use crate::gfx::sprites;
 use crate::gfx::theme::{BG_TEAM, BLACK, FILL_GRAY, FONT_BODY, FONT_GOLD, FONT_GRAY};
-use crate::store::{ResourcesRef, StoreRef};
+use crate::store::{GameStateRef, ResourcesRef};
 use crate::text::layout::shorten_name;
 
 use engine::oxide::input::{Key, UiEvent};
@@ -26,8 +26,8 @@ pub(crate) struct TeamCupSetup {
 }
 
 impl TeamCupSetup {
-    pub(crate) fn new(store: &StoreRef) -> Self {
-        let team_names = team_names(store);
+    pub(crate) fn new(state: &GameStateRef) -> Self {
+        let team_names = team_names(state);
         let name_buffer = team_names.first().cloned().unwrap_or_default();
         Self {
             phase: Phase::NamingTeam(0),
@@ -40,32 +40,32 @@ impl TeamCupSetup {
         &self,
         cx: &mut PaintCx<'_>,
         resources: &ResourcesRef,
-        store: &StoreRef,
+        state: &GameStateRef,
         cursor_visible: bool,
     ) {
         match self.phase {
             Phase::NamingTeam(idx) => naming_elements(
                 cx,
                 resources,
-                store,
+                state,
                 &self.team_names,
                 idx,
                 &self.name_buffer,
                 cursor_visible,
             ),
-            Phase::Ready => ready_elements(cx, resources, store, &self.team_names, cursor_visible),
-            Phase::ShowTeams => showteams_elements(cx, resources, store, cursor_visible),
+            Phase::Ready => ready_elements(cx, resources, state, &self.team_names, cursor_visible),
+            Phase::ShowTeams => showteams_elements(cx, resources, state, cursor_visible),
         }
     }
 
     pub(crate) fn handle_event(
         &mut self,
         resources: &ResourcesRef,
-        store: &StoreRef,
+        state: &GameStateRef,
         event: UiEvent,
     ) -> SetupAction {
         match self.phase {
-            Phase::NamingTeam(_) => self.handle_naming(resources, store, event),
+            Phase::NamingTeam(_) => self.handle_naming(resources, state, event),
             Phase::Ready => {
                 if matches!(event, UiEvent::KeyDown(_) | UiEvent::Text(_)) {
                     self.phase = Phase::ShowTeams;
@@ -85,7 +85,7 @@ impl TeamCupSetup {
     fn handle_naming(
         &mut self,
         resources: &ResourcesRef,
-        store: &StoreRef,
+        state: &GameStateRef,
         event: UiEvent,
     ) -> SetupAction {
         match event {
@@ -99,14 +99,14 @@ impl TeamCupSetup {
                 self.name_buffer.pop();
             }
             UiEvent::KeyDown(Key::Enter) => {
-                self.finalize_current_name(store);
+                self.finalize_current_name(state);
             }
             _ => {}
         }
         SetupAction::None
     }
 
-    fn finalize_current_name(&mut self, store: &StoreRef) {
+    fn finalize_current_name(&mut self, state: &GameStateRef) {
         let name = self.name_buffer.trim().to_string();
         let n = match self.phase {
             Phase::NamingTeam(idx) => idx,
@@ -114,22 +114,26 @@ impl TeamCupSetup {
         };
 
         if !name.is_empty() {
-            store.with_active_mut(|active| {
-                let Some(tc) = active.team_cup_runtime_mut() else {
-                    return;
-                };
-                let human_indices: Vec<usize> = tc
-                    .teams
-                    .iter()
-                    .enumerate()
-                    .filter(|(_, t)| t.is_human_team)
-                    .map(|(i, _)| i)
-                    .rev()
-                    .collect();
-                if let Some(&team_idx) = human_indices.get(n) {
-                    tc.teams[team_idx].name = name.clone();
-                }
-            });
+            state
+                .borrow_mut()
+                .active_competition
+                .as_mut()
+                .map(|active| {
+                    let Some(tc) = active.team_cup_runtime_mut() else {
+                        return;
+                    };
+                    let human_indices: Vec<usize> = tc
+                        .teams
+                        .iter()
+                        .enumerate()
+                        .filter(|(_, t)| t.is_human_team)
+                        .map(|(i, _)| i)
+                        .rev()
+                        .collect();
+                    if let Some(&team_idx) = human_indices.get(n) {
+                        tc.teams[team_idx].name = name.clone();
+                    }
+                });
             self.team_names[n] = name;
         }
 
@@ -144,9 +148,12 @@ impl TeamCupSetup {
     }
 }
 
-fn team_names(store: &StoreRef) -> Vec<String> {
-    store
-        .with_active(|active| {
+fn team_names(state: &GameStateRef) -> Vec<String> {
+    state
+        .borrow()
+        .active_competition
+        .as_ref()
+        .map(|active| {
             let tc = active.team_cup_runtime()?;
             Some(
                 tc.teams
@@ -171,7 +178,7 @@ fn team_x(team_idx: usize) -> i32 {
 fn naming_elements(
     cx: &mut PaintCx<'_>,
     resources: &ResourcesRef,
-    store: &StoreRef,
+    state: &GameStateRef,
     team_names: &[String],
     current_team: usize,
     name_buffer: &str,
@@ -182,12 +189,12 @@ fn naming_elements(
     cx.pattern_fill((0, 20, 320, 180), BG_TEAM);
 
     cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
-    push_team_cup_header(cx, resources, store);
+    push_team_cup_header(cx, resources, state);
 
     for n in 0..team_names.len() {
         let xx = team_x(n);
         let is_current = current_team == n;
-        push_jumper_names(cx, store, n, xx);
+        push_jumper_names(cx, state, n, xx);
 
         if is_current {
             cx.text(
@@ -210,7 +217,7 @@ fn naming_elements(
 fn ready_elements(
     cx: &mut PaintCx<'_>,
     resources: &ResourcesRef,
-    store: &StoreRef,
+    state: &GameStateRef,
     team_names: &[String],
     cursor_visible: bool,
 ) {
@@ -219,11 +226,11 @@ fn ready_elements(
     cx.pattern_fill((0, 20, 320, 180), BG_TEAM);
 
     cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
-    push_team_cup_header(cx, resources, store);
+    push_team_cup_header(cx, resources, state);
 
     for n in 0..team_names.len() {
         let xx = team_x(n);
-        push_jumper_names(cx, store, n, xx);
+        push_jumper_names(cx, state, n, xx);
         push_named_team(cx, resources, team_names, n, xx);
     }
 
@@ -241,7 +248,7 @@ fn ready_elements(
 fn showteams_elements(
     cx: &mut PaintCx<'_>,
     resources: &ResourcesRef,
-    store: &StoreRef,
+    state: &GameStateRef,
     cursor_visible: bool,
 ) {
     cx.fill((0, 0, 320, 200), BLACK);
@@ -249,15 +256,11 @@ fn showteams_elements(
     cx.pattern_fill((0, 20, 320, 180), BG_TEAM);
 
     cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
-    cx.text(
-        (30, 6),
-        FONT_BODY,
-        resources.langbase.lstr(111).to_string(),
-    );
+    cx.text((30, 6), FONT_BODY, resources.langbase.lstr(111).to_string());
 
     let mut x = 5i32;
     let mut y = 24i32;
-    store.with_active(|active| {
+    state.borrow().active_competition.as_ref().map(|active| {
         let Some(tc) = active.team_cup_runtime() else {
             return;
         };
@@ -288,11 +291,7 @@ fn showteams_elements(
         }
     });
 
-    cx.right_text(
-        (305, 6),
-        FONT_BODY,
-        resources.langbase.lstr(15).to_string(),
-    );
+    cx.right_text((305, 6), FONT_BODY, resources.langbase.lstr(15).to_string());
     cx.fill((305 - 1, 6 - 2, 9, 11), BG_TEAM);
     if cursor_visible {
         cx.fill((305 + 1, 6 + 6, 5, 1), FONT_BODY);
@@ -316,20 +315,19 @@ fn push_named_team(
     cx.text((xx, 42), FONT_BODY, team_names[n].clone());
 }
 
-fn push_team_cup_header(cx: &mut PaintCx<'_>, resources: &ResourcesRef, store: &StoreRef) {
-    cx.text(
-        (30, 6),
-        FONT_BODY,
-        resources.langbase.lstr(111).to_string(),
-    );
+fn push_team_cup_header(cx: &mut PaintCx<'_>, resources: &ResourcesRef, state: &GameStateRef) {
+    cx.text((30, 6), FONT_BODY, resources.langbase.lstr(111).to_string());
     cx.text(
         (30, 110),
         FONT_BODY,
         resources.langbase.lstr(112).to_string(),
     );
 
-    if let Some(schedule) = store
-        .with_active(|active| active.team_cup_runtime().map(|tc| tc.schedule.clone()))
+    if let Some(schedule) = state
+        .borrow()
+        .active_competition
+        .as_ref()
+        .map(|active| active.team_cup_runtime().map(|tc| tc.schedule.clone()))
         .flatten()
     {
         for (i, &hill_idx) in schedule.iter().enumerate() {
@@ -343,9 +341,12 @@ fn push_team_cup_header(cx: &mut PaintCx<'_>, resources: &ResourcesRef, store: &
     }
 }
 
-fn push_jumper_names(cx: &mut PaintCx<'_>, store: &StoreRef, team_n: usize, xx: i32) {
-    let jumpers: Vec<String> = store
-        .with_active(|active| {
+fn push_jumper_names(cx: &mut PaintCx<'_>, state: &GameStateRef, team_n: usize, xx: i32) {
+    let jumpers: Vec<String> = state
+        .borrow()
+        .active_competition
+        .as_ref()
+        .map(|active| {
             let tc = active.team_cup_runtime()?;
             Some(
                 tc.teams

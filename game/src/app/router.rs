@@ -1,7 +1,7 @@
 use crate::components::layout::MainLayout;
 use crate::route::RouteTarget;
 use crate::save::SaveRef;
-use crate::store::{ResourcesRef, StoreRef};
+use crate::store::{GameStateRef, ResourcesRef};
 use crate::views::{
     CompetitionJumpView, CustomCupSetupView, EditHillView, HallOfFameView, HillMakerView,
     HillRecordsView, JumpMenuView, KothHillPickerView, KothSetupView, MainMenuView, ProfilesView,
@@ -94,17 +94,17 @@ impl AppRouter {
 
 pub fn create_router(
     resources: ResourcesRef,
-    store: StoreRef,
+    state: GameStateRef,
     start_route: RouteTarget,
     save_manager: SaveRef,
 ) -> AppRouter {
     let layout = MainLayout::new(
         Rc::clone(&resources.langbase),
         VERSION.to_string(),
-        store.clone(),
+        state.clone(),
     );
 
-    let registry = RouteRegistry::new(resources, store, layout, save_manager);
+    let registry = RouteRegistry::new(resources, state, layout, save_manager);
     AppRouter::new(
         start_route,
         registry.initial_screen(&start_route),
@@ -114,7 +114,7 @@ pub fn create_router(
 
 struct RouteRegistry {
     resources: ResourcesRef,
-    store: StoreRef,
+    state: GameStateRef,
     layout: MainLayout,
     save_manager: SaveRef,
 }
@@ -122,13 +122,13 @@ struct RouteRegistry {
 impl RouteRegistry {
     fn new(
         resources: ResourcesRef,
-        store: StoreRef,
+        state: GameStateRef,
         layout: MainLayout,
         save_manager: SaveRef,
     ) -> Self {
         Self {
             resources,
-            store,
+            state,
             layout,
             save_manager,
         }
@@ -154,11 +154,11 @@ impl RouteRegistry {
             (RouteTarget::JumpMenu, {
                 let layout = self.layout.clone();
                 let resources = self.resources.clone();
-                let store = self.store.clone();
+                let state = self.state.clone();
                 Box::new(move || {
                     Box::new(JumpMenuView::new(
                         layout.clone(),
-                        store.clone(),
+                        state.clone(),
                         resources.clone(),
                     ))
                 })
@@ -189,12 +189,12 @@ impl RouteRegistry {
             ),
             (RouteTarget::Replays, {
                 let resources = self.resources.clone();
-                let store = self.store.clone();
+                let state = self.state.clone();
                 let layout = self.layout.clone();
                 Box::new(move || {
                     Box::new(ReplayBrowserView::new(
                         resources.clone(),
-                        store.clone(),
+                        state.clone(),
                         layout.clone(),
                     ))
                 })
@@ -207,12 +207,12 @@ impl RouteRegistry {
             ),
             (RouteTarget::ProfilesList, {
                 let resources = self.resources.clone();
-                let store = self.store.clone();
+                let state = self.state.clone();
                 let save_manager = self.save_manager.clone();
                 Box::new(move || {
                     Box::new(ProfilesView::new(
                         resources.clone(),
-                        store.clone(),
+                        state.clone(),
                         save_manager.clone(),
                     ))
                 })
@@ -264,7 +264,7 @@ impl RouteRegistry {
     }
 
     fn main_menu_screen(&self) -> Box<dyn AppScreen> {
-        Box::new(MainMenuView::new(self.layout.clone(), self.store.clone()))
+        Box::new(MainMenuView::new(self.layout.clone(), self.state.clone()))
     }
 
     fn welcome_screen(&self) -> Box<dyn AppScreen> {
@@ -273,20 +273,20 @@ impl RouteRegistry {
 
     fn resources_store<F>(&self, ctor: F) -> ScreenFactory
     where
-        F: Fn(ResourcesRef, StoreRef) -> Box<dyn AppScreen> + 'static,
+        F: Fn(ResourcesRef, GameStateRef) -> Box<dyn AppScreen> + 'static,
     {
         let resources = self.resources.clone();
-        let store = self.store.clone();
-        Box::new(move || ctor(resources.clone(), store.clone()))
+        let state = self.state.clone();
+        Box::new(move || ctor(resources.clone(), state.clone()))
     }
 
     fn layout_store<F>(&self, ctor: F) -> ScreenFactory
     where
-        F: Fn(MainLayout, StoreRef) -> Box<dyn AppScreen> + 'static,
+        F: Fn(MainLayout, GameStateRef) -> Box<dyn AppScreen> + 'static,
     {
         let layout = self.layout.clone();
-        let store = self.store.clone();
-        Box::new(move || ctor(layout.clone(), store.clone()))
+        let state = self.state.clone();
+        Box::new(move || ctor(layout.clone(), state.clone()))
     }
 }
 

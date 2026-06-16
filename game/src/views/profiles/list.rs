@@ -4,7 +4,7 @@ use crate::gfx::jumper_colors::{ski_color, suit_color_shade};
 use crate::gfx::theme::{BG_RED, BLACK, FILL_GRAY, FONT_BODY};
 use crate::route::RouteTarget;
 use crate::save::SaveRef;
-use crate::store::{ResourcesRef, StoreRef};
+use crate::store::{GameStateRef, ResourcesRef};
 use crate::text::layout::{lstr, replace_display_name};
 use engine::oxide::input::Key;
 use engine::oxide::widget::EventCx;
@@ -73,7 +73,7 @@ pub(super) enum Mode {
 
 pub struct ProfilesView {
     pub(super) resources: ResourcesRef,
-    pub(super) store: StoreRef,
+    pub(super) store: GameStateRef,
     pub(super) save_manager: SaveRef,
     pub(super) selected: usize,
     pub(super) mode: Mode,
@@ -92,7 +92,7 @@ pub(super) enum Pending {
 }
 
 impl ProfilesView {
-    pub const fn new(resources: ResourcesRef, store: StoreRef, save_manager: SaveRef) -> Self {
+    pub const fn new(resources: ResourcesRef, store: GameStateRef, save_manager: SaveRef) -> Self {
         Self {
             resources,
             store,
@@ -115,7 +115,7 @@ impl ProfilesView {
     }
 
     pub(super) fn entries(&self) -> usize {
-        let store = self.store.profiles();
+        let store = &self.store.borrow().profiles;
         let np = store.num_profiles();
         if store.has_slot() {
             np + 1
@@ -125,7 +125,7 @@ impl ProfilesView {
     }
 
     pub(super) fn unique_default_profile(&self) -> Profile {
-        let store = self.store.profiles();
+        let store = &self.store.borrow().profiles;
         let mut profile = Profile::default();
         let mut counter = 2;
         while store.profiles.iter().any(|p| p.name == profile.name) {
@@ -148,7 +148,8 @@ impl ProfilesView {
             | Mode::TextInput { profile, .. }
             | Mode::ColorSelect { profile, .. }
             | Mode::ReplaceSelect { profile, .. } => Some(profile),
-            _ => (self.selected < self.store.profiles().num_profiles()).then_some(self.selected),
+            _ => (self.selected < self.store.borrow().profiles.num_profiles())
+                .then_some(self.selected),
         }
     }
 
@@ -306,12 +307,15 @@ impl ProfilesView {
                 if let Some(action) = selector.event(&mut ecx, event) {
                     pending = Some(match action {
                         SelectorMessage::Commit(value) => {
-                            let mut store = self.store.profiles_mut();
+                            let mut state = self.store.borrow_mut();
                             match field {
-                                ColorField::Suit => store.profiles[*profile].suit_color = value,
-                                ColorField::Ski => store.profiles[*profile].ski_color = value,
+                                ColorField::Suit => {
+                                    state.profiles.profiles[*profile].suit_color = value
+                                }
+                                ColorField::Ski => {
+                                    state.profiles.profiles[*profile].ski_color = value
+                                }
                             }
-                            drop(store);
                             Pending::ColorCommit(*profile, *field)
                         }
                         SelectorMessage::Cancel => Pending::ColorCancel(*profile, *field),
@@ -323,7 +327,7 @@ impl ProfilesView {
                 if let Some(action) = selector.event(&mut ecx, event) {
                     match action {
                         SelectorMessage::Commit(value) => {
-                            self.store.profiles_mut().profiles[*profile].replace = value;
+                            self.store.borrow_mut().profiles.profiles[*profile].replace = value;
                             pending = Some(Pending::ReplaceCommit(*profile));
                         }
                         SelectorMessage::Cancel => {

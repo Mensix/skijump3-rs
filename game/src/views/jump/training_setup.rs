@@ -2,7 +2,7 @@ use crate::competition::factory;
 use crate::gfx::sprites;
 use crate::gfx::theme::{BG_PURPLE, BLACK, FILL_GRAY, FONT_BODY, FONT_GOLD, FONT_TEAL};
 use crate::route::RouteTarget;
-use crate::store::{ResourcesRef, StoreRef};
+use crate::store::{GameStateRef, ResourcesRef};
 use crate::text::format;
 use engine::oxide::input::Key;
 use engine::oxide::widget::EventCx;
@@ -11,7 +11,7 @@ use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent, Widget};
 
 pub struct TrainingSetupView {
     resources: ResourcesRef,
-    store: StoreRef,
+    store: GameStateRef,
     menu: PixelMenu,
     start: usize,
     total: usize,
@@ -34,9 +34,9 @@ impl TrainingSetupView {
         self.page_items() + 3
     }
 
-    pub fn new(resources: ResourcesRef, store: StoreRef) -> Self {
+    pub fn new(resources: ResourcesRef, store: GameStateRef) -> Self {
         let total = resources.hills.len();
-        let selected = store.practice_hill().min(total.saturating_sub(1));
+        let selected = store.borrow().practice_hill.min(total.saturating_sub(1));
         let start = if total > 20 { selected / 20 * 20 } else { 0 };
         let page_n = (total.saturating_sub(start)).min(20);
         let n = page_n + usize::from(total > 20);
@@ -72,14 +72,17 @@ impl TrainingSetupView {
             return Some(RouteTarget::MainMenu);
         }
         if self.has_more() && sel == self.page_items() {
-            self.start = if self.start + 20 >= self.total { 0 } else { self.start + 20 };
+            self.start = if self.start + 20 >= self.total {
+                0
+            } else {
+                self.start + 20
+            };
             self.menu = self.rebuild_menu();
             None
         } else {
             let hill_idx = self.start + sel;
-            self.store.set_practice_hill(hill_idx);
-            self.store.set_selected_hill(hill_idx);
-            self.store.start_active(factory::training());
+            self.store.borrow_mut().practice_hill = hill_idx;
+            self.store.borrow_mut().start_active(factory::training());
             Some(RouteTarget::Jump)
         }
     }

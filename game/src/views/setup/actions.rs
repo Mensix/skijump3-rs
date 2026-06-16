@@ -174,7 +174,7 @@ fn handle_wind_place(view: &mut SetupView, event: UiEvent, pos: usize) -> Option
                 let place = if pos < 8 { pos + 1 } else { pos + 3 };
                 view.save_manager()
                     .update_config(|cfg| cfg.windplace = place as i32);
-                view.store.set_wind_place(place as u8);
+                view.store.borrow_mut().wind_place = place as u8;
             }
             view.modal.set(None);
         }
@@ -187,7 +187,10 @@ fn handle_wind_place(view: &mut SetupView, event: UiEvent, pos: usize) -> Option
 }
 
 pub(crate) fn seecomp_options(view: &SetupView) -> Vec<(usize, String)> {
-    let names = view.resources.namesets.names_for_config(view.config().namenumber);
+    let names = view
+        .resources
+        .namesets
+        .names_for_config(view.config().namenumber);
     let cats = [235, 236, 237, 238, 239, 240];
     let mut opts = Vec::new();
     for (i, name) in names.iter().enumerate() {
@@ -235,7 +238,7 @@ fn handle_confirm_reset(view: &mut SetupView, event: UiEvent) -> Option<RouteTar
                 } else {
                     RecordStore::cleared_default()
                 };
-                view.store.replace_records(records.clone());
+                view.store.borrow_mut().records = records.clone();
                 if let Err(e) = view.save_manager().save_records(&records) {
                     eprintln!("Warning: failed to save records: {e}");
                 }
@@ -401,7 +404,10 @@ fn activate_item(view: &mut SetupView, screen: usize, item: usize) {
         (2, 8) => {
             let current = view.config().seecomps;
             let opts = seecomp_options(view);
-            let idx = opts.iter().position(|(v, _)| *v == current as usize).unwrap_or(0);
+            let idx = opts
+                .iter()
+                .position(|(v, _)| *v == current as usize)
+                .unwrap_or(0);
             view.modal.set(Some(SetupModal::SeeComps(idx)));
         }
         (2, 9) => {
@@ -425,7 +431,7 @@ fn activate_item(view: &mut SetupView, screen: usize, item: usize) {
                 *cfg = Config::default();
             });
             let cfg = view.config();
-            view.store.set_wind_place(cfg.windplace as u8);
+            view.store.borrow_mut().wind_place = cfg.windplace as u8;
         }
         _ => {}
     }

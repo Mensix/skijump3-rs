@@ -8,7 +8,7 @@ use crate::gfx::sprites::Sprite;
 use crate::gfx::theme::{FONT_GOLD, FONT_GRAY, FONT_TEAL};
 use crate::jump::hud;
 use crate::jump::types::{JumpPhase, JumpTelemetry};
-use crate::store::{ResourcesRef, StoreRef};
+use crate::store::{GameStateRef, ResourcesRef};
 use crate::text::format::format_decimal;
 use crate::text::lang::LangBase;
 use crate::views::jump::competition::ui_state::CompetitionUiState;
@@ -55,10 +55,13 @@ pub struct WcStandingEntry {
 
 impl OverlayData {
     /// Collect all data the overlay needs from the competition store.
-    pub fn collect(store: &StoreRef) -> Option<Self> {
+    pub fn collect(store: &GameStateRef) -> Option<Self> {
         let coach_style = active_coach_style(store);
         store
-            .with_active(|active| match active {
+            .borrow()
+            .active_competition
+            .as_ref()
+            .and_then(|active| match active {
                 ActiveCompetition::Training => None,
                 ActiveCompetition::Individual(comp) => {
                     Some(Self::from_individual(comp, coach_style))
@@ -66,7 +69,6 @@ impl OverlayData {
                 ActiveCompetition::TeamCup(comp) => Some(Self::from_team_cup(comp, coach_style)),
                 ActiveCompetition::Koth(comp) => Some(Self::from_koth(comp, coach_style)),
             })
-            .flatten()
     }
 
     fn from_individual(c: &Competition, coach_style: u8) -> Self {
@@ -174,8 +176,8 @@ impl OverlayData {
     }
 }
 
-fn active_coach_style(store: &StoreRef) -> u8 {
-    let pb = store.profiles();
+fn active_coach_style(store: &GameStateRef) -> u8 {
+    let pb = &store.borrow().profiles;
     let idx = match pb.active_order.first() {
         Some(&idx) => idx,
         None => return 0,
@@ -208,11 +210,11 @@ pub enum OverlayKind {
 /// jump scene during World Cup competition phases. Pure data-in/elements-out.
 pub struct CompetitionOverlay {
     resources: ResourcesRef,
-    store: StoreRef,
+    store: GameStateRef,
 }
 
 impl CompetitionOverlay {
-    pub fn new(resources: ResourcesRef, store: StoreRef) -> Self {
+    pub fn new(resources: ResourcesRef, store: GameStateRef) -> Self {
         Self { resources, store }
     }
 
@@ -428,7 +430,10 @@ impl CompetitionOverlay {
     ) {
         let (phase, rank, quali_wc) = self
             .store
-            .with_active(|active| {
+            .borrow()
+            .active_competition
+            .as_ref()
+            .and_then(|active| {
                 let c = active.individual()?;
                 let phase = c.phase();
                 let rank = if round2_with_r1 {
@@ -444,7 +449,6 @@ impl CompetitionOverlay {
                     && matches!(participant.qual, QualificationStatus::PreQualified);
                 Some((phase, rank, quali_wc))
             })
-            .flatten()
             .unwrap_or((CompetitionPhase::Qualification, 0, false));
 
         let phase_label = match phase {
@@ -571,7 +575,7 @@ impl CompetitionOverlay {
             .hill(hill_idx)
             .map(|h| format!("{} K{}", h.name, h.kr))
             .unwrap_or_default();
-        let records = self.store.records();
+        let records = &self.store.borrow().records;
         hud::push_hill_record_info(
             cx,
             &self.resources.langbase,

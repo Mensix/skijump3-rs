@@ -4,7 +4,7 @@ use std::marker::PhantomData;
 use crate::competition::runtime::{CompetitionDecision, CompetitionRuntime};
 use crate::jump::types::JumpOutcome;
 use crate::jump::{JumpParticipant, JumpPolicy};
-use crate::store::{HasRuntime, ResourcesRef, Store, StoreRef};
+use crate::store::{GameState, GameStateRef, HasRuntime, ResourcesRef};
 use crate::views::jump::competition::flow::{
     command_or_error, handle_human_jump, handle_jump_scene_event, render_jump_scene_with_overlay,
     CompetitionFlowCommand, JumpInputResult,
@@ -25,10 +25,10 @@ pub(crate) enum CompetitionControllerError {
 pub(crate) struct CompetitionJumpController<R>
 where
     R: CompetitionRuntime + 'static,
-    Store: HasRuntime<R>,
+    GameState: HasRuntime<R>,
 {
     resources: ResourcesRef,
-    store: StoreRef,
+    state: GameStateRef,
     scene: Option<JumpScene>,
     ui_state: CompetitionUiState,
     overlay: CompetitionOverlay,
@@ -40,18 +40,19 @@ where
 impl<R> CompetitionJumpController<R>
 where
     R: CompetitionRuntime + 'static,
-    Store: HasRuntime<R>,
+    GameState: HasRuntime<R>,
 {
-    pub(crate) fn new(resources: ResourcesRef, store: StoreRef, scene: Option<JumpScene>) -> Self {
+    pub(crate) fn new(
+        resources: ResourcesRef,
+        state: GameStateRef,
+        scene: Option<JumpScene>,
+    ) -> Self {
         Self {
-            resources: ResourcesRef::clone(&resources),
-            store: StoreRef::clone(&store),
+            resources: resources.clone(),
+            state: state.clone(),
             scene,
             ui_state: CompetitionUiState::new(),
-            overlay: CompetitionOverlay::new(
-                ResourcesRef::clone(&resources),
-                StoreRef::clone(&store),
-            ),
+            overlay: CompetitionOverlay::new(resources.clone(), state.clone()),
             last_event: Cell::new(0),
             profiles_saved: Cell::new(false),
             _runtime: PhantomData,
@@ -62,8 +63,8 @@ where
         &self.resources
     }
 
-    pub(crate) fn store(&self) -> &StoreRef {
-        &self.store
+    pub(crate) fn state(&self) -> &GameStateRef {
+        &self.state
     }
 
     pub(crate) fn ui_state(&self) -> &CompetitionUiState {
@@ -141,7 +142,7 @@ where
             &mut self.scene,
             &self.ui_state,
             &self.resources,
-            &self.store,
+            &self.state,
             participant,
             hill_idx,
             phase_label,
@@ -174,7 +175,7 @@ where
         persistence::save_profiles_and_records_once(
             &self.profiles_saved,
             &self.resources,
-            &self.store,
+            &self.state,
         );
     }
 
@@ -190,8 +191,8 @@ where
             return;
         }
         self.scene = Some(JumpScene::new(
-            ResourcesRef::clone(&self.resources),
-            StoreRef::clone(&self.store),
+            self.resources.clone(),
+            self.state.clone(),
             0,
             15,
             JumpParticipant::trainee(),
@@ -205,7 +206,8 @@ where
             None => return false,
         };
         scene.collect_telemetry();
-        self.store
+        self.state
+            .borrow_mut()
             .with_runtime_mut(|runtime: &mut R| {
                 if !runtime.is_human_current() {
                     return false;
@@ -225,39 +227,42 @@ where
         Option<CompetitionFlowCommand<R::Context, R::ResultsKind>>,
         CompetitionControllerError,
     > {
-        let command = self.store.with_runtime_mut(|runtime: &mut R| loop {
-            match runtime.decide_next_runtime() {
-                CompetitionDecision::ShowResults(kind) => {
-                    return Ok(Some(CompetitionFlowCommand::ShowResults(kind)));
-                }
-                CompetitionDecision::Done => {
-                    return Ok(Some(CompetitionFlowCommand::Done));
-                }
-                CompetitionDecision::Jump {
-                    participant,
-                    hill_idx,
-                    context,
-                    is_human,
-                    is_new_event,
-                } => {
-                    if is_human {
-                        let current_event = runtime.event_idx();
-                        return Ok(Some(CompetitionFlowCommand::HumanJump {
-                            participant,
-                            hill_idx,
-                            is_new_event: self.check_event_change(current_event, is_new_event),
-                            context,
-                        }));
+        let command = self
+            .state
+            .borrow_mut()
+            .with_runtime_mut(|runtime: &mut R| loop {
+                match runtime.decide_next_runtime() {
+                    CompetitionDecision::ShowResults(kind) => {
+                        return Ok(Some(CompetitionFlowCommand::ShowResults(kind)));
                     }
-
-                    let outcome = self.simulate_computer(scene, participant, hill_idx)?;
-                    runtime.record_jump_runtime(&context, outcome);
-                    if runtime.is_complete_runtime() {
+                    CompetitionDecision::Done => {
                         return Ok(Some(CompetitionFlowCommand::Done));
                     }
+                    CompetitionDecision::Jump {
+                        participant,
+                        hill_idx,
+                        context,
+                        is_human,
+                        is_new_event,
+                    } => {
+                        if is_human {
+                            let current_event = runtime.event_idx();
+                            return Ok(Some(CompetitionFlowCommand::HumanJump {
+                                participant,
+                                hill_idx,
+                                is_new_event: self.check_event_change(current_event, is_new_event),
+                                context,
+                            }));
+                        }
+
+                        let outcome = self.simulate_computer(scene, participant, hill_idx)?;
+                        runtime.record_jump_runtime(&context, outcome);
+                        if runtime.is_complete_runtime() {
+                            return Ok(Some(CompetitionFlowCommand::Done));
+                        }
+                    }
                 }
-            }
-        });
+            });
 
         command.unwrap_or(Ok(None))
     }
@@ -269,7 +274,7 @@ where
         Option<CompetitionFlowCommand<R::Context, R::ResultsKind>>,
         CompetitionControllerError,
     > {
-        self.store.with_runtime_mut(|runtime: &mut R| {
+        self.state.borrow_mut().with_runtime_mut(|runtime: &mut R| {
             runtime.advance_results_runtime();
         });
         self.drive_competition(scene)

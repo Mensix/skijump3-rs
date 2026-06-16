@@ -2,7 +2,7 @@ use super::setup::{SetupAction, TeamCupSetup};
 use crate::competition::team_cup::types::{TeamCupJumpContext, TeamCupResultsKind, TeamCupRuntime};
 use crate::gfx::theme::{BLACK, FONT_BODY, FONT_GRAY};
 use crate::route::RouteTarget;
-use crate::store::{ResourcesRef, StoreRef};
+use crate::store::{GameStateRef, ResourcesRef};
 use crate::views::jump::competition::controller::CompetitionJumpController;
 use crate::views::jump::competition::flow::{
     route_error_back, CompetitionFlowCommand, JumpInputResult,
@@ -29,10 +29,10 @@ pub struct TeamCupJumpView {
 }
 
 impl TeamCupJumpView {
-    pub(crate) fn new(resources: ResourcesRef, store: StoreRef) -> Self {
-        let setup = TeamCupSetup::new(&store);
+    pub(crate) fn new(resources: ResourcesRef, state: GameStateRef) -> Self {
+        let setup = TeamCupSetup::new(&state);
         Self {
-            controller: CompetitionJumpController::new(resources, store, None),
+            controller: CompetitionJumpController::new(resources, state, None),
             phase: ViewPhase::Setup,
             blinker: Blinker::new(),
             setup,
@@ -61,7 +61,7 @@ impl TeamCupJumpView {
                 is_new_event,
             } => {
                 if is_new_event {
-                    self.controller.store().setup_jump_event();
+                    self.controller.state().borrow_mut().setup_jump_event();
                 }
                 let phase_label = if context.round_idx == 0 {
                     self.controller.resources().langbase.lstr(54).to_string()
@@ -91,7 +91,7 @@ impl TeamCupJumpView {
             self.setup.paint(
                 cx,
                 self.controller.resources(),
-                self.controller.store(),
+                self.controller.state(),
                 self.cursor_visible,
             );
             return;
@@ -108,7 +108,7 @@ impl TeamCupJumpView {
                 team_cup_results::render(
                     cx,
                     self.controller.resources(),
-                    self.controller.store(),
+                    self.controller.state(),
                     self.results_kind,
                 );
             }
@@ -144,7 +144,7 @@ impl TeamCupJumpView {
         if self.phase == ViewPhase::Setup {
             if self
                 .setup
-                .handle_event(self.controller.resources(), self.controller.store(), event)
+                .handle_event(self.controller.resources(), self.controller.state(), event)
                 == SetupAction::StartJumping
             {
                 self.phase = ViewPhase::Jumping;

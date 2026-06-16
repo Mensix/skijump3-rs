@@ -14,7 +14,7 @@ use std::rc::Rc;
 
 use self::assets::LoadedAssets;
 use self::rendering::{FrameAssets, FrameRenderer};
-use self::state::GameState;
+use self::state::AppState;
 
 pub struct Game {
     _sdl: sdl2::Sdl,
@@ -43,11 +43,11 @@ impl Game {
             baked_sprites,
             pattern_texture,
         } = assets::load(&files, &mut renderer)?;
-        let state = GameState::load(Rc::clone(&files), font.clone(), content_store)?;
+        let state = AppState::load(Rc::clone(&files), font.clone(), content_store)?;
         let start_route = RouteTarget::MainMenu;
         let router = create_router(
             state.resources,
-            state.store,
+            state.state,
             start_route,
             state.save_manager,
         );

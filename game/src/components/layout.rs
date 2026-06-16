@@ -1,5 +1,5 @@
-use crate::gfx::theme::{FILL_PURPLE, FILL_DARK, FONT_BODY, FONT_GRAY, FONT_GOLD};
-use crate::store::StoreRef;
+use crate::gfx::theme::{FILL_DARK, FILL_PURPLE, FONT_BODY, FONT_GOLD, FONT_GRAY};
+use crate::store::GameStateRef;
 use crate::text::format;
 use crate::text::lang::LangBase;
 use engine::oxide::PaintCx;
@@ -9,15 +9,15 @@ use std::rc::Rc;
 pub struct MainLayout {
     pub langbase: Rc<LangBase>,
     version: String,
-    store: StoreRef,
+    state: GameStateRef,
 }
 
 impl MainLayout {
-    pub fn new(langbase: Rc<LangBase>, version: String, store: StoreRef) -> Self {
+    pub fn new(langbase: Rc<LangBase>, version: String, state: GameStateRef) -> Self {
         Self {
             langbase,
             version,
-            store,
+            state,
         }
     }
 
@@ -26,7 +26,8 @@ impl MainLayout {
     }
 
     pub fn jumpers(&self, cx: &mut PaintCx<'_>) {
-        let pb = self.store.profiles();
+        let state = self.state.borrow();
+        let pb = &state.profiles;
         for (i, &profile_idx) in pb.active_order.iter().enumerate() {
             if profile_idx >= pb.profiles.len() {
                 continue;

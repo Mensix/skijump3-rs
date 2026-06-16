@@ -1,8 +1,6 @@
 use crate::competition::team_cup::types::{TeamCupResultsKind, TeamCupStandingsKind};
-use crate::gfx::theme::{
-    BG_TEAM, BLACK, FILL_GRAY, FILL_GOLD, FONT_BODY, FONT_GOLD, FONT_GRAY,
-};
-use crate::store::{ResourcesRef, StoreRef};
+use crate::gfx::theme::{BG_TEAM, BLACK, FILL_GOLD, FILL_GRAY, FONT_BODY, FONT_GOLD, FONT_GRAY};
+use crate::store::{GameStateRef, ResourcesRef};
 use crate::text::format::format_decimal;
 use crate::text::layout::shorten_name;
 use engine::oxide::PaintCx;
@@ -10,7 +8,7 @@ use engine::oxide::PaintCx;
 pub(crate) fn render(
     cx: &mut PaintCx<'_>,
     resources: &ResourcesRef,
-    store: &StoreRef,
+    state: &GameStateRef,
     results_kind: TeamCupResultsKind,
 ) {
     cx.fill((0, 0, 320, 200), BLACK);
@@ -20,8 +18,11 @@ pub(crate) fn render(
         TeamCupResultsKind::Standings => TeamCupStandingsKind::Overall,
         TeamCupResultsKind::LegResults => TeamCupStandingsKind::Leg,
     };
-    let (header, standings) = store
-        .with_active(|active| {
+    let (header, standings) = state
+        .borrow()
+        .active_competition
+        .as_ref()
+        .and_then(|active| {
             let tc = active.team_cup_runtime()?;
             let standings = tc.standings(standings_kind);
             let leg = tc.current_leg + 1;
@@ -51,7 +52,6 @@ pub(crate) fn render(
             };
             Some((header, standings))
         })
-        .flatten()
         .unwrap_or_default();
 
     cx.text((30, 6), FONT_BODY, header);

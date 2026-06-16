@@ -1,7 +1,5 @@
 use crate::gfx::jumper_colors::{ski_color, suit_color_shade};
-use crate::gfx::theme::{
-    BG_PURPLE, BG_RED, BLACK, FONT_BODY, FONT_GRAY, FONT_GOLD,
-};
+use crate::gfx::theme::{BG_PURPLE, BG_RED, BLACK, FONT_BODY, FONT_GOLD, FONT_GRAY};
 use crate::text::layout::lstr;
 use crate::views::profiles::format::format_profile_value;
 use engine::oxide::PaintCx;
@@ -21,7 +19,7 @@ pub(super) fn draw_screen_base(view: &ProfilesView, cx: &mut PaintCx<'_>) {
 }
 
 pub(super) fn draw_list(view: &ProfilesView, cx: &mut PaintCx<'_>) {
-    let store = view.store.profiles();
+    let store = &view.store.borrow().profiles;
     let np = store.num_profiles();
 
     for (i, profile) in store.profiles.iter().enumerate() {
@@ -60,7 +58,7 @@ pub(super) fn draw_list(view: &ProfilesView, cx: &mut PaintCx<'_>) {
 }
 
 pub(super) fn draw_help(view: &ProfilesView, cx: &mut PaintCx<'_>, profile: Option<usize>) {
-    let store = view.store.profiles();
+    let store = &view.store.borrow().profiles;
     if store.num_profiles() >= 16 {
         return;
     }
@@ -158,7 +156,7 @@ pub(super) fn draw_profile(
 ) {
     draw_empty_edit(cx);
 
-    let store = view.store.profiles();
+    let store = &view.store.borrow().profiles;
     let Some(profile) = store.profiles.get(profile_index) else {
         return;
     };

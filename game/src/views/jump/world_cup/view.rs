@@ -8,7 +8,7 @@ use crate::jump::types::JumpPhase;
 use crate::jump::JumpParticipant;
 use crate::jump::JumpPolicy;
 use crate::route::RouteTarget;
-use crate::store::{ResourcesRef, StoreRef};
+use crate::store::{GameStateRef, ResourcesRef};
 use crate::text::format::format_decimal;
 use crate::views::jump::competition::controller::CompetitionJumpController;
 use crate::views::jump::competition::flow::{
@@ -28,17 +28,17 @@ pub struct WorldCupJumpView {
 }
 
 impl WorldCupJumpView {
-    pub(crate) fn new(resources: ResourcesRef, store: StoreRef) -> Self {
+    pub(crate) fn new(resources: ResourcesRef, state: GameStateRef) -> Self {
         let scene = JumpScene::new(
             ResourcesRef::clone(&resources),
-            StoreRef::clone(&store),
+            state.clone(),
             0,
             15,
             JumpParticipant::trainee(),
             JumpPolicy::competition(),
         );
         Self {
-            controller: CompetitionJumpController::new(resources, store, Some(scene)),
+            controller: CompetitionJumpController::new(resources, state, Some(scene)),
             blinker: Blinker::new(),
         }
     }
@@ -55,13 +55,16 @@ impl WorldCupJumpView {
                 is_new_event,
             } => {
                 if is_new_event {
-                    self.controller.store().setup_jump_event();
+                    self.controller.state().borrow_mut().setup_jump_event();
                 }
                 let phase_label = phase_label(self.controller.resources(), context.phase);
                 let is_leader = self
                     .controller
-                    .store()
-                    .with_active(|active| {
+                    .state()
+                    .borrow()
+                    .active_competition
+                    .as_ref()
+                    .map(|active| {
                         active.individual().is_some_and(|c| {
                             c.overall_standings()
                                 .first()
@@ -90,15 +93,19 @@ impl WorldCupJumpView {
     fn select_default_result_screen(&self) {
         if let Some(phase) = self
             .controller
-            .store()
-            .with_active(|active| active.individual().map(Competition::phase))
-            .flatten()
+            .state()
+            .borrow()
+            .active_competition
+            .as_ref()
+            .and_then(|active| active.individual().map(Competition::phase))
         {
             let is_4h = self
                 .controller
-                .store()
-                .with_active(|active| active.individual().map(Competition::is_four_hills_event))
-                .flatten()
+                .state()
+                .borrow()
+                .active_competition
+                .as_ref()
+                .and_then(|active| active.individual().map(Competition::is_four_hills_event))
                 .unwrap_or(false);
             self.controller
                 .ui_state()
@@ -110,7 +117,7 @@ impl WorldCupJumpView {
         competition_results::render(
             cx,
             self.controller.resources(),
-            self.controller.store(),
+            self.controller.state(),
             self.controller.ui_state(),
             CompetitionResultsRequest::Individual {
                 ko_cursor_visible: self.blinker.visible(10, 10),
@@ -133,8 +140,11 @@ impl WorldCupJumpView {
         let own_id = scene.participant_id();
         if let Some(rank) = self
             .controller
-            .store()
-            .with_active(|active| {
+            .state()
+            .borrow()
+            .active_competition
+            .as_ref()
+            .and_then(|active| {
                 let c = active.individual()?;
                 let standings = c.event_standings();
                 let own_before = standings
@@ -150,7 +160,6 @@ impl WorldCupJumpView {
                     + 1;
                 Some(rank)
             })
-            .flatten()
         {
             cx.right_text((255, 45), FONT_TEAL, format!("(${rank}.)"));
         }
@@ -239,61 +248,73 @@ impl WorldCupJumpView {
             return true;
         }
         self.controller
-            .store()
-            .with_active(|active| {
+            .state()
+            .borrow()
+            .active_competition
+            .as_ref()
+            .and_then(|active| {
                 let c = active.individual()?;
                 Some(
                     c.phase().is_result_phase()
                         || c.phase().needs_event_results() && c.current_jumper().is_none(),
                 )
             })
-            .flatten()
             .unwrap_or(false)
     }
 
     fn save_competition_results(&self) {
         self.controller.save_results();
         // WC-specific profile updates (bestpoints, etc.)
-        self.controller.store().with_active(|active| {
+        let (style, participants, event_pts): (_, Vec<_>, Vec<_>) = {
+            let state = self.controller.state().borrow();
+            let active = match state.active_competition.as_ref() {
+                Some(a) => a,
+                None => return,
+            };
             let Some(c) = active.individual() else {
                 return;
             };
             let style = c.style();
-            let overall = c.overall_standings();
-            let mut profiles = self.controller.store().profiles_mut();
-            for p in &overall {
-                let Some(pidx) = p.profile_idx else { continue };
-                let Some(profile) = profiles.profiles.get_mut(pidx) else {
-                    continue;
-                };
-                match style {
-                    CupStyle::WorldCup => {
-                        profile.world_cups += 1;
-                        if p.points.is_none() {
-                            continue;
-                        }
-                        let my_points = p.points.unwrap();
-                        let event_rank = event_rank_by_points(c, my_points);
-                        let pts = wc_points_for_rank(event_rank);
-                        if pts >= profile.bestpoints as i32 {
-                            profile.bestpoints = pts as usize;
-                            profile.best_result = format_wc_best_result(pts, event_rank);
-                        }
-                        if p.four_hills_points > 0.0 && p.four_hills_points >= profile.best4points {
-                            profile.best4points = p.four_hills_points;
-                            profile.best_4h_result =
-                                format_four_hills_best_result(p.four_hills_points, p.rank);
-                        }
+            let participants = c
+                .overall_standings()
+                .into_iter()
+                .map(|p| (p.profile_idx, p.points, p.four_hills_points, p.rank))
+                .collect();
+            let event_pts = c.event_standings().into_iter().map(|p| p.points).collect();
+            (style, participants, event_pts)
+        };
+        let mut state = self.controller.state().borrow_mut();
+        let profiles = &mut state.profiles;
+        for &(pidx_opt, pts_opt, fh_points, rank) in &participants {
+            let Some(pidx) = pidx_opt else { continue };
+            let Some(profile) = profiles.profiles.get_mut(pidx) else {
+                continue;
+            };
+            match style {
+                CupStyle::WorldCup => {
+                    profile.world_cups += 1;
+                    let Some(my_points) = pts_opt else { continue };
+                    let event_rank = 1 + event_pts
+                        .iter()
+                        .filter(|&&sp_pts| sp_pts.unwrap_or(f64::NEG_INFINITY) > my_points)
+                        .count();
+                    let pts = wc_points_for_rank(event_rank);
+                    if pts >= profile.bestpoints as i32 {
+                        profile.bestpoints = pts as usize;
+                        profile.best_result = format_wc_best_result(pts, event_rank);
                     }
-                    CupStyle::FourHills if p.four_hills_points >= profile.best4points => {
-                        profile.best4points = p.four_hills_points;
-                        profile.best_4h_result =
-                            format_four_hills_best_result(p.four_hills_points, p.rank);
+                    if fh_points > 0.0 && fh_points >= profile.best4points {
+                        profile.best4points = fh_points;
+                        profile.best_4h_result = format_four_hills_best_result(fh_points, rank);
                     }
-                    _ => {}
                 }
+                CupStyle::FourHills if fh_points >= profile.best4points => {
+                    profile.best4points = fh_points;
+                    profile.best_4h_result = format_four_hills_best_result(fh_points, rank);
+                }
+                _ => {}
             }
-        });
+        }
     }
 
     fn dismiss_results_and_advance(&mut self) {
@@ -309,8 +330,11 @@ impl WorldCupJumpView {
                 let total = match self.controller.ui_state().current_screen() {
                     ResultScreen::Stats => self
                         .controller
-                        .store()
-                        .with_active(|active| {
+                        .state()
+                        .borrow()
+                        .active_competition
+                        .as_ref()
+                        .and_then(|active| {
                             let c = active.individual()?;
                             Some(
                                 c.overall_standings()
@@ -320,15 +344,16 @@ impl WorldCupJumpView {
                                     .max(1),
                             )
                         })
-                        .flatten()
                         .unwrap_or(1),
                     ResultScreen::KoPairs(_) => 1,
                     ResultScreen::List if self.controller.ui_state().is_compact() => 1,
                     ResultScreen::List => self
                         .controller
-                        .store()
-                        .with_active(|active| active.individual().map(results::total_pages))
-                        .flatten()
+                        .state()
+                        .borrow()
+                        .active_competition
+                        .as_ref()
+                        .and_then(|active| active.individual().map(results::total_pages))
                         .unwrap_or(0),
                 };
                 if self.controller.ui_state().next_page(total) {
@@ -349,8 +374,11 @@ impl WorldCupJumpView {
             UiEvent::Text('k' | 'K') => {
                 let ko = self
                     .controller
-                    .store()
-                    .with_active(|active| {
+                    .state()
+                    .borrow()
+                    .active_competition
+                    .as_ref()
+                    .and_then(|active| {
                         let c = active.individual()?;
                         Some(
                             c.is_four_hills_event()
@@ -361,18 +389,19 @@ impl WorldCupJumpView {
                                 ),
                         )
                     })
-                    .flatten()
                     .unwrap_or(false);
                 if ko {
                     let round1 = self
                         .controller
-                        .store()
-                        .with_active(|active| {
+                        .state()
+                        .borrow()
+                        .active_competition
+                        .as_ref()
+                        .and_then(|active| {
                             active
                                 .individual()
                                 .map(|c| c.phase() == CompetitionPhase::Round1Results)
                         })
-                        .flatten()
                         .unwrap_or(false);
                     self.controller.ui_state().toggle_ko_pairs(round1);
                 }
@@ -385,13 +414,15 @@ impl WorldCupJumpView {
             UiEvent::KeyDown(Key::Escape | Key::Enter) => {
                 let is_season_complete = self
                     .controller
-                    .store()
-                    .with_active(|active| {
+                    .state()
+                    .borrow()
+                    .active_competition
+                    .as_ref()
+                    .and_then(|active| {
                         active
                             .individual()
                             .map(|c| c.phase() == CompetitionPhase::SeasonComplete)
                     })
-                    .flatten()
                     .unwrap_or(false);
                 if is_season_complete {
                     self.save_competition_results();
@@ -421,13 +452,4 @@ fn format_wc_best_result(points: i32, rank: usize) -> String {
 
 fn format_four_hills_best_result(points: f64, rank: usize) -> String {
     format!("{} ({}.)", format_decimal(points), rank)
-}
-
-/// Tie-aware event rank: 1 + count of participants with strictly higher points.
-fn event_rank_by_points(competition: &Competition, points: f64) -> usize {
-    1 + competition
-        .event_standings()
-        .iter()
-        .filter(|p| p.points.unwrap_or(f64::NEG_INFINITY) > points)
-        .count()
 }

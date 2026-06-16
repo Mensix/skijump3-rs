@@ -1,10 +1,10 @@
 use crate::data::records::{HillRecord, Hiscore};
 use crate::gfx::sprites;
 use crate::gfx::theme::{
-    BG_GREEN, BG_PURPLE, BLACK, FILL_GRAY, FONT_BODY, FONT_TEAL, FONT_GRAY, FONT_GOLD,
+    BG_GREEN, BG_PURPLE, BLACK, FILL_GRAY, FONT_BODY, FONT_GOLD, FONT_GRAY, FONT_TEAL,
 };
 use crate::route::RouteTarget;
-use crate::store::{ResourcesRef, StoreRef};
+use crate::store::{GameStateRef, ResourcesRef};
 use crate::text::format::{format_decimal, ordinal_dot};
 use crate::text::layout::{is_computer_name, lstr, shorten_name};
 use engine::oxide::input::Key;
@@ -16,12 +16,12 @@ const PAGE_SIZE: usize = 20;
 #[derive(Debug)]
 pub struct HallOfFameView {
     resources: ResourcesRef,
-    store: StoreRef,
+    store: GameStateRef,
     page: usize,
 }
 
 impl HallOfFameView {
-    pub const fn new(resources: ResourcesRef, store: StoreRef) -> Self {
+    pub const fn new(resources: ResourcesRef, store: GameStateRef) -> Self {
         Self {
             resources,
             store,
@@ -109,7 +109,7 @@ impl HallOfFameView {
             lstr(&self.resources.langbase, 169, "Date"),
         );
 
-        let records = self.store.records();
+        let records = &self.store.borrow().records;
         for idx in start..start + entries {
             yy += 8;
             let Some(hi) = records.top(idx) else {
@@ -158,7 +158,7 @@ impl HallOfFameView {
             lstr(&self.resources.langbase, 160, "King of the Hill"),
         );
 
-        let records = self.store.records();
+        let records = &self.store.borrow().records;
         for idx in 1..=6 {
             yy += 18;
             cx.text(
@@ -208,12 +208,12 @@ impl Screen<RouteTarget> for HallOfFameView {
 #[derive(Debug)]
 pub struct HillRecordsView {
     resources: ResourcesRef,
-    store: StoreRef,
+    store: GameStateRef,
     page: usize,
 }
 
 impl HillRecordsView {
-    pub const fn new(resources: ResourcesRef, store: StoreRef) -> Self {
+    pub const fn new(resources: ResourcesRef, store: GameStateRef) -> Self {
         Self {
             resources,
             store,
@@ -272,7 +272,7 @@ impl HillRecordsView {
             lstr(&self.resources.langbase, 169, "Date"),
         );
 
-        let records = self.store.records();
+        let records = &self.store.borrow().records;
         let mut ahi_sum = 0.0;
         for aa in 0..loop_count {
             let idx = aa + start;

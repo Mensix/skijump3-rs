@@ -1,7 +1,7 @@
 use crate::jump::config::JumpParticipant;
 use crate::jump::policy::JumpPolicy;
 use crate::route::RouteTarget;
-use crate::store::{ResourcesRef, StoreRef};
+use crate::store::{GameStateRef, ResourcesRef};
 use crate::views::jump::competition::overlay::{CompetitionOverlay, OverlayKind};
 use crate::views::jump::competition::ui_state::CompetitionUiState;
 use crate::views::jump::competition::ui_state::RenderMode;
@@ -29,7 +29,7 @@ pub(crate) fn handle_human_jump(
     scene: &mut Option<JumpScene>,
     ui_state: &CompetitionUiState,
     resources: &ResourcesRef,
-    store: &StoreRef,
+    state: &GameStateRef,
     participant: JumpParticipant,
     hill_idx: usize,
     phase_label: String,
@@ -40,7 +40,7 @@ pub(crate) fn handle_human_jump(
         ui_state.reset_outcome_recorded();
         let new_scene = JumpScene::new(
             ResourcesRef::clone(resources),
-            StoreRef::clone(store),
+            GameStateRef::clone(state),
             hill_idx,
             15,
             participant,

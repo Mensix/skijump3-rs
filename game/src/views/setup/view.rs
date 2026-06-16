@@ -2,7 +2,7 @@ use crate::gfx::theme::FONT_BODY;
 use crate::route::RouteTarget;
 use crate::save::config::Config;
 use crate::save::SaveManager;
-use crate::store::{ResourcesRef, StoreRef};
+use crate::store::{GameStateRef, ResourcesRef};
 use crate::text::lang::LangBase;
 use engine::oxide::widgets::menu::{MenuItem as OxideMenuItem, PixelMenu};
 use engine::oxide::{Blinker, PaintCx, Screen, ScreenEventCx, UiEvent};
@@ -12,7 +12,7 @@ use super::state::SetupModal;
 
 pub struct SetupView {
     pub(crate) resources: ResourcesRef,
-    pub(crate) store: StoreRef,
+    pub(crate) store: GameStateRef,
     pub(crate) screen: Cell<usize>,
     pub(crate) selected_by_screen: [Cell<usize>; 4],
     pub(crate) menu: PixelMenu,
@@ -21,7 +21,7 @@ pub struct SetupView {
 }
 
 impl SetupView {
-    pub fn new(resources: ResourcesRef, store: StoreRef) -> Self {
+    pub fn new(resources: ResourcesRef, store: GameStateRef) -> Self {
         let menu = Self::make_menu(0, 0);
         Self {
             resources,

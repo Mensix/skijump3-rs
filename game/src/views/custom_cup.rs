@@ -1,10 +1,10 @@
 use crate::competition::factory;
 use crate::gfx::sprites;
 use crate::gfx::theme::{
-    BG_PURPLE, BLACK, FILL_PURPLE, FILL_GRAY, FONT_BODY, FONT_TEAL, FONT_GOLD, FONT_GRAY,
+    BG_PURPLE, BLACK, FILL_GRAY, FILL_PURPLE, FONT_BODY, FONT_GOLD, FONT_GRAY, FONT_TEAL,
 };
 use crate::route::RouteTarget;
-use crate::store::{ResourcesRef, StoreRef};
+use crate::store::{GameStateRef, ResourcesRef};
 use crate::text::format;
 use engine::oxide::input::Key;
 use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent};
@@ -13,14 +13,14 @@ const MAX_HILLS: usize = 40;
 
 pub struct CustomCupSetupView {
     resources: ResourcesRef,
-    store: StoreRef,
+    store: GameStateRef,
     selected: Vec<usize>,
     preview: usize,
     all_hill_count: usize,
 }
 
 impl CustomCupSetupView {
-    pub fn new(resources: ResourcesRef, store: StoreRef) -> Self {
+    pub fn new(resources: ResourcesRef, store: GameStateRef) -> Self {
         let count = resources.hills.len();
         Self {
             resources,
@@ -85,15 +85,15 @@ impl CustomCupSetupView {
                 if self.selected.is_empty() {
                     return None;
                 }
-                let profiles = self.store.profiles();
+                let state = self.store.borrow();
                 let comp = factory::custom_cup(
-                    &profiles,
+                    &state.profiles,
                     self.resources.player_names(),
                     self.selected.clone(),
                     0,
                 );
-                drop(profiles);
-                self.store.start_active(comp);
+                drop(state);
+                self.store.borrow_mut().start_active(comp);
                 Some(RouteTarget::CompetitionJump)
             }
             UiEvent::KeyDown(Key::Left) => {

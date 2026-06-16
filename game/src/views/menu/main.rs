@@ -1,7 +1,7 @@
 use crate::components::layout::MainLayout;
 use crate::gfx::theme::{BG_DARK, FONT_BODY, FONT_GOLD};
 use crate::route::RouteTarget;
-use crate::store::StoreRef;
+use crate::store::GameStateRef;
 use engine::oxide::widgets::menu::PixelMenu;
 use engine::oxide::Widget;
 use engine::oxide::{PaintCx, Screen, ScreenBackground, ScreenEventCx, UiEvent};
@@ -23,7 +23,7 @@ const MENU_ACTIONS: &[Option<RouteTarget>] = &[
 
 impl MainMenuView {
     #[allow(clippy::needless_pass_by_value)]
-    pub fn new(layout: MainLayout, store: StoreRef) -> Self {
+    pub fn new(layout: MainLayout, store: GameStateRef) -> Self {
         use engine::oxide::widgets::menu::MenuItem as OxideMenuItem;
 
         let items = vec![
@@ -36,7 +36,8 @@ impl MainMenuView {
             OxideMenuItem::new(0, "").with_y(12),
         ];
         let selection = store
-            .selected_main_menu()
+            .borrow()
+            .selected_main_menu
             .min(items.len().saturating_sub(1));
         let mut menu = PixelMenu::new(11, 97, 108, 12, items, FONT_BODY, FONT_BODY)
             .with_labels(false)

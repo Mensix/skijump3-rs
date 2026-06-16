@@ -1,24 +1,24 @@
 use crate::jump::{JumpParticipant, JumpPolicy};
 use crate::route::RouteTarget;
-use crate::store::{ResourcesRef, StoreRef};
+use crate::store::{GameStateRef, ResourcesRef};
 use crate::views::jump::input::JumpInputAction;
 use crate::views::jump::scene::JumpScene;
 use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent};
 use std::cell::RefCell;
 
 pub struct TrainingJumpView {
-    store: StoreRef,
+    store: GameStateRef,
     scene: RefCell<JumpScene>,
 }
 
 impl TrainingJumpView {
-    pub fn new(resources: ResourcesRef, store: StoreRef) -> Self {
-        let hill_idx = store.practice_hill();
+    pub fn new(resources: ResourcesRef, store: GameStateRef) -> Self {
+        let hill_idx = store.borrow().practice_hill;
         let participant = JumpParticipant::trainee();
-        let start_gate = store.practice_start_gate();
+        let start_gate = store.borrow().practice_start_gate;
         let scene = JumpScene::new(
             ResourcesRef::clone(&resources),
-            StoreRef::clone(&store),
+            GameStateRef::clone(&store),
             hill_idx,
             start_gate,
             participant,
@@ -41,7 +41,7 @@ impl TrainingJumpView {
                 None
             }
             JumpInputAction::ResetWind => {
-                self.store.reset_practice_wind();
+                self.store.borrow_mut().reset_practice_wind();
                 None
             }
             JumpInputAction::ResetJump => {
@@ -49,12 +49,11 @@ impl TrainingJumpView {
                 let _ = self.scene.borrow().replay_trace();
                 self.scene
                     .borrow()
-                    .reset_state(self.store.practice_start_gate());
+                    .reset_state(self.store.borrow().practice_start_gate);
                 None
             }
             JumpInputAction::PersistStartGate(start_gate) => {
-                self.store.set_practice_start_gate(start_gate);
-                self.store.set_start_gate(start_gate);
+                self.store.borrow_mut().practice_start_gate = start_gate;
                 None
             }
         }
