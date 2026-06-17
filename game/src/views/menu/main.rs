@@ -1,10 +1,10 @@
 use crate::components::layout::MainLayout;
-use crate::gfx::theme::{BG_DARK, BG_RED, FILL_PURPLE, FONT_BODY, FONT_GOLD};
+use crate::gfx::theme::{BG_DARK, BG_RED, BLACK, FONT_BODY, FONT_GOLD, FONT_GRAY};
 use crate::route::RouteTarget;
 use crate::store::GameStateRef;
 use engine::oxide::widgets::menu::PixelMenu;
 use engine::oxide::Widget;
-use engine::oxide::{PaintCx, Screen, ScreenBackground, ScreenEventCx, UiEvent};
+use engine::oxide::{Blinker, PaintCx, Screen, ScreenBackground, ScreenEventCx, UiEvent};
 
 pub struct MainMenuView {
     menu: PixelMenu,
@@ -12,6 +12,7 @@ pub struct MainMenuView {
     confirming_quit: bool,
     quit_question: String,
     quit_prompt: String,
+    quit_blinker: Blinker,
 }
 
 const MENU_ACTIONS: &[Option<RouteTarget>] = &[
@@ -52,6 +53,7 @@ impl MainMenuView {
             confirming_quit: false,
             quit_question: String::new(),
             quit_prompt: String::new(),
+            quit_blinker: Blinker::new(),
         }
     }
 
@@ -64,7 +66,8 @@ impl MainMenuView {
         paint_main_menu(cx, &self.menu, &self.layout);
         self.layout.footer(cx);
         if self.confirming_quit {
-            paint_quit_confirm(cx, &self.quit_question, &self.quit_prompt);
+            let cursor_on = self.quit_blinker.visible(11, 10);
+            paint_quit_confirm(cx, &self.quit_question, &self.quit_prompt, cursor_on);
         }
     }
 }
@@ -87,6 +90,7 @@ impl Screen<RouteTarget> for MainMenuView {
         match self.menu.event(&mut ecx, event) {
             Some(0 | 7) => {
                 self.confirming_quit = true;
+                self.quit_blinker.reset();
                 let mut state = self.layout.state.borrow_mut();
                 let qi = 251 + (state.rng.random_i32(3) as usize).min(2);
                 let pi = 256 + (state.rng.random_i32(3) as usize).min(2);
@@ -131,12 +135,17 @@ fn paint_main_menu(cx: &mut PaintCx<'_>, menu: &PixelMenu, layout: &MainLayout) 
     cx.stroke((5, y, 109, 13), FONT_BODY);
 }
 
-fn paint_quit_confirm(cx: &mut PaintCx<'_>, question: &str, prompt: &str) {
-    cx.fill((59, 79, 202, 53), FILL_PURPLE);
-    cx.fill((60, 80, 200, 51), BG_RED);
+fn paint_quit_confirm(cx: &mut PaintCx<'_>, question: &str, prompt: &str, cursor_on: bool) {
+    let prompt_w = cx.string_width(prompt) as i32;
+    cx.fill((59, 79, 202, 53), BLACK);
+    cx.pattern_fill((60, 80, 200, 51), BG_RED);
     cx.text((70, 90), FONT_GOLD, question);
     cx.text((70, 110), FONT_GOLD, prompt);
-    cx.text((180, 110), FONT_BODY, "(Y/N)");
+    let yn_x = 70 + prompt_w + 4;
+    cx.text((yn_x, 110), FONT_GRAY, "(Y/N)");
+    if cursor_on {
+        cx.fill((yn_x + 25, 110 + 6, 5, 1), FONT_GOLD);
+    }
 }
 
 fn is_yes(c: char, layout: &MainLayout) -> bool {

@@ -2,16 +2,22 @@ use crate::color::Rgba;
 use crate::oxide::draw::{
     CommandBuffer, DrawCommand, ImageRegionDraw, Point, Rect, SpriteDraw, TextAlign, TextRun,
 };
+use crate::oxide::text::Font;
 use crate::sprite::SpriteMaterial;
 use std::rc::Rc;
 
 pub struct PaintCx<'a> {
     commands: &'a mut CommandBuffer,
+    font: &'a Font,
 }
 
 impl<'a> PaintCx<'a> {
-    pub fn new(commands: &'a mut CommandBuffer) -> Self {
-        Self { commands }
+    pub fn new(commands: &'a mut CommandBuffer, font: &'a Font) -> Self {
+        Self { commands, font }
+    }
+
+    pub fn string_width(&self, text: &str) -> u32 {
+        self.font.string_width(text)
     }
 
     pub fn fill(&mut self, rect: impl Into<Rect>, color: Rgba) {

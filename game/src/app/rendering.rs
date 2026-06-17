@@ -28,7 +28,7 @@ impl FrameRenderer {
     ) -> Result<(), String> {
         let mut commands = CommandBuffer::new();
         {
-            let mut cx = PaintCx::new(&mut commands);
+            let mut cx = PaintCx::new(&mut commands, assets.font);
             router.paint(&mut cx);
             self.add_debug_overlay(&mut cx);
         }
