@@ -169,10 +169,10 @@ impl Screen<RouteTarget> for HillMakerView {
                 let (visible, add, next, prev) = self.item_roles();
                 if n <= visible {
                     let filename = self.custom_hills[self.page_start + n - 1].filename.clone();
-                    self.store.borrow_mut().custom_hill_edit = Some(filename);
+                    self.store.borrow_mut().nav_edit_hill = Some(filename);
                     cx.navigate(RouteTarget::EditHill);
                 } else if n == add {
-                    self.store.borrow_mut().custom_hill_edit = None;
+                    self.store.borrow_mut().nav_edit_hill = None;
                     cx.navigate(RouteTarget::EditHill);
                 } else if Some(n) == next {
                     self.page_start += PAGE_SIZE;

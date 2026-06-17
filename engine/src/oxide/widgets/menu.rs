@@ -40,7 +40,6 @@ pub struct PixelMenu {
     show_labels: bool,
     show_box: bool,
     trailing: Option<(String, i32)>, // (label, gap above)
-    tab_target: Option<usize>,
 }
 
 impl PixelMenu {
@@ -67,7 +66,6 @@ impl PixelMenu {
             show_labels: true,
             show_box: true,
             trailing: None,
-            tab_target: None,
         }
     }
 
@@ -120,12 +118,6 @@ impl PixelMenu {
         self
     }
 
-    #[must_use]
-    pub const fn with_tab_target(mut self, target: usize) -> Self {
-        self.tab_target = Some(target);
-        self
-    }
-
     fn move_up(&mut self) {
         let total = self.total_items();
         self.selected = if self.selected == 0 {
@@ -156,7 +148,7 @@ impl PixelMenu {
         }
     }
 
-    fn function_key_index(key: Key) -> Option<usize> {
+    pub fn function_key_index(key: Key) -> Option<usize> {
         match key {
             Key::F1 => Some(1),
             Key::F2 => Some(2),
@@ -211,7 +203,6 @@ impl Widget for PixelMenu {
                 self.select_last();
                 None
             }
-            UiEvent::KeyDown(Key::Tab) => self.tab_target,
             UiEvent::KeyDown(key) if Self::function_key_index(key).is_some() => {
                 let index = Self::function_key_index(key).unwrap();
                 if index == 10 && self.trailing.is_some() {

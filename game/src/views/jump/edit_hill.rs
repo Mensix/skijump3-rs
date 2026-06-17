@@ -84,7 +84,7 @@ impl EditHillView {
         ];
         let values = store
             .borrow_mut()
-            .custom_hill_edit
+            .nav_edit_hill
             .take()
             .and_then(|filename| Self::load_values(&resources, &filename))
             .unwrap_or(values);
@@ -333,7 +333,7 @@ impl Screen<RouteTarget> for EditHillView {
             }
             Some(12) => {
                 self.values = self.initial_values.clone();
-                self.store.borrow_mut().custom_hill_edit = None;
+                self.store.borrow_mut().nav_edit_hill = None;
                 cx.back();
             }
             Some(n @ 1..=11) => {

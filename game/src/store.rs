@@ -84,7 +84,9 @@ pub struct GameState {
     pub profiles: ProfileStore,
     pub records: RecordStore,
     pub selected_main_menu: usize,
-    pub custom_hill_edit: Option<String>,
+    /// Transient: filename loaded by EditHillView on construction,
+    /// set by HillMakerView before navigating. Not persistent game state.
+    pub nav_edit_hill: Option<String>,
 }
 
 impl GameState {
@@ -106,7 +108,7 @@ impl GameState {
             profiles,
             records,
             selected_main_menu: 0,
-            custom_hill_edit: None,
+            nav_edit_hill: None,
         }
     }
 

@@ -4,6 +4,7 @@ use crate::route::RouteTarget;
 use crate::save::config::Config;
 use crate::views::jump::input::JumpKeyBindings;
 use engine::oxide::input::{Key, UiEvent};
+use engine::oxide::widgets::menu::PixelMenu;
 
 use super::state::SetupModal;
 use super::view::SetupView;
@@ -365,8 +366,8 @@ fn handle_screen_event(view: &mut SetupView, event: UiEvent) -> Option<RouteTarg
             }
             view.switch_screen(0);
         }
-        UiEvent::KeyDown(key) if function_key_index(key).is_some() => {
-            let n = function_key_index(key).unwrap();
+        UiEvent::KeyDown(key) if PixelMenu::function_key_index(key).is_some() => {
+            let n = PixelMenu::function_key_index(key).unwrap();
             if n == 10 || n > entries {
                 if screen == 0 {
                     return Some(RouteTarget::MainMenu);
@@ -430,22 +431,6 @@ fn handle_screen_event(view: &mut SetupView, event: UiEvent) -> Option<RouteTarg
         _ => {}
     }
     None
-}
-
-fn function_key_index(key: Key) -> Option<usize> {
-    match key {
-        Key::F1 => Some(1),
-        Key::F2 => Some(2),
-        Key::F3 => Some(3),
-        Key::F4 => Some(4),
-        Key::F5 => Some(5),
-        Key::F6 => Some(6),
-        Key::F7 => Some(7),
-        Key::F8 => Some(8),
-        Key::F9 => Some(9),
-        Key::F10 => Some(10),
-        _ => None,
-    }
 }
 
 fn activate_item(view: &mut SetupView, screen: usize, item: usize) {
