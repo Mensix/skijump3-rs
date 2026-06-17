@@ -70,8 +70,10 @@ fn make_screen(
             state.clone(),
             save_manager.clone(),
         )),
-        RouteTarget::HillMakerSetup => Box::new(HillMakerView::new(resources.clone())),
-        RouteTarget::EditHill => Box::new(EditHillView::new(resources.clone())),
+        RouteTarget::HillMakerSetup => {
+            Box::new(HillMakerView::new(resources.clone(), state.clone()))
+        }
+        RouteTarget::EditHill => Box::new(EditHillView::new(resources.clone(), state.clone())),
         RouteTarget::Welcome => Box::new(WelcomeScreenView::new(
             resources.clone(),
             state.clone(),

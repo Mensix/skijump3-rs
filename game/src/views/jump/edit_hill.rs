@@ -1,13 +1,13 @@
 use crate::gfx::theme::{BG_PURPLE, BG_RED, BLACK, FONT_BODY, FONT_GOLD, FONT_GRAY};
 use crate::route::RouteTarget;
-use crate::store::ResourcesRef;
+use crate::store::{GameStateRef, ResourcesRef};
 use engine::oxide::input::Key;
 use engine::oxide::widgets::menu::{MenuItem, PixelMenu};
 use engine::oxide::widgets::text_input::{TextInput, TextInputMessage};
 use engine::oxide::Blinker;
 use engine::oxide::Widget;
 use engine::oxide::{PaintCx, Screen, ScreenBackground, ScreenEventCx, UiEvent};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug)]
 enum EditMode {
@@ -27,14 +27,14 @@ enum EditMode {
     },
 }
 
-#[derive(Serialize)]
+#[derive(Deserialize, Serialize)]
 struct CustomHillCatalogToml {
     id: String,
     name: String,
     hills: Vec<CustomHillToml>,
 }
 
-#[derive(Serialize)]
+#[derive(Deserialize, Serialize)]
 struct CustomHillToml {
     id: String,
     name: String,
@@ -54,6 +54,7 @@ struct CustomHillToml {
 
 pub struct EditHillView {
     resources: ResourcesRef,
+    store: GameStateRef,
     menu: PixelMenu,
     mode: EditMode,
     values: [String; 12],
@@ -62,7 +63,7 @@ pub struct EditHillView {
 }
 
 impl EditHillView {
-    pub fn new(resources: ResourcesRef) -> Self {
+    pub fn new(resources: ResourcesRef, store: GameStateRef) -> Self {
         let items = (1..=12).map(|n| MenuItem::new(n, "")).collect();
         let menu = PixelMenu::new(10, 8, 110, 13, items, FONT_BODY, FONT_BODY)
             .with_labels(false)
@@ -81,15 +82,44 @@ impl EditHillView {
             "NEW1".into(),
             "".into(),
         ];
+        let values = store
+            .borrow_mut()
+            .custom_hill_edit
+            .take()
+            .and_then(|filename| Self::load_values(&resources, &filename))
+            .unwrap_or(values);
         let initial_values = values.clone();
         Self {
             resources,
+            store,
             menu,
             mode: EditMode::Viewing,
             values,
             initial_values,
             blinker: Blinker::new(),
         }
+    }
+
+    fn load_values(resources: &ResourcesRef, filename: &str) -> Option<[String; 12]> {
+        let path = format!("custom_hills/{filename}.toml");
+        let data = resources.files.read(&path).ok()?;
+        let text = std::str::from_utf8(&data).ok()?;
+        let catalog = toml::from_str::<CustomHillCatalogToml>(text).ok()?;
+        let hill = catalog.hills.first()?;
+        Some([
+            hill.name.clone(),
+            hill.kr.to_string(),
+            hill.front_index.clone(),
+            hill.back_index.clone(),
+            hill.back_brightness.to_string(),
+            (if hill.back_mirror { 1 } else { 0 }).to_string(),
+            (hill.vx_final - 40).to_string(),
+            hill.pk_hundred.to_string(),
+            (hill.pl_save_ten_thousand - 3204).to_string(),
+            hill.author.clone(),
+            filename.to_string(),
+            String::new(),
+        ])
     }
 
     fn has_changes(&self) -> bool {
@@ -159,7 +189,7 @@ impl EditHillView {
             _ => return,
         };
         match field {
-            2 => Self::validate_int(&mut value, 40, 300),
+            2 => self.validate_or_keep(field, &mut value, 40, 300),
             3 | 4 => {
                 if value.is_empty() || !value.chars().all(|c| c.is_ascii_alphanumeric()) {
                     return;
@@ -178,11 +208,11 @@ impl EditHillView {
                     return;
                 }
             }
-            5 => Self::validate_int(&mut value, 0, 255),
-            6 => Self::validate_int(&mut value, 0, 1),
-            7 => Self::validate_int(&mut value, 60, 145),
-            8 => Self::validate_int(&mut value, 50, 150),
-            9 => Self::validate_int(&mut value, 0, 30),
+            5 => self.validate_or_keep(field, &mut value, 0, 255),
+            6 => self.validate_or_keep(field, &mut value, 0, 1),
+            7 => self.validate_or_keep(field, &mut value, 60, 145),
+            8 => self.validate_or_keep(field, &mut value, 50, 150),
+            9 => self.validate_or_keep(field, &mut value, 0, 30),
             11 => value.truncate(8),
             _ => {}
         }
@@ -190,9 +220,18 @@ impl EditHillView {
         self.mode = EditMode::Viewing;
     }
 
-    fn validate_int(value: &mut String, low: i32, high: i32) {
+    fn validate_or_keep(&self, field: usize, value: &mut String, low: i32, high: i32) {
+        if !Self::validate_int(value, low, high) {
+            *value = self.values[field - 1].clone();
+        }
+    }
+
+    fn validate_int(value: &mut String, low: i32, high: i32) -> bool {
         if let Ok(n) = value.trim().parse::<i32>() {
             *value = n.clamp(low, high).to_string();
+            true
+        } else {
+            false
         }
     }
 
@@ -216,8 +255,8 @@ impl Screen<RouteTarget> for EditHillView {
     fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
         match &mut self.mode {
             EditMode::ConfirmOverwrite { .. } => {
-                if let UiEvent::Text(ch) = event {
-                    if ch == 'Y' || ch == 'y' {
+                if matches!(event, UiEvent::KeyDown(_) | UiEvent::Text(_)) {
+                    if matches!(event, UiEvent::Text('Y' | 'y')) {
                         self.save();
                         cx.back();
                     } else {
@@ -292,7 +331,11 @@ impl Screen<RouteTarget> for EditHillView {
                     }
                 }
             }
-            Some(12) => cx.back(),
+            Some(12) => {
+                self.values = self.initial_values.clone();
+                self.store.borrow_mut().custom_hill_edit = None;
+                cx.back();
+            }
             Some(n @ 1..=11) => {
                 if matches!(event, UiEvent::KeyDown(Key::Enter) | UiEvent::Text(' ')) {
                     self.start_edit(n);

@@ -2,7 +2,8 @@ use std::cell::Cell;
 use std::marker::PhantomData;
 
 use crate::competition::runtime::{CompetitionDecision, CompetitionRuntime};
-use crate::jump::types::JumpOutcome;
+use crate::data::records::HillRecord;
+use crate::jump::types::{FallType, JumpOutcome};
 use crate::jump::{JumpParticipant, JumpPolicy};
 use crate::save::SaveRef;
 use crate::store::{GameState, GameStateRef, HasRuntime, ResourcesRef};
@@ -101,18 +102,38 @@ where
         let Some(outcome) = outcome else {
             return false;
         };
-        let recorded = self
-            .state
-            .borrow_mut()
-            .with_runtime_mut(|runtime: &mut R| {
-                if !runtime.is_human_current() {
-                    return false;
+        let recorded = {
+            let mut state = self.state.borrow_mut();
+            let mut side_effects = None;
+            let recorded = state
+                .with_runtime_mut(|runtime: &mut R| {
+                    if !runtime.is_human_current() {
+                        return false;
+                    }
+                    let ctx = runtime.current_jump_context();
+                    side_effects = Some(PostJumpSideEffects {
+                        profile_idx: runtime.profile_idx_for_context(&ctx),
+                        hill_idx: runtime.hill_idx_for_context(&ctx),
+                        jumper_name: runtime.jumper_name_for_context(&ctx),
+                        saves_hill_records: runtime.saves_hill_records(&ctx),
+                        is_real_world_cup: runtime.is_real_world_cup_context(&ctx),
+                    });
+                    runtime.record_jump_runtime(&ctx, outcome);
+                    true
+                })
+                .unwrap_or(false);
+            if recorded {
+                if let Some(side_effects) = side_effects {
+                    apply_post_jump_side_effects(
+                        &mut state,
+                        &self.resources,
+                        &side_effects,
+                        outcome,
+                    );
                 }
-                let ctx = runtime.current_jump_context();
-                runtime.record_jump_runtime(&ctx, outcome);
-                true
-            })
-            .unwrap_or(false);
+            }
+            recorded
+        };
         if !recorded {
             return false;
         }
@@ -229,6 +250,7 @@ where
         Option<CompetitionFlowCommand<R::Context, R::ResultsKind>>,
         CompetitionControllerError,
     > {
+        let mut pending_side_effects = Vec::new();
         let command = self
             .state
             .borrow_mut()
@@ -258,6 +280,16 @@ where
                         }
 
                         let outcome = self.simulate_computer(scene, participant, hill_idx)?;
+                        pending_side_effects.push((
+                            PostJumpSideEffects {
+                                profile_idx: runtime.profile_idx_for_context(&context),
+                                hill_idx: runtime.hill_idx_for_context(&context),
+                                jumper_name: runtime.jumper_name_for_context(&context),
+                                saves_hill_records: runtime.saves_hill_records(&context),
+                                is_real_world_cup: runtime.is_real_world_cup_context(&context),
+                            },
+                            outcome,
+                        ));
                         runtime.record_jump_runtime(&context, outcome);
                         if runtime.is_complete_runtime() {
                             return Ok(Some(CompetitionFlowCommand::Done));
@@ -265,6 +297,13 @@ where
                     }
                 }
             });
+
+        if !pending_side_effects.is_empty() {
+            let mut state = self.state.borrow_mut();
+            for (side_effects, outcome) in pending_side_effects {
+                apply_post_jump_side_effects(&mut state, &self.resources, &side_effects, outcome);
+            }
+        }
 
         command.unwrap_or(Ok(None))
     }
@@ -298,4 +337,75 @@ where
         }
         changed
     }
+}
+
+#[derive(Clone, Debug)]
+struct PostJumpSideEffects {
+    profile_idx: Option<usize>,
+    hill_idx: usize,
+    jumper_name: String,
+    saves_hill_records: bool,
+    is_real_world_cup: bool,
+}
+
+fn apply_post_jump_side_effects(
+    state: &mut GameState,
+    resources: &ResourcesRef,
+    side_effects: &PostJumpSideEffects,
+    outcome: JumpOutcome,
+) {
+    let distance_tenths = (outcome.distance * 10.0).round().max(0.0) as usize;
+    if let Some(profile_idx) = side_effects.profile_idx {
+        if let Some(profile) = state.profiles.profiles.get_mut(profile_idx) {
+            profile.total_jumps += 1;
+            if side_effects.is_real_world_cup && distance_tenths > profile.best_wc_jump {
+                profile.best_wc_jump = distance_tenths;
+                profile.bestwchill = side_effects.hill_idx;
+                profile.best_wc_hill_display = hill_display_name(resources, side_effects.hill_idx);
+            }
+            if distance_tenths > profile.best_jump {
+                profile.best_jump = distance_tenths;
+                profile.besthill_idx = side_effects.hill_idx;
+                profile.besthillfile = hill_file_name(resources, side_effects.hill_idx);
+                profile.best_hill_display = hill_display_name(resources, side_effects.hill_idx);
+            }
+        }
+    }
+
+    if side_effects.saves_hill_records
+        && outcome.fall_type == FallType::None
+        && state
+            .records
+            .hill_records
+            .get(side_effects.hill_idx)
+            .is_some_and(|record| outcome.distance > record.len)
+    {
+        if let Some(record) = state.records.hill_records.get_mut(side_effects.hill_idx) {
+            *record = HillRecord {
+                name: side_effects.jumper_name.clone(),
+                len: outcome.distance,
+                time: current_record_time(),
+            };
+        }
+    }
+}
+
+fn hill_file_name(resources: &ResourcesRef, hill_idx: usize) -> String {
+    resources
+        .hills
+        .hill(hill_idx)
+        .map_or_else(|| "HILLBASE".to_string(), |hill| hill.terrain_id.clone())
+}
+
+fn hill_display_name(resources: &ResourcesRef, hill_idx: usize) -> String {
+    resources
+        .hills
+        .hill(hill_idx)
+        .map_or_else(String::new, |hill| hill.name.clone())
+}
+
+fn current_record_time() -> String {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or_else(|_| String::new(), |duration| duration.as_secs().to_string())
 }

@@ -84,6 +84,7 @@ pub struct GameState {
     pub profiles: ProfileStore,
     pub records: RecordStore,
     pub selected_main_menu: usize,
+    pub custom_hill_edit: Option<String>,
 }
 
 impl GameState {
@@ -105,6 +106,7 @@ impl GameState {
             profiles,
             records,
             selected_main_menu: 0,
+            custom_hill_edit: None,
         }
     }
 
@@ -115,7 +117,8 @@ impl GameState {
 
     pub fn setup_jump_event(&mut self) {
         self.first_event = true;
-        self.wind.initialize(&mut self.rng, self.config.windplace as u8);
+        self.wind
+            .initialize(&mut self.rng, self.config.windplace as u8);
     }
 
     pub fn consume_first_jump_event(&mut self) -> bool {
@@ -125,7 +128,8 @@ impl GameState {
     }
 
     pub fn reset_practice_wind(&mut self) {
-        self.wind.initialize(&mut self.rng, self.config.windplace as u8);
+        self.wind
+            .initialize(&mut self.rng, self.config.windplace as u8);
     }
 }
 

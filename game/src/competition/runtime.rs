@@ -1,5 +1,5 @@
 use crate::competition::machine::{Competition, StepDecision};
-use crate::competition::types::{CompetitionPhase, Participant};
+use crate::competition::types::{CompetitionPhase, CupStyle, Participant};
 use crate::jump::config::JumpParticipant;
 use crate::jump::policy::JumperControl;
 use crate::jump::types::JumpOutcome;
@@ -31,6 +31,12 @@ pub trait CompetitionRuntime {
 
     /// Context for the current jump (used by session to record outcome).
     fn current_jump_context(&self) -> Self::Context;
+
+    fn profile_idx_for_context(&self, context: &Self::Context) -> Option<usize>;
+    fn hill_idx_for_context(&self, context: &Self::Context) -> usize;
+    fn jumper_name_for_context(&self, context: &Self::Context) -> String;
+    fn saves_hill_records(&self, context: &Self::Context) -> bool;
+    fn is_real_world_cup_context(&self, context: &Self::Context) -> bool;
 
     /// Current event/leg index (for new-event detection).
     /// Returns 0 for single-event competitions.
@@ -129,6 +135,27 @@ impl CompetitionRuntime for Competition {
             phase: self.phase(),
             participant_idx,
         }
+    }
+
+    fn profile_idx_for_context(&self, context: &Self::Context) -> Option<usize> {
+        self.participant(context.participant_idx).profile_idx
+    }
+
+    fn hill_idx_for_context(&self, context: &Self::Context) -> usize {
+        self.hill_order.get(context.event_idx).copied().unwrap_or(0)
+    }
+
+    fn jumper_name_for_context(&self, context: &Self::Context) -> String {
+        self.participant(context.participant_idx).name.clone()
+    }
+
+    fn saves_hill_records(&self, context: &Self::Context) -> bool {
+        !matches!(context.phase, CompetitionPhase::Training(_))
+    }
+
+    fn is_real_world_cup_context(&self, context: &Self::Context) -> bool {
+        self.style() == CupStyle::WorldCup
+            && !matches!(context.phase, CompetitionPhase::Training(_))
     }
 
     fn event_idx(&self) -> usize {

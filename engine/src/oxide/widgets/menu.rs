@@ -40,6 +40,7 @@ pub struct PixelMenu {
     show_labels: bool,
     show_box: bool,
     trailing: Option<(String, i32)>, // (label, gap above)
+    tab_target: Option<usize>,
 }
 
 impl PixelMenu {
@@ -66,6 +67,7 @@ impl PixelMenu {
             show_labels: true,
             show_box: true,
             trailing: None,
+            tab_target: None,
         }
     }
 
@@ -93,6 +95,11 @@ impl PixelMenu {
     }
 
     #[must_use]
+    pub fn total_items(&self) -> usize {
+        self.items.len() + usize::from(self.trailing.is_some())
+    }
+
+    #[must_use]
     pub fn with_labels(mut self, show_labels: bool) -> Self {
         self.show_labels = show_labels;
         self
@@ -114,8 +121,9 @@ impl PixelMenu {
     }
 
     #[must_use]
-    fn total_items(&self) -> usize {
-        self.items.len() + usize::from(self.trailing.is_some())
+    pub const fn with_tab_target(mut self, target: usize) -> Self {
+        self.tab_target = Some(target);
+        self
     }
 
     fn move_up(&mut self) {
@@ -134,6 +142,34 @@ impl PixelMenu {
         } else {
             self.selected + 1
         };
+    }
+
+    fn select_last(&mut self) {
+        self.selected = self.total_items().saturating_sub(1);
+    }
+
+    fn submit_selected(&self) -> usize {
+        if self.trailing.is_some() && self.selected == self.items.len() {
+            0
+        } else {
+            self.selected + 1
+        }
+    }
+
+    fn function_key_index(key: Key) -> Option<usize> {
+        match key {
+            Key::F1 => Some(1),
+            Key::F2 => Some(2),
+            Key::F3 => Some(3),
+            Key::F4 => Some(4),
+            Key::F5 => Some(5),
+            Key::F6 => Some(6),
+            Key::F7 => Some(7),
+            Key::F8 => Some(8),
+            Key::F9 => Some(9),
+            Key::F10 => Some(10),
+            _ => None,
+        }
     }
 
     /// Y-offset for a trailing item below regular items.
@@ -159,21 +195,36 @@ impl Widget for PixelMenu {
 
     fn event(&mut self, cx: &mut EventCx, event: UiEvent) -> Option<Self::Message> {
         let msg = match event {
-            UiEvent::KeyDown(Key::Up) => {
+            UiEvent::KeyDown(Key::Up | Key::Left) => {
                 self.move_up();
                 None
             }
-            UiEvent::KeyDown(Key::Down) => {
+            UiEvent::KeyDown(Key::Down | Key::Right) => {
                 self.move_down();
                 None
             }
-            UiEvent::KeyDown(Key::Enter) | UiEvent::Text(' ') => {
-                if self.trailing.is_some() && self.selected == self.items.len() {
+            UiEvent::KeyDown(Key::Home) => {
+                self.set_selected(0);
+                None
+            }
+            UiEvent::KeyDown(Key::End) => {
+                self.select_last();
+                None
+            }
+            UiEvent::KeyDown(Key::Tab) => self.tab_target,
+            UiEvent::KeyDown(key) if Self::function_key_index(key).is_some() => {
+                let index = Self::function_key_index(key).unwrap();
+                if index == 10 && self.trailing.is_some() {
+                    self.select_last();
                     Some(0)
+                } else if index >= 1 && index <= self.items.len() {
+                    self.set_selected(index - 1);
+                    Some(index)
                 } else {
-                    Some(self.selected + 1)
+                    None
                 }
             }
+            UiEvent::KeyDown(Key::Enter) | UiEvent::Text(' ') => Some(self.submit_selected()),
             UiEvent::Text(c) if c.is_ascii_digit() => {
                 let d = c.to_digit(10).unwrap_or(0) as usize;
                 let total = self.total_items();
@@ -185,10 +236,25 @@ impl Widget for PixelMenu {
                 cx.consume();
                 None
             }
+            UiEvent::Text(c) if matches!(c, 'A'..='L' | 'a'..='l') => {
+                let index = c.to_ascii_uppercase() as usize - 'A' as usize + 10;
+                if index >= 1 && index <= self.total_items() {
+                    self.set_selected(index - 1);
+                }
+                cx.consume();
+                None
+            }
             UiEvent::KeyDown(Key::Escape) => Some(0),
             _ => None,
         };
-        if msg.is_some() || matches!(event, UiEvent::KeyDown(Key::Up | Key::Down)) {
+        if msg.is_some()
+            || matches!(
+                event,
+                UiEvent::KeyDown(
+                    Key::Up | Key::Down | Key::Left | Key::Right | Key::Home | Key::End
+                )
+            )
+        {
             cx.consume();
         }
         msg
@@ -216,12 +282,7 @@ impl Widget for PixelMenu {
             let selected = self.selected.min(self.total_items().saturating_sub(1));
             let item_y = self.item_y(selected);
             cx.stroke(
-                (
-                    self.x - 6,
-                    item_y - 3,
-                    self.item_w + 1,
-                    self.item_h + 1,
-                ),
+                (self.x - 6, item_y - 3, self.item_w + 1, self.item_h + 1),
                 self.box_color,
             );
         }

@@ -50,7 +50,17 @@ impl Input {
                         Keycode::Escape => Some(Key::Escape),
                         Keycode::Backspace => Some(Key::Backspace),
                         Keycode::Delete => Some(Key::Delete),
+                        Keycode::Tab => Some(Key::Tab),
+                        Keycode::F1 => Some(Key::F1),
+                        Keycode::F2 => Some(Key::F2),
+                        Keycode::F3 => Some(Key::F3),
+                        Keycode::F4 => Some(Key::F4),
                         Keycode::F5 => Some(Key::F5),
+                        Keycode::F6 => Some(Key::F6),
+                        Keycode::F7 => Some(Key::F7),
+                        Keycode::F8 => Some(Key::F8),
+                        Keycode::F9 => Some(Key::F9),
+                        Keycode::F10 => Some(Key::F10),
                         Keycode::Space => {
                             events.push(UiEvent::Text(' '));
                             None

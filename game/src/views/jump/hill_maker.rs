@@ -1,6 +1,6 @@
-use crate::gfx::theme::{BG_PURPLE, BLACK, FONT_BODY, FONT_GOLD, FONT_GRAY, FONT_TEAL};
+use crate::gfx::theme::{BG_PURPLE, BG_RED, BLACK, FONT_BODY, FONT_GOLD, FONT_GRAY, FONT_TEAL};
 use crate::route::RouteTarget;
-use crate::store::ResourcesRef;
+use crate::store::{GameStateRef, ResourcesRef};
 use crate::text::layout::lstr;
 use engine::oxide::input::Key;
 use engine::oxide::widgets::menu::{MenuItem, PixelMenu};
@@ -26,22 +26,83 @@ struct CustomHillToml {
 
 pub struct HillMakerView {
     resources: ResourcesRef,
+    store: GameStateRef,
     menu: PixelMenu,
     custom_hills: Vec<CustomHillListEntry>,
+    page_start: usize,
+    mode: HillMakerMode,
 }
 
+#[derive(Debug, Clone)]
+enum HillMakerMode {
+    Browse,
+    ConfirmDelete { filename: String },
+}
+
+const PAGE_SIZE: usize = 18;
+
 impl HillMakerView {
-    pub fn new(resources: ResourcesRef) -> Self {
+    pub fn new(resources: ResourcesRef, store: GameStateRef) -> Self {
         let custom_hills = Self::load_custom_hills(&resources);
-        let items = vec![MenuItem::new(1, "")];
-        let menu = PixelMenu::new(99, 14, 221, 8, items, FONT_BODY, FONT_BODY)
-            .trailing("", 6 + custom_hills.len() as i32 * 8)
-            .with_labels(false);
+        let page_start = 0;
+        let menu = Self::make_menu(custom_hills.len(), page_start);
         Self {
             resources,
+            store,
             menu,
             custom_hills,
+            page_start,
+            mode: HillMakerMode::Browse,
         }
+    }
+
+    fn make_menu(total_hills: usize, page_start: usize) -> PixelMenu {
+        let visible = Self::visible_count(total_hills, page_start);
+        let mut count = visible + 1; // add new
+        if page_start + visible < total_hills {
+            count += 1;
+        }
+        if page_start > 0 {
+            count += 1;
+        }
+        let items = (1..=count).map(|n| MenuItem::new(n as u8, "")).collect();
+        let exit_gap = 14;
+        PixelMenu::new(99, 14, 221, 8, items, FONT_BODY, FONT_BODY)
+            .trailing("", exit_gap)
+            .with_labels(false)
+    }
+
+    fn visible_count(total_hills: usize, page_start: usize) -> usize {
+        total_hills.saturating_sub(page_start).min(PAGE_SIZE)
+    }
+
+    fn rebuild_menu(&mut self) {
+        self.menu = Self::make_menu(self.custom_hills.len(), self.page_start);
+    }
+
+    fn page_count(&self) -> usize {
+        self.custom_hills.len().max(1).div_ceil(PAGE_SIZE)
+    }
+
+    fn page_number(&self) -> usize {
+        self.page_start / PAGE_SIZE + 1
+    }
+
+    fn item_roles(&self) -> (usize, usize, Option<usize>, Option<usize>) {
+        let visible = Self::visible_count(self.custom_hills.len(), self.page_start);
+        let add = visible + 1;
+        let mut next = None;
+        let mut prev = None;
+        let mut item = add;
+        if self.page_start + visible < self.custom_hills.len() {
+            item += 1;
+            next = Some(item);
+        }
+        if self.page_start > 0 {
+            item += 1;
+            prev = Some(item);
+        }
+        (visible, add, next, prev)
     }
 
     fn load_custom_hills(resources: &ResourcesRef) -> Vec<CustomHillListEntry> {
@@ -69,13 +130,60 @@ impl HillMakerView {
 
 impl Screen<RouteTarget> for HillMakerView {
     fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
+        if let HillMakerMode::ConfirmDelete { filename } = self.mode.clone() {
+            if matches!(event, UiEvent::KeyDown(_) | UiEvent::Text(_)) {
+                if matches!(event, UiEvent::Text('Y' | 'y')) {
+                    let path = format!("custom_hills/{filename}.toml");
+                    let _ = self.resources.files.delete_save(&path);
+                    self.custom_hills = Self::load_custom_hills(&self.resources);
+                    if self.page_start >= self.custom_hills.len() {
+                        self.page_start = self.page_start.saturating_sub(PAGE_SIZE);
+                    }
+                    self.rebuild_menu();
+                }
+                self.mode = HillMakerMode::Browse;
+                cx.consume();
+            }
+            return;
+        }
+
         if matches!(event, UiEvent::KeyDown(Key::Escape)) {
             cx.back();
             return;
         }
+        if matches!(event, UiEvent::KeyDown(Key::Delete | Key::Backspace)) {
+            let selected = self.menu.selected();
+            let (visible, _, _, _) = self.item_roles();
+            if selected < visible {
+                let filename = self.custom_hills[self.page_start + selected]
+                    .filename
+                    .clone();
+                self.mode = HillMakerMode::ConfirmDelete { filename };
+                cx.consume();
+            }
+            return;
+        }
         let mut ecx = engine::oxide::widget::EventCx::default();
         match self.menu.event(&mut ecx, event) {
-            Some(1) => cx.navigate(RouteTarget::EditHill),
+            Some(n) if n > 0 => {
+                let (visible, add, next, prev) = self.item_roles();
+                if n <= visible {
+                    let filename = self.custom_hills[self.page_start + n - 1].filename.clone();
+                    self.store.borrow_mut().custom_hill_edit = Some(filename);
+                    cx.navigate(RouteTarget::EditHill);
+                } else if n == add {
+                    self.store.borrow_mut().custom_hill_edit = None;
+                    cx.navigate(RouteTarget::EditHill);
+                } else if Some(n) == next {
+                    self.page_start += PAGE_SIZE;
+                    self.rebuild_menu();
+                    cx.consume();
+                } else if Some(n) == prev {
+                    self.page_start = self.page_start.saturating_sub(PAGE_SIZE);
+                    self.rebuild_menu();
+                    cx.consume();
+                }
+            }
             Some(0) => cx.back(),
             _ => {}
         }
@@ -104,19 +212,60 @@ impl Screen<RouteTarget> for HillMakerView {
         cx.text(
             (5, 45),
             FONT_TEAL,
-            format!("{} 1 {} 1", lstr(lb, 157, "Page"), lstr(lb, 8, "of")),
+            format!(
+                "{} {} {} {}",
+                lstr(lb, 157, "Page"),
+                self.page_number(),
+                lstr(lb, 8, "of"),
+                self.page_count()
+            ),
         );
 
-        cx.text((col1, 13), FONT_GOLD, lstr(lb, 275, "*Add New Hill*"));
-        for (i, hill) in self.custom_hills.iter().enumerate() {
-            let y = 21 + i as i32 * 8;
+        let (visible, _, next, prev) = self.item_roles();
+        for (i, hill) in self
+            .custom_hills
+            .iter()
+            .skip(self.page_start)
+            .take(visible)
+            .enumerate()
+        {
+            let y = 13 + i as i32 * 8;
             cx.text((col1, y), FONT_BODY, &hill.filename);
             cx.text((col2, y), FONT_GOLD, &hill.hillname);
         }
+        let mut row = visible;
+        cx.text(
+            (col1, 13 + row as i32 * 8),
+            FONT_GOLD,
+            lstr(lb, 275, "*Add New Hill*"),
+        );
+        row += 1;
+        if next.is_some() {
+            cx.text(
+                (col1, 13 + row as i32 * 8),
+                FONT_GRAY,
+                lstr(lb, 158, "*Next Page*"),
+            );
+            row += 1;
+        }
+        if prev.is_some() {
+            cx.text(
+                (col1, 13 + row as i32 * 8),
+                FONT_GRAY,
+                lstr(lb, 159, "*Previous Page*"),
+            );
+            row += 1;
+        }
         self.menu.paint(cx);
 
-        let exit_y = 29 + self.custom_hills.len() as i32 * 8;
+        let exit_y = 13 + (row + 2) as i32 * 8;
         cx.text((col1, exit_y), FONT_BODY, lstr(lb, 276, "-Exit-"));
+        if let HillMakerMode::ConfirmDelete { filename } = &self.mode {
+            cx.fill((69, 79, 183, 53), BLACK);
+            cx.fill((70, 80, 181, 51), BG_RED);
+            cx.text((80, 90), FONT_GOLD, format!("DELETE {filename}.TOML?"));
+            cx.text((80, 110), FONT_GOLD, "ARE YOU SURE? (Y/N):");
+        }
     }
 
     fn background(&self) -> ScreenBackground {

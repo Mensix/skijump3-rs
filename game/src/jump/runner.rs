@@ -475,6 +475,7 @@ impl JumpRunner {
             hill_record_marker: self.record_marker,
             is_hill_record: self.config.policy.save_hill_records
                 && self.config.record_distance > 0.0
+                && state.fall_type == crate::jump::types::FallType::None
                 && state.distance > self.config.record_distance,
             hr_shake_position: None,
         })

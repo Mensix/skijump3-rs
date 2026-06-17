@@ -1,5 +1,5 @@
 use crate::components::layout::MainLayout;
-use crate::gfx::theme::{BG_DARK, FONT_BODY, FONT_GOLD};
+use crate::gfx::theme::{BG_DARK, BG_RED, FILL_PURPLE, FONT_BODY, FONT_GOLD};
 use crate::route::RouteTarget;
 use crate::store::GameStateRef;
 use engine::oxide::widgets::menu::PixelMenu;
@@ -9,6 +9,7 @@ use engine::oxide::{PaintCx, Screen, ScreenBackground, ScreenEventCx, UiEvent};
 pub struct MainMenuView {
     menu: PixelMenu,
     layout: MainLayout,
+    confirming_quit: bool,
 }
 
 const MENU_ACTIONS: &[Option<RouteTarget>] = &[
@@ -43,7 +44,11 @@ impl MainMenuView {
             .with_labels(false)
             .with_box(false);
         menu.set_selected(selection);
-        Self { menu, layout }
+        Self {
+            menu,
+            layout,
+            confirming_quit: false,
+        }
     }
 
     fn paint_content(&self, cx: &mut PaintCx<'_>) {
@@ -54,14 +59,32 @@ impl MainMenuView {
         cx.text((11, 80), FONT_GOLD, self.layout.langbase.lstr(17));
         paint_main_menu(cx, &self.menu, &self.layout);
         self.layout.footer(cx);
+        if self.confirming_quit {
+            paint_quit_confirm(cx, &self.layout);
+        }
     }
 }
 
 impl Screen<RouteTarget> for MainMenuView {
     fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
+        if self.confirming_quit {
+            match event {
+                UiEvent::Text(c) if is_yes(c, &self.layout) => cx.quit(),
+                UiEvent::KeyDown(_) | UiEvent::Text(_) => {
+                    self.confirming_quit = false;
+                    cx.consume();
+                }
+                _ => {}
+            }
+            return;
+        }
+
         let mut ecx = engine::oxide::widget::EventCx::default();
         match self.menu.event(&mut ecx, event) {
-            Some(0 | 7) => cx.quit(),
+            Some(0 | 7) => {
+                self.confirming_quit = true;
+                cx.consume();
+            }
             Some(n) => {
                 if let Some(route) = MENU_ACTIONS.get(n - 1).and_then(|&a| a) {
                     cx.navigate(route);
@@ -97,4 +120,25 @@ fn paint_main_menu(cx: &mut PaintCx<'_>, menu: &PixelMenu, layout: &MainLayout) 
     let selected = menu.selected().min(y_offsets.len().saturating_sub(1));
     let y = 94 + (selected as i32) * 12 + y_offsets[selected];
     cx.stroke((5, y, 109, 13), FONT_BODY);
+}
+
+fn paint_quit_confirm(cx: &mut PaintCx<'_>, layout: &MainLayout) {
+    let question = layout.langbase.lstr(251);
+    let prompt = layout.langbase.lstr(256);
+    cx.fill((59, 79, 202, 53), FILL_PURPLE);
+    cx.fill((60, 80, 200, 51), BG_RED);
+    cx.text((70, 90), FONT_GOLD, question);
+    cx.text((70, 110), FONT_GOLD, prompt);
+    cx.text((180, 110), FONT_BODY, "(Y/N)");
+}
+
+fn is_yes(c: char, layout: &MainLayout) -> bool {
+    let localized = layout
+        .langbase
+        .lstr(6)
+        .chars()
+        .next()
+        .unwrap_or('Y')
+        .to_ascii_uppercase();
+    c.to_ascii_uppercase() == localized || c.eq_ignore_ascii_case(&'Y')
 }

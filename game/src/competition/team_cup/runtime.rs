@@ -270,6 +270,32 @@ impl CompetitionRuntime for TeamCupRuntime {
         self.current_jump_context()
     }
 
+    fn profile_idx_for_context(&self, context: &Self::Context) -> Option<usize> {
+        self.teams
+            .get(context.team_idx)
+            .and_then(|t| t.members.get(context.member_idx))
+            .and_then(|m| m.competitor.profile_idx)
+    }
+
+    fn hill_idx_for_context(&self, context: &Self::Context) -> usize {
+        self.schedule.get(context.leg_idx).copied().unwrap_or(0)
+    }
+
+    fn jumper_name_for_context(&self, context: &Self::Context) -> String {
+        self.teams
+            .get(context.team_idx)
+            .and_then(|t| t.members.get(context.member_idx))
+            .map_or_else(String::new, |m| m.competitor.name.clone())
+    }
+
+    fn saves_hill_records(&self, _: &Self::Context) -> bool {
+        true
+    }
+
+    fn is_real_world_cup_context(&self, _: &Self::Context) -> bool {
+        false
+    }
+
     fn event_idx(&self) -> usize {
         self.current_leg
     }

@@ -61,6 +61,10 @@ impl FileStore {
         self.save_dir.join(name).exists()
     }
 
+    pub fn delete_save(&self, name: &str) -> Result<(), std::io::Error> {
+        std::fs::remove_file(self.save_dir.join(name))
+    }
+
     /// List filenames in save dir with a given extension (without leading dot).
     pub fn list_by_ext(&self, ext: &str) -> Result<Vec<String>, std::io::Error> {
         self.list_by_ext_in(&self.save_dir, ext)

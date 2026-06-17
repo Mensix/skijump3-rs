@@ -84,19 +84,27 @@ fn handle_configure_keys(
     }
 
     match event {
-        UiEvent::KeyDown(Key::Up) => {
+        UiEvent::KeyDown(Key::Up | Key::Left) => {
             view.modal.set(Some(SetupModal::ConfigureKeys {
                 selected: cycle_index(selected, 7, -1),
                 capture: None,
             }));
         }
-        UiEvent::KeyDown(Key::Down) => {
+        UiEvent::KeyDown(Key::Down | Key::Right) => {
             view.modal.set(Some(SetupModal::ConfigureKeys {
                 selected: cycle_index(selected, 7, 1),
                 capture: None,
             }));
         }
-        UiEvent::KeyDown(Key::Escape) => view.modal.set(None),
+        UiEvent::KeyDown(Key::Home) => view.modal.set(Some(SetupModal::ConfigureKeys {
+            selected: 0,
+            capture: None,
+        })),
+        UiEvent::KeyDown(Key::End) => view.modal.set(Some(SetupModal::ConfigureKeys {
+            selected: 6,
+            capture: None,
+        })),
+        UiEvent::KeyDown(Key::Escape | Key::Tab) => view.modal.set(None),
         UiEvent::KeyDown(Key::Enter) | UiEvent::Text(' ') => match selected {
             0..=4 => view.modal.set(Some(SetupModal::ConfigureKeys {
                 selected,
@@ -175,11 +183,11 @@ fn handle_wind_place(view: &mut SetupView, event: UiEvent, pos: usize) -> Option
     let winds = 11;
     let items = winds + 1; // 11 places + 0. exit
     match event {
-        UiEvent::KeyDown(Key::Up) => {
+        UiEvent::KeyDown(Key::Up | Key::Left) => {
             let new_pos = if pos == 0 { items - 1 } else { pos - 1 };
             view.modal.set(Some(SetupModal::WindPlace(new_pos)));
         }
-        UiEvent::KeyDown(Key::Down) => {
+        UiEvent::KeyDown(Key::Down | Key::Right) => {
             let new_pos = if pos >= items - 1 { 0 } else { pos + 1 };
             view.modal.set(Some(SetupModal::WindPlace(new_pos)));
         }
@@ -192,7 +200,6 @@ fn handle_wind_place(view: &mut SetupView, event: UiEvent, pos: usize) -> Option
                     if let Err(e) = view.save_manager().save_config(&state.config) {
                         eprintln!("Warning: failed to save config: {e}");
                     }
-
                 }
             }
             view.modal.set(None);
@@ -269,12 +276,7 @@ fn handle_confirm_reset(view: &mut SetupView, event: UiEvent) -> Option<RouteTar
             }
             view.modal.set(None);
         }
-        UiEvent::KeyDown(Key::Escape | Key::Enter) => {
-            view.modal.set(None);
-        }
-        UiEvent::Text(c) if c == 'n' || c == 'N' => {
-            view.modal.set(None);
-        }
+        UiEvent::KeyDown(_) | UiEvent::Text(_) => view.modal.set(None),
         _ => {}
     }
     None
@@ -283,11 +285,11 @@ fn handle_confirm_reset(view: &mut SetupView, event: UiEvent) -> Option<RouteTar
 fn handle_language_picker(view: &mut SetupView, event: UiEvent, sel: usize) -> Option<RouteTarget> {
     let langs = &view.langbase().languages;
     match event {
-        UiEvent::KeyDown(Key::Up) => {
+        UiEvent::KeyDown(Key::Up | Key::Left) => {
             let new_sel = cycle_index(sel, langs.len(), -1);
             view.modal.set(Some(SetupModal::LanguagePicker(new_sel)));
         }
-        UiEvent::KeyDown(Key::Down) => {
+        UiEvent::KeyDown(Key::Down | Key::Right) => {
             let new_sel = cycle_index(sel, langs.len(), 1);
             view.modal.set(Some(SetupModal::LanguagePicker(new_sel)));
         }
@@ -345,6 +347,40 @@ fn handle_screen_event(view: &mut SetupView, event: UiEvent) -> Option<RouteTarg
             }
             view.switch_screen(0);
         }
+        UiEvent::KeyDown(Key::Home) => {
+            view.menu.set_selected(0);
+            if screen < view.selected_by_screen.len() {
+                view.selected_by_screen[screen].set(0);
+            }
+        }
+        UiEvent::KeyDown(Key::End) => {
+            view.menu.set_selected(entries);
+            if screen < view.selected_by_screen.len() {
+                view.selected_by_screen[screen].set(entries);
+            }
+        }
+        UiEvent::KeyDown(Key::Tab) => {
+            if screen == 0 {
+                return Some(RouteTarget::MainMenu);
+            }
+            view.switch_screen(0);
+        }
+        UiEvent::KeyDown(key) if function_key_index(key).is_some() => {
+            let n = function_key_index(key).unwrap();
+            if n == 10 || n > entries {
+                if screen == 0 {
+                    return Some(RouteTarget::MainMenu);
+                }
+                view.switch_screen(0);
+            } else {
+                let selected = n - 1;
+                view.menu.set_selected(selected);
+                if screen < view.selected_by_screen.len() {
+                    view.selected_by_screen[screen].set(selected);
+                }
+                activate_item(view, screen, selected);
+            }
+        }
         UiEvent::KeyDown(Key::Enter) | UiEvent::Text(' ') => {
             let sel = view.menu.selected();
             if screen == 0 && sel == 3 {
@@ -382,9 +418,34 @@ fn handle_screen_event(view: &mut SetupView, event: UiEvent) -> Option<RouteTarg
                 }
             }
         }
+        UiEvent::Text(c) if matches!(c, 'A'..='L' | 'a'..='l') => {
+            let n = c.to_ascii_uppercase() as usize - 'A' as usize + 10;
+            if n >= 1 && n <= entries + 1 {
+                view.menu.set_selected(n - 1);
+                if screen < view.selected_by_screen.len() {
+                    view.selected_by_screen[screen].set(n - 1);
+                }
+            }
+        }
         _ => {}
     }
     None
+}
+
+fn function_key_index(key: Key) -> Option<usize> {
+    match key {
+        Key::F1 => Some(1),
+        Key::F2 => Some(2),
+        Key::F3 => Some(3),
+        Key::F4 => Some(4),
+        Key::F5 => Some(5),
+        Key::F6 => Some(6),
+        Key::F7 => Some(7),
+        Key::F8 => Some(8),
+        Key::F9 => Some(9),
+        Key::F10 => Some(10),
+        _ => None,
+    }
 }
 
 fn activate_item(view: &mut SetupView, screen: usize, item: usize) {
@@ -515,7 +576,6 @@ fn activate_item(view: &mut SetupView, screen: usize, item: usize) {
             if let Err(e) = view.save_manager().save_config(&state.config) {
                 eprintln!("Warning: failed to save config: {e}");
             }
-
         }
         _ => {}
     }

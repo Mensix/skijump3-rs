@@ -187,6 +187,30 @@ impl CompetitionRuntime for KothRuntime {
         }
     }
 
+    fn profile_idx_for_context(&self, context: &Self::Context) -> Option<usize> {
+        self.participants
+            .get(context.participant_idx)
+            .and_then(|p| p.competitor.profile_idx)
+    }
+
+    fn hill_idx_for_context(&self, _: &Self::Context) -> usize {
+        self.hill_idx
+    }
+
+    fn jumper_name_for_context(&self, context: &Self::Context) -> String {
+        self.participants
+            .get(context.participant_idx)
+            .map_or_else(String::new, |p| p.competitor.name.clone())
+    }
+
+    fn saves_hill_records(&self, _: &Self::Context) -> bool {
+        false
+    }
+
+    fn is_real_world_cup_context(&self, _: &Self::Context) -> bool {
+        false
+    }
+
     fn event_idx(&self) -> usize {
         0
     }

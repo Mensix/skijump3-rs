@@ -284,9 +284,9 @@ impl Competition {
     /// Store a jump result for the current participant and advance
     /// to the next jumper within the current phase (without phase
     /// transition — call `advance()` separately for that).
-    /// Domain rule: crash → 3-round injury.
+    /// Domain rule: any fall can injure, matching Pascal kupat > 0.
     pub(crate) fn record_jump(&mut self, outcome: CompetitionJumpOutcome) {
-        if outcome.fall_type == FallType::Crash {
+        if outcome.fall_type != FallType::None {
             self.injure_current(3);
         }
         let Some(&idx) = self.start_list.get(self.start_pos) else {
