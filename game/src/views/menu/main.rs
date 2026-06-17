@@ -1,5 +1,5 @@
 use crate::components::layout::MainLayout;
-use crate::gfx::theme::{BG_DARK, BG_RED, BLACK, FONT_BODY, FONT_GOLD, FONT_GRAY};
+use crate::gfx::theme::{BG_DARK, BG_PURPLE, BG_RED, BLACK, FONT_BODY, FONT_GOLD, FONT_GRAY};
 use crate::route::RouteTarget;
 use crate::store::GameStateRef;
 use engine::oxide::widgets::menu::PixelMenu;
@@ -143,8 +143,11 @@ fn paint_quit_confirm(cx: &mut PaintCx<'_>, question: &str, prompt: &str, cursor
     cx.text((70, 110), FONT_GOLD, prompt);
     let yn_x = 70 + prompt_w + 4;
     cx.text((yn_x, 110), FONT_GRAY, "(Y/N)");
+    let cursor_x = yn_x + 25;
+    let cursor_y = 110;
+    cx.fill((cursor_x - 2, cursor_y - 2, 9, 11), BG_PURPLE);
     if cursor_on {
-        cx.fill((yn_x + 25, 110 + 6, 5, 1), FONT_GOLD);
+        cx.fill((cursor_x, cursor_y + 6, 5, 1), FONT_GOLD);
     }
 }
 
