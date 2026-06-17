@@ -10,6 +10,8 @@ pub struct MainMenuView {
     menu: PixelMenu,
     layout: MainLayout,
     confirming_quit: bool,
+    quit_question: String,
+    quit_prompt: String,
 }
 
 const MENU_ACTIONS: &[Option<RouteTarget>] = &[
@@ -48,6 +50,8 @@ impl MainMenuView {
             menu,
             layout,
             confirming_quit: false,
+            quit_question: String::new(),
+            quit_prompt: String::new(),
         }
     }
 
@@ -60,13 +64,7 @@ impl MainMenuView {
         paint_main_menu(cx, &self.menu, &self.layout);
         self.layout.footer(cx);
         if self.confirming_quit {
-            let mut state = self.layout.state.borrow_mut();
-            let question_idx = 251 + (state.rng.random_i32(3) as usize).min(2);
-            let prompt_idx = 256 + (state.rng.random_i32(3) as usize).min(2);
-            let question = self.layout.langbase.lstr(question_idx).to_string();
-            let prompt = self.layout.langbase.lstr(prompt_idx).to_string();
-            drop(state);
-            paint_quit_confirm(cx, &question, &prompt);
+            paint_quit_confirm(cx, &self.quit_question, &self.quit_prompt);
         }
     }
 }
@@ -89,6 +87,11 @@ impl Screen<RouteTarget> for MainMenuView {
         match self.menu.event(&mut ecx, event) {
             Some(0 | 7) => {
                 self.confirming_quit = true;
+                let mut state = self.layout.state.borrow_mut();
+                let qi = 251 + (state.rng.random_i32(3) as usize).min(2);
+                let pi = 256 + (state.rng.random_i32(3) as usize).min(2);
+                self.quit_question = self.layout.langbase.lstr(qi).to_string();
+                self.quit_prompt = self.layout.langbase.lstr(pi).to_string();
                 cx.consume();
             }
             Some(n) => {
