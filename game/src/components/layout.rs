@@ -9,7 +9,7 @@ use std::rc::Rc;
 pub struct MainLayout {
     pub langbase: Rc<LangBase>,
     version: String,
-    state: GameStateRef,
+    pub state: GameStateRef,
 }
 
 impl MainLayout {

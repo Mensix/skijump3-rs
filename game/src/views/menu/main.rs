@@ -51,7 +51,7 @@ impl MainMenuView {
         }
     }
 
-    fn paint_content(&self, cx: &mut PaintCx<'_>) {
+    fn paint_content(&mut self, cx: &mut PaintCx<'_>) {
         self.layout.background(cx);
         self.layout.jumpers(cx);
         self.layout.registration(cx);
@@ -60,7 +60,13 @@ impl MainMenuView {
         paint_main_menu(cx, &self.menu, &self.layout);
         self.layout.footer(cx);
         if self.confirming_quit {
-            paint_quit_confirm(cx, &self.layout);
+            let mut state = self.layout.state.borrow_mut();
+            let question_idx = 251 + (state.rng.random_i32(3) as usize).min(2);
+            let prompt_idx = 256 + (state.rng.random_i32(3) as usize).min(2);
+            let question = self.layout.langbase.lstr(question_idx).to_string();
+            let prompt = self.layout.langbase.lstr(prompt_idx).to_string();
+            drop(state);
+            paint_quit_confirm(cx, &question, &prompt);
         }
     }
 }
@@ -122,9 +128,7 @@ fn paint_main_menu(cx: &mut PaintCx<'_>, menu: &PixelMenu, layout: &MainLayout) 
     cx.stroke((5, y, 109, 13), FONT_BODY);
 }
 
-fn paint_quit_confirm(cx: &mut PaintCx<'_>, layout: &MainLayout) {
-    let question = layout.langbase.lrstr(251, 253);
-    let prompt = layout.langbase.lrstr(256, 258);
+fn paint_quit_confirm(cx: &mut PaintCx<'_>, question: &str, prompt: &str) {
     cx.fill((59, 79, 202, 53), FILL_PURPLE);
     cx.fill((60, 80, 200, 51), BG_RED);
     cx.text((70, 90), FONT_GOLD, question);
