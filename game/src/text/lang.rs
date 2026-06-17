@@ -26,4 +26,16 @@ impl LangBase {
             "?"
         }
     }
+
+    /// Concatenate a range of language strings [start..=end], Pascal lrstr() style.
+    pub fn lrstr(&self, start: usize, end: usize) -> String {
+        let lang = self.selected.get();
+        let strings = self
+            .all_strings
+            .get(lang)
+            .map_or(&[] as &[String], |v| v.as_slice());
+        (start..=end)
+            .filter_map(|i| strings.get(i).map(|s| s.as_str()))
+            .collect()
+    }
 }

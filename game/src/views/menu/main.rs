@@ -123,8 +123,8 @@ fn paint_main_menu(cx: &mut PaintCx<'_>, menu: &PixelMenu, layout: &MainLayout) 
 }
 
 fn paint_quit_confirm(cx: &mut PaintCx<'_>, layout: &MainLayout) {
-    let question = layout.langbase.lstr(251);
-    let prompt = layout.langbase.lstr(256);
+    let question = layout.langbase.lrstr(251, 253);
+    let prompt = layout.langbase.lrstr(256, 258);
     cx.fill((59, 79, 202, 53), FILL_PURPLE);
     cx.fill((60, 80, 200, 51), BG_RED);
     cx.text((70, 90), FONT_GOLD, question);
