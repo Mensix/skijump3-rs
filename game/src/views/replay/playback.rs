@@ -21,26 +21,24 @@ use engine::consts::{HEIGHT, WIDTH};
 use engine::oxide::input::Key;
 use engine::oxide::Blinker;
 use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent};
-use std::cell::{Cell, RefCell};
 use std::collections::VecDeque;
 use std::rc::Rc;
 
 pub struct ReplayView {
     resources: ResourcesRef,
-    session: RefCell<Option<ReplaySession>>,
+    session: Option<ReplaySession>,
     terrain: Result<HillTerrain, AssetError>,
-    snow: RefCell<SnowSystem>,
-    snow_camera: RefCell<(i32, i32)>,
-    snow_advance: Cell<bool>,
-    intro_boxes: RefCell<VecDeque<u8>>,
-    active_intro_box: RefCell<Option<u8>>,
-    shown_intro_boxes: RefCell<[bool; 11]>,
+    snow: SnowSystem,
+    snow_camera: (i32, i32),
+    snow_advance: bool,
+    intro_boxes: VecDeque<u8>,
+    active_intro_box: Option<u8>,
+    shown_intro_boxes: [bool; 11],
     cursor_blink: Blinker,
     playback: ReplayPlayback,
 }
 
 impl ReplayView {
-    #[allow(clippy::needless_pass_by_value)]
     pub fn new(resources: ResourcesRef, store: GameStateRef) -> Self {
         let trace = store.borrow().selected_replay.clone();
         let terrain: Result<HillTerrain, AssetError> = trace.as_ref().map_or_else(
@@ -54,21 +52,21 @@ impl ReplayView {
         }
         Self {
             resources,
-            session: RefCell::new(trace.map(ReplaySession::new)),
+            session: trace.map(ReplaySession::new),
             terrain,
-            snow: RefCell::new(snow),
-            snow_camera: RefCell::new((0, 0)),
-            snow_advance: Cell::new(true),
-            intro_boxes: RefCell::new(VecDeque::new()),
-            active_intro_box: RefCell::new(None),
-            shown_intro_boxes: RefCell::new([false; 11]),
+            snow,
+            snow_camera: (0, 0),
+            snow_advance: true,
+            intro_boxes: VecDeque::new(),
+            active_intro_box: None,
+            shown_intro_boxes: [false; 11],
             cursor_blink: Blinker::new(),
             playback: ReplayPlayback::new(),
         }
     }
 
-    fn update_intro_boxes(&self, frame_index: usize) {
-        if self.active_intro_box.borrow().is_some() || !self.intro_boxes.borrow().is_empty() {
+    fn update_intro_boxes(&mut self, frame_index: usize) {
+        if self.active_intro_box.is_some() || !self.intro_boxes.is_empty() {
             return;
         }
 
@@ -86,41 +84,37 @@ impl ReplayView {
             return;
         }
 
-        let mut shown = self.shown_intro_boxes.borrow_mut();
-        let mut queue = self.intro_boxes.borrow_mut();
         for &phase in phases {
-            if !shown[phase as usize] {
-                shown[phase as usize] = true;
-                queue.push_back(phase);
+            if !self.shown_intro_boxes[phase as usize] {
+                self.shown_intro_boxes[phase as usize] = true;
+                self.intro_boxes.push_back(phase);
             }
         }
-        if self.active_intro_box.borrow().is_none() {
-            *self.active_intro_box.borrow_mut() = queue.pop_front();
+        if self.active_intro_box.is_none() {
+            self.active_intro_box = self.intro_boxes.pop_front();
             self.cursor_blink.reset();
         }
     }
 
-    fn dismiss_intro_box(&self) -> Option<RouteTarget> {
-        let was_last = *self.active_intro_box.borrow() == Some(10);
-        let next = self.intro_boxes.borrow_mut().pop_front();
-        *self.active_intro_box.borrow_mut() = next;
+    fn dismiss_intro_box(&mut self) -> Option<RouteTarget> {
+        let was_last = self.active_intro_box == Some(10);
+        self.active_intro_box = self.intro_boxes.pop_front();
         self.cursor_blink.reset();
-        if was_last && self.active_intro_box.borrow().is_none() {
+        if was_last && self.active_intro_box.is_none() {
             Some(RouteTarget::Replays)
         } else {
             None
         }
     }
 
-    fn paint_content(&self, cx: &mut PaintCx<'_>) {
+    fn paint_content(&mut self, cx: &mut PaintCx<'_>) {
         let Ok(terrain) = &self.terrain else {
             cx.fill((0, 0, 320, 200), BLACK);
             cx.text((20, 80), FONT_BODY, "Replay hill not found");
             cx.text((20, 95), FONT_GRAY, "PRESS ESC");
             return;
         };
-        let mut session_ref = self.session.borrow_mut();
-        let Some(session) = session_ref.as_mut() else {
+        let Some(session) = self.session.as_mut() else {
             cx.fill((0, 0, 320, 200), BLACK);
             cx.text((20, 80), FONT_BODY, "No replay selected");
             cx.text((20, 95), FONT_GRAY, "PRESS ESC");
@@ -136,11 +130,12 @@ impl ReplayView {
 
         let (viewport_rgba, viewport_mask) = terrain.viewport_rgba_and_mask(sx, sy, WIDTH, HEIGHT);
         let mut viewport_rgba = viewport_rgba;
-        if !session.trace().meta.intro && self.snow.borrow().count() > 0 {
-            let previous = *self.snow_camera.borrow();
-            *self.snow_camera.borrow_mut() = (sx, sy);
-            let draw = self.snow_advance.replace(false);
-            self.snow.borrow_mut().update(
+        if !session.trace().meta.intro && self.snow.count() > 0 {
+            let previous = self.snow_camera;
+            self.snow_camera = (sx, sy);
+            let draw = self.snow_advance;
+            self.snow_advance = false;
+            self.snow.update(
                 &mut viewport_rgba,
                 &viewport_mask,
                 previous.0 - sx,
@@ -235,9 +230,11 @@ impl ReplayView {
             }
         }
         presentation::wind_elements(cx, wind_pos, i32::from(replay_frame.wind));
-        if session.trace().meta.intro {
-            self.update_intro_boxes(session.frame_index());
-            if let Some(phase) = *self.active_intro_box.borrow() {
+        let is_intro = session.trace().meta.intro;
+        let frame_idx = session.frame_index();
+        if is_intro {
+            self.update_intro_boxes(frame_idx);
+            if let Some(phase) = self.active_intro_box {
                 intro_box_elements(
                     cx,
                     &self.resources.langbase,
@@ -251,17 +248,16 @@ impl ReplayView {
 
 impl Screen<RouteTarget> for ReplayView {
     fn update(&mut self) {
-        let mut session_ref = self.session.borrow_mut();
-        let Some(session) = session_ref.as_mut() else {
+        let Some(session) = self.session.as_mut() else {
             return;
         };
 
         if session.trace().meta.intro {
-            if self.active_intro_box.borrow().is_none() && self.intro_boxes.borrow().is_empty() {
+            if self.active_intro_box.is_none() && self.intro_boxes.is_empty() {
                 session.auto_step_forward();
             }
         } else if self.playback.advance(session) {
-            self.snow_advance.set(true);
+            self.snow_advance = true;
         }
     }
 
@@ -269,7 +265,7 @@ impl Screen<RouteTarget> for ReplayView {
         if matches!(event, UiEvent::Quit | UiEvent::Tick) {
             return;
         }
-        if self.active_intro_box.borrow().is_some() {
+        if self.active_intro_box.is_some() {
             if let Some(route) = self.dismiss_intro_box() {
                 cx.navigate(route);
             } else {
