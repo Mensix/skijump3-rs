@@ -275,7 +275,7 @@ impl SaveReplayDialog {
 
     fn paint_overwrite(&self, cx: &mut PaintCx<'_>, filename: &str) {
         cx.fill((59, 79, 203, 53), BLACK);
-        cx.fill((60, 80, 201, 51), BG_RED);
+        cx.pattern_fill((60, 80, 201, 51), BG_RED);
         cx.text(
             (80, 90),
             FONT_GOLD,
