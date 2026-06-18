@@ -1,6 +1,6 @@
 use crate::gfx::sprites;
 use crate::gfx::theme::{
-    BG_PURPLE, BG_RED, BLACK, FILL_PURPLE, FILL_GRAY, FONT_BODY, FONT_GOLD, FONT_GRAY,
+    BG_PURPLE, BG_RED, BLACK, FILL_GRAY, FILL_PURPLE, FONT_BODY, FONT_GOLD, FONT_GRAY,
 };
 use engine::oxide::PaintCx;
 
@@ -10,6 +10,10 @@ use super::view::SetupView;
 pub(crate) fn paint_content(view: &SetupView, cx: &mut PaintCx<'_>) {
     if let Some(SetupModal::ConfigureKeys { selected, capture }) = view.modal.get() {
         render_configure_keys(view, cx, selected, capture);
+        return;
+    }
+    if let Some(SetupModal::HillGoals(selected)) = view.modal.get() {
+        render_hill_goals(view, cx, selected);
         return;
     }
 
@@ -49,7 +53,10 @@ pub(crate) fn paint_content(view: &SetupView, cx: &mut PaintCx<'_>) {
             cx.text((85, 85), FONT_BODY, view.langbase().lstr(220));
             cx.text((85, 95), FONT_GRAY, view.langbase().lstr(150));
             let opts = super::actions::seecomp_options(view);
-            let (val, display) = opts.get(idx).map(|(v, l)| (*v, l.as_str())).unwrap_or((0, "?"));
+            let (val, display) = opts
+                .get(idx)
+                .map(|(v, l)| (*v, l.as_str()))
+                .unwrap_or((0, "?"));
             cx.fill((85, 105, 235 - 85 + 1, 125 - 105 + 1), FILL_GRAY);
             let color = if val >= 235 { FONT_BODY } else { FONT_GOLD };
             cx.text((95, 112), color, display);
@@ -87,9 +94,13 @@ pub(crate) fn paint_content(view: &SetupView, cx: &mut PaintCx<'_>) {
                 let yy = ((i + 1) as i32) * 8 + 55;
                 cx.center_text((155, yy), FONT_GOLD, name);
             }
-            cx.stroke((112 - 6, 64 - 3 + (sel as i32) * 8, 100 + 1, 8 + 1), FONT_BODY);
+            cx.stroke(
+                (112 - 6, 64 - 3 + (sel as i32) * 8, 100 + 1, 8 + 1),
+                FONT_BODY,
+            );
         }
         Some(SetupModal::ConfigureKeys { .. }) => {}
+        Some(SetupModal::HillGoals(_)) => {}
         Some(SetupModal::NameSetInput) => {
             cx.fill((253, 68, 9, 11), FILL_GRAY);
             let cursor_on = view.cursor_blink.visible(11, 10);
@@ -98,6 +109,51 @@ pub(crate) fn paint_content(view: &SetupView, cx: &mut PaintCx<'_>) {
             }
         }
         None => {}
+    }
+}
+
+fn render_hill_goals(view: &SetupView, cx: &mut PaintCx<'_>, selected: usize) {
+    cx.fill((0, 0, 320, 200), BLACK);
+    cx.pattern_fill((0, 0, 320, 19), FILL_GRAY);
+    cx.pattern_fill((0, 20, 320, 180), BG_PURPLE);
+    cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
+    cx.text((30, 6), FONT_BODY, view.langbase().lstr(200));
+    cx.text((40, 13), FONT_GRAY, view.langbase().lstr(243));
+    cx.text((24, 23), FONT_GOLD, view.langbase().lstr(106));
+    cx.right_text((200, 23), FONT_GOLD, view.langbase().lstr(242));
+    cx.right_text((250, 23), FONT_GOLD, "K");
+    cx.right_text((300, 23), FONT_GOLD, "HR");
+
+    let state = view.store.borrow();
+    let hill_count = view.resources.hills.len().min(20);
+    for idx in 0..hill_count {
+        let y = (idx as i32 + 1) * 8 + 24;
+        if let Some(hill) = view.resources.hills.hill(idx) {
+            cx.right_text((18, y), FONT_GOLD, format!("{}.", idx + 1));
+            cx.text((24, y), FONT_BODY, &hill.name);
+            let goal = state.records.hill_goals.get(idx).copied().unwrap_or(0.0);
+            cx.right_text((200, y), FONT_GOLD, format_distance(goal));
+            cx.right_text((250, y), FONT_GRAY, format_distance(hill.kr as f64));
+            let record = state.records.hill_records.get(idx).map_or(0.0, |r| r.len);
+            cx.right_text((300, y), FONT_GRAY, format_distance(record));
+        }
+    }
+
+    let exit_y = (hill_count as i32 + 1) * 8 + 24;
+    cx.right_text((200, exit_y), FONT_BODY, view.langbase().lstr(154));
+    let selected_y = if selected < hill_count {
+        (selected as i32 + 1) * 8 + 22
+    } else {
+        exit_y - 2
+    };
+    cx.stroke((168, selected_y, 34, 9), FONT_BODY);
+}
+
+fn format_distance(value: f64) -> String {
+    if value <= 0.0 {
+        "-".to_string()
+    } else {
+        format!("{value:.1}")
     }
 }
 

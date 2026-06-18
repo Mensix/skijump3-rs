@@ -1,3 +1,4 @@
+use crate::components::modal::alert_prompt;
 use crate::gfx::theme::{BG_PURPLE, BG_RED, BLACK, FONT_BODY, FONT_GOLD, FONT_GRAY};
 use crate::route::RouteTarget;
 use crate::store::{GameStateRef, ResourcesRef};
@@ -419,33 +420,26 @@ impl Screen<RouteTarget> for EditHillView {
                 ref subtitle,
                 ..
             } => {
-                cx.fill((59, 79, 203, 53), BLACK);
-                cx.fill((60, 80, 201, 51), BG_RED);
-                cx.pattern_fill((60, 80, 201, 51), BG_RED);
-                cx.text((80, 90), FONT_GOLD, message);
-                cx.text((80, 100), FONT_GOLD, subtitle);
                 let prompt = self.resources.langbase.lstr(15);
-                cx.right_text((190, 110), FONT_BODY, prompt);
-                cx.fill((189, 108, 9, 11), BG_PURPLE);
-                if self.blinker.visible(11, 10) {
-                    cx.fill((191, 116, 5, 1), FONT_BODY);
-                }
+                alert_prompt(
+                    cx,
+                    BG_RED,
+                    message,
+                    format!("{subtitle}  {prompt}"),
+                    191,
+                    self.blinker.visible(11, 10),
+                );
             }
             EditMode::ConfirmOverwrite { filename } => {
-                cx.fill((59, 79, 203, 53), BLACK);
-                cx.fill((60, 80, 201, 51), BG_RED);
-                cx.pattern_fill((60, 80, 201, 51), BG_RED);
-                cx.text(
-                    (80, 90),
-                    FONT_GOLD,
-                    format!("FILE {filename}.TOML ALREADY EXISTS."),
-                );
                 let prompt = self.resources.langbase.lstr(346);
-                cx.text((80, 110), FONT_GOLD, format!("{} (Y/N):", prompt));
-                cx.fill((189, 108, 9, 11), BG_PURPLE);
-                if self.blinker.visible(11, 10) {
-                    cx.fill((191, 116, 5, 1), FONT_BODY);
-                }
+                alert_prompt(
+                    cx,
+                    BG_RED,
+                    format!("FILE {filename}.TOML ALREADY EXISTS."),
+                    format!("{} (Y/N):", prompt),
+                    191,
+                    self.blinker.visible(11, 10),
+                );
             }
             EditMode::Viewing => {}
         }

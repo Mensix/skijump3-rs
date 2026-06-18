@@ -32,6 +32,15 @@ pub(crate) fn push_hill_record_marker(
     }
 }
 
+pub(crate) fn push_goal_marker(cx: &mut PaintCx<'_>, marker: Option<(i32, i32)>, sx: i32, sy: i32) {
+    if let Some((goal_x, goal_y)) = marker {
+        cx.sprite(
+            sprites::Sprite::StartLight as u16,
+            (goal_x - sx, goal_y - sy),
+        );
+    }
+}
+
 pub(crate) struct JumperSpriteSpec {
     pub(crate) body_anim: u16,
     pub(crate) ski_anim: u16,

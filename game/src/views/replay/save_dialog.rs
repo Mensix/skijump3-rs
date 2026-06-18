@@ -1,3 +1,4 @@
+use crate::components::modal::alert_prompt;
 use crate::components::page_nav::cycle_index;
 use crate::gfx::sprites;
 use crate::gfx::theme::{BG_PURPLE, BG_RED, BLACK, FILL_GRAY, FONT_BODY, FONT_GOLD};
@@ -274,22 +275,14 @@ impl SaveReplayDialog {
     }
 
     fn paint_overwrite(&self, cx: &mut PaintCx<'_>, filename: &str) {
-        cx.fill((59, 79, 203, 53), BLACK);
-        cx.pattern_fill((60, 80, 201, 51), BG_RED);
-        cx.text(
-            (80, 90),
-            FONT_GOLD,
+        alert_prompt(
+            cx,
+            BG_RED,
             format!("{}.SJR {}", filename, self.resources.langbase.lstr(345)),
-        );
-        cx.text(
-            (80, 110),
-            FONT_GOLD,
             format!("{} (Y/N):", self.resources.langbase.lstr(346)),
+            190,
+            self.cursor_blink.visible(11, 10),
         );
-        cx.fill((190 - 2, 110 - 2, 9, 11), BG_PURPLE);
-        if self.cursor_blink.visible(11, 10) {
-            cx.fill((190, 110 + 6, 5, 1), FONT_BODY);
-        }
     }
 
     pub fn handle_event(&mut self, event: &UiEvent) -> Option<SaveAction> {

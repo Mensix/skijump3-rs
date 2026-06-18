@@ -21,6 +21,8 @@ pub struct RecordStore {
     pub top: Vec<Hiscore>,
     #[serde(default)]
     pub hill_records: Vec<HillRecord>,
+    #[serde(default)]
+    pub hill_goals: Vec<f64>,
 }
 
 impl RecordStore {

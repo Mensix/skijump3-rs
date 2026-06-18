@@ -1,4 +1,5 @@
 use crate::competition::factory;
+use crate::components::modal::{alert_box, alert_prompt};
 use crate::gfx::sprites;
 use crate::gfx::theme::{
     BG_PURPLE, BLACK, FILL_GRAY, FILL_PURPLE, FONT_BODY, FONT_GOLD, FONT_GRAY, FONT_TEAL,
@@ -129,8 +130,7 @@ impl CustomCupSetupView {
     }
 
     fn paint_modal_box(&self, cx: &mut PaintCx<'_>, rect: (i32, i32, i32, i32)) {
-        cx.fill((rect.0 - 1, rect.1 - 1, rect.2 + 2, rect.3 + 2), BLACK);
-        cx.pattern_fill(rect, BG_PURPLE);
+        alert_box(cx, rect, BG_PURPLE);
     }
 
     fn paint_save_input(&self, cx: &mut PaintCx<'_>) {
@@ -162,11 +162,7 @@ impl CustomCupSetupView {
     }
 
     fn paint_confirm(&self, cx: &mut PaintCx<'_>, line1: &str, line2: &str) {
-        self.paint_modal_box(cx, (60, 80, 201, 51));
-        cx.text((80, 90), FONT_GOLD, line1);
-        cx.text((80, 110), FONT_GOLD, line2);
-        cx.fill((190 - 2, 110 - 2, 9, 11), BG_PURPLE);
-        cx.fill((190, 116, 5, 1), FONT_BODY);
+        alert_prompt(cx, BG_PURPLE, line1, line2, 190, true);
     }
 
     fn paint_message(&self, cx: &mut PaintCx<'_>) {

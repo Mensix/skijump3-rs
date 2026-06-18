@@ -36,6 +36,12 @@ impl RecordStore {
                 store.hill_records.len()
             )));
         }
+        if store.hill_goals.len() > 20 {
+            return Err(SaveError::Serialization(format!(
+                "hiscores.toml has {} hill goals (max 20)",
+                store.hill_goals.len()
+            )));
+        }
 
         Ok(file.store)
     }

@@ -1,7 +1,8 @@
 use crate::components::layout::MainLayout;
+use crate::components::modal::alert_prompt;
 use crate::components::page_nav::cycle_index;
 use crate::files::FileStore;
-use crate::gfx::theme::{BG_DARK, BG_PURPLE, BLACK, FILL_PURPLE, FONT_BODY, FONT_GOLD, FONT_GRAY};
+use crate::gfx::theme::{BG_DARK, BG_PURPLE, FILL_PURPLE, FONT_BODY, FONT_GOLD, FONT_GRAY};
 use crate::jump::replay::ReplayTrace;
 use crate::route::RouteTarget;
 use crate::store::{GameStateRef, Resources, ResourcesRef};
@@ -136,12 +137,14 @@ impl Screen<RouteTarget> for ReplayBrowserView {
 }
 
 fn paint_delete_confirm(cx: &mut PaintCx<'_>, filename: &str) {
-    cx.fill((59, 79, 203, 53), BLACK);
-    cx.pattern_fill((60, 80, 201, 51), BG_PURPLE);
-    cx.text((80, 90), FONT_GOLD, format!("Delete {filename}.SJR?"));
-    cx.text((80, 110), FONT_GOLD, "Are You Sure? (Y/N):");
-    cx.fill((190 - 2, 110 - 2, 9, 11), BG_PURPLE);
-    cx.fill((190, 116, 5, 1), FONT_BODY);
+    alert_prompt(
+        cx,
+        BG_PURPLE,
+        format!("Delete {filename}.SJR?"),
+        "Are You Sure? (Y/N):",
+        190,
+        true,
+    );
 }
 
 fn paint_replay_panel(

@@ -76,7 +76,7 @@ impl Widget for ConfirmDialog {
 
     fn paint(&self, cx: &mut PaintCx<'_>) {
         cx.fill((self.x, self.y, self.w, self.h), self.border);
-        cx.fill((self.x + 1, self.y + 1, self.w - 2, self.h - 2), self.bg);
+        cx.pattern_fill((self.x + 1, self.y + 1, self.w - 2, self.h - 2), self.bg);
         cx.text((self.x + 8, self.y + 8), self.fg, &self.message);
         if let Some(sub) = &self.subtitle {
             cx.text((self.x + 8, self.y + self.h - 22), self.fg, sub);

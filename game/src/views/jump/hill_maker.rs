@@ -1,3 +1,4 @@
+use crate::components::modal::alert_prompt;
 use crate::gfx::theme::{BG_PURPLE, BG_RED, BLACK, FONT_BODY, FONT_GOLD, FONT_GRAY, FONT_TEAL};
 use crate::route::RouteTarget;
 use crate::store::{GameStateRef, ResourcesRef};
@@ -261,10 +262,14 @@ impl Screen<RouteTarget> for HillMakerView {
         let exit_y = 13 + (row + 2) as i32 * 8;
         cx.text((col1, exit_y), FONT_BODY, lstr(lb, 276, "-Exit-"));
         if let HillMakerMode::ConfirmDelete { filename } = &self.mode {
-            cx.fill((69, 79, 183, 53), BLACK);
-            cx.fill((70, 80, 181, 51), BG_RED);
-            cx.text((80, 90), FONT_GOLD, format!("DELETE {filename}.TOML?"));
-            cx.text((80, 110), FONT_GOLD, "ARE YOU SURE? (Y/N):");
+            alert_prompt(
+                cx,
+                BG_RED,
+                format!("DELETE {filename}.TOML?"),
+                "ARE YOU SURE? (Y/N):",
+                190,
+                true,
+            );
         }
     }
 

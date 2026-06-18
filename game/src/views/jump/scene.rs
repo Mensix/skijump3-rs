@@ -142,7 +142,9 @@ impl JumpScene {
             .records
             .hill_record(hill_idx)
             .map_or(0.0, |r| r.len);
-        self.runner.reset_state(start_gate, record_distance);
+        let goal_distance = self.goal_distance(hill_idx);
+        self.runner
+            .reset_state(start_gate, record_distance, goal_distance);
     }
 
     pub fn handle_jump_input(&mut self, event: UiEvent) -> JumpInputAction {
@@ -321,6 +323,7 @@ impl JumpScene {
             .records
             .hill_record(hill_idx)
             .map_or(0.0, |r| r.len);
+        let goal_distance = goal_distance(store, hill_idx);
         let snow_count = snow.count();
         JumpRunner::new(
             JumpConfig {
@@ -332,10 +335,28 @@ impl JumpScene {
                 participant,
                 policy,
                 record_distance,
+                goal_distance,
                 phase_label,
                 team_name: String::new(),
             },
             snow,
         )
     }
+
+    fn goal_distance(&self, hill_idx: usize) -> f64 {
+        goal_distance(&self.store, hill_idx)
+    }
+}
+
+fn goal_distance(store: &GameStateRef, hill_idx: usize) -> f64 {
+    let state = store.borrow();
+    if state.config.goals == 0 {
+        return 0.0;
+    }
+    state
+        .records
+        .hill_goals
+        .get(hill_idx)
+        .copied()
+        .unwrap_or(0.0)
 }

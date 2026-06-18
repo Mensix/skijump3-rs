@@ -59,6 +59,7 @@ pub struct JumpRunner {
     replay: ReplayRecorder,
     last_phase: Option<JumpPhase>,
     record_marker: Option<(i32, i32)>,
+    goal_marker: Option<(i32, i32)>,
     snow: SnowSystem,
     prev_camera: (i32, i32),
     computer_input: Option<ComputerInputProvider>,
@@ -82,6 +83,7 @@ impl JumpRunner {
             replay.start(Self::replay_meta(state, &config));
         }
         let record_marker = Self::record_marker(&config, state.as_ref());
+        let goal_marker = Self::goal_marker(&config, state.as_ref());
         let prev_camera = state.as_ref().map_or((0, 0), |state| (state.sx, state.sy));
         Self {
             config,
@@ -90,6 +92,7 @@ impl JumpRunner {
             replay,
             last_phase,
             record_marker,
+            goal_marker,
             snow,
             prev_camera,
             computer_input,
@@ -154,6 +157,14 @@ impl JumpRunner {
         find_hill_record_marker(terrain, hill.pk(), config.record_distance)
     }
 
+    fn goal_marker(config: &JumpConfig, state: Option<&JumpState>) -> Option<(i32, i32)> {
+        let (Ok(terrain), Some(hill), Some(_)) = (&config.terrain, config.hill.as_ref(), state)
+        else {
+            return None;
+        };
+        find_hill_record_marker(terrain, hill.pk(), config.goal_distance)
+    }
+
     pub(crate) const fn hill_idx(&self) -> usize {
         self.config.hill_idx
     }
@@ -208,12 +219,19 @@ impl JumpRunner {
         self.snow.clone()
     }
 
-    pub(crate) fn reset_state(&mut self, start_gate: i32, record_distance: f64) {
+    pub(crate) fn reset_state(
+        &mut self,
+        start_gate: i32,
+        record_distance: f64,
+        goal_distance: f64,
+    ) {
         self.config.start_gate = start_gate;
         self.config.record_distance = record_distance;
+        self.config.goal_distance = goal_distance;
         if self.config.hill.is_some() {
             self.state = Self::new_state(&self.config);
             self.record_marker = Self::record_marker(&self.config, self.state.as_ref());
+            self.goal_marker = Self::goal_marker(&self.config, self.state.as_ref());
             self.replay_prev_pos = self.state.as_ref().map(|state| (state.x, state.y));
             self.last_phase = self.state.as_ref().map(|state| state.phase);
             if let Some(state) = &self.state {
@@ -473,6 +491,7 @@ impl JumpRunner {
             style_points: state.style_points,
             style_revealed: state.style_revealed,
             hill_record_marker: self.record_marker,
+            goal_marker: self.goal_marker,
             is_hill_record: self.config.policy.save_hill_records
                 && self.config.record_distance > 0.0
                 && state.fall_type == crate::jump::types::FallType::None

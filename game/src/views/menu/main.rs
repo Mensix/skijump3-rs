@@ -1,5 +1,6 @@
 use crate::components::layout::MainLayout;
-use crate::gfx::theme::{BG_DARK, BG_PURPLE, BG_RED, BLACK, FONT_BODY, FONT_GOLD, FONT_GRAY};
+use crate::components::modal::alert_box;
+use crate::gfx::theme::{BG_DARK, BG_PURPLE, BG_RED, FONT_BODY, FONT_GOLD, FONT_GRAY};
 use crate::route::RouteTarget;
 use crate::store::GameStateRef;
 use engine::oxide::widgets::menu::PixelMenu;
@@ -137,8 +138,7 @@ fn paint_main_menu(cx: &mut PaintCx<'_>, menu: &PixelMenu, layout: &MainLayout) 
 
 fn paint_quit_confirm(cx: &mut PaintCx<'_>, question: &str, prompt: &str, cursor_on: bool) {
     let prompt_w = cx.string_width(prompt) as i32;
-    cx.fill((59, 79, 202, 53), BLACK);
-    cx.pattern_fill((60, 80, 200, 51), BG_RED);
+    alert_box(cx, (60, 80, 200, 51), BG_RED);
     cx.text((70, 90), FONT_GOLD, question);
     cx.text((70, 110), FONT_GOLD, prompt);
     let yn_x = 70 + prompt_w + 4;

@@ -19,7 +19,57 @@ pub(crate) fn handle_event(view: &mut SetupView, event: UiEvent) -> Option<Route
             handle_configure_keys(view, event, selected, capture)
         }
         Some(SetupModal::NameSetInput) => handle_name_set_input(view, event),
+        Some(SetupModal::HillGoals(selected)) => handle_hill_goals(view, event, selected),
         None => handle_screen_event(view, event),
+    }
+}
+
+fn handle_hill_goals(view: &mut SetupView, event: UiEvent, selected: usize) -> Option<RouteTarget> {
+    let hill_count = view.resources.hills.len().min(20);
+    match event {
+        UiEvent::KeyDown(Key::Up) => {
+            view.modal
+                .set(Some(SetupModal::HillGoals(selected.saturating_sub(1))));
+        }
+        UiEvent::KeyDown(Key::Down) => {
+            view.modal
+                .set(Some(SetupModal::HillGoals((selected + 1).min(hill_count))));
+        }
+        UiEvent::KeyDown(Key::Home) => view.modal.set(Some(SetupModal::HillGoals(0))),
+        UiEvent::KeyDown(Key::End | Key::Escape) => {
+            save_records(view);
+            view.modal.set(None);
+        }
+        UiEvent::KeyDown(Key::Enter) if selected >= hill_count => {
+            save_records(view);
+            view.modal.set(None);
+        }
+        UiEvent::KeyDown(Key::Left) | UiEvent::Text('-') => adjust_hill_goal(view, selected, -0.5),
+        UiEvent::KeyDown(Key::Right) | UiEvent::Text('+') => adjust_hill_goal(view, selected, 0.5),
+        _ => {}
+    }
+    None
+}
+
+fn adjust_hill_goal(view: &mut SetupView, selected: usize, delta: f64) {
+    let hill_count = view.resources.hills.len().min(20);
+    if selected >= hill_count {
+        return;
+    }
+    let mut state = view.store.borrow_mut();
+    if state.records.hill_goals.len() < hill_count {
+        state.records.hill_goals.resize(hill_count, 0.0);
+    }
+    let value = (state.records.hill_goals[selected] + delta).clamp(0.0, 250.0);
+    state.records.hill_goals[selected] = (value * 10.0).round() / 10.0;
+}
+
+fn save_records(view: &SetupView) {
+    if let Err(e) = view
+        .save_manager()
+        .save_records(&view.store.borrow().records)
+    {
+        eprintln!("Warning: failed to save records: {e}");
     }
 }
 
@@ -379,7 +429,9 @@ fn handle_screen_event(view: &mut SetupView, event: UiEvent) -> Option<RouteTarg
                 if screen < view.selected_by_screen.len() {
                     view.selected_by_screen[screen].set(selected);
                 }
-                activate_item(view, screen, selected);
+                if let Some(route) = activate_item(view, screen, selected) {
+                    return Some(route);
+                }
             }
         }
         UiEvent::KeyDown(Key::Enter) | UiEvent::Text(' ') => {
@@ -391,6 +443,10 @@ fn handle_screen_event(view: &mut SetupView, event: UiEvent) -> Option<RouteTarg
                 }));
                 return None;
             }
+            if screen == 0 && sel == 4 {
+                view.modal.set(Some(SetupModal::HillGoals(0)));
+                return None;
+            }
             if screen == 0 && sel == 5 {
                 return Some(RouteTarget::HillMakerSetup);
             }
@@ -400,7 +456,9 @@ fn handle_screen_event(view: &mut SetupView, event: UiEvent) -> Option<RouteTarg
                 }
                 view.switch_screen(0);
             } else {
-                activate_item(view, screen, sel);
+                if let Some(route) = activate_item(view, screen, sel) {
+                    return Some(route);
+                }
             }
         }
         UiEvent::Text(c) if c.is_ascii_digit() => {
@@ -433,13 +491,15 @@ fn handle_screen_event(view: &mut SetupView, event: UiEvent) -> Option<RouteTarg
     None
 }
 
-fn activate_item(view: &mut SetupView, screen: usize, item: usize) {
+fn activate_item(view: &mut SetupView, screen: usize, item: usize) -> Option<RouteTarget> {
     match (screen, item) {
         (0, 0..=2) => view.switch_screen(item + 1),
         (0, 3) => view.modal.set(Some(SetupModal::ConfigureKeys {
             selected: 0,
             capture: None,
         })),
+        (0, 4) => view.modal.set(Some(SetupModal::HillGoals(0))),
+        (0, 5) => return Some(RouteTarget::HillMakerSetup),
         (1, 0) => {
             let current = view.config().languagenumber;
             let idx = if current >= 0 { current as usize } else { 0 };
@@ -564,4 +624,5 @@ fn activate_item(view: &mut SetupView, screen: usize, item: usize) {
         }
         _ => {}
     }
+    None
 }

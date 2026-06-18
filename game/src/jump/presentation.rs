@@ -75,6 +75,7 @@ pub fn render(cx: &mut PaintCx<'_>, frame: &JumpRenderFrame, ctx: &JumpPresentat
     }
 
     visuals::push_hill_record_marker(cx, frame.hill_record_marker, frame.sx, frame.sy);
+    visuals::push_goal_marker(cx, frame.goal_marker, frame.sx, frame.sy);
 
     // Pascal: jumper not drawn during Info phase (only hill + info panel)
     if frame.phase != JumpPhase::Info {
