@@ -7,15 +7,18 @@ use crate::views::jump::competition::flow::{CompetitionFlowCommand, JumpInputRes
 use crate::views::jump::competition::ui_state::RenderMode;
 use crate::views::jump::koth::results;
 use engine::oxide::{Key, PaintCx, Screen, ScreenEventCx, UiEvent};
+use std::cell::Cell;
 
 pub struct KothJumpView {
     controller: CompetitionJumpController<KothRuntime>,
+    completion_saved: Cell<bool>,
 }
 
 impl KothJumpView {
     pub(crate) fn new(resources: ResourcesRef, store: GameStateRef, save_manager: SaveRef) -> Self {
         Self {
             controller: CompetitionJumpController::new(resources, store, save_manager, None),
+            completion_saved: Cell::new(false),
         }
     }
 
@@ -42,8 +45,42 @@ impl KothJumpView {
     }
 
     fn on_complete(&self) {
+        self.update_koth_completion_records();
         self.controller.save_results();
-        // TODO: KOTH records update (top[35+pack], profile.koth_level)
+    }
+
+    fn update_koth_completion_records(&self) {
+        if self.completion_saved.replace(true) {
+            return;
+        }
+
+        let mut state = self.controller.state().borrow_mut();
+        let pack = state.config.kothpack;
+        if !(1..=6).contains(&pack) {
+            return;
+        }
+
+        let Some((winner_name, winner_profile_idx)) = state
+            .active_competition
+            .as_ref()
+            .and_then(|comp| comp.koth_runtime())
+            .and_then(koth_winner)
+        else {
+            return;
+        };
+
+        if let Some(record) = state.records.top.get_mut(35 + pack as usize) {
+            record.score += 1.0;
+            record.name = winner_name;
+            record.time = current_record_time();
+        }
+
+        if let Some(profile) = state.profiles.profiles.get_mut(winner_profile_idx) {
+            let pack = pack as usize;
+            if profile.koth_level == 0 || pack < profile.koth_level {
+                profile.koth_level = pack;
+            }
+        }
     }
 
     fn is_result_display_state(&self) -> bool {
@@ -109,6 +146,25 @@ impl KothJumpView {
 
         None
     }
+}
+
+fn koth_winner(runtime: &KothRuntime) -> Option<(String, usize)> {
+    let mut alive = runtime
+        .participants
+        .iter()
+        .filter(|participant| participant.is_alive());
+    let winner = alive.next()?;
+    if alive.next().is_some() {
+        return None;
+    }
+    let profile_idx = winner.competitor.profile_idx?;
+    Some((winner.competitor.name.clone(), profile_idx))
+}
+
+fn current_record_time() -> String {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or_else(|_| String::new(), |duration| duration.as_secs().to_string())
 }
 
 impl Screen<RouteTarget> for KothJumpView {

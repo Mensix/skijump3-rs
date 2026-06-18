@@ -1,7 +1,7 @@
 use crate::components::layout::MainLayout;
 use crate::components::page_nav::cycle_index;
 use crate::files::FileStore;
-use crate::gfx::theme::{BG_DARK, BG_PURPLE, FILL_PURPLE, FONT_BODY, FONT_GOLD, FONT_GRAY};
+use crate::gfx::theme::{BG_DARK, BG_PURPLE, BLACK, FILL_PURPLE, FONT_BODY, FONT_GOLD, FONT_GRAY};
 use crate::jump::replay::ReplayTrace;
 use crate::route::RouteTarget;
 use crate::store::{GameStateRef, Resources, ResourcesRef};
@@ -22,6 +22,7 @@ pub struct ReplayBrowserView {
     layout: MainLayout,
     entries: Vec<ReplayEntry>,
     selected: usize,
+    confirm_delete: bool,
 }
 
 impl ReplayBrowserView {
@@ -33,6 +34,7 @@ impl ReplayBrowserView {
             layout,
             entries,
             selected: 0,
+            confirm_delete: false,
         }
     }
 
@@ -54,11 +56,47 @@ impl ReplayBrowserView {
         paint_replay_menu(cx, &self.layout);
         self.layout.footer(cx);
         paint_replay_panel(cx, &self.resources, &self.entries, self.selected);
+        if self.confirm_delete {
+            paint_delete_confirm(
+                cx,
+                self.selected_entry().map_or("", |entry| &entry.filename),
+            );
+        }
+    }
+
+    fn delete_selected(&mut self) {
+        let Some(filename) = self
+            .selected_entry()
+            .map(|entry| format!("{}.SJR", entry.filename))
+        else {
+            self.confirm_delete = false;
+            return;
+        };
+        if let Err(e) = self.resources.files.delete_save(&filename) {
+            eprintln!("Warning: failed to delete replay {filename}: {e}");
+        }
+        self.entries = load_replays(&self.resources.files);
+        if self.selected >= self.entries.len() {
+            self.selected = self.entries.len().saturating_sub(1);
+        }
+        self.confirm_delete = false;
     }
 }
 
 impl Screen<RouteTarget> for ReplayBrowserView {
     fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
+        if self.confirm_delete {
+            match event {
+                UiEvent::Text('y' | 'Y') => self.delete_selected(),
+                UiEvent::Text('n' | 'N') | UiEvent::KeyDown(Key::Escape) => {
+                    self.confirm_delete = false;
+                }
+                _ => {}
+            }
+            cx.consume();
+            return;
+        }
+
         match event {
             UiEvent::KeyDown(Key::Escape) => {
                 self.store.borrow_mut().selected_main_menu = 5;
@@ -78,6 +116,12 @@ impl Screen<RouteTarget> for ReplayBrowserView {
                     cx.navigate(RouteTarget::ReplayPlayback);
                 }
             }
+            UiEvent::KeyDown(Key::Delete) => {
+                if !self.entries.is_empty() {
+                    self.confirm_delete = true;
+                }
+                cx.consume();
+            }
             UiEvent::KeyDown(_) | UiEvent::Text(_) | UiEvent::Quit | UiEvent::Tick => {}
         }
     }
@@ -89,6 +133,15 @@ impl Screen<RouteTarget> for ReplayBrowserView {
     fn background(&self) -> ScreenBackground {
         ScreenBackground::MainPng
     }
+}
+
+fn paint_delete_confirm(cx: &mut PaintCx<'_>, filename: &str) {
+    cx.fill((59, 79, 203, 53), BLACK);
+    cx.pattern_fill((60, 80, 201, 51), BG_PURPLE);
+    cx.text((80, 90), FONT_GOLD, format!("Delete {filename}.SJR?"));
+    cx.text((80, 110), FONT_GOLD, "Are You Sure? (Y/N):");
+    cx.fill((190 - 2, 110 - 2, 9, 11), BG_PURPLE);
+    cx.fill((190, 116, 5, 1), FONT_BODY);
 }
 
 fn paint_replay_panel(

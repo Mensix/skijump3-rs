@@ -44,7 +44,17 @@ impl Game {
             pattern_texture,
         } = assets::load(&files, &mut renderer)?;
         let state = AppState::load(Rc::clone(&files), font.clone(), content_store)?;
-        let start_route = RouteTarget::MainMenu;
+        let start_route = {
+            let game_state = state.state.borrow();
+            let language_count = state.resources.langbase.languages.len() as i32;
+            if game_state.config.languagenumber >= 0
+                && game_state.config.languagenumber < language_count
+            {
+                RouteTarget::MainMenu
+            } else {
+                RouteTarget::Welcome
+            }
+        };
         let router = create_router(
             state.resources,
             state.state,

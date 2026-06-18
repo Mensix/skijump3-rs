@@ -37,9 +37,11 @@ fn make_screen(
             state.clone(),
             save_manager.clone(),
         )),
-        RouteTarget::CustomCupSetup => {
-            Box::new(CustomCupSetupView::new(resources.clone(), state.clone()))
-        }
+        RouteTarget::CustomCupSetup => Box::new(CustomCupSetupView::new(
+            resources.clone(),
+            state.clone(),
+            save_manager.clone(),
+        )),
         RouteTarget::Replays => Box::new(ReplayBrowserView::new(
             resources.clone(),
             state.clone(),
