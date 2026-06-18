@@ -75,6 +75,7 @@ pub struct TeamCupJumpContext {
     pub leg_idx: usize,
     pub round_idx: usize,
     pub team_idx: usize,
+    pub start_order_pos: usize,
     pub member_idx: usize,
     pub team_name: String,
     pub jumper_name: String,

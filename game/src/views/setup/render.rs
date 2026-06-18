@@ -1,6 +1,6 @@
 use crate::gfx::sprites;
 use crate::gfx::theme::{
-    BG_PURPLE, BG_RED, BLACK, FILL_GRAY, FILL_PURPLE, FONT_BODY, FONT_GOLD, FONT_GRAY,
+    BG_PURPLE, BG_RED, BLACK, FILL_GRAY, FILL_PURPLE, FONT_BODY, FONT_GOLD, FONT_GRAY, FONT_TEAL,
 };
 use engine::oxide::PaintCx;
 
@@ -128,19 +128,29 @@ fn render_hill_goals(view: &SetupView, cx: &mut PaintCx<'_>, selected: usize) {
     let hill_count = view.resources.hills.len().min(20);
     for idx in 0..hill_count {
         let y = (idx as i32 + 1) * 8 + 24;
+        let goal_color = if idx == selected {
+            FONT_GOLD
+        } else {
+            FONT_BODY
+        };
         if let Some(hill) = view.resources.hills.hill(idx) {
             cx.right_text((18, y), FONT_GOLD, format!("{}.", idx + 1));
             cx.text((24, y), FONT_BODY, &hill.name);
             let goal = state.records.hill_goals.get(idx).copied().unwrap_or(0.0);
-            cx.right_text((200, y), FONT_GOLD, format_distance(goal));
-            cx.right_text((250, y), FONT_GRAY, format_distance(hill.kr as f64));
+            cx.right_text((200, y), goal_color, format_distance(goal));
+            cx.right_text((250, y), FONT_TEAL, format_distance(hill.kr as f64));
             let record = state.records.hill_records.get(idx).map_or(0.0, |r| r.len);
-            cx.right_text((300, y), FONT_GRAY, format_distance(record));
+            cx.right_text((300, y), FONT_TEAL, format_distance(record));
         }
     }
 
     let exit_y = (hill_count as i32 + 1) * 8 + 24;
-    cx.right_text((200, exit_y), FONT_BODY, view.langbase().lstr(154));
+    let exit_color = if selected >= hill_count {
+        FONT_GOLD
+    } else {
+        FONT_BODY
+    };
+    cx.right_text((200, exit_y), exit_color, view.langbase().lstr(154));
     let selected_y = if selected < hill_count {
         (selected as i32 + 1) * 8 + 22
     } else {

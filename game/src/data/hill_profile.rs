@@ -122,6 +122,17 @@ impl HillTerrain {
         w: u32,
         h: u32,
     ) -> (Vec<u8>, Vec<u8>) {
+        self.viewport_rgba_and_mask_with_back(scroll_x, scroll_y, w, h, true)
+    }
+
+    pub fn viewport_rgba_and_mask_with_back(
+        &self,
+        scroll_x: i32,
+        scroll_y: i32,
+        w: u32,
+        h: u32,
+        draw_back: bool,
+    ) -> (Vec<u8>, Vec<u8>) {
         let wu = w as usize;
         let hu = h as usize;
         let mut rgba = vec![0u8; wu * hu * 4];
@@ -141,7 +152,7 @@ impl HillTerrain {
                 let back_x = scroll_x / 2 + dx;
                 let out_idx = row_base + dx as usize;
 
-                if back_x >= 0 && back_y >= 0 {
+                if draw_back && back_x >= 0 && back_y >= 0 {
                     let sx = back_x as usize;
                     let sy = back_y as usize;
                     if sx < back_w && sy < self.back_height as usize {

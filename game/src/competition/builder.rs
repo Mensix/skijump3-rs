@@ -16,11 +16,14 @@ pub fn build_competition(
     computer_names: &[String],
     hill_count: usize,
     trainrounds: usize,
+    no_same_name: bool,
+    kosystem: bool,
 ) -> Competition {
-    let participants = build_participants(profiles, computer_names);
+    let participants = build_participants(profiles, computer_names, no_same_name);
     let hill_order = build_hill_order(style, hill_count);
     let mut c = Competition::new(style, participants, hill_order);
     c.trainrounds = trainrounds;
+    c.kosystem = kosystem;
     c
 }
 
@@ -31,10 +34,13 @@ pub fn build_custom_competition(
     computer_names: &[String],
     hill_order: Vec<usize>,
     trainrounds: usize,
+    no_same_name: bool,
+    kosystem: bool,
 ) -> Competition {
-    let participants = build_participants(profiles, computer_names);
+    let participants = build_participants(profiles, computer_names, no_same_name);
     let mut c = Competition::new(CupStyle::CustomCup, participants, hill_order);
     c.trainrounds = trainrounds;
+    c.kosystem = kosystem;
     c
 }
 
@@ -45,12 +51,20 @@ fn build_hill_order(style: CupStyle, hill_count: usize) -> Vec<usize> {
     }
 }
 
-fn build_participants(profiles: &ProfileStore, computer_names: &[String]) -> Vec<Participant> {
+fn build_participants(
+    profiles: &ProfileStore,
+    computer_names: &[String],
+    no_same_name: bool,
+) -> Vec<Participant> {
     let mut participants = Vec::with_capacity(TOTAL_SLOTS);
     let active_profiles = active_profiles(profiles);
     let profile_count = active_profiles.len().min(TOTAL_SLOTS);
     let first_profile_slot = TOTAL_SLOTS - profile_count;
-    let computer_names = computer_names_without_replacements(computer_names, &active_profiles);
+    let computer_names = if no_same_name {
+        computer_names_without_replacements(computer_names, &active_profiles)
+    } else {
+        computer_names.to_vec()
+    };
 
     for i in 0..TOTAL_SLOTS {
         if i >= first_profile_slot {

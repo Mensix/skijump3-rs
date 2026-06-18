@@ -552,17 +552,19 @@ impl CompetitionOverlay {
         }
 
         // Gap-to-leader line
-        if let Some(ref pel) = data.current_participant {
-            let leader_pts = data.event_standings_top5.first().map_or(0.0, |e| e.points);
-            let current_pts = pel.points.unwrap_or(0.0);
-            let temp = leader_pts - current_pts;
-            if temp > 0.0 {
-                let label = self.resources.langbase.lstr(62);
-                cx.right_text(
-                    (308, 62),
-                    FONT_GOLD,
-                    format!("{}: {}", label, format_decimal(temp + 0.1)),
-                );
+        if self.store.borrow().config.diff != 0 {
+            if let Some(ref pel) = data.current_participant {
+                let leader_pts = data.event_standings_top5.first().map_or(0.0, |e| e.points);
+                let current_pts = pel.points.unwrap_or(0.0);
+                let temp = leader_pts - current_pts;
+                if temp > 0.0 {
+                    let label = self.resources.langbase.lstr(62);
+                    cx.right_text(
+                        (308, 62),
+                        FONT_GOLD,
+                        format!("{}: {}", label, format_decimal(temp + 0.1)),
+                    );
+                }
             }
         }
     }
@@ -625,6 +627,21 @@ impl CompetitionOverlay {
         for (i, entry) in data.wc_standings_top5.iter().enumerate() {
             let s = format!("{}  {}", entry.name, entry.points);
             cx.right_text((308, 20 + i as i32 * 7), FONT_GOLD, s);
+        }
+        if self.store.borrow().config.diffwc != 0 {
+            if let (Some(leader), Some(current)) = (
+                data.wc_standings_top5.first(),
+                data.current_participant.as_ref(),
+            ) {
+                let diff = leader.points - current.wc_points;
+                if diff > 0 {
+                    cx.right_text(
+                        (308, 62),
+                        FONT_GOLD,
+                        format!("{}: {diff}", self.resources.langbase.lstr(62)),
+                    );
+                }
+            }
         }
     }
 }

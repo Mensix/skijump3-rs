@@ -173,6 +173,10 @@ impl JumpRunner {
         self.config.participant.id
     }
 
+    pub(crate) fn participant_is_computer(&self) -> bool {
+        self.config.participant.control == JumperControl::Computer
+    }
+
     pub(crate) fn handle_input(&mut self, input: JumpInput) {
         if let Some(state) = &mut self.state {
             state.handle_input(input);
@@ -467,8 +471,13 @@ impl JumpRunner {
             (Err(err), _) => return Err(err.clone()),
             _ => return Err(AssetError::Custom("jump state not available".to_string())),
         };
-        let (viewport, snow_mask) =
-            terrain.viewport_rgba_and_mask(state.sx, state.sy, width, height);
+        let (viewport, snow_mask) = terrain.viewport_rgba_and_mask_with_back(
+            state.sx,
+            state.sy,
+            width,
+            height,
+            self.config.draw_back,
+        );
         let (body_x, body_y) = state.body_position();
         let (body_anim, ski_anim) = state.anims(terrain);
         Ok(JumpRenderFrame {

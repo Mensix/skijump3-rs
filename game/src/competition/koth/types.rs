@@ -60,6 +60,7 @@ pub enum KothResultsKind {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct KothJumpContext {
     pub participant_idx: usize,
+    pub start_order_pos: usize,
     pub elimination_round: u8,
     pub jump_round: u8,
     pub starting_count: usize,

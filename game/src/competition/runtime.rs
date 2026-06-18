@@ -26,15 +26,13 @@ pub trait CompetitionRuntime {
     fn advance_results_runtime(&mut self);
     fn is_complete_runtime(&self) -> bool;
 
-    /// Whether the current jumper is human (needs UI).
-    fn is_human_current(&self) -> bool;
-
     /// Context for the current jump (used by session to record outcome).
     fn current_jump_context(&self) -> Self::Context;
 
     fn profile_idx_for_context(&self, context: &Self::Context) -> Option<usize>;
     fn hill_idx_for_context(&self, context: &Self::Context) -> usize;
     fn jumper_name_for_context(&self, context: &Self::Context) -> String;
+    fn start_order_pos_for_context(&self, context: &Self::Context) -> usize;
     fn saves_hill_records(&self, context: &Self::Context) -> bool;
     fn is_real_world_cup_context(&self, context: &Self::Context) -> bool;
 
@@ -48,6 +46,7 @@ pub struct IndividualJumpContext {
     pub event_idx: usize,
     pub phase: CompetitionPhase,
     pub participant_idx: usize,
+    pub start_order_pos: usize,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -102,6 +101,7 @@ impl CompetitionRuntime for Competition {
                             event_idx: self.current_event,
                             phase,
                             participant_idx: idx,
+                            start_order_pos: self.current_start_order_pos(),
                         },
                         is_human: is_human && !is_training,
                         is_new_event: false,
@@ -124,16 +124,13 @@ impl CompetitionRuntime for Competition {
         self.is_over()
     }
 
-    fn is_human_current(&self) -> bool {
-        self.is_human_current()
-    }
-
     fn current_jump_context(&self) -> Self::Context {
         let participant_idx = self.current_jumper().unwrap_or(0);
         IndividualJumpContext {
             event_idx: self.current_event,
             phase: self.phase(),
             participant_idx,
+            start_order_pos: self.current_start_order_pos(),
         }
     }
 
@@ -147,6 +144,10 @@ impl CompetitionRuntime for Competition {
 
     fn jumper_name_for_context(&self, context: &Self::Context) -> String {
         self.participant(context.participant_idx).name.clone()
+    }
+
+    fn start_order_pos_for_context(&self, context: &Self::Context) -> usize {
+        context.start_order_pos
     }
 
     fn saves_hill_records(&self, context: &Self::Context) -> bool {

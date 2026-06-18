@@ -31,7 +31,7 @@ pub enum StepDecision {
 ///
 /// Call `advance()` to enter the first phase, then loop:
 /// 1. `current_jumper()` → who's up (None = phase transition needed)
-/// 2. `is_human_current()` → wait for input or auto-pilot
+/// 2. `decide_next()` → wait for UI-visible jump or auto-pilot
 /// 3. `record_jump(points, length)` → store result
 /// 4. `advance()` → move to next jumper or next phase
 /// 5. `is_over()` → season finished?
@@ -46,6 +46,8 @@ pub struct Competition {
 
     start_list: Vec<usize>,
     start_pos: usize,
+
+    pub(crate) kosystem: bool,
 
     /// Pascal mcluett: saved seed-pairing order for KO results display.
     ko_pairings: Vec<usize>,
@@ -63,6 +65,7 @@ impl Competition {
             trainrounds: 2,
             start_list: Vec::new(),
             start_pos: 0,
+            kosystem: false,
             ko_pairings: Vec::new(),
         }
     }
@@ -88,6 +91,11 @@ impl Competition {
     #[must_use]
     pub fn participant(&self, idx: usize) -> &Participant {
         self.field.get(idx)
+    }
+
+    #[must_use]
+    pub const fn current_start_order_pos(&self) -> usize {
+        self.start_pos
     }
 
     // ── queries ────────────────────────────────────────────────
@@ -135,12 +143,6 @@ impl Competition {
         } else {
             None
         }
-    }
-
-    #[must_use]
-    pub fn is_human_current(&self) -> bool {
-        self.current_jumper()
-            .is_some_and(|idx| !self.field.get(idx).is_computer)
     }
 
     #[must_use]
@@ -379,7 +381,7 @@ impl Competition {
     }
 
     fn is_ko_event(&self) -> bool {
-        self.is_four_hills_event()
+        self.kosystem && self.is_four_hills_event()
     }
 
     fn sort_overall_field(&mut self) {

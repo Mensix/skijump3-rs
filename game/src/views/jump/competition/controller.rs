@@ -4,7 +4,7 @@ use std::marker::PhantomData;
 use crate::competition::runtime::{CompetitionDecision, CompetitionRuntime};
 use crate::data::records::HillRecord;
 use crate::jump::types::{FallType, JumpOutcome};
-use crate::jump::{JumpParticipant, JumpPolicy};
+use crate::jump::{JumpParticipant, JumpPolicy, JumperControl};
 use crate::save::SaveRef;
 use crate::store::{GameState, GameStateRef, HasRuntime, ResourcesRef};
 use crate::views::jump::competition::flow::{
@@ -51,12 +51,13 @@ where
         save_manager: SaveRef,
         scene: Option<JumpScene>,
     ) -> Self {
+        let compact = state.borrow().config.compactlist != 0;
         Self {
             resources: resources.clone(),
             state: state.clone(),
             save_manager,
             scene,
-            ui_state: CompetitionUiState::new(),
+            ui_state: CompetitionUiState::new_with_compact(compact),
             overlay: CompetitionOverlay::new(resources.clone(), state.clone()),
             last_event: Cell::new(0),
             profiles_saved: Cell::new(false),
@@ -107,15 +108,16 @@ where
             let mut side_effects = None;
             let recorded = state
                 .with_runtime_mut(|runtime: &mut R| {
-                    if !runtime.is_human_current() {
-                        return false;
-                    }
                     let ctx = runtime.current_jump_context();
                     side_effects = Some(PostJumpSideEffects {
                         profile_idx: runtime.profile_idx_for_context(&ctx),
                         hill_idx: runtime.hill_idx_for_context(&ctx),
                         jumper_name: runtime.jumper_name_for_context(&ctx),
                         saves_hill_records: runtime.saves_hill_records(&ctx),
+                        is_computer: self
+                            .scene
+                            .as_ref()
+                            .is_some_and(|scene| scene.participant_is_computer()),
                         is_real_world_cup: runtime.is_real_world_cup_context(&ctx),
                     });
                     runtime.record_jump_runtime(&ctx, outcome);
@@ -269,7 +271,9 @@ where
                         is_human,
                         is_new_event,
                     } => {
-                        if is_human {
+                        if is_human
+                            || self.should_show_computer_jump(runtime, &context, &participant)
+                        {
                             let current_event = runtime.event_idx();
                             return Ok(Some(CompetitionFlowCommand::HumanJump {
                                 participant,
@@ -286,6 +290,7 @@ where
                                 hill_idx: runtime.hill_idx_for_context(&context),
                                 jumper_name: runtime.jumper_name_for_context(&context),
                                 saves_hill_records: runtime.saves_hill_records(&context),
+                                is_computer: true,
                                 is_real_world_cup: runtime.is_real_world_cup_context(&context),
                             },
                             outcome,
@@ -330,6 +335,27 @@ where
         Ok(scene.simulate_hidden(participant, hill_idx)?)
     }
 
+    fn should_show_computer_jump(
+        &self,
+        runtime: &R,
+        context: &R::Context,
+        participant: &JumpParticipant,
+    ) -> bool {
+        if participant.control != JumperControl::Computer {
+            return false;
+        }
+        let seecomps = self.state.borrow().config.seecomps;
+        match seecomps {
+            1..=234 => participant.ai_id + 1 == seecomps as usize,
+            235 => runtime.start_order_pos_for_context(context) < 1,
+            236 => runtime.start_order_pos_for_context(context) < 3,
+            237 => runtime.start_order_pos_for_context(context) < 5,
+            238 => runtime.start_order_pos_for_context(context) < 10,
+            239 => true,
+            _ => false,
+        }
+    }
+
     fn check_event_change(&self, current_event: usize, _is_new_event: bool) -> bool {
         let changed = current_event != self.last_event.get();
         if changed {
@@ -345,6 +371,7 @@ struct PostJumpSideEffects {
     hill_idx: usize,
     jumper_name: String,
     saves_hill_records: bool,
+    is_computer: bool,
     is_real_world_cup: bool,
 }
 
@@ -372,7 +399,9 @@ fn apply_post_jump_side_effects(
         }
     }
 
-    if side_effects.saves_hill_records
+    let computer_records_enabled = !side_effects.is_computer || state.config.comphrs != 0;
+    if computer_records_enabled
+        && side_effects.saves_hill_records
         && outcome.fall_type == FallType::None
         && state
             .records

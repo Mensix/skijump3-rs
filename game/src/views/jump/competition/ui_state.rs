@@ -30,11 +30,15 @@ pub struct CompetitionUiState {
 
 impl CompetitionUiState {
     pub fn new() -> Self {
+        Self::new_with_compact(false)
+    }
+
+    pub fn new_with_compact(compact: bool) -> Self {
         Self {
             render_mode: Cell::new(RenderMode::Jump),
             result_screen: Cell::new(ResultScreen::List),
             display_page: Cell::new(0),
-            compact_list: Cell::new(false),
+            compact_list: Cell::new(compact),
             result_acknowledged: Cell::new(false),
             outcome_recorded: Cell::new(false),
             first_human_onbar: Cell::new(true),

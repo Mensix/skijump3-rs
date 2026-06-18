@@ -13,6 +13,8 @@ pub fn world_cup(
     computer_names: &[String],
     hill_count: usize,
     trainrounds: usize,
+    no_same_name: bool,
+    kosystem: bool,
 ) -> ActiveCompetition {
     ActiveCompetition::from_individual(build_competition(
         CupStyle::WorldCup,
@@ -20,6 +22,8 @@ pub fn world_cup(
         computer_names,
         hill_count,
         trainrounds,
+        no_same_name,
+        kosystem,
     ))
 }
 
@@ -28,6 +32,8 @@ pub fn four_hills(
     computer_names: &[String],
     hill_count: usize,
     trainrounds: usize,
+    no_same_name: bool,
+    kosystem: bool,
 ) -> ActiveCompetition {
     ActiveCompetition::from_individual(build_competition(
         CupStyle::FourHills,
@@ -35,6 +41,8 @@ pub fn four_hills(
         computer_names,
         hill_count,
         trainrounds,
+        no_same_name,
+        kosystem,
     ))
 }
 
@@ -43,12 +51,16 @@ pub fn custom_cup(
     computer_names: &[String],
     hill_order: Vec<usize>,
     trainrounds: usize,
+    no_same_name: bool,
+    kosystem: bool,
 ) -> ActiveCompetition {
     ActiveCompetition::from_individual(build_custom_competition(
         profiles,
         computer_names,
         hill_order,
         trainrounds,
+        no_same_name,
+        kosystem,
     ))
 }
 
@@ -61,6 +73,7 @@ pub fn koth(
     profiles: &ProfileStore,
     computer_names: &[String],
     hill_count: usize,
+    no_same_name: bool,
     rng: Random,
 ) -> ActiveCompetition {
     ActiveCompetition::from_koth(build_koth(
@@ -68,6 +81,7 @@ pub fn koth(
         profiles,
         computer_names,
         hill_count,
+        no_same_name,
         rng,
     ))
 }

@@ -119,13 +119,14 @@ impl Screen<RouteTarget> for JumpMenuView {
 impl JumpMenuView {
     fn start_world_cup(&self) -> RouteTarget {
         let profiles = self.store.borrow().profiles.clone();
-        let trainrounds = self.store.borrow().config.trainrounds;
+        let config = self.store.borrow().config.clone();
         let comp = factory::world_cup(
             &profiles,
-            self.resources
-                .player_names(self.store.borrow().config.namenumber as usize),
+            self.resources.player_names(config.namenumber as usize),
             self.resources.hills.len(),
-            trainrounds as usize,
+            config.trainrounds as usize,
+            config.nosamename != 0,
+            config.kosystem != 0,
         );
         self.store.borrow_mut().start_active(comp);
         RouteTarget::CompetitionJump
@@ -133,13 +134,14 @@ impl JumpMenuView {
 
     fn start_four_hills(&self) -> RouteTarget {
         let profiles = self.store.borrow().profiles.clone();
-        let trainrounds = self.store.borrow().config.trainrounds;
+        let config = self.store.borrow().config.clone();
         let comp = factory::four_hills(
             &profiles,
-            self.resources
-                .player_names(self.store.borrow().config.namenumber as usize),
+            self.resources.player_names(config.namenumber as usize),
             self.resources.hills.len(),
-            trainrounds as usize,
+            config.trainrounds as usize,
+            config.nosamename != 0,
+            config.kosystem != 0,
         );
         self.store.borrow_mut().start_active(comp);
         RouteTarget::CompetitionJump

@@ -78,6 +78,7 @@ impl TeamCupRuntime {
                             leg_idx: self.current_leg,
                             round_idx: self.current_round,
                             team_idx,
+                            start_order_pos: self.current_team_order_pos,
                             member_idx: self.current_jumper_slot,
                             team_name: self.teams[team_idx].name.clone(),
                             jumper_name: member.competitor.name.clone(),
@@ -185,24 +186,6 @@ impl TeamCupRuntime {
         }
     }
 
-    pub fn is_human_current(&self) -> bool {
-        if self.current_team_order_pos >= self.team_order.len() {
-            return false;
-        }
-        if self.current_jumper_slot >= MEMBERS_PER_TEAM {
-            return false;
-        }
-        let team_idx = self.team_order[self.current_team_order_pos];
-        let Some(team) = self.teams.get(team_idx) else {
-            return false;
-        };
-        team.is_human_team
-            && team
-                .members
-                .get(self.current_jumper_slot)
-                .is_some_and(|m| !m.competitor.is_computer)
-    }
-
     pub fn current_jump_context(&self) -> TeamCupJumpContext {
         let team_idx = if self.current_team_order_pos < self.team_order.len() {
             self.team_order[self.current_team_order_pos]
@@ -214,6 +197,7 @@ impl TeamCupRuntime {
             leg_idx: self.current_leg,
             round_idx: self.current_round,
             team_idx,
+            start_order_pos: self.current_team_order_pos,
             member_idx: self.current_jumper_slot,
             team_name: self.teams[team_idx].name.clone(),
             jumper_name: member.competitor.name.clone(),
@@ -262,10 +246,6 @@ impl CompetitionRuntime for TeamCupRuntime {
         self.phase == TeamCupPhase::Complete
     }
 
-    fn is_human_current(&self) -> bool {
-        self.is_human_current()
-    }
-
     fn current_jump_context(&self) -> Self::Context {
         self.current_jump_context()
     }
@@ -286,6 +266,10 @@ impl CompetitionRuntime for TeamCupRuntime {
             .get(context.team_idx)
             .and_then(|t| t.members.get(context.member_idx))
             .map_or_else(String::new, |m| m.competitor.name.clone())
+    }
+
+    fn start_order_pos_for_context(&self, context: &Self::Context) -> usize {
+        context.start_order_pos
     }
 
     fn saves_hill_records(&self, _: &Self::Context) -> bool {

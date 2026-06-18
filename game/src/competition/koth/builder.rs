@@ -14,6 +14,7 @@ pub fn build_koth(
     profiles: &ProfileStore,
     computer_names: &[String],
     hill_count: usize,
+    no_same_name: bool,
     mut rng: Random,
 ) -> KothRuntime {
     let kothpel: Vec<usize> = config.kothpel.iter().map(|&v| v as usize).collect();
@@ -33,7 +34,11 @@ pub fn build_koth(
 
     // build participants: NPCs from kothpel, then humans from profiles
     let active = active_profiles(profiles);
-    let filtered_names = computer_names_without_replacements(computer_names, &active);
+    let filtered_names = if no_same_name {
+        computer_names_without_replacements(computer_names, &active)
+    } else {
+        computer_names.to_vec()
+    };
 
     let mut participants: Vec<KothParticipant> = Vec::new();
     let mut human_indices: Vec<usize> = Vec::new();

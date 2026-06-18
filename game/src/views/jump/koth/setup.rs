@@ -449,6 +449,7 @@ impl KothSetupView {
                 &profiles,
                 self.resources.player_names(namenumber),
                 hill_count,
+                config.nosamename != 0,
                 s.rng.clone(),
             )
         };

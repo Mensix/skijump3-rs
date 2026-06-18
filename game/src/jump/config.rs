@@ -49,6 +49,7 @@ pub struct JumpConfig {
     pub(crate) policy: JumpPolicy,
     pub(crate) record_distance: f64,
     pub(crate) goal_distance: f64,
+    pub(crate) draw_back: bool,
     pub(crate) phase_label: String,
     pub(crate) team_name: String,
 }

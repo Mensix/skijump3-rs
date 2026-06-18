@@ -26,6 +26,7 @@ pub struct JumpScene {
     resources: ResourcesRef,
     store: GameStateRef,
     telemetry: Option<JumpTelemetry>,
+    auto_replay_prompted: bool,
 }
 
 impl JumpScene {
@@ -76,6 +77,7 @@ impl JumpScene {
             telemetry: None,
             resources,
             store,
+            auto_replay_prompted: false,
         }
     }
 
@@ -88,6 +90,7 @@ impl JumpScene {
         phase_label: String,
     ) {
         self.telemetry = None;
+        self.auto_replay_prompted = false;
         let existing_snow = self.runner.clone_snow();
         let snow = Self::prepare_snow(&self.store, Some(existing_snow));
         self.runner = Self::build_runner(
@@ -251,6 +254,10 @@ impl JumpScene {
         self.runner.participant_id()
     }
 
+    pub fn participant_is_computer(&self) -> bool {
+        self.runner.participant_is_computer()
+    }
+
     pub fn simulate_hidden(
         &self,
         participant: JumpParticipant,
@@ -303,6 +310,31 @@ impl JumpScene {
         let mut guard = self.store.borrow_mut();
         let state = &mut *guard;
         self.runner.update(&mut state.rng, &mut state.wind);
+        drop(guard);
+        self.open_auto_hill_record_replay_dialog();
+    }
+
+    fn open_auto_hill_record_replay_dialog(&mut self) {
+        if self.auto_replay_prompted || self.store.borrow().config.automatichrr == 0 {
+            return;
+        }
+        let Some(outcome) = self.runner.outcome() else {
+            return;
+        };
+        if outcome.fall_type != crate::jump::types::FallType::None {
+            return;
+        }
+        let hill_idx = self.runner.hill_idx();
+        let record_distance = self
+            .store
+            .borrow()
+            .records
+            .hill_record(hill_idx)
+            .map_or(0.0, |r| r.len);
+        if record_distance > 0.0 && outcome.distance > record_distance {
+            self.auto_replay_prompted = true;
+            self.open_save_dialog();
+        }
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -336,6 +368,7 @@ impl JumpScene {
                 policy,
                 record_distance,
                 goal_distance,
+                draw_back: store.borrow().config.invback == 0,
                 phase_label,
                 team_name: String::new(),
             },

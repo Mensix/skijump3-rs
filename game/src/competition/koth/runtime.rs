@@ -103,6 +103,7 @@ impl CompetitionRuntime for KothRuntime {
                                 hill_idx: self.hill_idx,
                                 context: KothJumpContext {
                                     participant_idx: self.current_participant_pos,
+                                    start_order_pos: self.current_participant_pos,
                                     elimination_round: self.current_elimination_round,
                                     jump_round: self.current_jump_round,
                                     starting_count: self.participants.len(),
@@ -168,19 +169,13 @@ impl CompetitionRuntime for KothRuntime {
         self.phase == KothPhase::Complete
     }
 
-    fn is_human_current(&self) -> bool {
-        if self.current_participant_pos >= self.participants.len() {
-            return false;
-        }
-        self.human_indices.contains(&self.current_participant_pos)
-    }
-
     fn current_jump_context(&self) -> Self::Context {
         let idx = self
             .current_participant_pos
             .min(self.participants.len().saturating_sub(1));
         KothJumpContext {
             participant_idx: idx,
+            start_order_pos: idx,
             elimination_round: self.current_elimination_round,
             jump_round: self.current_jump_round,
             starting_count: self.participants.len(),
@@ -201,6 +196,10 @@ impl CompetitionRuntime for KothRuntime {
         self.participants
             .get(context.participant_idx)
             .map_or_else(String::new, |p| p.competitor.name.clone())
+    }
+
+    fn start_order_pos_for_context(&self, context: &Self::Context) -> usize {
+        context.start_order_pos
     }
 
     fn saves_hill_records(&self, _: &Self::Context) -> bool {

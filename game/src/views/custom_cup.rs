@@ -344,6 +344,8 @@ impl CustomCupSetupView {
                 .player_names(state.config.namenumber as usize),
             self.selected.clone(),
             0,
+            state.config.nosamename != 0,
+            state.config.kosystem != 0,
         );
         drop(state);
         self.store.borrow_mut().start_active(comp);
