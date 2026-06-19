@@ -35,7 +35,7 @@ pub struct KothSetupView {
 
 impl KothSetupView {
     pub fn new(resources: ResourcesRef, store: GameStateRef, save_manager: SaveRef) -> Self {
-        let pack = store.borrow().config.kothpack;
+        let pack = store.borrow().config.koth_pack;
         builder::apply_koth_pack(&store, &save_manager, pack as u8);
         Self {
             resources,
@@ -63,7 +63,7 @@ impl KothSetupView {
 
     fn col1(&self) -> engine::color::Rgba {
         let cfg = self.config();
-        if cfg.kothpack > 0 {
+        if cfg.koth_pack > 0 {
             FONT_GRAY
         } else {
             FONT_BODY
@@ -72,7 +72,7 @@ impl KothSetupView {
 
     fn col2(&self) -> engine::color::Rgba {
         let cfg = self.config();
-        if cfg.kothpack > 0 {
+        if cfg.koth_pack > 0 {
             FONT_GRAY
         } else {
             FONT_GOLD
@@ -97,12 +97,12 @@ impl KothSetupView {
         } else {
             // --- right panel: "Computer Jumpers:" (white, Pascal 240) ---
             cx.text((180, 10), FONT_BODY, lang.lstr(120));
-            if cfg.koth_count > 0 {
-                for i in 0..cfg.koth_count.min(20) as usize {
-                    let idx = cfg.kothpel.get(i).copied().unwrap_or(1) as usize;
+            if cfg.koth_opponent_count > 0 {
+                for i in 0..cfg.koth_opponent_count.min(20) as usize {
+                    let idx = cfg.koth_opponent_ids.get(i).copied().unwrap_or(1) as usize;
                     let name = self
                         .resources
-                        .player_names(self.store.borrow().config.namenumber as usize)
+                        .player_names(self.store.borrow().config.name_set_index as usize)
                         .get(idx - 1)
                         .map(|s| shorten_name(s, &self.resources.font, 110))
                         .unwrap_or_else(|| "?".to_string());
@@ -122,25 +122,25 @@ impl KothSetupView {
         cx.text((10, 20), FONT_BODY, format!("2 - {}", lang.lstr(122)));
         cx.text((10, 30), FONT_BODY, format!("3 - {}", lang.lstr(123)));
         cx.text((10, 40), self.col1(), format!("4 - {}", lang.lstr(124)));
-        let hill_name = if cfg.kothmaki == 0 {
+        let hill_name = if cfg.koth_hill == 0 {
             lang.lstr(155)
         } else {
             self.resources
                 .hills
-                .hill(cfg.kothmaki as usize - 1)
+                .hill(cfg.koth_hill as usize - 1)
                 .map(|h| h.name.as_str())
                 .unwrap_or("?")
         };
         cx.text((80, 40), self.col2(), hill_name);
         cx.text((10, 50), self.col1(), format!("5 - {}", lang.lstr(125)));
-        let wind_str = if cfg.kothwind != 0 {
+        let wind_str = if cfg.koth_wind != 0 {
             lang.lstr(6)
         } else {
             lang.lstr(7)
         };
         cx.text((80, 50), self.col2(), wind_str);
         cx.text((10, 60), self.col1(), format!("6 - {}", lang.lstr(126)));
-        cx.text((80, 60), self.col2(), lang.lstr(cfg.kothrounds as usize));
+        cx.text((80, 60), self.col2(), lang.lstr(cfg.koth_rounds as usize));
         cx.text((10, 80), FONT_BODY, format!("0 - {}", lang.lstr(127)));
 
         // --- left panel bottom: K.O.T.H Challenge Level (gold, Pascal 246) ---
@@ -155,10 +155,10 @@ impl KothSetupView {
             let color = if is_pack_mode {
                 FONT_BODY
             } else {
-                let selected_pack = if cfg.kothpack == 0 {
+                let selected_pack = if cfg.koth_pack == 0 {
                     7u8
                 } else {
-                    cfg.kothpack as u8
+                    cfg.koth_pack as u8
                 };
                 if selected_pack == pack {
                     FONT_BODY
@@ -195,7 +195,7 @@ impl KothSetupView {
         if self.mode.get() == KothMode::Opponents {
             let names = self
                 .resources
-                .player_names(self.store.borrow().config.namenumber as usize);
+                .player_names(self.store.borrow().config.name_set_index as usize);
             let sel = self.selected_opponents.borrow();
             let prev = self.preview_opponent.get();
             // selected opponents in gold
@@ -308,14 +308,14 @@ impl KothSetupView {
     fn handle_opponents(&mut self, event: UiEvent) -> Option<RouteTarget> {
         let max_idx = self
             .resources
-            .player_names(self.store.borrow().config.namenumber as usize)
+            .player_names(self.store.borrow().config.name_set_index as usize)
             .len();
         match event {
             UiEvent::KeyDown(Key::Escape) => {
                 self.update_config(|cfg| {
                     let sel = self.selected_opponents.borrow();
-                    cfg.kothpel = sel.iter().map(|&v| v as i32).collect();
-                    cfg.koth_count = sel.len() as i32;
+                    cfg.koth_opponent_ids = sel.iter().map(|&v| v as i32).collect();
+                    cfg.koth_opponent_count = sel.len() as i32;
                 });
                 self.mode.set(KothMode::Main);
                 None
@@ -393,7 +393,7 @@ impl KothSetupView {
     }
 
     fn apply_pack(&self, pack: i32) {
-        self.update_config(|cfg| cfg.kothpack = pack);
+        self.update_config(|cfg| cfg.koth_pack = pack);
         builder::apply_koth_pack(&self.store, &self.save_manager, pack as u8);
         self.mode.set(KothMode::Main);
     }
@@ -404,17 +404,17 @@ impl KothSetupView {
             1 => self.start_koth(),
             2 => {
                 let cfg = self.config();
-                let pack = cfg.kothpack;
+                let pack = cfg.koth_pack;
                 self.pack_cursor
                     .set(if pack == 0 { 0 } else { pack as usize });
                 self.mode.set(KothMode::Packs);
                 None
             }
             3 => {
-                self.update_config(|cfg| cfg.kothpack = 0);
+                self.update_config(|cfg| cfg.koth_pack = 0);
                 let cfg = self.config();
-                *self.selected_opponents.borrow_mut() = if cfg.koth_count > 0 {
-                    cfg.kothpel.iter().map(|&v| v as usize).collect()
+                *self.selected_opponents.borrow_mut() = if cfg.koth_opponent_count > 0 {
+                    cfg.koth_opponent_ids.iter().map(|&v| v as usize).collect()
                 } else {
                     Vec::new()
                 };
@@ -424,12 +424,12 @@ impl KothSetupView {
             }
             4 => Some(RouteTarget::KothHillPicker),
             5 => {
-                self.update_config(|cfg| cfg.kothwind = if cfg.kothwind != 0 { 0 } else { 1 });
+                self.update_config(|cfg| cfg.koth_wind = if cfg.koth_wind != 0 { 0 } else { 1 });
                 None
             }
             6 => {
                 self.update_config(|cfg| {
-                    cfg.kothrounds = if cfg.kothrounds == 1 { 2 } else { 1 };
+                    cfg.koth_rounds = if cfg.koth_rounds == 1 { 2 } else { 1 };
                 });
                 None
             }
@@ -441,15 +441,15 @@ impl KothSetupView {
         let profiles = self.store.borrow().profiles.clone();
         let config = self.config();
         let hill_count = self.resources.hills.len();
-        let namenumber = self.store.borrow().config.namenumber as usize;
+        let name_set_index = self.store.borrow().config.name_set_index as usize;
         let comp = {
             let s = self.store.borrow_mut();
             factory::koth(
                 &config,
                 &profiles,
-                self.resources.player_names(namenumber),
+                self.resources.player_names(name_set_index),
                 hill_count,
-                config.nosamename != 0,
+                config.unique_computer_names != 0,
                 s.rng.clone(),
             )
         };
@@ -457,7 +457,7 @@ impl KothSetupView {
         self.store
             .borrow_mut()
             .wind
-            .set_enabled(config.kothwind != 0);
+            .set_enabled(config.koth_wind != 0);
         Some(RouteTarget::CompetitionJump)
     }
 }

@@ -111,6 +111,15 @@ impl WorldCupJumpView {
             self.controller
                 .ui_state()
                 .select_default_screen(is_4h, phase);
+            let extra_stats_enabled = self.controller.state().borrow().config.extra_statistics != 0;
+            let showing_ko_pairs = is_4h
+                && matches!(
+                    phase,
+                    CompetitionPhase::QualificationResults | CompetitionPhase::Round1Results
+                );
+            if extra_stats_enabled && !showing_ko_pairs {
+                self.controller.ui_state().select_stats_screen();
+            }
         }
     }
 

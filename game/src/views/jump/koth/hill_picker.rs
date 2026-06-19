@@ -20,10 +20,10 @@ pub struct KothHillPickerView {
 
 impl KothHillPickerView {
     pub fn new(resources: ResourcesRef, store: GameStateRef, save_manager: SaveRef) -> Self {
-        let kothmaki = store.borrow().config.kothmaki;
+        let koth_hill = store.borrow().config.koth_hill;
         let total = resources.hills.len();
-        let start = if kothmaki > 0 {
-            ((kothmaki as usize - 1) / 20) * 20
+        let start = if koth_hill > 0 {
+            ((koth_hill as usize - 1) / 20) * 20
         } else {
             0
         };
@@ -34,10 +34,10 @@ impl KothHillPickerView {
             .with_labels(false)
             .with_box(false)
             .trailing("", 16);
-        if kothmaki == 0 {
+        if koth_hill == 0 {
             menu.set_selected(menu.item_count());
-        } else if kothmaki as usize - 1 < start + page_n {
-            menu.set_selected(kothmaki as usize - 1 - start);
+        } else if koth_hill as usize - 1 < start + page_n {
+            menu.set_selected(koth_hill as usize - 1 - start);
         }
 
         Self {
@@ -90,12 +90,12 @@ impl KothHillPickerView {
             };
             self.menu = self.rebuild_menu();
         } else if sel == self.menu.item_count() {
-            self.store.borrow_mut().config.kothmaki = 0;
+            self.store.borrow_mut().config.koth_hill = 0;
             let cfg = self.store.borrow().config.clone();
             let _ = self.save_manager.save_config(&cfg);
         } else {
             let hill_idx = self.start + sel;
-            self.store.borrow_mut().config.kothmaki = hill_idx as i32 + 1;
+            self.store.borrow_mut().config.koth_hill = hill_idx as i32 + 1;
             let cfg = self.store.borrow().config.clone();
             let _ = self.save_manager.save_config(&cfg);
         }

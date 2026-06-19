@@ -216,7 +216,7 @@ fn handle_name_set_input(view: &mut SetupView, event: UiEvent) -> Option<RouteTa
             if idx < ns_len {
                 {
                     let mut state = view.store.borrow_mut();
-                    state.config.namenumber = idx as i32;
+                    state.config.name_set_index = idx as i32;
                     if let Err(e) = view.save_manager().save_config(&state.config) {
                         eprintln!("Warning: failed to save config: {e}");
                     }
@@ -247,7 +247,7 @@ fn handle_wind_place(view: &mut SetupView, event: UiEvent, pos: usize) -> Option
                 let place = if pos < 8 { pos + 1 } else { pos + 3 };
                 {
                     let mut state = view.store.borrow_mut();
-                    state.config.windplace = place as i32;
+                    state.config.wind_position = place as i32;
                     if let Err(e) = view.save_manager().save_config(&state.config) {
                         eprintln!("Warning: failed to save config: {e}");
                     }
@@ -267,7 +267,7 @@ pub(crate) fn seecomp_options(view: &SetupView) -> Vec<(usize, String)> {
     let names = view
         .resources
         .namesets
-        .names_for_config(view.config().namenumber);
+        .names_for_config(view.config().name_set_index);
     let cats = [235, 236, 237, 238, 239, 240];
     let mut opts = Vec::new();
     for (i, name) in names.iter().enumerate() {
@@ -296,7 +296,7 @@ fn handle_see_comps(view: &mut SetupView, event: UiEvent, idx: usize) -> Option<
             let cfg_val = opts[idx].0;
             {
                 let mut state = view.store.borrow_mut();
-                state.config.seecomps = cfg_val as i32;
+                state.config.visible_computers = cfg_val as i32;
                 if let Err(e) = view.save_manager().save_config(&state.config) {
                     eprintln!("Warning: failed to save config: {e}");
                 }
@@ -347,7 +347,7 @@ fn handle_language_picker(view: &mut SetupView, event: UiEvent, sel: usize) -> O
         UiEvent::KeyDown(Key::Enter) | UiEvent::Text(' ') => {
             {
                 let mut state = view.store.borrow_mut();
-                state.config.languagenumber = sel as i32;
+                state.config.language = sel as i32;
                 if let Err(e) = view.save_manager().save_config(&state.config) {
                     eprintln!("Warning: failed to save config: {e}");
                 }
@@ -501,7 +501,7 @@ fn activate_item(view: &mut SetupView, screen: usize, item: usize) -> Option<Rou
         (0, 4) => view.modal.set(Some(SetupModal::HillGoals(0))),
         (0, 5) => return Some(RouteTarget::HillMakerSetup),
         (1, 0) => {
-            let current = view.config().languagenumber;
+            let current = view.config().language;
             let idx = if current >= 0 { current as usize } else { 0 };
             let langs = &view.langbase().languages;
             let idx = idx.min(langs.len().saturating_sub(1));
@@ -509,14 +509,14 @@ fn activate_item(view: &mut SetupView, screen: usize, item: usize) -> Option<Rou
         }
         (1, 1) => {
             let mut state = view.store.borrow_mut();
-            state.config.beeppi = i32::from(state.config.beeppi == 0);
+            state.config.sound_effects = i32::from(state.config.sound_effects == 0);
             if let Err(e) = view.save_manager().save_config(&state.config) {
                 eprintln!("Warning: failed to save config: {e}");
             }
         }
         (1, 2) => {
             let mut state = view.store.borrow_mut();
-            state.config.gdetail = i32::from(state.config.gdetail == 0);
+            state.config.graphics_detail = i32::from(state.config.graphics_detail == 0);
             if let Err(e) = view.save_manager().save_config(&state.config) {
                 eprintln!("Warning: failed to save config: {e}");
             }
@@ -524,62 +524,62 @@ fn activate_item(view: &mut SetupView, screen: usize, item: usize) -> Option<Rou
         (1, 3) => view.modal.set(Some(SetupModal::NameSetInput)),
         (2, 0) => {
             let mut state = view.store.borrow_mut();
-            state.config.trainrounds = (state.config.trainrounds + 1) % 4;
+            state.config.training_rounds = (state.config.training_rounds + 1) % 4;
             if let Err(e) = view.save_manager().save_config(&state.config) {
                 eprintln!("Warning: failed to save config: {e}");
             }
         }
         (2, 1) => {
             let mut state = view.store.borrow_mut();
-            state.config.lct = i32::from(state.config.lct == 0);
+            state.config.extra_statistics = i32::from(state.config.extra_statistics == 0);
             if let Err(e) = view.save_manager().save_config(&state.config) {
                 eprintln!("Warning: failed to save config: {e}");
             }
         }
         (2, 2) => {
             let mut state = view.store.borrow_mut();
-            state.config.diff = i32::from(state.config.diff == 0);
+            state.config.event_gap = i32::from(state.config.event_gap == 0);
             if let Err(e) = view.save_manager().save_config(&state.config) {
                 eprintln!("Warning: failed to save config: {e}");
             }
         }
         (2, 3) => {
             let mut state = view.store.borrow_mut();
-            state.config.diffwc = i32::from(state.config.diffwc == 0);
+            state.config.wc_gap = i32::from(state.config.wc_gap == 0);
             if let Err(e) = view.save_manager().save_config(&state.config) {
                 eprintln!("Warning: failed to save config: {e}");
             }
         }
         (2, 4) => {
             let mut state = view.store.borrow_mut();
-            state.config.compactlist = i32::from(state.config.compactlist == 0);
+            state.config.compact_results = i32::from(state.config.compact_results == 0);
             if let Err(e) = view.save_manager().save_config(&state.config) {
                 eprintln!("Warning: failed to save config: {e}");
             }
         }
         (2, 5) => {
             let mut state = view.store.borrow_mut();
-            state.config.invback = i32::from(state.config.invback == 0);
+            state.config.invisible_back = i32::from(state.config.invisible_back == 0);
             if let Err(e) = view.save_manager().save_config(&state.config) {
                 eprintln!("Warning: failed to save config: {e}");
             }
         }
         (2, 6) => {
             let mut state = view.store.borrow_mut();
-            state.config.automatichrr = i32::from(state.config.automatichrr == 0);
+            state.config.auto_hill_record_replay = i32::from(state.config.auto_hill_record_replay == 0);
             if let Err(e) = view.save_manager().save_config(&state.config) {
                 eprintln!("Warning: failed to save config: {e}");
             }
         }
         (2, 7) => {
             let mut state = view.store.borrow_mut();
-            state.config.goals = i32::from(state.config.goals == 0);
+            state.config.goals_enabled = i32::from(state.config.goals_enabled == 0);
             if let Err(e) = view.save_manager().save_config(&state.config) {
                 eprintln!("Warning: failed to save config: {e}");
             }
         }
         (2, 8) => {
-            let current = view.config().seecomps;
+            let current = view.config().visible_computers;
             let opts = seecomp_options(view);
             let idx = opts
                 .iter()
@@ -588,27 +588,27 @@ fn activate_item(view: &mut SetupView, screen: usize, item: usize) -> Option<Rou
             view.modal.set(Some(SetupModal::SeeComps(idx)));
         }
         (2, 9) => {
-            let place = view.config().windplace;
+            let place = view.config().wind_position;
             let pos = if place <= 8 { place - 1 } else { place - 3 };
             view.modal.set(Some(SetupModal::WindPlace(pos as usize)));
         }
         (2, 10) => {
             let mut state = view.store.borrow_mut();
-            state.config.kosystem = i32::from(state.config.kosystem == 0);
+            state.config.ko_system = i32::from(state.config.ko_system == 0);
             if let Err(e) = view.save_manager().save_config(&state.config) {
                 eprintln!("Warning: failed to save config: {e}");
             }
         }
         (3, 0) => {
             let mut state = view.store.borrow_mut();
-            state.config.comphrs = i32::from(state.config.comphrs == 0);
+            state.config.computer_hill_records = i32::from(state.config.computer_hill_records == 0);
             if let Err(e) = view.save_manager().save_config(&state.config) {
                 eprintln!("Warning: failed to save config: {e}");
             }
         }
         (3, 1) => {
             let mut state = view.store.borrow_mut();
-            state.config.nosamename = i32::from(state.config.nosamename == 0);
+            state.config.unique_computer_names = i32::from(state.config.unique_computer_names == 0);
             if let Err(e) = view.save_manager().save_config(&state.config) {
                 eprintln!("Warning: failed to save config: {e}");
             }

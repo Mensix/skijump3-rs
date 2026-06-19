@@ -69,9 +69,9 @@ pub fn load_initial_config(files: &FileStore, langbase: &Rc<LangBase>) -> Config
         Err(_) => Config::default(),
     };
 
-    if config.languagenumber >= 0 && (config.languagenumber as usize) < langbase.languages.len()
+    if config.language >= 0 && (config.language as usize) < langbase.languages.len()
     {
-        langbase.selected.set(config.languagenumber as usize);
+        langbase.selected.set(config.language as usize);
     }
     config
 }

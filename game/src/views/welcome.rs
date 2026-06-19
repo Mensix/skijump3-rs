@@ -69,7 +69,7 @@ impl Screen<RouteTarget> for WelcomeScreenView {
                 self.resources.langbase.selected.set(n - 1);
                 {
                     let mut state = self.store.borrow_mut();
-                    state.config.languagenumber = (n - 1) as i32;
+                    state.config.language = (n - 1) as i32;
                     if let Err(e) = self.save_manager.save_config(&state.config) {
                         eprintln!("Warning: failed to save config: {e}");
                     }

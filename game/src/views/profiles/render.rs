@@ -199,7 +199,7 @@ pub(super) fn draw_profile(
             profile,
             field,
             &view.resources.font,
-            view.resources.player_names(view.store.borrow().config.namenumber as usize),
+            view.resources.player_names(view.store.borrow().config.name_set_index as usize),
             &view.resources.langbase,
         );
         if !value.is_empty() {

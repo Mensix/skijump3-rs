@@ -252,7 +252,7 @@ fn render_screen(view: &SetupView, cx: &mut PaintCx<'_>) {
         let value_str = if temp > 0 {
             match (screen, temp - 1) {
                 (1, 0) => {
-                    let ln = cfg.languagenumber;
+                    let ln = cfg.language;
                     let all = &view.langbase().languages;
                     if ln >= 0 && (ln as usize) < all.len() {
                         all[ln as usize].clone()
@@ -261,105 +261,105 @@ fn render_screen(view: &SetupView, cx: &mut PaintCx<'_>) {
                     }
                 }
                 (1, 1) => {
-                    if cfg.beeppi != 0 {
+                    if cfg.sound_effects != 0 {
                         view.langbase().lstr(6).to_string()
                     } else {
                         view.langbase().lstr(7).to_string()
                     }
                 }
                 (1, 2) => {
-                    if cfg.gdetail == 0 {
+                    if cfg.graphics_detail == 0 {
                         view.langbase().lstr(13).to_string()
                     } else {
                         view.langbase().lstr(14).to_string()
                     }
                 }
                 (1, 3) => {
-                    let n = cfg.namenumber;
+                    let n = cfg.name_set_index;
                     let hint = view.resources.namesets.title_for_config(n);
                     cx.text((40, 78), FONT_GRAY, format!("*** {hint} ***"));
                     format!("{n}")
                 }
                 (2, 0) => {
-                    if cfg.trainrounds == 0 {
+                    if cfg.training_rounds == 0 {
                         view.langbase().lstr(9).to_string()
                     } else {
-                        view.langbase().lstr(cfg.trainrounds as usize).to_string()
+                        view.langbase().lstr(cfg.training_rounds as usize).to_string()
                     }
                 }
                 (2, 1) => {
-                    if cfg.lct != 0 {
+                    if cfg.extra_statistics != 0 {
                         view.langbase().lstr(180).to_string()
                     } else {
                         view.langbase().lstr(185).to_string()
                     }
                 }
                 (2, 2) => {
-                    if cfg.diff != 0 {
+                    if cfg.event_gap != 0 {
                         view.langbase().lstr(181).to_string()
                     } else {
                         view.langbase().lstr(186).to_string()
                     }
                 }
                 (2, 3) => {
-                    if cfg.diffwc != 0 {
+                    if cfg.wc_gap != 0 {
                         view.langbase().lstr(181).to_string()
                     } else {
                         view.langbase().lstr(186).to_string()
                     }
                 }
                 (2, 4) => {
-                    if cfg.compactlist != 0 {
+                    if cfg.compact_results != 0 {
                         view.langbase().lstr(182).to_string()
                     } else {
                         view.langbase().lstr(187).to_string()
                     }
                 }
                 (2, 5) => {
-                    if cfg.invback != 0 {
+                    if cfg.invisible_back != 0 {
                         view.langbase().lstr(183).to_string()
                     } else {
                         view.langbase().lstr(188).to_string()
                     }
                 }
                 (2, 6) => {
-                    if cfg.automatichrr != 0 {
+                    if cfg.auto_hill_record_replay != 0 {
                         view.langbase().lstr(182).to_string()
                     } else {
                         view.langbase().lstr(185).to_string()
                     }
                 }
                 (2, 7) => {
-                    if cfg.goals != 0 {
+                    if cfg.goals_enabled != 0 {
                         view.langbase().lstr(180).to_string()
                     } else {
                         view.langbase().lstr(186).to_string()
                     }
                 }
                 (2, 8) => {
-                    if cfg.seecomps >= 235 {
-                        view.langbase().lstr(cfg.seecomps as usize).to_string()
+                    if cfg.visible_computers >= 235 {
+                        view.langbase().lstr(cfg.visible_computers as usize).to_string()
                     } else {
-                        format!("#{}", cfg.seecomps)
+                        format!("#{}", cfg.visible_computers)
                     }
                 }
-                (2, 9) => wind_place_name(view.langbase(), cfg.windplace as usize),
+                (2, 9) => wind_place_name(view.langbase(), cfg.wind_position as usize),
                 (2, 10) => {
-                    if cfg.kosystem != 0 {
+                    if cfg.ko_system != 0 {
                         view.langbase().lstr(182).to_string()
                     } else {
                         view.langbase().lstr(185).to_string()
                     }
                 }
                 (3, 0) => {
-                    if cfg.comphrs != 0 {
+                    if cfg.computer_hill_records != 0 {
                         view.langbase().lstr(183).to_string()
                     } else {
                         view.langbase().lstr(187).to_string()
                     }
                 }
                 (3, 1) => {
-                    if cfg.nosamename != 0 {
+                    if cfg.unique_computer_names != 0 {
                         view.langbase().lstr(185).to_string()
                     } else {
                         view.langbase().lstr(180).to_string()

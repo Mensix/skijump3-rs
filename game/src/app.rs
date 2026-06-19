@@ -47,8 +47,8 @@ impl Game {
         let start_route = {
             let game_state = state.state.borrow();
             let language_count = state.resources.langbase.languages.len() as i32;
-            if game_state.config.languagenumber >= 0
-                && game_state.config.languagenumber < language_count
+            if game_state.config.language >= 0
+                && game_state.config.language < language_count
             {
                 RouteTarget::MainMenu
             } else {

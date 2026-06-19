@@ -48,8 +48,8 @@ impl Resources {
         }
     }
 
-    pub fn player_names(&self, namenumber: usize) -> &[String] {
-        self.namesets.names_for_config(namenumber as i32)
+    pub fn player_names(&self, name_set_index: usize) -> &[String] {
+        self.namesets.names_for_config(name_set_index as i32)
     }
 
     pub(crate) fn terrain(&self, hill_idx: usize) -> Result<Rc<HillTerrain>, AssetError> {
@@ -120,7 +120,7 @@ impl GameState {
     pub fn setup_jump_event(&mut self) {
         self.first_event = true;
         self.wind
-            .initialize(&mut self.rng, self.config.windplace as u8);
+            .initialize(&mut self.rng, self.config.wind_position as u8);
     }
 
     pub fn consume_first_jump_event(&mut self) -> bool {
@@ -131,7 +131,7 @@ impl GameState {
 
     pub fn reset_practice_wind(&mut self) {
         self.wind
-            .initialize(&mut self.rng, self.config.windplace as u8);
+            .initialize(&mut self.rng, self.config.wind_position as u8);
     }
 }
 

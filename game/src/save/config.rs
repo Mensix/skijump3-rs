@@ -13,79 +13,77 @@ struct ConfigFile {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
-    pub reg: i32,
-    pub comphrs: i32,
-    pub lct: i32,
-    pub diff: i32,
-    pub compactlist: i32,
-    pub invback: i32,
-    pub automatichrr: i32,
-    pub beeppi: i32,
-    pub nosamename: i32,
-    pub goals: i32,
-    pub diffwc: i32,
-    pub kosystem: i32,
-    pub languagenumber: i32,
-    pub trainrounds: i32,
-    pub namenumber: i32,
-    pub setfile: String,
-    pub gdetail: i32,
-    pub seecomps: i32,
+    pub computer_hill_records: i32,
+    pub extra_statistics: i32,
+    pub event_gap: i32,
+    pub compact_results: i32,
+    pub invisible_back: i32,
+    pub auto_hill_record_replay: i32,
+    pub sound_effects: i32,
+    pub unique_computer_names: i32,
+    pub goals_enabled: i32,
+    pub wc_gap: i32,
+    pub ko_system: i32,
+    pub language: i32,
+    pub training_rounds: i32,
+    pub name_set_index: i32,
+    pub last_custom_cup_file: String,
+    pub graphics_detail: i32,
+    pub visible_computers: i32,
     pub jumper_count: i32,
-    pub jnimet: Vec<String>,
+    pub jumper_names: Vec<String>,
     pub player_count: i32,
-    pub profileorder: Vec<i32>,
-    pub kothwind: i32,
-    pub kothrounds: i32,
-    pub kothpack: i32,
-    pub kothmaki: i32,
-    pub koth_count: i32,
-    pub kothpel: Vec<i32>,
+    pub profile_order: Vec<i32>,
+    pub koth_wind: i32,
+    pub koth_rounds: i32,
+    pub koth_pack: i32,
+    pub koth_hill: i32,
+    pub koth_opponent_count: i32,
+    pub koth_opponent_ids: Vec<i32>,
     pub key_up: i32,
     pub key_right: i32,
     pub key_left: i32,
     pub key_telemark: i32,
     pub key_replay: i32,
-    pub windplace: i32,
+    pub wind_position: i32,
 }
 
 impl Default for Config {
     fn default() -> Self {
         Self {
-            reg: 0,
-            comphrs: 1,
-            lct: 0,
-            diff: 0,
-            compactlist: 0,
-            invback: 0,
-            automatichrr: 1,
-            beeppi: 0,
-            nosamename: 0,
-            goals: 1,
-            diffwc: 0,
-            kosystem: 1,
-            languagenumber: 255,
-            trainrounds: 0,
-            namenumber: 0,
-            setfile: String::from("TEMP"),
-            gdetail: 0,
-            seecomps: 1,
+            computer_hill_records: 1,
+            extra_statistics: 0,
+            event_gap: 0,
+            compact_results: 0,
+            invisible_back: 0,
+            auto_hill_record_replay: 1,
+            sound_effects: 0,
+            unique_computer_names: 0,
+            goals_enabled: 1,
+            wc_gap: 0,
+            ko_system: 1,
+            language: 255,
+            training_rounds: 0,
+            name_set_index: 0,
+            last_custom_cup_file: String::from("TEMP"),
+            graphics_detail: 0,
+            visible_computers: 1,
             jumper_count: 1,
-            jnimet: vec![String::from("A TEAM")],
+            jumper_names: vec![String::from("A TEAM")],
             player_count: 1,
-            profileorder: vec![1],
-            kothwind: 0,
-            kothrounds: 2,
-            kothpack: 1,
-            kothmaki: 0,
-            koth_count: 1,
-            kothpel: vec![1],
+            profile_order: vec![1],
+            koth_wind: 0,
+            koth_rounds: 2,
+            koth_pack: 1,
+            koth_hill: 0,
+            koth_opponent_count: 1,
+            koth_opponent_ids: vec![1],
             key_up: 72,
             key_right: 77,
             key_left: 75,
             key_telemark: 21524,
             key_replay: 21011,
-            windplace: 1,
+            wind_position: 1,
         }
     }
 }
@@ -122,40 +120,39 @@ mod tests {
         let cfg = Config::default();
         let bytes = cfg.to_toml_bytes().unwrap();
         let parsed = Config::from_toml_bytes(&bytes).unwrap();
-        assert_eq!(parsed.reg, cfg.reg);
-        assert_eq!(parsed.comphrs, cfg.comphrs);
-        assert_eq!(parsed.lct, cfg.lct);
-        assert_eq!(parsed.diff, cfg.diff);
-        assert_eq!(parsed.compactlist, cfg.compactlist);
-        assert_eq!(parsed.invback, cfg.invback);
-        assert_eq!(parsed.automatichrr, cfg.automatichrr);
-        assert_eq!(parsed.beeppi, cfg.beeppi);
-        assert_eq!(parsed.nosamename, cfg.nosamename);
-        assert_eq!(parsed.goals, cfg.goals);
-        assert_eq!(parsed.diffwc, cfg.diffwc);
-        assert_eq!(parsed.kosystem, cfg.kosystem);
-        assert_eq!(parsed.languagenumber, cfg.languagenumber);
-        assert_eq!(parsed.trainrounds, cfg.trainrounds);
-        assert_eq!(parsed.namenumber, cfg.namenumber);
-        assert_eq!(parsed.setfile, cfg.setfile);
-        assert_eq!(parsed.gdetail, cfg.gdetail);
-        assert_eq!(parsed.seecomps, cfg.seecomps);
+        assert_eq!(parsed.computer_hill_records, cfg.computer_hill_records);
+        assert_eq!(parsed.extra_statistics, cfg.extra_statistics);
+        assert_eq!(parsed.event_gap, cfg.event_gap);
+        assert_eq!(parsed.compact_results, cfg.compact_results);
+        assert_eq!(parsed.invisible_back, cfg.invisible_back);
+        assert_eq!(parsed.auto_hill_record_replay, cfg.auto_hill_record_replay);
+        assert_eq!(parsed.sound_effects, cfg.sound_effects);
+        assert_eq!(parsed.unique_computer_names, cfg.unique_computer_names);
+        assert_eq!(parsed.goals_enabled, cfg.goals_enabled);
+        assert_eq!(parsed.wc_gap, cfg.wc_gap);
+        assert_eq!(parsed.ko_system, cfg.ko_system);
+        assert_eq!(parsed.language, cfg.language);
+        assert_eq!(parsed.training_rounds, cfg.training_rounds);
+        assert_eq!(parsed.name_set_index, cfg.name_set_index);
+        assert_eq!(parsed.last_custom_cup_file, cfg.last_custom_cup_file);
+        assert_eq!(parsed.graphics_detail, cfg.graphics_detail);
+        assert_eq!(parsed.visible_computers, cfg.visible_computers);
         assert_eq!(parsed.jumper_count, cfg.jumper_count);
-        assert_eq!(parsed.jnimet, cfg.jnimet);
+        assert_eq!(parsed.jumper_names, cfg.jumper_names);
         assert_eq!(parsed.player_count, cfg.player_count);
-        assert_eq!(parsed.profileorder, cfg.profileorder);
-        assert_eq!(parsed.kothwind, cfg.kothwind);
-        assert_eq!(parsed.kothrounds, cfg.kothrounds);
-        assert_eq!(parsed.kothpack, cfg.kothpack);
-        assert_eq!(parsed.kothmaki, cfg.kothmaki);
-        assert_eq!(parsed.koth_count, cfg.koth_count);
-        assert_eq!(parsed.kothpel, cfg.kothpel);
+        assert_eq!(parsed.profile_order, cfg.profile_order);
+        assert_eq!(parsed.koth_wind, cfg.koth_wind);
+        assert_eq!(parsed.koth_rounds, cfg.koth_rounds);
+        assert_eq!(parsed.koth_pack, cfg.koth_pack);
+        assert_eq!(parsed.koth_hill, cfg.koth_hill);
+        assert_eq!(parsed.koth_opponent_count, cfg.koth_opponent_count);
+        assert_eq!(parsed.koth_opponent_ids, cfg.koth_opponent_ids);
         assert_eq!(parsed.key_up, cfg.key_up);
         assert_eq!(parsed.key_right, cfg.key_right);
         assert_eq!(parsed.key_left, cfg.key_left);
         assert_eq!(parsed.key_telemark, cfg.key_telemark);
         assert_eq!(parsed.key_replay, cfg.key_replay);
-        assert_eq!(parsed.windplace, cfg.windplace);
+        assert_eq!(parsed.wind_position, cfg.wind_position);
     }
 
     #[test]

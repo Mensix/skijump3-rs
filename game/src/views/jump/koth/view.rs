@@ -55,7 +55,7 @@ impl KothJumpView {
         }
 
         let mut state = self.controller.state().borrow_mut();
-        let pack = state.config.kothpack;
+        let pack = state.config.koth_pack;
         if !(1..=6).contains(&pack) {
             return;
         }

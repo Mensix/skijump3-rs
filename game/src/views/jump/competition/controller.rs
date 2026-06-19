@@ -51,7 +51,7 @@ where
         save_manager: SaveRef,
         scene: Option<JumpScene>,
     ) -> Self {
-        let compact = state.borrow().config.compactlist != 0;
+        let compact = state.borrow().config.compact_results != 0;
         Self {
             resources: resources.clone(),
             state: state.clone(),
@@ -344,9 +344,9 @@ where
         if participant.control != JumperControl::Computer {
             return false;
         }
-        let seecomps = self.state.borrow().config.seecomps;
-        match seecomps {
-            1..=234 => participant.ai_id + 1 == seecomps as usize,
+        let visible_computers = self.state.borrow().config.visible_computers;
+        match visible_computers {
+            1..=234 => participant.ai_id + 1 == visible_computers as usize,
             235 => runtime.start_order_pos_for_context(context) < 1,
             236 => runtime.start_order_pos_for_context(context) < 3,
             237 => runtime.start_order_pos_for_context(context) < 5,
@@ -399,7 +399,7 @@ fn apply_post_jump_side_effects(
         }
     }
 
-    let computer_records_enabled = !side_effects.is_computer || state.config.comphrs != 0;
+    let computer_records_enabled = !side_effects.is_computer || state.config.computer_hill_records != 0;
     if computer_records_enabled
         && side_effects.saves_hill_records
         && outcome.fall_type == FallType::None

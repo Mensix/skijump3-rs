@@ -15,15 +15,15 @@ pub fn build_competition(
     profiles: &ProfileStore,
     computer_names: &[String],
     hill_count: usize,
-    trainrounds: usize,
+    training_rounds: usize,
     no_same_name: bool,
-    kosystem: bool,
+    ko_system: bool,
 ) -> Competition {
     let participants = build_participants(profiles, computer_names, no_same_name);
     let hill_order = build_hill_order(style, hill_count);
     let mut c = Competition::new(style, participants, hill_order);
-    c.trainrounds = trainrounds;
-    c.kosystem = kosystem;
+    c.training_rounds = training_rounds;
+    c.ko_system = ko_system;
     c
 }
 
@@ -33,14 +33,14 @@ pub fn build_custom_competition(
     profiles: &ProfileStore,
     computer_names: &[String],
     hill_order: Vec<usize>,
-    trainrounds: usize,
+    training_rounds: usize,
     no_same_name: bool,
-    kosystem: bool,
+    ko_system: bool,
 ) -> Competition {
     let participants = build_participants(profiles, computer_names, no_same_name);
     let mut c = Competition::new(CupStyle::CustomCup, participants, hill_order);
-    c.trainrounds = trainrounds;
-    c.kosystem = kosystem;
+    c.training_rounds = training_rounds;
+    c.ko_system = ko_system;
     c
 }
 
@@ -118,7 +118,7 @@ mod tests {
     fn builds_75_participants() {
         let profiles = ProfileStore::new();
         let names = vec!["AAA".into(), "BBB".into()];
-        let comp = build_competition(CupStyle::WorldCup, &profiles, &names, 20, 2);
+        let comp = build_competition(CupStyle::WorldCup, &profiles, &names, 20, 2, false, false);
         assert_eq!(comp.field.len(), 75);
     }
 
@@ -126,7 +126,7 @@ mod tests {
     fn user_profiles_are_last_and_not_computer() {
         let profiles = ProfileStore::new();
         let names = vec!["AAA".into(), "BBB".into()];
-        let comp = build_competition(CupStyle::WorldCup, &profiles, &names, 20, 2);
+        let comp = build_competition(CupStyle::WorldCup, &profiles, &names, 20, 2, false, false);
         assert!(comp.field.get(0).is_computer);
         assert_eq!(comp.field.get(0).name, "AAA");
         assert_eq!(comp.field.get(0).ai_id, 0);
@@ -145,7 +145,7 @@ mod tests {
         });
         let names = vec!["CPU".into()];
 
-        let comp = build_competition(CupStyle::WorldCup, &profiles, &names, 20, 0);
+        let comp = build_competition(CupStyle::WorldCup, &profiles, &names, 20, 0, false, false);
 
         assert!(!comp.field.get(74).is_computer);
         assert_eq!(comp.field.get(74).name, "SKI JUMPER");
@@ -158,7 +158,7 @@ mod tests {
         profiles.profiles[0].replace = 1;
         let names = vec!["ROAR".into(), "ADAM".into(), "JANNE".into()];
 
-        let comp = build_competition(CupStyle::WorldCup, &profiles, &names, 20, 0);
+        let comp = build_competition(CupStyle::WorldCup, &profiles, &names, 20, 0, false, false);
 
         assert_eq!(comp.field.get(0).name, "ADAM");
         assert_eq!(comp.field.get(0).ai_id, 0);
@@ -169,7 +169,7 @@ mod tests {
     fn first_competition_qualification_order_matches_pascal() {
         let profiles = ProfileStore::new();
         let names = vec!["ROAR".into(), "ADAM".into()];
-        let mut comp = build_competition(CupStyle::WorldCup, &profiles, &names, 20, 0);
+        let mut comp = build_competition(CupStyle::WorldCup, &profiles, &names, 20, 0, false, false);
 
         comp.advance();
         assert_eq!(comp.current_jumper(), Some(74));
@@ -191,7 +191,7 @@ mod tests {
     fn four_hills_order_is_fixed() {
         let profiles = ProfileStore::new();
         let names = vec!["X".into()];
-        let comp = build_competition(CupStyle::FourHills, &profiles, &names, 20, 0);
+        let comp = build_competition(CupStyle::FourHills, &profiles, &names, 20, 0, false, false);
         assert_eq!(comp.hill_order, vec![8, 9, 10, 11]);
     }
 
@@ -199,7 +199,7 @@ mod tests {
     fn world_cup_uses_all_hills() {
         let profiles = ProfileStore::new();
         let names = vec!["X".into()];
-        let comp = build_competition(CupStyle::WorldCup, &profiles, &names, 10, 0);
+        let comp = build_competition(CupStyle::WorldCup, &profiles, &names, 10, 0, false, false);
         assert_eq!(comp.hill_order.len(), 10);
         assert_eq!(comp.hill_order[0], 0);
         assert_eq!(comp.hill_order[9], 9);

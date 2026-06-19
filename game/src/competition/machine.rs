@@ -42,12 +42,12 @@ pub struct Competition {
     pub(crate) hill_order: Vec<usize>,
     pub(crate) current_event: usize,
     pub(crate) phase: CompetitionPhase,
-    pub(crate) trainrounds: usize,
+    pub(crate) training_rounds: usize,
 
     start_list: Vec<usize>,
     start_pos: usize,
 
-    pub(crate) kosystem: bool,
+    pub(crate) ko_system: bool,
 
     /// Pascal mcluett: saved seed-pairing order for KO results display.
     ko_pairings: Vec<usize>,
@@ -62,10 +62,10 @@ impl Competition {
             hill_order,
             current_event: 0,
             phase: CompetitionPhase::Setup,
-            trainrounds: 2,
+            training_rounds: 2,
             start_list: Vec::new(),
             start_pos: 0,
-            kosystem: false,
+            ko_system: false,
             ko_pairings: Vec::new(),
         }
     }
@@ -198,7 +198,7 @@ impl Competition {
             CompetitionPhase::Training(n) => {
                 if self.start_pos >= self.start_list.len() {
                     let next = n + 1;
-                    if next <= self.trainrounds {
+                    if next <= self.training_rounds {
                         self.enter_phase(CompetitionPhase::Training(next));
                     } else if self.style == CupStyle::CustomCup {
                         self.enter_custom_round1();
@@ -365,7 +365,7 @@ impl Competition {
             }
         }
 
-        if self.trainrounds > 0 {
+        if self.training_rounds > 0 {
             self.enter_phase(CompetitionPhase::Training(1));
         } else if self.style == CupStyle::CustomCup {
             self.enter_custom_round1();
@@ -381,7 +381,7 @@ impl Competition {
     }
 
     fn is_ko_event(&self) -> bool {
-        self.kosystem && self.is_four_hills_event()
+        self.ko_system && self.is_four_hills_event()
     }
 
     fn sort_overall_field(&mut self) {
@@ -571,7 +571,7 @@ mod tests {
             make_50_participants(),
             (0..hills).collect(),
         );
-        c.trainrounds = 0;
+        c.training_rounds = 0;
         c
     }
 
@@ -773,7 +773,7 @@ mod tests {
     #[test]
     fn four_hills_shows_tour_standings_between_events() {
         let mut c = Competition::new(CupStyle::FourHills, make_50_participants(), vec![8, 9]);
-        c.trainrounds = 0;
+        c.training_rounds = 0;
 
         while c.phase != CompetitionPhase::Round2Results {
             if c.current_jumper().is_none() {
@@ -799,7 +799,7 @@ mod tests {
     #[test]
     fn four_hills_final_uses_tour_points() {
         let mut c = Competition::new(CupStyle::FourHills, make_50_participants(), vec![8]);
-        c.trainrounds = 0;
+        c.training_rounds = 0;
 
         run_all_jumps(&mut c);
 
@@ -819,7 +819,7 @@ mod tests {
         participants[human_idx].skip_quali = 1;
 
         let mut c = Competition::new(CupStyle::WorldCup, participants, vec![0, 1]);
-        c.trainrounds = 0;
+        c.training_rounds = 0;
 
         // Run event 1 so setup for event 2 marks PreQualified
         c.advance(); // Setup -> Qualification
@@ -879,7 +879,7 @@ mod tests {
         participants[human_idx].skip_quali = 1;
 
         let mut c = Competition::new(CupStyle::WorldCup, participants, vec![0, 1]);
-        c.trainrounds = 0;
+        c.training_rounds = 0;
 
         c.advance(); // -> Qualification
         while let Some(idx) = c.current_jumper() {
@@ -908,7 +908,7 @@ mod tests {
             p.points = Some(f64::from(1000 - i as i32 * 10)); // 1000, 990, 980, ...
         }
         let mut c = Competition::new(CupStyle::WorldCup, participants, vec![0]);
-        c.trainrounds = 0;
+        c.training_rounds = 0;
 
         c.advance(); // -> Qualification
         while c.current_jumper().is_some() {
@@ -952,7 +952,7 @@ mod tests {
         participants[human_idx].qual = QualificationStatus::PreQualified;
 
         let mut c = Competition::new(CupStyle::WorldCup, participants, vec![0]);
-        c.trainrounds = 0;
+        c.training_rounds = 0;
         c.phase = CompetitionPhase::Qualification;
         c.start_list = vec![human_idx];
         c.start_pos = 0;
@@ -967,7 +967,7 @@ mod tests {
         participants[ai_idx].qual = QualificationStatus::PreQualified;
 
         let mut c = Competition::new(CupStyle::WorldCup, participants, vec![0]);
-        c.trainrounds = 0;
+        c.training_rounds = 0;
         c.phase = CompetitionPhase::Qualification;
         c.start_list = vec![ai_idx];
         c.start_pos = 0;
@@ -985,7 +985,7 @@ mod tests {
         participants[human_idx].qual = QualificationStatus::NotQualified;
 
         let mut c = Competition::new(CupStyle::WorldCup, participants, vec![0]);
-        c.trainrounds = 0;
+        c.training_rounds = 0;
         c.phase = CompetitionPhase::Qualification;
         c.start_list = vec![human_idx];
         c.start_pos = 0;
@@ -1002,7 +1002,7 @@ mod tests {
         participants[human_idx].qual = QualificationStatus::PreQualified;
 
         let mut c = Competition::new(CupStyle::WorldCup, participants, vec![0]);
-        c.trainrounds = 0;
+        c.training_rounds = 0;
         c.phase = CompetitionPhase::Qualification;
         c.start_list = vec![human_idx];
         c.start_pos = 0;

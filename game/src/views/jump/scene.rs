@@ -34,12 +34,12 @@ impl JumpScene {
         let mut snow = existing.unwrap_or_default();
         let is_first = store.borrow_mut().consume_first_jump_event();
         if is_first {
-            let low_detail = store.borrow().config.gdetail == 1;
+            let low_detail = store.borrow().config.graphics_detail == 1;
             {
                 let guard = &mut *store.borrow_mut();
                 guard
                     .wind
-                    .initialize(&mut guard.rng, guard.config.windplace as u8);
+                    .initialize(&mut guard.rng, guard.config.wind_position as u8);
                 let snow_count = calculate_snow_count(&mut guard.rng);
                 snow.set_count(snow_count, &mut guard.rng);
                 let snow_count = if low_detail { 0 } else { snow_count };
@@ -315,7 +315,7 @@ impl JumpScene {
     }
 
     fn open_auto_hill_record_replay_dialog(&mut self) {
-        if self.auto_replay_prompted || self.store.borrow().config.automatichrr == 0 {
+        if self.auto_replay_prompted || self.store.borrow().config.auto_hill_record_replay == 0 {
             return;
         }
         let Some(outcome) = self.runner.outcome() else {
@@ -368,7 +368,7 @@ impl JumpScene {
                 policy,
                 record_distance,
                 goal_distance,
-                draw_back: store.borrow().config.invback == 0,
+                draw_back: store.borrow().config.invisible_back == 0,
                 phase_label,
                 team_name: String::new(),
             },
@@ -383,7 +383,7 @@ impl JumpScene {
 
 fn goal_distance(store: &GameStateRef, hill_idx: usize) -> f64 {
     let state = store.borrow();
-    if state.config.goals == 0 {
+    if state.config.goals_enabled == 0 {
         return 0.0;
     }
     state

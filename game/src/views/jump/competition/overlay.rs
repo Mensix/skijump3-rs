@@ -552,7 +552,7 @@ impl CompetitionOverlay {
         }
 
         // Gap-to-leader line
-        if self.store.borrow().config.diff != 0 {
+        if self.store.borrow().config.event_gap != 0 {
             if let Some(ref pel) = data.current_participant {
                 let leader_pts = data.event_standings_top5.first().map_or(0.0, |e| e.points);
                 let current_pts = pel.points.unwrap_or(0.0);
@@ -628,7 +628,7 @@ impl CompetitionOverlay {
             let s = format!("{}  {}", entry.name, entry.points);
             cx.right_text((308, 20 + i as i32 * 7), FONT_GOLD, s);
         }
-        if self.store.borrow().config.diffwc != 0 {
+        if self.store.borrow().config.wc_gap != 0 {
             if let (Some(leader), Some(current)) = (
                 data.wc_standings_top5.first(),
                 data.current_participant.as_ref(),

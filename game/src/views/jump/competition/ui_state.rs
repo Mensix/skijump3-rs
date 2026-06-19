@@ -175,6 +175,11 @@ impl CompetitionUiState {
         }
     }
 
+    pub fn select_stats_screen(&self) {
+        self.result_screen.set(ResultScreen::Stats);
+        self.display_page.set(0);
+    }
+
     pub fn current_screen(&self) -> ResultScreen {
         self.result_screen.get()
     }

@@ -12,18 +12,18 @@ pub fn world_cup(
     profiles: &ProfileStore,
     computer_names: &[String],
     hill_count: usize,
-    trainrounds: usize,
+    training_rounds: usize,
     no_same_name: bool,
-    kosystem: bool,
+    ko_system: bool,
 ) -> ActiveCompetition {
     ActiveCompetition::from_individual(build_competition(
         CupStyle::WorldCup,
         profiles,
         computer_names,
         hill_count,
-        trainrounds,
+        training_rounds,
         no_same_name,
-        kosystem,
+        ko_system,
     ))
 }
 
@@ -31,18 +31,18 @@ pub fn four_hills(
     profiles: &ProfileStore,
     computer_names: &[String],
     hill_count: usize,
-    trainrounds: usize,
+    training_rounds: usize,
     no_same_name: bool,
-    kosystem: bool,
+    ko_system: bool,
 ) -> ActiveCompetition {
     ActiveCompetition::from_individual(build_competition(
         CupStyle::FourHills,
         profiles,
         computer_names,
         hill_count,
-        trainrounds,
+        training_rounds,
         no_same_name,
-        kosystem,
+        ko_system,
     ))
 }
 
@@ -50,17 +50,17 @@ pub fn custom_cup(
     profiles: &ProfileStore,
     computer_names: &[String],
     hill_order: Vec<usize>,
-    trainrounds: usize,
+    training_rounds: usize,
     no_same_name: bool,
-    kosystem: bool,
+    ko_system: bool,
 ) -> ActiveCompetition {
     ActiveCompetition::from_individual(build_custom_competition(
         profiles,
         computer_names,
         hill_order,
-        trainrounds,
+        training_rounds,
         no_same_name,
-        kosystem,
+        ko_system,
     ))
 }
 

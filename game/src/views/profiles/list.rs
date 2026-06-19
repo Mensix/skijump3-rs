@@ -214,13 +214,13 @@ impl ProfilesView {
                     if value
                         <= self
                             .resources
-                            .player_names(self.store.borrow().config.namenumber as usize)
+                            .player_names(self.store.borrow().config.name_set_index as usize)
                             .len()
                     {
                         let n = replace_display_name(
                             value,
                             self.resources
-                                .player_names(self.store.borrow().config.namenumber as usize),
+                                .player_names(self.store.borrow().config.name_set_index as usize),
                             &self.resources.font,
                             x,
                         );

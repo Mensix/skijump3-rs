@@ -45,7 +45,7 @@ fn build_teams(
     let mut profile_ptr = 0;
     let mut teams = Vec::with_capacity(NUM_TEAMS);
 
-    // AI teams occupy the first slots; human teams are at the end (Pascal: jnimet[15], jnimet[14])
+    // AI teams occupy the first slots; human teams are at the end (Pascal: jumper_names[15], jumper_names[14])
     let ai_count = NUM_TEAMS.saturating_sub(human_team_count);
 
     for ti in 0..NUM_TEAMS {

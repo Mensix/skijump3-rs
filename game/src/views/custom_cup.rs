@@ -112,7 +112,7 @@ impl CustomCupSetupView {
         cx.text(
             (250, 30),
             FONT_GRAY,
-            self.store.borrow().config.setfile.as_str(),
+            self.store.borrow().config.last_custom_cup_file.as_str(),
         );
 
         match self.mode {
@@ -222,7 +222,7 @@ impl CustomCupSetupView {
                 None
             }
             UiEvent::Text('s' | 'S') => {
-                self.filename_input = self.store.borrow().config.setfile.clone();
+                self.filename_input = self.store.borrow().config.last_custom_cup_file.clone();
                 if self.filename_input == "TEMP" || self.filename_input.is_empty() {
                     self.filename_input = "CUSTOM".to_string();
                 }
@@ -341,11 +341,11 @@ impl CustomCupSetupView {
         let comp = factory::custom_cup(
             &state.profiles,
             self.resources
-                .player_names(state.config.namenumber as usize),
+                .player_names(state.config.name_set_index as usize),
             self.selected.clone(),
-            0,
-            state.config.nosamename != 0,
-            state.config.kosystem != 0,
+            state.config.training_rounds as usize,
+            state.config.unique_computer_names != 0,
+            state.config.ko_system != 0,
         );
         drop(state);
         self.store.borrow_mut().start_active(comp);
@@ -400,7 +400,7 @@ impl CustomCupSetupView {
         }
         self.selected = hills;
         self.preview = self.selected.last().copied().unwrap_or(0);
-        self.update_setfile(name);
+        self.update_last_custom_cup_file(name);
         self.mode = CustomCupMode::Browse;
     }
 
@@ -419,7 +419,7 @@ impl CustomCupSetupView {
             return;
         }
         self.filename_input = name.clone();
-        self.update_setfile(name);
+        self.update_last_custom_cup_file(name);
         self.show_message("Custom set saved");
     }
 
@@ -442,9 +442,9 @@ impl CustomCupSetupView {
         self.mode = CustomCupMode::Message;
     }
 
-    fn update_setfile(&self, name: String) {
+    fn update_last_custom_cup_file(&self, name: String) {
         let mut state = self.store.borrow_mut();
-        state.config.setfile = name;
+        state.config.last_custom_cup_file = name;
         if let Err(e) = self.save_manager.save_config(&state.config) {
             eprintln!("Warning: failed to save config: {e}");
         }

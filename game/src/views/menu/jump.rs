@@ -122,11 +122,11 @@ impl JumpMenuView {
         let config = self.store.borrow().config.clone();
         let comp = factory::world_cup(
             &profiles,
-            self.resources.player_names(config.namenumber as usize),
+            self.resources.player_names(config.name_set_index as usize),
             self.resources.hills.len(),
-            config.trainrounds as usize,
-            config.nosamename != 0,
-            config.kosystem != 0,
+            config.training_rounds as usize,
+            config.unique_computer_names != 0,
+            config.ko_system != 0,
         );
         self.store.borrow_mut().start_active(comp);
         RouteTarget::CompetitionJump
@@ -137,11 +137,11 @@ impl JumpMenuView {
         let config = self.store.borrow().config.clone();
         let comp = factory::four_hills(
             &profiles,
-            self.resources.player_names(config.namenumber as usize),
+            self.resources.player_names(config.name_set_index as usize),
             self.resources.hills.len(),
-            config.trainrounds as usize,
-            config.nosamename != 0,
-            config.kosystem != 0,
+            config.training_rounds as usize,
+            config.unique_computer_names != 0,
+            config.ko_system != 0,
         );
         self.store.borrow_mut().start_active(comp);
         RouteTarget::CompetitionJump
@@ -153,13 +153,13 @@ impl JumpMenuView {
         let human_teams = num_players / 4;
         let names = self
             .resources
-            .player_names(self.store.borrow().config.namenumber as usize)
+            .player_names(self.store.borrow().config.name_set_index as usize)
             .to_vec();
-        let namenumber = self.store.borrow().config.namenumber as usize;
+        let name_set_index = self.store.borrow().config.name_set_index as usize;
         let teams_def = self
             .resources
             .namesets
-            .teams_for_config(namenumber as i32)
+            .teams_for_config(name_set_index as i32)
             .to_vec();
         let hill_count = self.resources.hills.len();
 

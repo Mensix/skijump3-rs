@@ -17,12 +17,12 @@ pub fn build_koth(
     no_same_name: bool,
     mut rng: Random,
 ) -> KothRuntime {
-    let kothpel: Vec<usize> = config.kothpel.iter().map(|&v| v as usize).collect();
+    let koth_opponent_ids: Vec<usize> = config.koth_opponent_ids.iter().map(|&v| v as usize).collect();
 
-    let jump_rounds_per_elimination = config.kothrounds.clamp(1, 2) as u8;
-    let _pack = config.kothpack.clamp(1, 6) as u8;
-    let packed_hill = if config.kothmaki > 0 {
-        Some(config.kothmaki as usize - 1)
+    let jump_rounds_per_elimination = config.koth_rounds.clamp(1, 2) as u8;
+    let _pack = config.koth_pack.clamp(1, 6) as u8;
+    let packed_hill = if config.koth_hill > 0 {
+        Some(config.koth_hill as usize - 1)
     } else {
         None
     };
@@ -32,7 +32,7 @@ pub fn build_koth(
         .filter(|&h| h < hill_count)
         .unwrap_or_else(|| rng.random_i32(hill_count as i32).max(0) as usize);
 
-    // build participants: NPCs from kothpel, then humans from profiles
+    // build participants: NPCs from koth_opponent_ids, then humans from profiles
     let active = active_profiles(profiles);
     let filtered_names = if no_same_name {
         computer_names_without_replacements(computer_names, &active)
@@ -43,8 +43,8 @@ pub fn build_koth(
     let mut participants: Vec<KothParticipant> = Vec::new();
     let mut human_indices: Vec<usize> = Vec::new();
 
-    // NPCs from kothpel
-    for (order, &npc_id) in kothpel.iter().enumerate() {
+    // NPCs from koth_opponent_ids
+    for (order, &npc_id) in koth_opponent_ids.iter().enumerate() {
         let name = filtered_names
             .get(npc_id % filtered_names.len().max(1))
             .cloned()
@@ -93,11 +93,11 @@ pub fn apply_koth_pack(state: &GameStateRef, save_manager: &SaveRef, pack: u8) {
     };
     {
         let mut state = state.borrow_mut();
-        state.config.koth_count = count;
-        state.config.kothpel = pel;
-        state.config.kothwind = wind;
-        state.config.kothrounds = rounds;
-        state.config.kothmaki = maki;
+        state.config.koth_opponent_count = count;
+        state.config.koth_opponent_ids = pel;
+        state.config.koth_wind = wind;
+        state.config.koth_rounds = rounds;
+        state.config.koth_hill = maki;
     }
     let _ = save_manager.save_config(&state.borrow().config);
 }

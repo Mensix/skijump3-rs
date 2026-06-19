@@ -23,17 +23,17 @@ pub(crate) struct NameSet {
 }
 
 impl NameCatalog {
-    pub(crate) fn names_for_config(&self, namenumber: i32) -> &[String] {
-        if namenumber >= 0 && (namenumber as usize) < self.namesets.len() {
-            &self.namesets[namenumber as usize].names
+    pub(crate) fn names_for_config(&self, name_set_index: i32) -> &[String] {
+        if name_set_index >= 0 && (name_set_index as usize) < self.namesets.len() {
+            &self.namesets[name_set_index as usize].names
         } else {
             &self.namesets[0].names
         }
     }
 
-    pub(crate) fn title_for_config(&self, namenumber: i32) -> &str {
-        if namenumber >= 0 && (namenumber as usize) < self.namesets.len() {
-            &self.namesets[namenumber as usize].title
+    pub(crate) fn title_for_config(&self, name_set_index: i32) -> &str {
+        if name_set_index >= 0 && (name_set_index as usize) < self.namesets.len() {
+            &self.namesets[name_set_index as usize].title
         } else {
             &self.namesets[0].title
         }
@@ -43,9 +43,9 @@ impl NameCatalog {
         self.namesets.len()
     }
 
-    pub(crate) fn teams_for_config(&self, namenumber: i32) -> &[TeamDef] {
-        if namenumber >= 0 && (namenumber as usize) < self.namesets.len() {
-            &self.namesets[namenumber as usize].teams
+    pub(crate) fn teams_for_config(&self, name_set_index: i32) -> &[TeamDef] {
+        if name_set_index >= 0 && (name_set_index as usize) < self.namesets.len() {
+            &self.namesets[name_set_index as usize].teams
         } else {
             &self.namesets[0].teams
         }
