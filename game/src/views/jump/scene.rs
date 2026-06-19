@@ -5,6 +5,8 @@ use crate::jump::sim;
 use crate::jump::snow::{calculate_snow_count, SnowSystem};
 use crate::jump::types::{JumpOutcome, JumpPhase, JumpTelemetry};
 use crate::jump::{JumpParticipant, JumpPolicy, JumpRunner, JumpRunnerRenderEnv};
+use crate::jump::wind::Wind;
+use crate::rng::Random;
 use crate::store::{GameStateRef, ResourcesRef};
 use crate::views::jump::input::{JumpInputAction, JumpInputController, JumpKeyBindings};
 use crate::views::replay::save_dialog::{SaveAction, SaveReplayDialog};
@@ -262,6 +264,8 @@ impl JumpScene {
         &self,
         participant: JumpParticipant,
         hill_idx: usize,
+        rng: &mut Random,
+        wind: &mut Wind,
     ) -> Result<JumpOutcome, JumpSceneError> {
         let terrain = self
             .resources
@@ -272,17 +276,13 @@ impl JumpScene {
             .hills
             .hill(hill_idx)
             .ok_or(JumpSceneError::MissingHill(hill_idx))?;
-        Ok({
-            let mut guard = self.store.borrow_mut();
-            let state = &mut *guard;
-            sim::simulate_computer(
-                &participant,
-                &terrain,
-                hill,
-                &mut state.rng,
-                &mut state.wind,
-            )
-        })
+        Ok(sim::simulate_computer(
+            &participant,
+            &terrain,
+            hill,
+            rng,
+            wind,
+        ))
     }
 
     pub fn render(&mut self, cx: &mut PaintCx<'_>) {

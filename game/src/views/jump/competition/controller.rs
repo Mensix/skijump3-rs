@@ -2,6 +2,8 @@ use std::cell::Cell;
 use std::marker::PhantomData;
 
 use crate::competition::runtime::{CompetitionDecision, CompetitionRuntime};
+use crate::jump::wind::Wind;
+use crate::rng::Random;
 use crate::data::records::HillRecord;
 use crate::jump::types::{FallType, JumpOutcome};
 use crate::jump::{JumpParticipant, JumpPolicy, JumperControl};
@@ -256,7 +258,8 @@ where
         let command = self
             .state
             .borrow_mut()
-            .with_runtime_mut(|runtime: &mut R| loop {
+            .with_runtime_jump_state_mut(|runtime: &mut R, rng: &mut Random, wind: &mut Wind| {
+            loop {
                 match runtime.decide_next_runtime() {
                     CompetitionDecision::ShowResults(kind) => {
                         return Ok(Some(CompetitionFlowCommand::ShowResults(kind)));
@@ -283,7 +286,7 @@ where
                             }));
                         }
 
-                        let outcome = self.simulate_computer(scene, participant, hill_idx)?;
+                        let outcome = self.simulate_computer(scene, participant, hill_idx, rng, wind)?;
                         pending_side_effects.push((
                             PostJumpSideEffects {
                                 profile_idx: runtime.profile_idx_for_context(&context),
@@ -301,7 +304,8 @@ where
                         }
                     }
                 }
-            });
+            }
+        });
 
         if !pending_side_effects.is_empty() {
             let mut state = self.state.borrow_mut();
@@ -331,8 +335,10 @@ where
         scene: &JumpScene,
         participant: JumpParticipant,
         hill_idx: usize,
+        rng: &mut Random,
+        wind: &mut Wind,
     ) -> Result<JumpOutcome, CompetitionControllerError> {
-        Ok(scene.simulate_hidden(participant, hill_idx)?)
+        Ok(scene.simulate_hidden(participant, hill_idx, rng, wind)?)
     }
 
     fn should_show_computer_jump(

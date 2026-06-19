@@ -149,11 +149,29 @@ pub type GameStateRef = Rc<RefCell<GameState>>;
 
 pub trait HasRuntime<R> {
     fn with_runtime_mut<T>(&mut self, f: impl FnOnce(&mut R) -> T) -> Option<T>;
+    fn with_runtime_jump_state_mut<T>(
+        &mut self,
+        f: impl FnOnce(&mut R, &mut Random, &mut Wind) -> T,
+    ) -> Option<T>;
 }
 
 impl HasRuntime<Competition> for GameState {
     fn with_runtime_mut<T>(&mut self, f: impl FnOnce(&mut Competition) -> T) -> Option<T> {
         self.active_competition.as_mut()?.individual_mut().map(f)
+    }
+
+    fn with_runtime_jump_state_mut<T>(
+        &mut self,
+        f: impl FnOnce(&mut Competition, &mut Random, &mut Wind) -> T,
+    ) -> Option<T> {
+        let Self {
+            active_competition,
+            rng,
+            wind,
+            ..
+        } = self;
+        let runtime = active_competition.as_mut()?.individual_mut()?;
+        Some(f(runtime, rng, wind))
     }
 }
 
@@ -164,10 +182,38 @@ impl HasRuntime<TeamCupRuntime> for GameState {
             .team_cup_runtime_mut()
             .map(f)
     }
+
+    fn with_runtime_jump_state_mut<T>(
+        &mut self,
+        f: impl FnOnce(&mut TeamCupRuntime, &mut Random, &mut Wind) -> T,
+    ) -> Option<T> {
+        let Self {
+            active_competition,
+            rng,
+            wind,
+            ..
+        } = self;
+        let runtime = active_competition.as_mut()?.team_cup_runtime_mut()?;
+        Some(f(runtime, rng, wind))
+    }
 }
 
 impl HasRuntime<KothRuntime> for GameState {
     fn with_runtime_mut<T>(&mut self, f: impl FnOnce(&mut KothRuntime) -> T) -> Option<T> {
         self.active_competition.as_mut()?.koth_runtime_mut().map(f)
+    }
+
+    fn with_runtime_jump_state_mut<T>(
+        &mut self,
+        f: impl FnOnce(&mut KothRuntime, &mut Random, &mut Wind) -> T,
+    ) -> Option<T> {
+        let Self {
+            active_competition,
+            rng,
+            wind,
+            ..
+        } = self;
+        let runtime = active_competition.as_mut()?.koth_runtime_mut()?;
+        Some(f(runtime, rng, wind))
     }
 }
