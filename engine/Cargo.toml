@@ -6,5 +6,10 @@ edition.workspace = true
 [lints]
 workspace = true
 
-[dependencies]
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 sdl2 = { workspace = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen.workspace = true
+js-sys.workspace = true
+web-sys.workspace = true

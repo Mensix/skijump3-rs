@@ -246,4 +246,3 @@ impl Default for Font {
         Self::new()
     }
 }
-

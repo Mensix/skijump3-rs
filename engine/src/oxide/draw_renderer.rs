@@ -6,7 +6,7 @@ use crate::consts::{TILE_H, TILE_W};
 use crate::oxide::draw::{DrawCommand, SpriteDraw, TextAlign};
 use crate::oxide::Font;
 use crate::sprite::{BakedSpriteTexture, BakedSpriteTextures};
-use crate::video::{Renderer, TextureId};
+use crate::video::{Rect, Renderer, TextureId};
 
 const TEXT_SHADOW: Rgba = Rgba::rgb(0, 0, 0);
 const MAX_CACHE_SIZE: usize = 256;
@@ -22,7 +22,7 @@ fn draw_baked_sprite_texture(
     renderer.draw_texture(
         texture.texture_id,
         None,
-        Some(sdl2::rect::Rect::new(
+        Some(Rect::new(
             dst_x,
             dst_y,
             u32::from(texture.width),
@@ -131,12 +131,7 @@ fn draw_text_texture(renderer: &mut Renderer, entry: &TextCacheEntry) -> Result<
     renderer.draw_texture(
         entry.texture_id,
         None,
-        Some(sdl2::rect::Rect::new(
-            entry.x,
-            entry.y,
-            entry.width,
-            entry.height,
-        )),
+        Some(Rect::new(entry.x, entry.y, entry.width, entry.height)),
     )
 }
 
@@ -206,7 +201,7 @@ impl DrawCommandRenderer {
             DrawCommand::PatternFill(rect, color) => {
                 renderer.draw_fill_rect(rect.x, rect.y, rect.w, rect.h, *color)?;
                 renderer.draw_tiled_pattern(
-                    sdl2::rect::Rect::new(rect.x, rect.y, rect.w as u32, rect.h as u32),
+                    Rect::new(rect.x, rect.y, rect.w as u32, rect.h as u32),
                     *color,
                     assets.pattern_texture,
                     TILE_W,
@@ -216,7 +211,7 @@ impl DrawCommandRenderer {
             DrawCommand::PatternStroke(rect, color) => {
                 renderer.draw_box(rect.x, rect.y, rect.w, rect.h, *color)?;
                 renderer.draw_tiled_pattern(
-                    sdl2::rect::Rect::new(rect.x, rect.y, rect.w as u32, rect.h as u32),
+                    Rect::new(rect.x, rect.y, rect.w as u32, rect.h as u32),
                     *color,
                     assets.pattern_texture,
                     TILE_W,

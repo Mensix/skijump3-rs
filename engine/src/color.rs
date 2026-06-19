@@ -1,3 +1,4 @@
+#[cfg(not(target_arch = "wasm32"))]
 use sdl2::pixels::Color;
 use std::hash::{Hash, Hasher};
 
@@ -32,6 +33,7 @@ impl Rgba {
         }
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn to_sdl(&self) -> Color {
         Color::RGBA(self.r, self.g, self.b, self.a)
     }
@@ -43,6 +45,7 @@ impl Hash for Rgba {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl From<Rgba> for Color {
     fn from(c: Rgba) -> Self {
         Color::RGBA(c.r, c.g, c.b, c.a)

@@ -1,15 +1,66 @@
+#[cfg(not(target_arch = "wasm32"))]
 use sdl2::pixels::{Color, PixelFormatEnum};
-use sdl2::rect::Rect;
+#[cfg(not(target_arch = "wasm32"))]
+pub use sdl2::rect::Rect;
+#[cfg(not(target_arch = "wasm32"))]
 use sdl2::render::{BlendMode, Texture};
 use std::collections::HashMap;
+#[cfg(not(target_arch = "wasm32"))]
 use std::time::{Duration, Instant};
 
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen::Clamped;
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen::JsCast;
+#[cfg(target_arch = "wasm32")]
+use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement, ImageData};
+
 use crate::color::Rgba;
-use crate::consts::{HEIGHT, TARGET_FPS, WIDTH};
+#[cfg(not(target_arch = "wasm32"))]
+use crate::consts::TARGET_FPS;
+use crate::consts::{HEIGHT, WIDTH};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct TextureId(u32);
 
+#[cfg(target_arch = "wasm32")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Rect {
+    x: i32,
+    y: i32,
+    w: u32,
+    h: u32,
+}
+
+#[cfg(target_arch = "wasm32")]
+impl Rect {
+    #[must_use]
+    pub const fn new(x: i32, y: i32, w: u32, h: u32) -> Self {
+        Self { x, y, w, h }
+    }
+
+    #[must_use]
+    pub const fn x(&self) -> i32 {
+        self.x
+    }
+
+    #[must_use]
+    pub const fn y(&self) -> i32 {
+        self.y
+    }
+
+    #[must_use]
+    pub const fn width(&self) -> u32 {
+        self.w
+    }
+
+    #[must_use]
+    pub const fn height(&self) -> u32 {
+        self.h
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
 pub struct Renderer {
     canvas: sdl2::render::WindowCanvas,
     scratch_rgba: Vec<u8>,
@@ -19,6 +70,7 @@ pub struct Renderer {
     next_texture_id: u32,
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl Renderer {
     pub fn new(sdl: &sdl2::Sdl) -> Result<Self, String> {
         let video = sdl.video()?;
@@ -157,7 +209,7 @@ impl Renderer {
     /// screen-aligned (same as the old dither behaviour).
     pub fn draw_tiled_pattern(
         &mut self,
-        rect: sdl2::rect::Rect,
+        rect: Rect,
         color: Rgba,
         pattern_id: TextureId,
         tile_w: u32,
@@ -197,8 +249,8 @@ impl Renderer {
 
                 self.canvas.copy(
                     texture,
-                    sdl2::rect::Rect::new(src_x.max(0), src_y.max(0), vis_w, vis_h),
-                    sdl2::rect::Rect::new(tx.max(0), ty.max(0), vis_w, vis_h),
+                    Rect::new(src_x.max(0), src_y.max(0), vis_w, vis_h),
+                    Rect::new(tx.max(0), ty.max(0), vis_w, vis_h),
                 )?;
 
                 tx += vis_w as i32;
@@ -293,6 +345,248 @@ impl Renderer {
     }
 }
 
+#[cfg(target_arch = "wasm32")]
+struct TextureData {
+    pixels: Vec<u8>,
+    width: u32,
+    height: u32,
+    color_mod: (u8, u8, u8),
+}
+
+#[cfg(target_arch = "wasm32")]
+pub struct Renderer {
+    _canvas: HtmlCanvasElement,
+    ctx: CanvasRenderingContext2d,
+    framebuffer: Vec<u8>,
+    scratch_rgba: Vec<u8>,
+    textures: HashMap<TextureId, TextureData>,
+    next_texture_id: u32,
+}
+
+#[cfg(target_arch = "wasm32")]
+impl Renderer {
+    pub fn new_canvas(canvas_id: &str) -> Result<Self, String> {
+        let window = web_sys::window().ok_or_else(|| "window not available".to_string())?;
+        let document = window
+            .document()
+            .ok_or_else(|| "document not available".to_string())?;
+        let canvas = document
+            .get_element_by_id(canvas_id)
+            .ok_or_else(|| format!("canvas #{canvas_id} not found"))?
+            .dyn_into::<HtmlCanvasElement>()
+            .map_err(|_| format!("#{canvas_id} is not a canvas"))?;
+        canvas.set_width(WIDTH);
+        canvas.set_height(HEIGHT);
+        let ctx = canvas
+            .get_context("2d")
+            .map_err(|e| format!("failed to get canvas context: {e:?}"))?
+            .ok_or_else(|| "2d context not available".to_string())?
+            .dyn_into::<CanvasRenderingContext2d>()
+            .map_err(|_| "context is not CanvasRenderingContext2d".to_string())?;
+        Ok(Self {
+            _canvas: canvas,
+            ctx,
+            framebuffer: vec![0; (WIDTH * HEIGHT * 4) as usize],
+            scratch_rgba: Vec::new(),
+            textures: HashMap::new(),
+            next_texture_id: 1,
+        })
+    }
+
+    pub fn create_rgba_texture(
+        &mut self,
+        pixels: &[u8],
+        width: u32,
+        height: u32,
+    ) -> Result<TextureId, String> {
+        let id = TextureId(self.next_texture_id);
+        self.next_texture_id += 1;
+        self.textures.insert(
+            id,
+            TextureData {
+                pixels: pixels.to_vec(),
+                width,
+                height,
+                color_mod: (255, 255, 255),
+            },
+        );
+        Ok(id)
+    }
+
+    pub fn draw_texture(
+        &mut self,
+        id: TextureId,
+        src: Option<Rect>,
+        dst: Option<Rect>,
+    ) -> Result<(), String> {
+        let Some(texture) = self.textures.get(&id) else {
+            return Err("TextureId not found".into());
+        };
+        let src = src.unwrap_or_else(|| Rect::new(0, 0, texture.width, texture.height));
+        let dst = dst.unwrap_or_else(|| Rect::new(0, 0, texture.width, texture.height));
+        blit_texture(
+            &mut self.framebuffer,
+            &texture.pixels,
+            texture.width,
+            texture.height,
+            texture.color_mod,
+            src,
+            dst,
+        );
+        Ok(())
+    }
+
+    pub fn wait_frame(&mut self) {}
+
+    pub fn begin_frame(&mut self) {
+        self.framebuffer.fill(0);
+    }
+
+    pub fn end_frame(&mut self) {
+        let data =
+            ImageData::new_with_u8_clamped_array_and_sh(Clamped(&self.framebuffer), WIDTH, HEIGHT)
+                .expect("valid framebuffer dimensions");
+        let _ = self.ctx.put_image_data(&data, 0.0, 0.0);
+    }
+
+    pub fn create_pattern_texture(
+        &mut self,
+        pattern_pixels: &[u8],
+        tile_w: u32,
+        tile_h: u32,
+    ) -> Result<TextureId, String> {
+        let mut rgba = Vec::with_capacity((tile_w * tile_h * 4) as usize);
+        for &pixel in pattern_pixels {
+            if pixel != 0 {
+                rgba.extend_from_slice(&[255, 255, 255, 255]);
+            } else {
+                rgba.extend_from_slice(&[0, 0, 0, 0]);
+            }
+        }
+        self.create_rgba_texture(&rgba, tile_w, tile_h)
+    }
+
+    pub fn draw_tiled_pattern(
+        &mut self,
+        rect: Rect,
+        color: Rgba,
+        pattern_id: TextureId,
+        tile_w: u32,
+        tile_h: u32,
+    ) -> Result<(), String> {
+        let brighten = |c: u8| (u32::from(c) * 130 / 100).min(255) as u8;
+        let Some(texture) = self.textures.get_mut(&pattern_id) else {
+            return Err("Pattern texture not found".into());
+        };
+        let old_mod = texture.color_mod;
+        texture.color_mod = (brighten(color.r), brighten(color.g), brighten(color.b));
+
+        let tw = tile_w as i32;
+        let th = tile_h as i32;
+        let end_x = (rect.x() + rect.width() as i32).min(WIDTH as i32);
+        let end_y = (rect.y() + rect.height() as i32).min(HEIGHT as i32);
+        let mut ty = rect.y();
+        while ty < end_y {
+            let src_y = ty.rem_euclid(th);
+            let vis_h = (th - src_y).min(end_y - ty) as u32;
+            let mut tx = rect.x();
+            while tx < end_x {
+                let src_x = tx.rem_euclid(tw);
+                let vis_w = (tw - src_x).min(end_x - tx) as u32;
+                self.draw_texture(
+                    pattern_id,
+                    Some(Rect::new(src_x, src_y, vis_w, vis_h)),
+                    Some(Rect::new(tx.max(0), ty.max(0), vis_w, vis_h)),
+                )?;
+                tx += vis_w as i32;
+            }
+            ty += vis_h as i32;
+        }
+        if let Some(texture) = self.textures.get_mut(&pattern_id) {
+            texture.color_mod = old_mod;
+        }
+        Ok(())
+    }
+
+    pub fn draw_rgba_region_pixels(
+        &mut self,
+        pixels: &[u8],
+        src_w: u32,
+        src_h: u32,
+        src_x: i32,
+        src_y: i32,
+        dst_x: i32,
+        dst_y: i32,
+        w: u32,
+        h: u32,
+    ) -> Result<(), String> {
+        self.scratch_rgba.clear();
+        let Some((vis_left, vis_top, vis_w, vis_h)) = rgba_region_to_rgba(
+            pixels,
+            src_w,
+            src_h,
+            src_x,
+            src_y,
+            dst_x,
+            dst_y,
+            w,
+            h,
+            &mut self.scratch_rgba,
+        ) else {
+            return Ok(());
+        };
+        blend_region(
+            &mut self.framebuffer,
+            &self.scratch_rgba,
+            vis_w,
+            vis_h,
+            vis_left,
+            vis_top,
+            (255, 255, 255),
+        );
+        Ok(())
+    }
+
+    pub fn draw_fill_rect(
+        &mut self,
+        x: i32,
+        y: i32,
+        w: i32,
+        h: i32,
+        color: Rgba,
+    ) -> Result<(), String> {
+        let x = x.max(0);
+        let y = y.max(0);
+        let w = w.min(WIDTH as i32 - x).max(0);
+        let h = h.min(HEIGHT as i32 - y).max(0);
+        if w <= 0 || h <= 0 {
+            return Ok(());
+        }
+        for yy in y..(y + h) {
+            for xx in x..(x + w) {
+                blend_pixel(
+                    &mut self.framebuffer,
+                    xx,
+                    yy,
+                    color.r,
+                    color.g,
+                    color.b,
+                    color.a,
+                );
+            }
+        }
+        Ok(())
+    }
+
+    pub fn draw_box(&mut self, x: i32, y: i32, w: i32, h: i32, color: Rgba) -> Result<(), String> {
+        self.draw_fill_rect(x, y, w, 1, color)?;
+        self.draw_fill_rect(x, y + h - 1, w, 1, color)?;
+        self.draw_fill_rect(x, y, 1, h, color)?;
+        self.draw_fill_rect(x + w - 1, y, 1, h, color)?;
+        Ok(())
+    }
+}
+
 /// Copy a region from an RGBA source buffer to an output RGBA buffer,
 /// clipping to screen bounds.  Returns `(screen_x, screen_y, vis_w, vis_h)`
 /// for the visible portion, or `None` when fully off-screen.
@@ -346,6 +640,91 @@ fn rgba_region_to_rgba(
     }
 
     Some((vis_left, vis_top, vis_w, vis_h))
+}
+
+#[cfg(target_arch = "wasm32")]
+fn blit_texture(
+    dst_pixels: &mut [u8],
+    src_pixels: &[u8],
+    src_w: u32,
+    src_h: u32,
+    color_mod: (u8, u8, u8),
+    src: Rect,
+    dst: Rect,
+) {
+    let copy_w = src.width().min(dst.width());
+    let copy_h = src.height().min(dst.height());
+    if copy_w == 0 || copy_h == 0 {
+        return;
+    }
+    for y in 0..copy_h {
+        let sy = src.y() + y as i32;
+        let dy = dst.y() + y as i32;
+        if sy < 0 || sy >= src_h as i32 || dy < 0 || dy >= HEIGHT as i32 {
+            continue;
+        }
+        for x in 0..copy_w {
+            let sx = src.x() + x as i32;
+            let dx = dst.x() + x as i32;
+            if sx < 0 || sx >= src_w as i32 || dx < 0 || dx >= WIDTH as i32 {
+                continue;
+            }
+            let src_idx = (sy as usize * src_w as usize + sx as usize) * 4;
+            if src_idx + 3 >= src_pixels.len() {
+                continue;
+            }
+            let r = (u32::from(src_pixels[src_idx]) * u32::from(color_mod.0) / 255) as u8;
+            let g = (u32::from(src_pixels[src_idx + 1]) * u32::from(color_mod.1) / 255) as u8;
+            let b = (u32::from(src_pixels[src_idx + 2]) * u32::from(color_mod.2) / 255) as u8;
+            let a = src_pixels[src_idx + 3];
+            blend_pixel(dst_pixels, dx, dy, r, g, b, a);
+        }
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+fn blend_region(
+    dst_pixels: &mut [u8],
+    src_pixels: &[u8],
+    src_w: u32,
+    src_h: u32,
+    dst_x: i32,
+    dst_y: i32,
+    color_mod: (u8, u8, u8),
+) {
+    blit_texture(
+        dst_pixels,
+        src_pixels,
+        src_w,
+        src_h,
+        color_mod,
+        Rect::new(0, 0, src_w, src_h),
+        Rect::new(dst_x, dst_y, src_w, src_h),
+    );
+}
+
+#[cfg(target_arch = "wasm32")]
+fn blend_pixel(dst_pixels: &mut [u8], x: i32, y: i32, r: u8, g: u8, b: u8, a: u8) {
+    if a == 0 || x < 0 || y < 0 || x >= WIDTH as i32 || y >= HEIGHT as i32 {
+        return;
+    }
+    let idx = (y as usize * WIDTH as usize + x as usize) * 4;
+    if idx + 3 >= dst_pixels.len() {
+        return;
+    }
+    if a == 255 {
+        dst_pixels[idx] = r;
+        dst_pixels[idx + 1] = g;
+        dst_pixels[idx + 2] = b;
+        dst_pixels[idx + 3] = 255;
+        return;
+    }
+    let inv_a = 255 - u32::from(a);
+    let a = u32::from(a);
+    dst_pixels[idx] = ((u32::from(r) * a + u32::from(dst_pixels[idx]) * inv_a) / 255) as u8;
+    dst_pixels[idx + 1] = ((u32::from(g) * a + u32::from(dst_pixels[idx + 1]) * inv_a) / 255) as u8;
+    dst_pixels[idx + 2] = ((u32::from(b) * a + u32::from(dst_pixels[idx + 2]) * inv_a) / 255) as u8;
+    dst_pixels[idx + 3] = 255;
 }
 
 #[cfg(test)]

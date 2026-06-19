@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Ski Jump 3 Web</title>
+    <style>
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        background: #050507;
+        color: #d8d8d8;
+        font-family: system-ui, sans-serif;
+      }
+
+      body {
+        display: grid;
+        place-items: center;
+      }
+
+      .shell {
+        display: grid;
+        gap: 10px;
+        justify-items: center;
+      }
+
+      canvas {
+        width: min(960px, 100vw);
+        height: auto;
+        image-rendering: pixelated;
+        image-rendering: crisp-edges;
+        background: #000;
+        outline: 1px solid #333;
+      }
+
+      .hint {
+        opacity: 0.7;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <canvas id="game" width="320" height="200" tabindex="0"></canvas>
+      <div class="hint">Click canvas, then use keyboard controls.</div>
+    </main>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

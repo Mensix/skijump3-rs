@@ -10,6 +10,21 @@ license = "MIT"
 
 [workspace.dependencies]
 sdl2 = { version = "0.38", features = ["static-link", "unsafe_textures"] }
+wasm-bindgen = "0.2"
+js-sys = "0.3"
+console_error_panic_hook = "0.1"
+web-sys = { version = "0.3", features = [
+    "CanvasRenderingContext2d",
+    "console",
+    "Document",
+    "Element",
+    "Event",
+    "EventTarget",
+    "HtmlCanvasElement",
+    "ImageData",
+    "KeyboardEvent",
+    "Window",
+] }
 
 [workspace.lints.clippy]
 ptr_arg = "warn"
@@ -25,9 +40,15 @@ edition.workspace = true
 name = "skijump3"
 path = "src/main.rs"
 
+[lib]
+crate-type = ["cdylib", "rlib"]
+
 [lints]
 workspace = true
 
 [dependencies]
 engine = { path = "engine" }
 game = { path = "game" }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen.workspace = true

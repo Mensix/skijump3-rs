@@ -1,5 +1,8 @@
+#[cfg(not(target_arch = "wasm32"))]
 use std::collections::BTreeSet;
-use std::path::{Path, PathBuf};
+#[cfg(not(target_arch = "wasm32"))]
+use std::path::Path;
+use std::path::PathBuf;
 
 #[derive(rust_embed::RustEmbed)]
 #[folder = "assets/"]
@@ -9,20 +12,31 @@ struct Assets;
 /// All file paths are relative to roots; callers use filenames like "config.toml".
 #[derive(Debug, Clone)]
 pub struct FileStore {
+    #[cfg(not(target_arch = "wasm32"))]
     asset_dir: PathBuf,
+    #[cfg(not(target_arch = "wasm32"))]
     save_dir: PathBuf,
 }
 
 impl FileStore {
     #[must_use]
     pub fn new(asset_dir: PathBuf, save_dir: PathBuf) -> Self {
-        Self {
-            asset_dir,
-            save_dir,
+        #[cfg(target_arch = "wasm32")]
+        {
+            let _ = (asset_dir, save_dir);
+            Self {}
+        }
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            Self {
+                asset_dir,
+                save_dir,
+            }
         }
     }
 
     /// Read from save dir first, then embedded assets, then filesystem assets.
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn read(&self, name: &str) -> Result<Vec<u8>, std::io::Error> {
         let save_path = self.save_dir.join(name);
         match std::fs::read(&save_path) {
@@ -38,8 +52,16 @@ impl FileStore {
         }
     }
 
+    #[cfg(target_arch = "wasm32")]
+    pub fn read(&self, name: &str) -> Result<Vec<u8>, std::io::Error> {
+        Assets::get(name)
+            .map(|embedded| embedded.data.to_vec())
+            .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::NotFound, name.to_string()))
+    }
+
     /// Atomically write to save dir. Creates `save_dir` and any subdirectory
     /// in `name` if they do not exist.
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn write(&self, name: &str, data: &[u8]) -> Result<(), std::io::Error> {
         let path = self.save_dir.join(name);
         if let Some(parent) = path.parent() {
@@ -55,22 +77,48 @@ impl FileStore {
         Ok(())
     }
 
+    #[cfg(target_arch = "wasm32")]
+    pub fn write(&self, _name: &str, _data: &[u8]) -> Result<(), std::io::Error> {
+        Ok(())
+    }
+
     /// Check if file exists in save dir.
     #[must_use]
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn exists_save(&self, name: &str) -> bool {
         self.save_dir.join(name).exists()
     }
 
+    #[must_use]
+    #[cfg(target_arch = "wasm32")]
+    pub const fn exists_save(&self, _name: &str) -> bool {
+        false
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn delete_save(&self, name: &str) -> Result<(), std::io::Error> {
         std::fs::remove_file(self.save_dir.join(name))
     }
 
+    #[cfg(target_arch = "wasm32")]
+    pub fn delete_save(&self, _name: &str) -> Result<(), std::io::Error> {
+        Ok(())
+    }
+
     /// List filenames in save dir with a given extension (without leading dot).
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn list_by_ext(&self, ext: &str) -> Result<Vec<String>, std::io::Error> {
         self.list_by_ext_in(&self.save_dir, ext)
     }
 
+    #[cfg(target_arch = "wasm32")]
+    #[allow(dead_code)]
+    pub fn list_by_ext(&self, _ext: &str) -> Result<Vec<String>, std::io::Error> {
+        Ok(Vec::new())
+    }
+
     /// List filenames in a save dir subdirectory with a given extension.
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn list_save_subdir_by_ext(
         &self,
         subdir: &str,
@@ -83,7 +131,17 @@ impl FileStore {
         }
     }
 
+    #[cfg(target_arch = "wasm32")]
+    pub fn list_save_subdir_by_ext(
+        &self,
+        _subdir: &str,
+        _ext: &str,
+    ) -> Result<Vec<String>, std::io::Error> {
+        Ok(Vec::new())
+    }
+
     /// List filenames from both save dir and asset dir, deduplicated and sorted.
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn list_by_ext_all(&self, ext: &str) -> Result<Vec<String>, std::io::Error> {
         let mut names = BTreeSet::new();
         if let Ok(save_names) = self.list_by_ext(ext) {
@@ -95,6 +153,12 @@ impl FileStore {
         Ok(names.into_iter().collect())
     }
 
+    #[cfg(target_arch = "wasm32")]
+    pub fn list_by_ext_all(&self, _ext: &str) -> Result<Vec<String>, std::io::Error> {
+        Ok(Vec::new())
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
     fn list_by_ext_in(&self, dir: &Path, ext: &str) -> Result<Vec<String>, std::io::Error> {
         let mut result = Vec::new();
         for entry in std::fs::read_dir(dir)? {

@@ -8,13 +8,21 @@ workspace = true
 
 [dependencies]
 engine = { path = "../engine" }
-sdl2 = { workspace = true }
 serde = { version = "1", features = ["derive"] }
 toml = "1.1.2"
 image = { version = "0.25.8", default-features = false, features = ["png"] }
 png = "0.18.1"
 thiserror = "2"
 rust-embed = "8.11.0"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+sdl2 = { workspace = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen.workspace = true
+js-sys.workspace = true
+web-sys.workspace = true
+console_error_panic_hook.workspace = true
 
 [dev-dependencies]
 tempfile = "3"

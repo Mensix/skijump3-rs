@@ -2,20 +2,34 @@ mod assets;
 mod rendering;
 mod router;
 mod state;
+#[cfg(target_arch = "wasm32")]
+pub mod web;
 
+#[cfg(not(target_arch = "wasm32"))]
 use crate::app::router::{create_router, AppRouter};
+#[cfg(not(target_arch = "wasm32"))]
 use crate::files::FileStore;
+#[cfg(not(target_arch = "wasm32"))]
 use crate::route::RouteTarget;
+#[cfg(not(target_arch = "wasm32"))]
 use engine::input::Input;
+#[cfg(not(target_arch = "wasm32"))]
 use engine::oxide::Font;
+#[cfg(not(target_arch = "wasm32"))]
 use engine::sprite::BakedSpriteTextures;
+#[cfg(not(target_arch = "wasm32"))]
 use engine::video::{Renderer, TextureId};
+#[cfg(not(target_arch = "wasm32"))]
 use std::rc::Rc;
 
+#[cfg(not(target_arch = "wasm32"))]
 use self::assets::LoadedAssets;
+#[cfg(not(target_arch = "wasm32"))]
 use self::rendering::{FrameAssets, FrameRenderer};
+#[cfg(not(target_arch = "wasm32"))]
 use self::state::load_app;
 
+#[cfg(not(target_arch = "wasm32"))]
 pub struct Game {
     _sdl: sdl2::Sdl,
     renderer: Renderer,
@@ -28,6 +42,7 @@ pub struct Game {
     frame_renderer: FrameRenderer,
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl Game {
     pub fn new() -> Result<Self, String> {
         let (sdl, mut renderer, input) = Self::init_sdl()?;
@@ -115,6 +130,7 @@ impl Game {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 pub fn run() {
     let mut game = match Game::new() {
         Ok(g) => g,
