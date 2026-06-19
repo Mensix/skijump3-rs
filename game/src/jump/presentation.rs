@@ -94,6 +94,10 @@ pub fn render(cx: &mut PaintCx<'_>, frame: &JumpRenderFrame, ctx: &JumpPresentat
             },
         );
     }
+
+    if frame.phase == JumpPhase::OnBar && ctx.show_keymap {
+        hud::push_keymap(cx, ctx.langbase);
+    }
 }
 
 fn gate_info_elements(
@@ -150,9 +154,7 @@ fn info_panel_elements(
     if ctx.suppress_info_panel {
         return;
     }
-    if ctx.show_keymap {
-        hud::push_keymap(cx, ctx.langbase);
-    } else {
+    if !ctx.show_keymap {
         hud::push_hill_record_info(cx, ctx.langbase, ctx.hill_name_k, ctx.hill_record);
     }
 }

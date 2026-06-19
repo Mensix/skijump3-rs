@@ -254,6 +254,7 @@ where
         Option<CompetitionFlowCommand<R::Context, R::ResultsKind>>,
         CompetitionControllerError,
     > {
+        let visible_computers = self.state.borrow().config.visible_computers;
         let mut pending_side_effects = Vec::new();
         let command = self
             .state
@@ -275,7 +276,7 @@ where
                         is_new_event,
                     } => {
                         if is_human
-                            || self.should_show_computer_jump(runtime, &context, &participant)
+                            || self.should_show_computer_jump(runtime, &context, &participant, visible_computers)
                         {
                             let current_event = runtime.event_idx();
                             return Ok(Some(CompetitionFlowCommand::HumanJump {
@@ -346,11 +347,11 @@ where
         runtime: &R,
         context: &R::Context,
         participant: &JumpParticipant,
+        visible_computers: i32,
     ) -> bool {
         if participant.control != JumperControl::Computer {
             return false;
         }
-        let visible_computers = self.state.borrow().config.visible_computers;
         match visible_computers {
             1..=234 => participant.ai_id + 1 == visible_computers as usize,
             235 => runtime.start_order_pos_for_context(context) < 1,

@@ -306,7 +306,16 @@ impl JumpRunner {
             .hill(self.config.hill_idx)
             .map(|h| format!("{} K{}", h.name, h.kr))
             .unwrap_or_default();
-        let wind_pos = env.wind.position();
+        let wind_pos = if env.wind.place() > 10 {
+            if let Some(ref st) = self.state {
+                env.wind
+                    .position_for_jumper(st.x - st.sx, st.y - st.sy)
+            } else {
+                env.wind.position()
+            }
+        } else {
+            env.wind.position()
+        };
         let mut frame = self
             .render_frame(self.last_wind, WIDTH, HEIGHT)
             .expect("loaded jump render frame");
