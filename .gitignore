@@ -3,6 +3,10 @@
 node_modules/
 .agents
 skills-lock.json.opencode/
+dist-web/
+/web/pkg
+
+# Pascal artifacts
 TEMP.SJR
 TEMP2.SJR
 CONFIG.SKI
@@ -11,3 +15,7 @@ PLAYERS.SKI
 HISCORE.SKI
 hiscores.toml
 players.toml
+
+# lockfiles – generated per-platform
+Cargo.lock
+package-lock.json
