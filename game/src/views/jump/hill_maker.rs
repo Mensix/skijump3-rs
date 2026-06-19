@@ -1,12 +1,13 @@
 use crate::components::modal::alert_prompt;
 use crate::gfx::theme::{BG_PURPLE, BG_RED, BLACK, FONT_BODY, FONT_GOLD, FONT_GRAY, FONT_TEAL};
 use crate::route::RouteTarget;
-use crate::store::{GameStateRef, ResourcesRef};
+use crate::screen::{GameCx, GameScreen};
+use crate::store::ResourcesRef;
 use crate::text::layout::lstr;
 use engine::oxide::input::Key;
 use engine::oxide::widgets::menu::{MenuItem, PixelMenu};
 use engine::oxide::Widget;
-use engine::oxide::{PaintCx, Screen, ScreenBackground, ScreenEventCx, UiEvent};
+use engine::oxide::{PaintCx, ScreenBackground, ScreenEventCx, UiEvent};
 use serde::Deserialize;
 
 #[derive(Debug)]
@@ -27,7 +28,6 @@ struct CustomHillToml {
 
 pub struct HillMakerView {
     resources: ResourcesRef,
-    store: GameStateRef,
     menu: PixelMenu,
     custom_hills: Vec<CustomHillListEntry>,
     page_start: usize,
@@ -43,13 +43,12 @@ enum HillMakerMode {
 const PAGE_SIZE: usize = 18;
 
 impl HillMakerView {
-    pub fn new(resources: ResourcesRef, store: GameStateRef) -> Self {
+    pub fn new(resources: ResourcesRef) -> Self {
         let custom_hills = Self::load_custom_hills(&resources);
         let page_start = 0;
         let menu = Self::make_menu(custom_hills.len(), page_start);
         Self {
             resources,
-            store,
             menu,
             custom_hills,
             page_start,
@@ -129,8 +128,8 @@ impl HillMakerView {
     }
 }
 
-impl Screen<RouteTarget> for HillMakerView {
-    fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
+impl GameScreen for HillMakerView {
+    fn event(&mut self, cx: &mut GameCx<'_>, nav: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
         if let HillMakerMode::ConfirmDelete { filename } = self.mode.clone() {
             if matches!(event, UiEvent::KeyDown(_) | UiEvent::Text(_)) {
                 if matches!(event, UiEvent::Text('Y' | 'y')) {
@@ -143,13 +142,13 @@ impl Screen<RouteTarget> for HillMakerView {
                     self.rebuild_menu();
                 }
                 self.mode = HillMakerMode::Browse;
-                cx.consume();
+                nav.consume();
             }
             return;
         }
 
         if matches!(event, UiEvent::KeyDown(Key::Escape)) {
-            cx.back();
+            nav.back();
             return;
         }
         if matches!(event, UiEvent::KeyDown(Key::Delete | Key::Backspace)) {
@@ -160,7 +159,7 @@ impl Screen<RouteTarget> for HillMakerView {
                     .filename
                     .clone();
                 self.mode = HillMakerMode::ConfirmDelete { filename };
-                cx.consume();
+                nav.consume();
             }
             return;
         }
@@ -170,47 +169,47 @@ impl Screen<RouteTarget> for HillMakerView {
                 let (visible, add, next, prev) = self.item_roles();
                 if n <= visible {
                     let filename = self.custom_hills[self.page_start + n - 1].filename.clone();
-                    self.store.borrow_mut().nav_edit_hill = Some(filename);
-                    cx.navigate(RouteTarget::EditHill);
+                    cx.state.nav_edit_hill = Some(filename);
+                    nav.navigate(RouteTarget::EditHill);
                 } else if n == add {
-                    self.store.borrow_mut().nav_edit_hill = None;
-                    cx.navigate(RouteTarget::EditHill);
+                    cx.state.nav_edit_hill = None;
+                    nav.navigate(RouteTarget::EditHill);
                 } else if Some(n) == next {
                     self.page_start += PAGE_SIZE;
                     self.rebuild_menu();
-                    cx.consume();
+                    nav.consume();
                 } else if Some(n) == prev {
                     self.page_start = self.page_start.saturating_sub(PAGE_SIZE);
                     self.rebuild_menu();
-                    cx.consume();
+                    nav.consume();
                 }
             }
-            Some(0) => cx.back(),
+            Some(0) => nav.back(),
             _ => {}
         }
         if ecx.is_consumed() {
-            cx.consume();
+            nav.consume();
         }
     }
 
-    fn paint(&mut self, cx: &mut PaintCx<'_>) {
+    fn paint(&mut self, _cx: &mut GameCx<'_>, paint: &mut PaintCx<'_>) {
         let lb = &*self.resources.langbase;
 
-        cx.fill((0, 0, 320, 200), BLACK);
-        cx.pattern_fill((0, 0, 320, 200), BG_PURPLE);
+        paint.fill((0, 0, 320, 200), BLACK);
+        paint.pattern_fill((0, 0, 320, 200), BG_PURPLE);
 
-        cx.text((5, 5), FONT_GOLD, lstr(lb, 270, "SJ3 Hill Maker"));
+        paint.text((5, 5), FONT_GOLD, lstr(lb, 270, "SJ3 Hill Maker"));
 
-        cx.text((5, 21), FONT_GRAY, lstr(lb, 271, "(use arrows, DEL,"));
-        cx.text((5, 29), FONT_GRAY, lstr(lb, 272, " ENTER or ESC)"));
+        paint.text((5, 21), FONT_GRAY, lstr(lb, 271, "(use arrows, DEL,"));
+        paint.text((5, 29), FONT_GRAY, lstr(lb, 272, " ENTER or ESC)"));
 
         let col1 = 100i32;
         let col2 = 160i32;
 
-        cx.text((col1, 5), FONT_TEAL, lstr(lb, 273, "Filename"));
-        cx.text((col2, 5), FONT_TEAL, lstr(lb, 274, "Hillname"));
+        paint.text((col1, 5), FONT_TEAL, lstr(lb, 273, "Filename"));
+        paint.text((col2, 5), FONT_TEAL, lstr(lb, 274, "Hillname"));
 
-        cx.text(
+        paint.text(
             (5, 45),
             FONT_TEAL,
             format!(
@@ -231,18 +230,18 @@ impl Screen<RouteTarget> for HillMakerView {
             .enumerate()
         {
             let y = 13 + i as i32 * 8;
-            cx.text((col1, y), FONT_BODY, &hill.filename);
-            cx.text((col2, y), FONT_GOLD, &hill.hillname);
+            paint.text((col1, y), FONT_BODY, &hill.filename);
+            paint.text((col2, y), FONT_GOLD, &hill.hillname);
         }
         let mut row = visible;
-        cx.text(
+        paint.text(
             (col1, 13 + row as i32 * 8),
             FONT_GOLD,
             lstr(lb, 275, "*Add New Hill*"),
         );
         row += 1;
         if next.is_some() {
-            cx.text(
+            paint.text(
                 (col1, 13 + row as i32 * 8),
                 FONT_GRAY,
                 lstr(lb, 158, "*Next Page*"),
@@ -250,20 +249,20 @@ impl Screen<RouteTarget> for HillMakerView {
             row += 1;
         }
         if prev.is_some() {
-            cx.text(
+            paint.text(
                 (col1, 13 + row as i32 * 8),
                 FONT_GRAY,
                 lstr(lb, 159, "*Previous Page*"),
             );
             row += 1;
         }
-        self.menu.paint(cx);
+        self.menu.paint(paint);
 
         let exit_y = 13 + (row + 2) as i32 * 8;
-        cx.text((col1, exit_y), FONT_BODY, lstr(lb, 276, "-Exit-"));
+        paint.text((col1, exit_y), FONT_BODY, lstr(lb, 276, "-Exit-"));
         if let HillMakerMode::ConfirmDelete { filename } = &self.mode {
             alert_prompt(
-                cx,
+                paint,
                 BG_RED,
                 format!("DELETE {filename}.TOML?"),
                 "ARE YOU SURE? (Y/N):",

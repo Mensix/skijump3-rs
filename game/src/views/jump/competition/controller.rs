@@ -1,14 +1,18 @@
 use std::cell::Cell;
 use std::marker::PhantomData;
 
+use crate::competition::active::ActiveCompetition;
+use crate::competition::koth::types::KothRuntime;
+use crate::competition::machine::Competition;
 use crate::competition::runtime::{CompetitionDecision, CompetitionRuntime};
-use crate::jump::wind::Wind;
-use crate::rng::Random;
+use crate::competition::team_cup::types::TeamCupRuntime;
 use crate::data::records::HillRecord;
 use crate::jump::types::{FallType, JumpOutcome};
+use crate::jump::wind::Wind;
 use crate::jump::{JumpParticipant, JumpPolicy, JumperControl};
+use crate::rng::Random;
 use crate::save::SaveRef;
-use crate::store::{GameState, GameStateRef, HasRuntime, ResourcesRef};
+use crate::store::{GameState, ResourcesRef};
 use crate::views::jump::competition::flow::{
     command_or_error, handle_human_jump, handle_jump_scene_event, render_jump_scene_with_overlay,
     CompetitionFlowCommand, JumpInputResult,
@@ -28,11 +32,9 @@ pub(crate) enum CompetitionControllerError {
 
 pub(crate) struct CompetitionJumpController<R>
 where
-    R: CompetitionRuntime + 'static,
-    GameState: HasRuntime<R>,
+    R: CompetitionRuntime + RuntimeAccess + 'static,
 {
     resources: ResourcesRef,
-    state: GameStateRef,
     save_manager: SaveRef,
     scene: Option<JumpScene>,
     ui_state: CompetitionUiState,
@@ -44,23 +46,21 @@ where
 
 impl<R> CompetitionJumpController<R>
 where
-    R: CompetitionRuntime + 'static,
-    GameState: HasRuntime<R>,
+    R: CompetitionRuntime + RuntimeAccess + 'static,
 {
     pub(crate) fn new(
         resources: ResourcesRef,
-        state: GameStateRef,
         save_manager: SaveRef,
+        compact: bool,
         scene: Option<JumpScene>,
     ) -> Self {
-        let compact = state.borrow().config.compact_results != 0;
+        let overlay = CompetitionOverlay::new(resources.clone());
         Self {
-            resources: resources.clone(),
-            state: state.clone(),
+            resources,
             save_manager,
             scene,
             ui_state: CompetitionUiState::new_with_compact(compact),
-            overlay: CompetitionOverlay::new(resources.clone(), state.clone()),
+            overlay,
             last_event: Cell::new(0),
             profiles_saved: Cell::new(false),
             _runtime: PhantomData,
@@ -69,10 +69,6 @@ where
 
     pub(crate) fn resources(&self) -> &ResourcesRef {
         &self.resources
-    }
-
-    pub(crate) fn state(&self) -> &GameStateRef {
-        &self.state
     }
 
     pub(crate) fn ui_state(&self) -> &CompetitionUiState {
@@ -87,13 +83,16 @@ where
         self.ui_state.render_mode()
     }
 
-    pub(crate) fn drive(&mut self) -> Option<CompetitionFlowCommand<R::Context, R::ResultsKind>> {
-        self.ensure_scene();
+    pub(crate) fn drive(
+        &mut self,
+        state: &mut GameState,
+    ) -> Option<CompetitionFlowCommand<R::Context, R::ResultsKind>> {
+        self.ensure_scene(state);
         let scene = self.scene.as_ref()?;
-        command_or_error(&self.ui_state, self.drive_competition(scene))
+        command_or_error(&self.ui_state, self.drive_competition(scene, state))
     }
 
-    pub(crate) fn record_acknowledged_human_jump(&mut self) -> bool {
+    pub(crate) fn record_acknowledged_human_jump(&mut self, state: &mut GameState) -> bool {
         if !self.ui_state.is_result_acknowledged() || self.ui_state.is_outcome_recorded() {
             return false;
         }
@@ -106,10 +105,9 @@ where
             return false;
         };
         let recorded = {
-            let mut state = self.state.borrow_mut();
             let mut side_effects = None;
-            let recorded = state
-                .with_runtime_mut(|runtime: &mut R| {
+            let recorded = R::runtime_mut(&mut state.active_competition)
+                .map(|runtime| {
                     let ctx = runtime.current_jump_context();
                     side_effects = Some(PostJumpSideEffects {
                         profile_idx: runtime.profile_idx_for_context(&ctx),
@@ -128,12 +126,7 @@ where
                 .unwrap_or(false);
             if recorded {
                 if let Some(side_effects) = side_effects {
-                    apply_post_jump_side_effects(
-                        &mut state,
-                        &self.resources,
-                        &side_effects,
-                        outcome,
-                    );
+                    apply_post_jump_side_effects(state, &self.resources, &side_effects, outcome);
                 }
             }
             recorded
@@ -145,15 +138,15 @@ where
         true
     }
 
-    pub(crate) fn update_scene(&mut self) {
+    pub(crate) fn update_scene(&mut self, state: &mut GameState) {
         if let Some(scene) = self.scene.as_mut() {
-            scene.update();
+            scene.update(state);
         }
     }
 
-    pub(crate) fn render_jump(&mut self, cx: &mut PaintCx<'_>) {
+    pub(crate) fn render_jump(&mut self, cx: &mut PaintCx<'_>, state: &GameState) {
         if let Some(scene) = self.scene.as_mut() {
-            render_jump_scene_with_overlay(cx, scene, &self.overlay, &self.ui_state);
+            render_jump_scene_with_overlay(cx, scene, &self.overlay, &self.ui_state, state);
         }
     }
 
@@ -163,6 +156,7 @@ where
         consume_other_actions: bool,
         accepts_only_enter_escape: bool,
         acknowledge_only_unrecorded: bool,
+        state: &GameState,
     ) -> JumpInputResult {
         let Some(scene) = self.scene.as_mut() else {
             return JumpInputResult::None;
@@ -174,6 +168,7 @@ where
             consume_other_actions,
             accepts_only_enter_escape,
             acknowledge_only_unrecorded,
+            state,
         )
     }
 
@@ -183,12 +178,13 @@ where
         hill_idx: usize,
         phase_label: String,
         team_name: Option<String>,
+        state: &mut GameState,
     ) {
         handle_human_jump(
             &mut self.scene,
             &self.ui_state,
             &self.resources,
-            &self.state,
+            state,
             participant,
             hill_idx,
             phase_label,
@@ -209,36 +205,40 @@ where
         self.ui_state.enter_error(msg.into());
     }
 
-    fn advance_results(&mut self) -> Option<CompetitionFlowCommand<R::Context, R::ResultsKind>> {
+    fn advance_results(
+        &mut self,
+        state: &mut GameState,
+    ) -> Option<CompetitionFlowCommand<R::Context, R::ResultsKind>> {
         let scene = self.scene.as_ref()?;
-        command_or_error(&self.ui_state, self.advance_results_and_drive(scene))
+        command_or_error(&self.ui_state, self.advance_results_and_drive(scene, state))
     }
 
-    pub(crate) fn save_results(&self) {
+    pub(crate) fn save_results(&self, state: &GameState) {
         if self.profiles_saved.get() {
             return;
         }
         persistence::save_profiles_and_records_once(
             &self.profiles_saved,
             &self.save_manager,
-            &self.state,
+            state,
         );
     }
 
     pub(crate) fn dismiss_results_and_advance(
         &mut self,
+        state: &mut GameState,
     ) -> Option<CompetitionFlowCommand<R::Context, R::ResultsKind>> {
         self.ui_state.dismiss_results();
-        self.advance_results()
+        self.advance_results(state)
     }
 
-    fn ensure_scene(&mut self) {
+    fn ensure_scene(&mut self, state: &mut GameState) {
         if self.scene.is_some() {
             return;
         }
         self.scene = Some(JumpScene::new(
             self.resources.clone(),
-            self.state.clone(),
+            state,
             0,
             15,
             JumpParticipant::trainee(),
@@ -250,68 +250,75 @@ where
     fn drive_competition(
         &self,
         scene: &JumpScene,
+        state: &mut GameState,
     ) -> Result<
         Option<CompetitionFlowCommand<R::Context, R::ResultsKind>>,
         CompetitionControllerError,
     > {
-        let visible_computers = self.state.borrow().config.visible_computers;
+        let visible_computers = state.config.visible_computers;
         let mut pending_side_effects = Vec::new();
-        let command = self
-            .state
-            .borrow_mut()
-            .with_runtime_jump_state_mut(|runtime: &mut R, rng: &mut Random, wind: &mut Wind| {
-            loop {
-                match runtime.decide_next_runtime() {
-                    CompetitionDecision::ShowResults(kind) => {
-                        return Ok(Some(CompetitionFlowCommand::ShowResults(kind)));
+        let GameState {
+            active_competition,
+            rng,
+            wind,
+            ..
+        } = state;
+        let command = R::runtime_mut(active_competition).map(|runtime| loop {
+            match runtime.decide_next_runtime() {
+                CompetitionDecision::ShowResults(kind) => {
+                    return Ok(Some(CompetitionFlowCommand::ShowResults(kind)));
+                }
+                CompetitionDecision::Done => {
+                    return Ok(Some(CompetitionFlowCommand::Done));
+                }
+                CompetitionDecision::Jump {
+                    participant,
+                    hill_idx,
+                    context,
+                    is_human,
+                    is_new_event,
+                } => {
+                    if is_human
+                        || self.should_show_computer_jump(
+                            runtime,
+                            &context,
+                            &participant,
+                            visible_computers,
+                        )
+                    {
+                        let current_event = runtime.event_idx();
+                        return Ok(Some(CompetitionFlowCommand::HumanJump {
+                            participant,
+                            hill_idx,
+                            is_new_event: self.check_event_change(current_event, is_new_event),
+                            context,
+                        }));
                     }
-                    CompetitionDecision::Done => {
-                        return Ok(Some(CompetitionFlowCommand::Done));
-                    }
-                    CompetitionDecision::Jump {
-                        participant,
-                        hill_idx,
-                        context,
-                        is_human,
-                        is_new_event,
-                    } => {
-                        if is_human
-                            || self.should_show_computer_jump(runtime, &context, &participant, visible_computers)
-                        {
-                            let current_event = runtime.event_idx();
-                            return Ok(Some(CompetitionFlowCommand::HumanJump {
-                                participant,
-                                hill_idx,
-                                is_new_event: self.check_event_change(current_event, is_new_event),
-                                context,
-                            }));
-                        }
 
-                        let outcome = self.simulate_computer(scene, participant, hill_idx, rng, wind)?;
-                        pending_side_effects.push((
-                            PostJumpSideEffects {
-                                profile_idx: runtime.profile_idx_for_context(&context),
-                                hill_idx: runtime.hill_idx_for_context(&context),
-                                jumper_name: runtime.jumper_name_for_context(&context),
-                                saves_hill_records: runtime.saves_hill_records(&context),
-                                is_computer: true,
-                                is_real_world_cup: runtime.is_real_world_cup_context(&context),
-                            },
-                            outcome,
-                        ));
-                        runtime.record_jump_runtime(&context, outcome);
-                        if runtime.is_complete_runtime() {
-                            return Ok(Some(CompetitionFlowCommand::Done));
-                        }
+                    let outcome =
+                        self.simulate_computer(scene, participant, hill_idx, rng, wind)?;
+                    pending_side_effects.push((
+                        PostJumpSideEffects {
+                            profile_idx: runtime.profile_idx_for_context(&context),
+                            hill_idx: runtime.hill_idx_for_context(&context),
+                            jumper_name: runtime.jumper_name_for_context(&context),
+                            saves_hill_records: runtime.saves_hill_records(&context),
+                            is_computer: true,
+                            is_real_world_cup: runtime.is_real_world_cup_context(&context),
+                        },
+                        outcome,
+                    ));
+                    runtime.record_jump_runtime(&context, outcome);
+                    if runtime.is_complete_runtime() {
+                        return Ok(Some(CompetitionFlowCommand::Done));
                     }
                 }
             }
         });
 
         if !pending_side_effects.is_empty() {
-            let mut state = self.state.borrow_mut();
             for (side_effects, outcome) in pending_side_effects {
-                apply_post_jump_side_effects(&mut state, &self.resources, &side_effects, outcome);
+                apply_post_jump_side_effects(state, &self.resources, &side_effects, outcome);
             }
         }
 
@@ -321,14 +328,15 @@ where
     fn advance_results_and_drive(
         &self,
         scene: &JumpScene,
+        state: &mut GameState,
     ) -> Result<
         Option<CompetitionFlowCommand<R::Context, R::ResultsKind>>,
         CompetitionControllerError,
     > {
-        self.state.borrow_mut().with_runtime_mut(|runtime: &mut R| {
+        if let Some(runtime) = R::runtime_mut(&mut state.active_competition) {
             runtime.advance_results_runtime();
-        });
-        self.drive_competition(scene)
+        }
+        self.drive_competition(scene, state)
     }
 
     fn simulate_computer(
@@ -406,7 +414,8 @@ fn apply_post_jump_side_effects(
         }
     }
 
-    let computer_records_enabled = !side_effects.is_computer || state.config.computer_hill_records != 0;
+    let computer_records_enabled =
+        !side_effects.is_computer || state.config.computer_hill_records != 0;
     if computer_records_enabled
         && side_effects.saves_hill_records
         && outcome.fall_type == FallType::None
@@ -444,4 +453,26 @@ fn current_record_time() -> String {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map_or_else(|_| String::new(), |duration| duration.as_secs().to_string())
+}
+
+pub(crate) trait RuntimeAccess: CompetitionRuntime {
+    fn runtime_mut(active_competition: &mut Option<ActiveCompetition>) -> Option<&mut Self>;
+}
+
+impl RuntimeAccess for Competition {
+    fn runtime_mut(active_competition: &mut Option<ActiveCompetition>) -> Option<&mut Self> {
+        active_competition.as_mut()?.individual_mut()
+    }
+}
+
+impl RuntimeAccess for TeamCupRuntime {
+    fn runtime_mut(active_competition: &mut Option<ActiveCompetition>) -> Option<&mut Self> {
+        active_competition.as_mut()?.team_cup_runtime_mut()
+    }
+}
+
+impl RuntimeAccess for KothRuntime {
+    fn runtime_mut(active_competition: &mut Option<ActiveCompetition>) -> Option<&mut Self> {
+        active_competition.as_mut()?.koth_runtime_mut()
+    }
 }

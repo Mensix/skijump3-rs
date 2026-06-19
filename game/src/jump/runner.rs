@@ -308,8 +308,7 @@ impl JumpRunner {
             .unwrap_or_default();
         let wind_pos = if env.wind.place() > 10 {
             if let Some(ref st) = self.state {
-                env.wind
-                    .position_for_jumper(st.x - st.sx, st.y - st.sy)
+                env.wind.position_for_jumper(st.x - st.sx, st.y - st.sy)
             } else {
                 env.wind.position()
             }

@@ -14,7 +14,7 @@ use std::rc::Rc;
 
 use self::assets::LoadedAssets;
 use self::rendering::{FrameAssets, FrameRenderer};
-use self::state::AppState;
+use self::state::load_app;
 
 pub struct Game {
     _sdl: sdl2::Sdl,
@@ -43,12 +43,12 @@ impl Game {
             baked_sprites,
             pattern_texture,
         } = assets::load(&files, &mut renderer)?;
-        let state = AppState::load(Rc::clone(&files), font.clone(), content_store)?;
+        let app_load = load_app(Rc::clone(&files), font.clone(), content_store)?;
+
         let start_route = {
-            let game_state = state.state.borrow();
-            let language_count = state.resources.langbase.languages.len() as i32;
-            if game_state.config.language >= 0
-                && game_state.config.language < language_count
+            if app_load.state.config.language >= 0
+                && (app_load.state.config.language as usize)
+                    < app_load.resources.langbase.languages.len()
             {
                 RouteTarget::MainMenu
             } else {
@@ -56,10 +56,10 @@ impl Game {
             }
         };
         let router = create_router(
-            state.resources,
-            state.state,
+            app_load.resources,
+            app_load.state,
             start_route,
-            state.save_manager,
+            app_load.save_manager,
         );
 
         Ok(Self {

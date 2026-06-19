@@ -4,11 +4,12 @@ use crate::gfx::theme::{
     BG_GREEN, BG_PURPLE, BLACK, FILL_GRAY, FONT_BODY, FONT_GOLD, FONT_GRAY, FONT_TEAL,
 };
 use crate::route::RouteTarget;
-use crate::store::{GameStateRef, ResourcesRef};
+use crate::screen::{GameCx, GameScreen};
+use crate::store::{GameState, ResourcesRef};
 use crate::text::format::{format_decimal, ordinal_dot};
 use crate::text::layout::{is_computer_name, lstr, shorten_name};
 use engine::oxide::input::Key;
-use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent};
+use engine::oxide::{PaintCx, ScreenEventCx, UiEvent};
 
 const HALL_PAGES: usize = 3;
 const PAGE_SIZE: usize = 20;
@@ -16,20 +17,15 @@ const PAGE_SIZE: usize = 20;
 #[derive(Debug)]
 pub struct HallOfFameView {
     resources: ResourcesRef,
-    store: GameStateRef,
     page: usize,
 }
 
 impl HallOfFameView {
-    pub const fn new(resources: ResourcesRef, store: GameStateRef) -> Self {
-        Self {
-            resources,
-            store,
-            page: 0,
-        }
+    pub const fn new(resources: ResourcesRef) -> Self {
+        Self { resources, page: 0 }
     }
 
-    fn paint_content(&self, cx: &mut PaintCx<'_>) {
+    fn paint_content(&self, state: &GameState, cx: &mut PaintCx<'_>) {
         if self.page >= 2 {
             paint_screen(cx, 1, BG_GREEN);
         } else {
@@ -40,12 +36,12 @@ impl HallOfFameView {
         }
 
         match self.page {
-            0 => self.paint_list(cx, 0),
+            0 => self.paint_list(state, cx, 0),
             1 => {
-                self.paint_list(cx, 1);
-                self.paint_list(cx, 2);
+                self.paint_list(state, cx, 1);
+                self.paint_list(state, cx, 2);
             }
-            _ => self.paint_koth_records(cx),
+            _ => self.paint_koth_records(state, cx),
         }
 
         paint_page_hints(
@@ -58,7 +54,7 @@ impl HallOfFameView {
         );
     }
 
-    fn paint_list(&self, cx: &mut PaintCx<'_>, phase: usize) {
+    fn paint_list(&self, state: &GameState, cx: &mut PaintCx<'_>, phase: usize) {
         let mut yy = 6;
         let col = [30, 146, 173, 215];
         let (title, entries, start, sortby) = match phase {
@@ -109,7 +105,7 @@ impl HallOfFameView {
             lstr(&self.resources.langbase, 169, "Date"),
         );
 
-        let records = &self.store.borrow().records;
+        let records = &state.records;
         for idx in start..start + entries {
             yy += 8;
             let Some(hi) = records.top(idx) else {
@@ -149,7 +145,7 @@ impl HallOfFameView {
         cx.text((col[3], y), FONT_GRAY, &hi.time);
     }
 
-    fn paint_koth_records(&self, cx: &mut PaintCx<'_>) {
+    fn paint_koth_records(&self, state: &GameState, cx: &mut PaintCx<'_>) {
         let col = [30, 55, 175, 290];
         let mut yy = 12;
         cx.text(
@@ -158,7 +154,7 @@ impl HallOfFameView {
             lstr(&self.resources.langbase, 160, "King of the Hill"),
         );
 
-        let records = &self.store.borrow().records;
+        let records = &state.records;
         for idx in 1..=6 {
             yy += 18;
             cx.text(
@@ -188,47 +184,47 @@ impl HallOfFameView {
     }
 }
 
-impl Screen<RouteTarget> for HallOfFameView {
-    fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
+impl GameScreen for HallOfFameView {
+    fn event(
+        &mut self,
+        _cx: &mut GameCx<'_>,
+        nav: &mut ScreenEventCx<RouteTarget>,
+        event: UiEvent,
+    ) {
         if matches!(event, UiEvent::Quit | UiEvent::Tick) {
             return;
         }
         if let Some(route) = handle_paged_ui_event(event, &mut self.page, HALL_PAGES) {
-            cx.navigate(route);
+            nav.navigate(route);
         } else {
-            cx.consume();
+            nav.consume();
         }
     }
 
-    fn paint(&mut self, cx: &mut PaintCx<'_>) {
-        self.paint_content(cx);
+    fn paint(&mut self, cx: &mut GameCx<'_>, paint: &mut PaintCx<'_>) {
+        self.paint_content(cx.state, paint);
     }
 }
 
 #[derive(Debug)]
 pub struct HillRecordsView {
     resources: ResourcesRef,
-    store: GameStateRef,
     page: usize,
 }
 
 impl HillRecordsView {
-    pub const fn new(resources: ResourcesRef, store: GameStateRef) -> Self {
-        Self {
-            resources,
-            store,
-            page: 0,
-        }
+    pub const fn new(resources: ResourcesRef) -> Self {
+        Self { resources, page: 0 }
     }
 
     fn pages(&self) -> usize {
         self.resources.hills.len().div_ceil(PAGE_SIZE).max(1)
     }
 
-    fn paint_content(&self, cx: &mut PaintCx<'_>) {
+    fn paint_content(&self, state: &GameState, cx: &mut PaintCx<'_>) {
         let pages = self.pages();
         paint_screen(cx, 1, BG_PURPLE);
-        self.paint_hill_records(cx);
+        self.paint_hill_records(state, cx);
         paint_page_hints(
             cx,
             self.page,
@@ -239,7 +235,7 @@ impl HillRecordsView {
         );
     }
 
-    fn paint_hill_records(&self, cx: &mut PaintCx<'_>) {
+    fn paint_hill_records(&self, state: &GameState, cx: &mut PaintCx<'_>) {
         let col = [3, 71, 183, 200, 216];
         let phase = self.page;
         let start = phase * PAGE_SIZE;
@@ -272,7 +268,7 @@ impl HillRecordsView {
             lstr(&self.resources.langbase, 169, "Date"),
         );
 
-        let records = &self.store.borrow().records;
+        let records = &state.records;
         let mut ahi_sum = 0.0;
         for aa in 0..loop_count {
             let idx = aa + start;
@@ -339,21 +335,26 @@ fn format_ahi(sum: f64, total: f64) -> String {
     format!("{out} %")
 }
 
-impl Screen<RouteTarget> for HillRecordsView {
-    fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
+impl GameScreen for HillRecordsView {
+    fn event(
+        &mut self,
+        _cx: &mut GameCx<'_>,
+        nav: &mut ScreenEventCx<RouteTarget>,
+        event: UiEvent,
+    ) {
         if matches!(event, UiEvent::Quit | UiEvent::Tick) {
             return;
         }
         let pages = self.pages();
         if let Some(route) = handle_paged_ui_event(event, &mut self.page, pages) {
-            cx.navigate(route);
+            nav.navigate(route);
         } else {
-            cx.consume();
+            nav.consume();
         }
     }
 
-    fn paint(&mut self, cx: &mut PaintCx<'_>) {
-        self.paint_content(cx);
+    fn paint(&mut self, cx: &mut GameCx<'_>, paint: &mut PaintCx<'_>) {
+        self.paint_content(cx.state, paint);
     }
 }
 

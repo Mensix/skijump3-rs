@@ -1,5 +1,6 @@
 use crate::gfx::jumper_colors::{ski_color, suit_color_shade};
 use crate::gfx::theme::{BG_PURPLE, BG_RED, BLACK, FONT_BODY, FONT_GOLD, FONT_GRAY};
+use crate::store::GameState;
 use crate::text::layout::lstr;
 use crate::views::profiles::format::format_profile_value;
 use engine::oxide::PaintCx;
@@ -18,8 +19,8 @@ pub(super) fn draw_screen_base(view: &ProfilesView, cx: &mut PaintCx<'_>) {
     );
 }
 
-pub(super) fn draw_list(view: &ProfilesView, cx: &mut PaintCx<'_>) {
-    let store = &view.store.borrow().profiles;
+pub(super) fn draw_list(view: &ProfilesView, state: &GameState, cx: &mut PaintCx<'_>) {
+    let store = &state.profiles;
     let np = store.num_profiles();
 
     for (i, profile) in store.profiles.iter().enumerate() {
@@ -57,8 +58,13 @@ pub(super) fn draw_list(view: &ProfilesView, cx: &mut PaintCx<'_>) {
     }
 }
 
-pub(super) fn draw_help(view: &ProfilesView, cx: &mut PaintCx<'_>, profile: Option<usize>) {
-    let store = &view.store.borrow().profiles;
+pub(super) fn draw_help(
+    view: &ProfilesView,
+    state: &GameState,
+    cx: &mut PaintCx<'_>,
+    profile: Option<usize>,
+) {
+    let store = &state.profiles;
     if store.num_profiles() >= 16 {
         return;
     }
@@ -150,13 +156,14 @@ pub(super) fn profile_label(view: &ProfilesView, field: usize) -> String {
 
 pub(super) fn draw_profile(
     view: &ProfilesView,
+    state: &GameState,
     cx: &mut PaintCx<'_>,
     profile_index: usize,
     edit_phase: bool,
 ) {
     draw_empty_edit(cx);
 
-    let store = &view.store.borrow().profiles;
+    let store = &state.profiles;
     let Some(profile) = store.profiles.get(profile_index) else {
         return;
     };
@@ -199,7 +206,8 @@ pub(super) fn draw_profile(
             profile,
             field,
             &view.resources.font,
-            view.resources.player_names(view.store.borrow().config.name_set_index as usize),
+            view.resources
+                .player_names(state.config.name_set_index as usize),
             &view.resources.langbase,
         );
         if !value.is_empty() {

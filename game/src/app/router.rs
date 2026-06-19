@@ -1,13 +1,15 @@
+use crate::competition::active::ActiveCompetitionKind;
 use crate::components::layout::MainLayout;
 use crate::route::RouteTarget;
 use crate::save::SaveRef;
-use crate::store::{GameStateRef, ResourcesRef};
+use crate::screen::{GameCx, GameScreen};
+use crate::store::{GameState, ResourcesRef};
 use crate::views::{
     CompetitionJumpView, CustomCupSetupView, EditHillView, HallOfFameView, HillMakerView,
     HillRecordsView, JumpMenuView, KothHillPickerView, KothSetupView, MainMenuView, ProfilesView,
     ReplayBrowserView, ReplayView, SetupView, TrainingSetupView, WelcomeScreenView,
 };
-use engine::oxide::{NavAction, PaintCx, Screen, ScreenBackground, ScreenEventCx, UiEvent};
+use engine::oxide::{NavAction, PaintCx, ScreenBackground, ScreenEventCx, UiEvent};
 use std::rc::Rc;
 
 const VERSION: &str = "3.12";
@@ -15,97 +17,83 @@ const VERSION: &str = "3.12";
 fn make_screen(
     target: &RouteTarget,
     resources: &ResourcesRef,
-    state: &GameStateRef,
     save_manager: &SaveRef,
-    layout: &MainLayout,
-) -> Box<dyn Screen<RouteTarget>> {
+    state: &mut GameState,
+) -> Box<dyn GameScreen> {
     match target {
-        RouteTarget::MainMenu => Box::new(MainMenuView::new(layout.clone(), state.clone())),
-        RouteTarget::JumpMenu => Box::new(JumpMenuView::new(
-            layout.clone(),
-            state.clone(),
-            resources.clone(),
-        )),
-        RouteTarget::Practice => Box::new(TrainingSetupView::new(resources.clone(), state.clone())),
-        RouteTarget::Jump => Box::new(CompetitionJumpView::new(
-            resources.clone(),
-            state.clone(),
-            save_manager.clone(),
-        )),
-        RouteTarget::CompetitionJump => Box::new(CompetitionJumpView::new(
-            resources.clone(),
-            state.clone(),
-            save_manager.clone(),
-        )),
+        RouteTarget::MainMenu => Box::new(MainMenuView::new()),
+        RouteTarget::JumpMenu => Box::new(JumpMenuView::new(resources.clone())),
+        RouteTarget::Practice => Box::new(TrainingSetupView::new(resources.clone(), state)),
+        RouteTarget::Jump | RouteTarget::CompetitionJump => {
+            let kind = state
+                .active_competition
+                .as_ref()
+                .map(|competition| competition.kind())
+                .unwrap_or(ActiveCompetitionKind::Individual);
+            Box::new(CompetitionJumpView::new(
+                resources.clone(),
+                save_manager.clone(),
+                state,
+                kind,
+            ))
+        }
         RouteTarget::CustomCupSetup => Box::new(CustomCupSetupView::new(
             resources.clone(),
-            state.clone(),
             save_manager.clone(),
         )),
-        RouteTarget::Replays => Box::new(ReplayBrowserView::new(
+        RouteTarget::Replays => Box::new(ReplayBrowserView::new(resources.clone())),
+        RouteTarget::ReplayPlayback => Box::new(ReplayView::new(
             resources.clone(),
-            state.clone(),
-            layout.clone(),
+            state.selected_replay.clone(),
         )),
-        RouteTarget::ReplayPlayback => Box::new(ReplayView::new(resources.clone(), state.clone())),
-        RouteTarget::ProfilesList => Box::new(ProfilesView::new(
-            resources.clone(),
-            state.clone(),
-            save_manager.clone(),
-        )),
-        RouteTarget::HallOfFame => Box::new(HallOfFameView::new(resources.clone(), state.clone())),
-        RouteTarget::HillRecords => {
-            Box::new(HillRecordsView::new(resources.clone(), state.clone()))
+        RouteTarget::ProfilesList => {
+            Box::new(ProfilesView::new(resources.clone(), save_manager.clone()))
         }
-        RouteTarget::OptionsMenu => Box::new(SetupView::new(
-            resources.clone(),
-            state.clone(),
-            save_manager.clone(),
-        )),
+        RouteTarget::HallOfFame => Box::new(HallOfFameView::new(resources.clone())),
+        RouteTarget::HillRecords => Box::new(HillRecordsView::new(resources.clone())),
+        RouteTarget::OptionsMenu => {
+            Box::new(SetupView::new(resources.clone(), save_manager.clone()))
+        }
         RouteTarget::KothHillPicker => Box::new(KothHillPickerView::new(
             resources.clone(),
-            state.clone(),
             save_manager.clone(),
         )),
-        RouteTarget::KothSetup => Box::new(KothSetupView::new(
-            resources.clone(),
-            state.clone(),
-            save_manager.clone(),
-        )),
-        RouteTarget::HillMakerSetup => {
-            Box::new(HillMakerView::new(resources.clone(), state.clone()))
+        RouteTarget::KothSetup => {
+            Box::new(KothSetupView::new(resources.clone(), save_manager.clone()))
         }
-        RouteTarget::EditHill => Box::new(EditHillView::new(resources.clone(), state.clone())),
+        RouteTarget::HillMakerSetup => Box::new(HillMakerView::new(resources.clone())),
+        RouteTarget::EditHill => {
+            let filename = state.nav_edit_hill.clone();
+            Box::new(EditHillView::new(resources.clone(), filename))
+        }
         RouteTarget::Welcome => Box::new(WelcomeScreenView::new(
             resources.clone(),
-            state.clone(),
             resources.langbase.languages.clone(),
-            save_manager.clone(),
         )),
-        RouteTarget::Quit => Box::new(MainMenuView::new(layout.clone(), state.clone())),
+        RouteTarget::Quit => Box::new(MainMenuView::new()),
         _ => unreachable!(),
     }
 }
 
 pub struct AppRouter {
-    current: Box<dyn Screen<RouteTarget>>,
+    current: Box<dyn GameScreen>,
     current_route: Option<RouteTarget>,
     history: Vec<RouteTarget>,
     resources: ResourcesRef,
-    state: GameStateRef,
+    pub(crate) state: GameState,
     save_manager: SaveRef,
     layout: MainLayout,
 }
 
 impl AppRouter {
-    fn new(
+    pub fn new(
         route: RouteTarget,
         resources: ResourcesRef,
-        state: GameStateRef,
+        mut state: GameState,
         save_manager: SaveRef,
         layout: MainLayout,
     ) -> Self {
-        let current = make_screen(&route, &resources, &state, &save_manager, &layout);
+        let current = make_screen(&route, &resources, &save_manager, &mut state);
         Self {
             current,
             current_route: Some(route),
@@ -122,13 +110,25 @@ impl AppRouter {
     }
 
     pub fn update(&mut self) {
-        self.current.update();
+        let mut cx = GameCx {
+            state: &mut self.state,
+            save_manager: &self.save_manager,
+            layout: &self.layout,
+        };
+        self.current.update(&mut cx);
     }
 
     pub fn handle_event(&mut self, event: UiEvent) {
-        let mut cx = ScreenEventCx::default();
-        self.current.event(&mut cx, event);
-        match cx.take_action() {
+        let mut nav = ScreenEventCx::default();
+        {
+            let mut cx = GameCx {
+                state: &mut self.state,
+                save_manager: &self.save_manager,
+                layout: &self.layout,
+            };
+            self.current.event(&mut cx, &mut nav, event);
+        }
+        match nav.take_action() {
             NavAction::None => {}
             NavAction::Navigate(route) => self.navigate(route),
             NavAction::Back => self.back(),
@@ -136,8 +136,13 @@ impl AppRouter {
         }
     }
 
-    pub fn paint(&mut self, cx: &mut PaintCx<'_>) {
-        self.current.paint(cx);
+    pub fn paint(&mut self, paint: &mut PaintCx<'_>) {
+        let mut cx = GameCx {
+            state: &mut self.state,
+            save_manager: &self.save_manager,
+            layout: &self.layout,
+        };
+        self.current.paint(&mut cx, paint);
     }
 
     pub fn screen_background(&self) -> ScreenBackground {
@@ -152,36 +157,25 @@ impl AppRouter {
         self.current = make_screen(
             &target,
             &self.resources,
-            &self.state,
             &self.save_manager,
-            &self.layout,
+            &mut self.state,
         );
     }
 
     fn back(&mut self) {
         if let Some(prev) = self.history.pop() {
             self.current_route = Some(prev);
-            self.current = make_screen(
-                &prev,
-                &self.resources,
-                &self.state,
-                &self.save_manager,
-                &self.layout,
-            );
+            self.current = make_screen(&prev, &self.resources, &self.save_manager, &mut self.state);
         }
     }
 }
 
 pub fn create_router(
     resources: ResourcesRef,
-    state: GameStateRef,
+    state: GameState,
     start_route: RouteTarget,
     save_manager: SaveRef,
 ) -> AppRouter {
-    let layout = MainLayout::new(
-        Rc::clone(&resources.langbase),
-        VERSION.to_string(),
-        state.clone(),
-    );
+    let layout = MainLayout::new(Rc::clone(&resources.langbase), VERSION.to_string());
     AppRouter::new(start_route, resources, state, save_manager, layout)
 }

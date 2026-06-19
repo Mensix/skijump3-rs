@@ -1,18 +1,17 @@
 use crate::gfx::theme::FONT_BODY;
 use crate::route::RouteTarget;
-use crate::save::config::Config;
 use crate::save::SaveRef;
-use crate::store::{GameStateRef, ResourcesRef};
+use crate::screen::{GameCx, GameScreen};
+use crate::store::ResourcesRef;
 use crate::text::lang::LangBase;
 use engine::oxide::widgets::menu::{MenuItem as OxideMenuItem, PixelMenu};
-use engine::oxide::{Blinker, PaintCx, Screen, ScreenEventCx, UiEvent};
+use engine::oxide::{Blinker, PaintCx, ScreenEventCx, UiEvent};
 use std::cell::Cell;
 
 use super::state::SetupModal;
 
 pub struct SetupView {
     pub(crate) resources: ResourcesRef,
-    pub(crate) store: GameStateRef,
     pub(crate) save_manager: SaveRef,
     pub(crate) screen: Cell<usize>,
     pub(crate) selected_by_screen: [Cell<usize>; 4],
@@ -22,11 +21,10 @@ pub struct SetupView {
 }
 
 impl SetupView {
-    pub fn new(resources: ResourcesRef, store: GameStateRef, save_manager: SaveRef) -> Self {
+    pub fn new(resources: ResourcesRef, save_manager: SaveRef) -> Self {
         let menu = Self::make_menu(0, 0);
         Self {
             resources,
-            store,
             save_manager,
             screen: Cell::new(0),
             selected_by_screen: [Cell::new(0), Cell::new(0), Cell::new(0), Cell::new(0)],
@@ -71,29 +69,25 @@ impl SetupView {
         &self.resources.langbase
     }
 
-    pub(crate) fn config(&self) -> std::cell::Ref<'_, Config> {
-        std::cell::Ref::map(self.store.borrow(), |s| &s.config)
-    }
-
     pub(crate) fn save_manager(&self) -> &SaveRef {
         &self.save_manager
     }
 }
 
-impl Screen<RouteTarget> for SetupView {
-    fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
+impl GameScreen for SetupView {
+    fn event(&mut self, cx: &mut GameCx<'_>, nav: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
         let Some(event) = input_from_ui(event) else {
             return;
         };
-        if let Some(route) = super::actions::handle_event(self, event) {
-            cx.navigate(route);
+        if let Some(route) = super::actions::handle_event(self, cx.state, event) {
+            nav.navigate(route);
         } else {
-            cx.consume();
+            nav.consume();
         }
     }
 
-    fn paint(&mut self, cx: &mut PaintCx<'_>) {
-        super::render::paint_content(self, cx);
+    fn paint(&mut self, cx: &mut GameCx<'_>, paint: &mut PaintCx<'_>) {
+        super::render::paint_content(self, cx.state, paint);
     }
 }
 

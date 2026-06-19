@@ -1,6 +1,6 @@
 use crate::gfx::sprites;
 use crate::gfx::theme::{BG_TEAM, BLACK, FILL_GRAY, FONT_BODY, FONT_GOLD, FONT_GRAY};
-use crate::store::{GameStateRef, ResourcesRef};
+use crate::store::{GameState, ResourcesRef};
 use crate::text::layout::shorten_name;
 
 use engine::oxide::input::{Key, UiEvent};
@@ -26,7 +26,19 @@ pub(crate) struct TeamCupSetup {
 }
 
 impl TeamCupSetup {
-    pub(crate) fn new(state: &GameStateRef) -> Self {
+    pub(crate) fn new_with_dummy() -> Self {
+        Self {
+            phase: Phase::NamingTeam(0),
+            team_names: Vec::new(),
+            name_buffer: String::new(),
+        }
+    }
+
+    pub(crate) fn has_teams(&self) -> bool {
+        !self.team_names.is_empty()
+    }
+
+    pub(crate) fn new(state: &GameState) -> Self {
         let team_names = team_names(state);
         let name_buffer = team_names.first().cloned().unwrap_or_default();
         Self {
@@ -40,7 +52,7 @@ impl TeamCupSetup {
         &self,
         cx: &mut PaintCx<'_>,
         resources: &ResourcesRef,
-        state: &GameStateRef,
+        state: &GameState,
         cursor_visible: bool,
     ) {
         match self.phase {
@@ -61,7 +73,7 @@ impl TeamCupSetup {
     pub(crate) fn handle_event(
         &mut self,
         resources: &ResourcesRef,
-        state: &GameStateRef,
+        state: &mut GameState,
         event: UiEvent,
     ) -> SetupAction {
         match self.phase {
@@ -85,7 +97,7 @@ impl TeamCupSetup {
     fn handle_naming(
         &mut self,
         resources: &ResourcesRef,
-        state: &GameStateRef,
+        state: &mut GameState,
         event: UiEvent,
     ) -> SetupAction {
         match event {
@@ -106,7 +118,7 @@ impl TeamCupSetup {
         SetupAction::None
     }
 
-    fn finalize_current_name(&mut self, state: &GameStateRef) {
+    fn finalize_current_name(&mut self, state: &mut GameState) {
         let name = self.name_buffer.trim().to_string();
         let n = match self.phase {
             Phase::NamingTeam(idx) => idx,
@@ -114,14 +126,8 @@ impl TeamCupSetup {
         };
 
         if !name.is_empty() {
-            state
-                .borrow_mut()
-                .active_competition
-                .as_mut()
-                .map(|active| {
-                    let Some(tc) = active.team_cup_runtime_mut() else {
-                        return;
-                    };
+            if let Some(active) = state.active_competition.as_mut() {
+                if let Some(tc) = active.team_cup_runtime_mut() {
                     let human_indices: Vec<usize> = tc
                         .teams
                         .iter()
@@ -133,7 +139,8 @@ impl TeamCupSetup {
                     if let Some(&team_idx) = human_indices.get(n) {
                         tc.teams[team_idx].name = name.clone();
                     }
-                });
+                }
+            }
             self.team_names[n] = name;
         }
 
@@ -148,12 +155,11 @@ impl TeamCupSetup {
     }
 }
 
-fn team_names(state: &GameStateRef) -> Vec<String> {
+fn team_names(state: &GameState) -> Vec<String> {
     state
-        .borrow()
         .active_competition
         .as_ref()
-        .map(|active| {
+        .and_then(|active| {
             let tc = active.team_cup_runtime()?;
             Some(
                 tc.teams
@@ -163,7 +169,6 @@ fn team_names(state: &GameStateRef) -> Vec<String> {
                     .collect(),
             )
         })
-        .flatten()
         .unwrap_or_default()
 }
 
@@ -178,7 +183,7 @@ fn team_x(team_idx: usize) -> i32 {
 fn naming_elements(
     cx: &mut PaintCx<'_>,
     resources: &ResourcesRef,
-    state: &GameStateRef,
+    state: &GameState,
     team_names: &[String],
     current_team: usize,
     name_buffer: &str,
@@ -217,7 +222,7 @@ fn naming_elements(
 fn ready_elements(
     cx: &mut PaintCx<'_>,
     resources: &ResourcesRef,
-    state: &GameStateRef,
+    state: &GameState,
     team_names: &[String],
     cursor_visible: bool,
 ) {
@@ -248,7 +253,7 @@ fn ready_elements(
 fn showteams_elements(
     cx: &mut PaintCx<'_>,
     resources: &ResourcesRef,
-    state: &GameStateRef,
+    state: &GameState,
     cursor_visible: bool,
 ) {
     cx.fill((0, 0, 320, 200), BLACK);
@@ -260,7 +265,7 @@ fn showteams_elements(
 
     let mut x = 5i32;
     let mut y = 24i32;
-    state.borrow().active_competition.as_ref().map(|active| {
+    state.active_competition.as_ref().map(|active| {
         let Some(tc) = active.team_cup_runtime() else {
             return;
         };
@@ -315,7 +320,7 @@ fn push_named_team(
     cx.text((xx, 42), FONT_BODY, team_names[n].clone());
 }
 
-fn push_team_cup_header(cx: &mut PaintCx<'_>, resources: &ResourcesRef, state: &GameStateRef) {
+fn push_team_cup_header(cx: &mut PaintCx<'_>, resources: &ResourcesRef, state: &GameState) {
     cx.text((30, 6), FONT_BODY, resources.langbase.lstr(111).to_string());
     cx.text(
         (30, 110),
@@ -324,11 +329,10 @@ fn push_team_cup_header(cx: &mut PaintCx<'_>, resources: &ResourcesRef, state: &
     );
 
     if let Some(schedule) = state
-        .borrow()
         .active_competition
         .as_ref()
-        .map(|active| active.team_cup_runtime().map(|tc| tc.schedule.clone()))
-        .flatten()
+        .and_then(|active| active.team_cup_runtime())
+        .map(|tc| tc.schedule.clone())
     {
         for (i, &hill_idx) in schedule.iter().enumerate() {
             let hill_name = resources
@@ -341,12 +345,11 @@ fn push_team_cup_header(cx: &mut PaintCx<'_>, resources: &ResourcesRef, state: &
     }
 }
 
-fn push_jumper_names(cx: &mut PaintCx<'_>, state: &GameStateRef, team_n: usize, xx: i32) {
+fn push_jumper_names(cx: &mut PaintCx<'_>, state: &GameState, team_n: usize, xx: i32) {
     let jumpers: Vec<String> = state
-        .borrow()
         .active_competition
         .as_ref()
-        .map(|active| {
+        .and_then(|active| {
             let tc = active.team_cup_runtime()?;
             Some(
                 tc.teams
@@ -362,7 +365,6 @@ fn push_jumper_names(cx: &mut PaintCx<'_>, state: &GameStateRef, team_n: usize, 
                     .unwrap_or_default(),
             )
         })
-        .flatten()
         .unwrap_or_default();
     for (j, jname) in jumpers.iter().enumerate() {
         cx.text((xx + 13, 56 + j as i32 * 10), FONT_GOLD, jname.clone());

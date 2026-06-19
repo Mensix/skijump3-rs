@@ -9,18 +9,21 @@ use crate::gfx::theme::{
 use crate::jump::hud;
 use crate::jump::math;
 use crate::jump::presentation::{self, WindPosition};
+use crate::jump::replay::ReplayTrace;
 use crate::jump::replay_player::ReplaySession;
 use crate::jump::snow::SnowSystem;
 use crate::jump::visuals::{self, JumperSpriteSpec};
+use crate::rng::Random;
 use crate::route::RouteTarget;
-use crate::store::{GameStateRef, ResourcesRef};
+use crate::screen::{GameCx, GameScreen};
+use crate::store::ResourcesRef;
 use crate::text::format;
 use crate::text::lang::LangBase;
 use crate::views::replay::playback_controls::{PlaybackMode, PlaybackSpeed, ReplayPlayback};
 use engine::consts::{HEIGHT, WIDTH};
 use engine::oxide::input::Key;
 use engine::oxide::Blinker;
-use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent};
+use engine::oxide::{PaintCx, ScreenEventCx, UiEvent};
 use std::collections::VecDeque;
 use std::rc::Rc;
 
@@ -39,16 +42,14 @@ pub struct ReplayView {
 }
 
 impl ReplayView {
-    pub fn new(resources: ResourcesRef, store: GameStateRef) -> Self {
-        let trace = store.borrow().selected_replay.clone();
+    pub fn new(resources: ResourcesRef, trace: Option<ReplayTrace>) -> Self {
         let terrain: Result<HillTerrain, AssetError> = trace.as_ref().map_or_else(
             || Err(AssetError::Custom("Replay hill not found".to_string())),
             |trace| HillTerrain::load(&resources.files, trace.meta.hill_idx),
         );
         let mut snow = SnowSystem::new();
         if let Some(trace) = &trace {
-            let mut s = store.borrow_mut();
-            snow.set_count(trace.meta.snow_count, &mut s.rng);
+            snow.set_count(trace.meta.snow_count, &mut Random::default());
         }
         Self {
             resources,
@@ -246,8 +247,8 @@ impl ReplayView {
     }
 }
 
-impl Screen<RouteTarget> for ReplayView {
-    fn update(&mut self) {
+impl GameScreen for ReplayView {
+    fn update(&mut self, _cx: &mut GameCx<'_>) {
         let Some(session) = self.session.as_mut() else {
             return;
         };
@@ -261,20 +262,25 @@ impl Screen<RouteTarget> for ReplayView {
         }
     }
 
-    fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
+    fn event(
+        &mut self,
+        _cx: &mut GameCx<'_>,
+        nav: &mut ScreenEventCx<RouteTarget>,
+        event: UiEvent,
+    ) {
         if matches!(event, UiEvent::Quit | UiEvent::Tick) {
             return;
         }
         if self.active_intro_box.is_some() {
             if let Some(route) = self.dismiss_intro_box() {
-                cx.navigate(route);
+                nav.navigate(route);
             } else {
-                cx.consume();
+                nav.consume();
             }
             return;
         }
         match event {
-            UiEvent::KeyDown(Key::Escape | Key::Delete) => cx.back(),
+            UiEvent::KeyDown(Key::Escape | Key::Delete) => nav.back(),
             UiEvent::KeyDown(Key::Up) | UiEvent::Text('+') => {
                 if let Some(s) = self.playback.speed().next_up() {
                     self.playback.set_speed(s);
@@ -282,7 +288,7 @@ impl Screen<RouteTarget> for ReplayView {
                         self.playback.set_mode(PlaybackMode::SpeedChange);
                     }
                 }
-                cx.consume();
+                nav.consume();
             }
             UiEvent::KeyDown(Key::Down) | UiEvent::Text('-') => {
                 if let Some(s) = self.playback.speed().next_down() {
@@ -291,7 +297,7 @@ impl Screen<RouteTarget> for ReplayView {
                         self.playback.set_mode(PlaybackMode::SpeedChange);
                     }
                 }
-                cx.consume();
+                nav.consume();
             }
             UiEvent::KeyDown(Key::Right) => {
                 self.playback
@@ -300,7 +306,7 @@ impl Screen<RouteTarget> for ReplayView {
                     } else {
                         PlaybackMode::Forward
                     });
-                cx.consume();
+                nav.consume();
             }
             UiEvent::KeyDown(Key::Left) => {
                 self.playback
@@ -309,22 +315,22 @@ impl Screen<RouteTarget> for ReplayView {
                     } else {
                         PlaybackMode::Rewind
                     });
-                cx.consume();
+                nav.consume();
             }
             UiEvent::Text(' ') if self.playback.mode() == PlaybackMode::Pause => {
                 self.playback.set_mode(PlaybackMode::OneStep);
-                cx.consume();
+                nav.consume();
             }
             UiEvent::Text('p' | 'P') => {
                 self.playback.set_mode(PlaybackMode::PlayOnceThenPause);
-                cx.consume();
+                nav.consume();
             }
             _ => {}
         }
     }
 
-    fn paint(&mut self, cx: &mut PaintCx<'_>) {
-        self.paint_content(cx);
+    fn paint(&mut self, _cx: &mut GameCx<'_>, paint: &mut PaintCx<'_>) {
+        self.paint_content(paint);
     }
 }
 

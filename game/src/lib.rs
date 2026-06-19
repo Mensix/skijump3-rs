@@ -10,6 +10,7 @@ pub(crate) mod jump;
 pub(crate) mod rng;
 pub(crate) mod route;
 pub(crate) mod save;
+pub(crate) mod screen;
 pub(crate) mod store;
 pub(crate) mod text;
 pub(crate) mod views;

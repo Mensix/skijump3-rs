@@ -5,9 +5,10 @@ use crate::files::FileStore;
 use crate::gfx::theme::{BG_DARK, BG_PURPLE, FILL_PURPLE, FONT_BODY, FONT_GOLD, FONT_GRAY};
 use crate::jump::replay::ReplayTrace;
 use crate::route::RouteTarget;
-use crate::store::{GameStateRef, Resources, ResourcesRef};
+use crate::screen::{GameCx, GameScreen};
+use crate::store::{Resources, ResourcesRef};
 use engine::oxide::input::Key;
-use engine::oxide::{PaintCx, Screen, ScreenBackground, ScreenEventCx, UiEvent};
+use engine::oxide::{PaintCx, ScreenBackground, ScreenEventCx, UiEvent};
 use std::path::Path;
 
 #[derive(Debug, Clone)]
@@ -19,20 +20,16 @@ struct ReplayEntry {
 
 pub struct ReplayBrowserView {
     resources: ResourcesRef,
-    store: GameStateRef,
-    layout: MainLayout,
     entries: Vec<ReplayEntry>,
     selected: usize,
     confirm_delete: bool,
 }
 
 impl ReplayBrowserView {
-    pub fn new(resources: ResourcesRef, store: GameStateRef, layout: MainLayout) -> Self {
+    pub fn new(resources: ResourcesRef) -> Self {
         let entries = load_replays(&resources.files);
         Self {
             resources,
-            store,
-            layout,
             entries,
             selected: 0,
             confirm_delete: false,
@@ -49,20 +46,6 @@ impl ReplayBrowserView {
 
     fn move_prev(&mut self) {
         self.selected = cycle_index(self.selected, self.entries.len(), -1);
-    }
-
-    fn paint_content(&self, cx: &mut PaintCx<'_>) {
-        cx.fill((11, 80, 100, 6), BG_DARK);
-        cx.text((11, 80), FONT_GOLD, self.layout.langbase.lstr(17));
-        paint_replay_menu(cx, &self.layout);
-        self.layout.footer(cx);
-        paint_replay_panel(cx, &self.resources, &self.entries, self.selected);
-        if self.confirm_delete {
-            paint_delete_confirm(
-                cx,
-                self.selected_entry().map_or("", |entry| &entry.filename),
-            );
-        }
     }
 
     fn delete_selected(&mut self) {
@@ -84,8 +67,8 @@ impl ReplayBrowserView {
     }
 }
 
-impl Screen<RouteTarget> for ReplayBrowserView {
-    fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
+impl GameScreen for ReplayBrowserView {
+    fn event(&mut self, cx: &mut GameCx<'_>, nav: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
         if self.confirm_delete {
             match event {
                 UiEvent::Text('y' | 'Y') => self.delete_selected(),
@@ -94,41 +77,51 @@ impl Screen<RouteTarget> for ReplayBrowserView {
                 }
                 _ => {}
             }
-            cx.consume();
+            nav.consume();
             return;
         }
 
         match event {
             UiEvent::KeyDown(Key::Escape) => {
-                self.store.borrow_mut().selected_main_menu = 5;
-                cx.back();
+                cx.state.selected_main_menu = 5;
+                nav.back();
             }
             UiEvent::KeyDown(Key::Right | Key::Down) | UiEvent::Text(' ' | '+') => {
                 self.move_next();
-                cx.consume();
+                nav.consume();
             }
             UiEvent::KeyDown(Key::Left | Key::Up) | UiEvent::Text('-') => {
                 self.move_prev();
-                cx.consume();
+                nav.consume();
             }
             UiEvent::KeyDown(Key::Enter) => {
                 if let Some(trace) = self.selected_entry().and_then(|entry| entry.trace.clone()) {
-                    self.store.borrow_mut().selected_replay = Some(trace);
-                    cx.navigate(RouteTarget::ReplayPlayback);
+                    cx.state.selected_replay = Some(trace);
+                    nav.navigate(RouteTarget::ReplayPlayback);
                 }
             }
             UiEvent::KeyDown(Key::Delete) => {
                 if !self.entries.is_empty() {
                     self.confirm_delete = true;
                 }
-                cx.consume();
+                nav.consume();
             }
             UiEvent::KeyDown(_) | UiEvent::Text(_) | UiEvent::Quit | UiEvent::Tick => {}
         }
     }
 
-    fn paint(&mut self, cx: &mut PaintCx<'_>) {
-        self.paint_content(cx);
+    fn paint(&mut self, cx: &mut GameCx<'_>, paint: &mut PaintCx<'_>) {
+        paint.fill((11, 80, 100, 6), BG_DARK);
+        paint.text((11, 80), FONT_GOLD, cx.layout.langbase.lstr(17));
+        paint_replay_menu(paint, &cx.layout);
+        cx.layout.footer(paint);
+        paint_replay_panel(paint, &self.resources, &self.entries, self.selected);
+        if self.confirm_delete {
+            paint_delete_confirm(
+                paint,
+                self.selected_entry().map_or("", |entry| &entry.filename),
+            );
+        }
     }
 
     fn background(&self) -> ScreenBackground {

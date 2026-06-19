@@ -69,8 +69,7 @@ pub fn load_initial_config(files: &FileStore, langbase: &Rc<LangBase>) -> Config
         Err(_) => Config::default(),
     };
 
-    if config.language >= 0 && (config.language as usize) < langbase.languages.len()
-    {
+    if config.language >= 0 && (config.language as usize) < langbase.languages.len() {
         langbase.selected.set(config.language as usize);
     }
     config
@@ -86,7 +85,9 @@ impl SaveManager {
 
     pub fn save_config(&self, config: &Config) -> Result<(), SaveError> {
         let data = config.to_toml_bytes()?;
-        self.files.write("config.toml", &data).map_err(SaveError::Io)
+        self.files
+            .write("config.toml", &data)
+            .map_err(SaveError::Io)
     }
 
     fn save_bytes(&self, filename: &str, data: &[u8]) -> Result<(), SaveError> {

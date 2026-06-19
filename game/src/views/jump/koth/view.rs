@@ -1,12 +1,13 @@
 use crate::competition::koth::types::{KothJumpContext, KothResultsKind, KothRuntime};
 use crate::route::RouteTarget;
 use crate::save::SaveRef;
-use crate::store::{GameStateRef, ResourcesRef};
+use crate::screen::{GameCx, GameScreen};
+use crate::store::{GameState, ResourcesRef};
 use crate::views::jump::competition::controller::CompetitionJumpController;
 use crate::views::jump::competition::flow::{CompetitionFlowCommand, JumpInputResult};
 use crate::views::jump::competition::ui_state::RenderMode;
 use crate::views::jump::koth::results;
-use engine::oxide::{Key, PaintCx, Screen, ScreenEventCx, UiEvent};
+use engine::oxide::{Key, PaintCx, ScreenEventCx, UiEvent};
 use std::cell::Cell;
 
 pub struct KothJumpView {
@@ -15,14 +16,18 @@ pub struct KothJumpView {
 }
 
 impl KothJumpView {
-    pub(crate) fn new(resources: ResourcesRef, store: GameStateRef, save_manager: SaveRef) -> Self {
+    pub(crate) fn new(resources: ResourcesRef, save_manager: SaveRef) -> Self {
         Self {
-            controller: CompetitionJumpController::new(resources, store, save_manager, None),
+            controller: CompetitionJumpController::new(resources, save_manager, false, None),
             completion_saved: Cell::new(false),
         }
     }
 
-    fn apply_command(&mut self, command: CompetitionFlowCommand<KothJumpContext, KothResultsKind>) {
+    fn apply_command(
+        &mut self,
+        command: CompetitionFlowCommand<KothJumpContext, KothResultsKind>,
+        state: &mut GameState,
+    ) {
         match command {
             CompetitionFlowCommand::HumanJump {
                 participant,
@@ -32,29 +37,28 @@ impl KothJumpView {
             } => {
                 let phase_label = format!("Round {}", context.jump_round + 1,);
                 self.controller
-                    .prepare_human_jump(participant, hill_idx, phase_label, None);
+                    .prepare_human_jump(participant, hill_idx, phase_label, None, state);
             }
             CompetitionFlowCommand::ShowResults(KothResultsKind::Results) => {
                 self.controller.enter_results();
             }
             CompetitionFlowCommand::Done => {
-                self.on_complete();
+                self.on_complete(state);
                 self.controller.enter_done();
             }
         }
     }
 
-    fn on_complete(&self) {
-        self.update_koth_completion_records();
-        self.controller.save_results();
+    fn on_complete(&self, state: &mut GameState) {
+        self.update_koth_completion_records(state);
+        self.controller.save_results(state);
     }
 
-    fn update_koth_completion_records(&self) {
+    fn update_koth_completion_records(&self, state: &mut GameState) {
         if self.completion_saved.replace(true) {
             return;
         }
 
-        let mut state = self.controller.state().borrow_mut();
         let pack = state.config.koth_pack;
         if !(1..=6).contains(&pack) {
             return;
@@ -88,33 +92,33 @@ impl KothJumpView {
             || self.controller.ui_state().has_page()
     }
 
-    fn dismiss_results_and_advance(&mut self) -> Option<RouteTarget> {
-        if let Some(command) = self.controller.dismiss_results_and_advance() {
+    fn dismiss_results_and_advance(&mut self, state: &mut GameState) -> Option<RouteTarget> {
+        if let Some(command) = self.controller.dismiss_results_and_advance(state) {
             if matches!(command, CompetitionFlowCommand::Done) {
-                self.on_complete();
+                self.on_complete(state);
                 return Some(RouteTarget::Back);
             }
-            self.apply_command(command);
+            self.apply_command(command, state);
         }
         None
     }
 
-    fn paint_content(&mut self, cx: &mut PaintCx<'_>) {
+    fn paint_content(&mut self, cx: &mut PaintCx<'_>, state: &GameState) {
         match self.controller.render_mode() {
             RenderMode::Jump => {
-                self.controller.render_jump(cx);
+                self.controller.render_jump(cx, state);
             }
             RenderMode::Results => {
-                results::render(cx, self.controller.resources(), self.controller.state());
+                results::render(cx, self.controller.resources(), state);
             }
             RenderMode::Done => {
-                results::render(cx, self.controller.resources(), self.controller.state());
+                results::render(cx, self.controller.resources(), state);
             }
             RenderMode::Error => {}
         }
     }
 
-    fn handle_input(&mut self, event: UiEvent) -> Option<RouteTarget> {
+    fn handle_input(&mut self, event: UiEvent, state: &mut GameState) -> Option<RouteTarget> {
         if self.controller.render_mode() == RenderMode::Done {
             if matches!(event, UiEvent::KeyDown(_) | UiEvent::Text(_)) {
                 return Some(RouteTarget::Back);
@@ -127,7 +131,7 @@ impl KothJumpView {
                 event,
                 UiEvent::KeyDown(Key::Right | Key::Enter | Key::Escape) | UiEvent::Text(' ')
             ) {
-                if let Some(route) = self.dismiss_results_and_advance() {
+                if let Some(route) = self.dismiss_results_and_advance(state) {
                     return Some(route);
                 }
             }
@@ -137,7 +141,7 @@ impl KothJumpView {
         // Jump scene input
         match self
             .controller
-            .handle_jump_scene_event(event, false, false, true)
+            .handle_jump_scene_event(event, false, false, true, state)
         {
             JumpInputResult::Route(route) => return Some(route),
             JumpInputResult::Consumed => return None,
@@ -167,38 +171,38 @@ fn current_record_time() -> String {
         .map_or_else(|_| String::new(), |duration| duration.as_secs().to_string())
 }
 
-impl Screen<RouteTarget> for KothJumpView {
-    fn update(&mut self) {
-        self.controller.record_acknowledged_human_jump();
+impl GameScreen for KothJumpView {
+    fn update(&mut self, cx: &mut GameCx<'_>) {
+        self.controller.record_acknowledged_human_jump(cx.state);
 
         // Don't drive competition while showing results or done (prevents blink)
         if !matches!(
             self.controller.render_mode(),
             RenderMode::Results | RenderMode::Done
         ) {
-            if let Some(command) = self.controller.drive() {
-                self.apply_command(command);
+            if let Some(command) = self.controller.drive(cx.state) {
+                self.apply_command(command, cx.state);
             }
         }
 
         if self.controller.render_mode() == RenderMode::Jump {
-            self.controller.update_scene();
+            self.controller.update_scene(cx.state);
         }
     }
 
-    fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
-        if let Some(route) = self.handle_input(event) {
+    fn event(&mut self, cx: &mut GameCx<'_>, nav: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
+        if let Some(route) = self.handle_input(event, cx.state) {
             if route == RouteTarget::Back {
-                cx.back();
+                nav.back();
             } else {
-                cx.navigate(route);
+                nav.navigate(route);
             }
         } else {
-            cx.consume();
+            nav.consume();
         }
     }
 
-    fn paint(&mut self, cx: &mut PaintCx<'_>) {
-        self.paint_content(cx);
+    fn paint(&mut self, cx: &mut GameCx<'_>, paint: &mut PaintCx<'_>) {
+        self.paint_content(paint, cx.state);
     }
 }

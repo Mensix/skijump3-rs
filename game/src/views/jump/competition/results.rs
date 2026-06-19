@@ -1,4 +1,4 @@
-use crate::store::{GameStateRef, ResourcesRef};
+use crate::store::{GameState, ResourcesRef};
 use crate::views::jump::competition::ui_state::{CompetitionUiState, ResultScreen};
 use crate::views::jump::world_cup;
 use engine::oxide::PaintCx;
@@ -10,7 +10,7 @@ pub(crate) enum CompetitionResultsRequest {
 pub(crate) fn render(
     cx: &mut PaintCx<'_>,
     resources: &ResourcesRef,
-    state: &GameStateRef,
+    state: &GameState,
     ui_state: &CompetitionUiState,
     request: CompetitionResultsRequest,
 ) {
@@ -24,11 +24,11 @@ pub(crate) fn render(
 fn render_individual(
     cx: &mut PaintCx<'_>,
     resources: &ResourcesRef,
-    state: &GameStateRef,
+    state: &GameState,
     ui_state: &CompetitionUiState,
     ko_cursor_visible: bool,
 ) {
-    state.borrow().active_competition.as_ref().map(|active| {
+    state.active_competition.as_ref().map(|active| {
         let c = active.individual()?;
         match ui_state.current_screen() {
             ResultScreen::KoPairs(show_results) => world_cup::results::render_ko_pairs(

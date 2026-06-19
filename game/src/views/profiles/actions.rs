@@ -1,6 +1,7 @@
 use crate::data::profile::{Profile, NUM_SKIS, NUM_SUITS};
 use crate::gfx::theme::{BG_RED, BLACK, FILL_GRAY, FONT_BODY, FONT_GOLD};
 use crate::route::RouteTarget;
+use crate::store::GameState;
 use crate::text::layout::{lstr, replace_display_name};
 use engine::oxide::widgets::confirm::ConfirmDialog as OxideConfirmDialog;
 use engine::oxide::widgets::selector::NumericSelector;
@@ -9,31 +10,28 @@ use engine::oxide::widgets::text_input::TextInput as OxideTextInput;
 use super::list::{ColorField, Mode, ProfilesView, QuestionAction, TextField, REPLACE_MAX};
 use super::render::profile_label;
 
-pub(super) fn save_players(view: &ProfilesView) {
-    let result = {
-        let s = view.store.borrow();
-        view.save_manager.save_players(&s.profiles)
-    };
+pub(super) fn save_players(view: &ProfilesView, state: &GameState) {
+    let result = view.save_manager.save_players(&state.profiles);
     if let Err(e) = result {
         eprintln!("Warning: failed to save players: {e}");
     }
 }
 
-pub(super) fn handle_list_enter(view: &mut ProfilesView) -> Option<RouteTarget> {
-    let entries = view.entries();
-    let np = view.store.borrow().profiles.num_profiles();
+pub(super) fn handle_list_enter(
+    view: &mut ProfilesView,
+    state: &mut GameState,
+) -> Option<RouteTarget> {
+    let entries = view.entries(state);
+    let np = state.profiles.num_profiles();
     if view.selected >= entries {
         return Some(RouteTarget::MainMenu);
     }
 
     if view.selected >= np {
-        let profile = view.unique_default_profile();
-        let profile_index = {
-            let mut s = view.store.borrow_mut();
-            s.profiles.profiles.push(profile);
-            s.profiles.num_profiles() - 1
-        };
-        save_players(view);
+        let profile = view.unique_default_profile(state);
+        state.profiles.profiles.push(profile);
+        let profile_index = state.profiles.num_profiles() - 1;
+        save_players(view, state);
         view.selected = profile_index;
         view.mode = Mode::Edit {
             profile: profile_index,
@@ -42,46 +40,30 @@ pub(super) fn handle_list_enter(view: &mut ProfilesView) -> Option<RouteTarget> 
         return None;
     }
 
-    let in_order = view
-        .store
-        .borrow()
-        .profiles
-        .order_pos(view.selected)
-        .is_some();
+    let in_order = state.profiles.order_pos(view.selected).is_some();
     if in_order {
         view.mode = Mode::Edit {
             profile: view.selected,
             selected: 0,
         };
     } else {
-        view.store.borrow_mut().profiles.add_to_order(view.selected);
-        save_players(view);
+        state.profiles.add_to_order(view.selected);
+        save_players(view, state);
     }
     None
 }
 
-pub(super) fn handle_list_delete(view: &mut ProfilesView) {
-    let np = view.store.borrow().profiles.num_profiles();
+pub(super) fn handle_list_delete(view: &mut ProfilesView, state: &mut GameState) {
+    let np = state.profiles.num_profiles();
     if view.selected >= np {
         return;
     }
 
-    if view
-        .store
-        .borrow()
-        .profiles
-        .order_pos(view.selected)
-        .is_some()
-    {
-        view.store
-            .borrow_mut()
-            .profiles
-            .remove_from_order(view.selected);
-        save_players(view);
+    if state.profiles.order_pos(view.selected).is_some() {
+        state.profiles.remove_from_order(view.selected);
+        save_players(view, state);
     } else {
-        let name = view.store.borrow().profiles.profiles[view.selected]
-            .name
-            .clone();
+        let name = state.profiles.profiles[view.selected].name.clone();
         view.mode = Mode::Question {
             action: QuestionAction::DeleteProfile(view.selected),
             dialog: OxideConfirmDialog::new(
@@ -102,12 +84,17 @@ pub(super) fn handle_list_delete(view: &mut ProfilesView) {
     }
 }
 
-pub(super) fn handle_edit_enter(view: &mut ProfilesView, profile: usize, selected: usize) {
+pub(super) fn handle_edit_enter(
+    view: &mut ProfilesView,
+    state: &mut GameState,
+    profile: usize,
+    selected: usize,
+) {
     match selected {
-        0 => start_text_input(view, profile, TextField::Name),
-        1 => start_text_input(view, profile, TextField::RealName),
+        0 => start_text_input(view, state, profile, TextField::Name),
+        1 => start_text_input(view, state, profile, TextField::RealName),
         2 => {
-            let value = view.store.borrow().profiles.profiles[profile].suit_color;
+            let value = state.profiles.profiles[profile].suit_color;
             let x = (172
                 + view
                     .resources
@@ -136,7 +123,7 @@ pub(super) fn handle_edit_enter(view: &mut ProfilesView, profile: usize, selecte
             };
         }
         3 => {
-            let value = view.store.borrow().profiles.profiles[profile].ski_color;
+            let value = state.profiles.profiles[profile].ski_color;
             let x = (172
                 + view
                     .resources
@@ -165,14 +152,13 @@ pub(super) fn handle_edit_enter(view: &mut ProfilesView, profile: usize, selecte
             };
         }
         4 => {
-            let value = view.store.borrow().profiles.profiles[profile]
-                .replace
-                .min(REPLACE_MAX);
+            let value = state.profiles.profiles[profile].replace.min(REPLACE_MAX);
             let x = view.resources.font.string_width("Replace:") as i32 + 170;
             let display = if value > 0 {
                 replace_display_name(
                     value,
-                    view.resources.player_names(view.store.borrow().config.name_set_index as usize),
+                    view.resources
+                        .player_names(state.config.name_set_index as usize),
                     &view.resources.font,
                     x,
                 )
@@ -193,25 +179,19 @@ pub(super) fn handle_edit_enter(view: &mut ProfilesView, profile: usize, selecte
             view.mode = Mode::ReplaceSelect { profile, selector };
         }
         5 => {
-            let style = {
-                let mut s = view.store.borrow_mut();
-                let p = &mut s.profiles.profiles[profile];
-                p.coach_style += 1;
-                p.coach_style
-            };
+            let p = &mut state.profiles.profiles[profile];
+            p.coach_style += 1;
+            let style = p.coach_style;
             let check = view.resources.langbase.lstr(361 + style * 40);
             if check == "?" {
-                let mut s = view.store.borrow_mut();
-                s.profiles.profiles[profile].coach_style = 0;
+                state.profiles.profiles[profile].coach_style = 0;
             }
-            save_players(view);
+            save_players(view, state);
         }
         6 => {
-            let mut s = view.store.borrow_mut();
-            let profile_ref = &mut s.profiles.profiles[profile];
-            profile_ref.skip_quali = (profile_ref.skip_quali + 1) % 3;
-            drop(s);
-            save_players(view);
+            state.profiles.profiles[profile].skip_quali =
+                (state.profiles.profiles[profile].skip_quali + 1) % 3;
+            save_players(view, state);
         }
         7 => {
             view.mode = Mode::Question {
@@ -236,14 +216,17 @@ pub(super) fn handle_edit_enter(view: &mut ProfilesView, profile: usize, selecte
     }
 }
 
-pub(super) fn start_text_input(view: &mut ProfilesView, profile: usize, field: TextField) {
-    let s = view.store.borrow();
-    let profile_data = &s.profiles.profiles[profile];
+pub(super) fn start_text_input(
+    view: &mut ProfilesView,
+    state: &GameState,
+    profile: usize,
+    field: TextField,
+) {
+    let profile_data = &state.profiles.profiles[profile];
     let old = match field {
         TextField::Name => profile_data.name.clone(),
         TextField::RealName => profile_data.real_name.clone(),
     };
-    drop(s);
     let label = match field {
         TextField::Name => profile_label(view, 1),
         TextField::RealName => profile_label(view, 2),
@@ -273,6 +256,7 @@ pub(super) fn start_text_input(view: &mut ProfilesView, profile: usize, field: T
 
 pub(super) fn commit_text_input(
     view: &mut ProfilesView,
+    state: &mut GameState,
     profile: usize,
     field: TextField,
     buf: &str,
@@ -290,26 +274,22 @@ pub(super) fn commit_text_input(
     }
 
     if field == TextField::Name {
-        let duplicate = view
-            .store
-            .borrow()
+        let duplicate = state
             .profiles
             .profiles
             .iter()
             .enumerate()
             .any(|(i, p)| i != profile && p.name == value);
         if duplicate {
-            start_text_input(view, profile, field);
+            start_text_input(view, state, profile, field);
             return;
         }
     }
 
-    let mut s = view.store.borrow_mut();
     match field {
-        TextField::Name => s.profiles.profiles[profile].name = value,
-        TextField::RealName => s.profiles.profiles[profile].real_name = value,
+        TextField::Name => state.profiles.profiles[profile].name = value,
+        TextField::RealName => state.profiles.profiles[profile].real_name = value,
     }
-    drop(s);
     view.mode = Mode::Edit {
         profile,
         selected: match field {
@@ -319,23 +299,27 @@ pub(super) fn commit_text_input(
     };
 }
 
-pub(super) fn apply_question(view: &mut ProfilesView, action: QuestionAction) {
+pub(super) fn apply_question(
+    view: &mut ProfilesView,
+    state: &mut GameState,
+    action: QuestionAction,
+) {
     match action {
         QuestionAction::DeleteProfile(profile) => {
-            view.store.borrow_mut().profiles.remove_profile(profile);
-            let np = view.store.borrow().profiles.num_profiles();
+            state.profiles.remove_profile(profile);
+            let np = state.profiles.num_profiles();
             if view.selected >= np {
                 view.selected = np.saturating_sub(1);
             }
             view.mode = Mode::List;
         }
         QuestionAction::ResetProfile(profile) => {
-            let name = view.store.borrow().profiles.profiles[profile].name.clone();
+            let name = state.profiles.profiles[profile].name.clone();
             let reset = Profile {
                 name,
                 ..Default::default()
             };
-            view.store.borrow_mut().profiles.profiles[profile] = reset;
+            state.profiles.profiles[profile] = reset;
             view.mode = Mode::Edit {
                 profile,
                 selected: 7,

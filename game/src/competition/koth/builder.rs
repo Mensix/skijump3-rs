@@ -6,7 +6,7 @@ use crate::data::profile::ProfileStore;
 use crate::rng::Random;
 use crate::save::config::Config;
 use crate::save::SaveRef;
-use crate::store::GameStateRef;
+use crate::store::GameState;
 
 #[must_use]
 pub fn build_koth(
@@ -17,7 +17,11 @@ pub fn build_koth(
     no_same_name: bool,
     mut rng: Random,
 ) -> KothRuntime {
-    let koth_opponent_ids: Vec<usize> = config.koth_opponent_ids.iter().map(|&v| v as usize).collect();
+    let koth_opponent_ids: Vec<usize> = config
+        .koth_opponent_ids
+        .iter()
+        .map(|&v| v as usize)
+        .collect();
 
     let jump_rounds_per_elimination = config.koth_rounds.clamp(1, 2) as u8;
     let _pack = config.koth_pack.clamp(1, 6) as u8;
@@ -81,7 +85,7 @@ pub fn build_koth(
 }
 
 /// Pascal `getkoth` — fills config fields based on pack number (1..6, 0=custom no-op).
-pub fn apply_koth_pack(state: &GameStateRef, save_manager: &SaveRef, pack: u8) {
+pub fn apply_koth_pack(state: &mut GameState, save_manager: &SaveRef, pack: u8) {
     let (count, pel, wind, rounds, maki) = match pack {
         1 => (20, (1..=20).collect::<Vec<i32>>(), 0, 2, 0),
         2 => (14, (1..=14).map(|i| i * 3 - 1).collect(), 1, 1, 0),
@@ -91,13 +95,10 @@ pub fn apply_koth_pack(state: &GameStateRef, save_manager: &SaveRef, pack: u8) {
         6 => (6, (1..=6).map(|i| i * 7 + 15).collect(), 1, 1, 0),
         _ => return, // custom pack, leave as-is
     };
-    {
-        let mut state = state.borrow_mut();
-        state.config.koth_opponent_count = count;
-        state.config.koth_opponent_ids = pel;
-        state.config.koth_wind = wind;
-        state.config.koth_rounds = rounds;
-        state.config.koth_hill = maki;
-    }
-    let _ = save_manager.save_config(&state.borrow().config);
+    state.config.koth_opponent_count = count;
+    state.config.koth_opponent_ids = pel;
+    state.config.koth_wind = wind;
+    state.config.koth_rounds = rounds;
+    state.config.koth_hill = maki;
+    let _ = save_manager.save_config(&state.config);
 }

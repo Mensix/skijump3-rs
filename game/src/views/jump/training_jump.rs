@@ -1,95 +1,94 @@
 use crate::jump::{JumpParticipant, JumpPolicy};
 use crate::route::RouteTarget;
 use crate::save::SaveRef;
-use crate::store::{GameStateRef, ResourcesRef};
+use crate::screen::{GameCx, GameScreen};
+use crate::store::{GameState, ResourcesRef};
 use crate::views::jump::input::JumpInputAction;
 use crate::views::jump::scene::JumpScene;
-use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent};
+use engine::oxide::{PaintCx, ScreenEventCx, UiEvent};
 pub struct TrainingJumpView {
-    store: GameStateRef,
     scene: JumpScene,
 }
 
 impl TrainingJumpView {
-    pub fn new(resources: ResourcesRef, store: GameStateRef, _save_manager: SaveRef) -> Self {
-        let hill_idx = store.borrow().practice_hill;
+    pub fn new(resources: ResourcesRef, state: &mut GameState, _save_manager: SaveRef) -> Self {
+        let hill_idx = state.practice_hill;
         let participant = JumpParticipant::trainee();
-        let start_gate = store.borrow().practice_start_gate;
+        let start_gate = state.practice_start_gate;
         let scene = JumpScene::new(
             ResourcesRef::clone(&resources),
-            GameStateRef::clone(&store),
+            state,
             hill_idx,
             start_gate,
             participant,
             JumpPolicy::training(),
         );
 
-        Self { store, scene }
+        Self { scene }
     }
 
-    fn handle_jump_event(&mut self, event: UiEvent) -> Option<RouteTarget> {
-        let action = self.scene.handle_jump_input(event);
+    fn handle_jump_event(&mut self, state: &mut GameState, event: UiEvent) -> Option<RouteTarget> {
+        let action = self.scene.handle_jump_input(state, event);
         match action {
             JumpInputAction::None => None,
             JumpInputAction::RouteBack => Some(RouteTarget::Back),
             JumpInputAction::SaveReplay => {
-                self.scene.open_save_dialog();
+                self.scene.open_save_dialog(state);
                 None
             }
             JumpInputAction::ResetWind => {
-                self.store.borrow_mut().reset_practice_wind();
+                state.reset_practice_wind();
                 None
             }
             JumpInputAction::ResetJump => {
                 let _ = self.scene.outcome();
                 let _ = self.scene.replay_trace();
-                self.scene
-                    .reset_state(self.store.borrow().practice_start_gate);
+                self.scene.reset_state(state, state.practice_start_gate);
                 None
             }
             JumpInputAction::PersistStartGate(start_gate) => {
-                self.store.borrow_mut().practice_start_gate = start_gate;
+                state.practice_start_gate = start_gate;
                 None
             }
         }
     }
 
-    fn paint_content(&mut self, cx: &mut PaintCx<'_>) {
-        self.scene.render(cx);
+    fn paint_content(&mut self, cx: &mut PaintCx<'_>, state: &GameState) {
+        self.scene.render(cx, state);
     }
 
-    fn handle_input(&mut self, event: UiEvent) -> Option<RouteTarget> {
+    fn handle_input(&mut self, state: &mut GameState, event: UiEvent) -> Option<RouteTarget> {
         if self.scene.is_save_dialog_active() {
             self.scene.handle_save_dialog_event(&event);
             None
         } else {
-            self.handle_jump_event(event)
+            self.handle_jump_event(state, event)
         }
     }
 }
 
-impl Screen<RouteTarget> for TrainingJumpView {
-    fn update(&mut self) {
-        self.scene.update();
+impl GameScreen for TrainingJumpView {
+    fn update(&mut self, cx: &mut GameCx<'_>) {
+        self.scene.update(cx.state);
     }
 
-    fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
+    fn event(&mut self, cx: &mut GameCx<'_>, nav: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
         match event {
             UiEvent::Quit | UiEvent::Tick => return,
             _ => {}
         }
-        if let Some(route) = self.handle_input(event) {
+        if let Some(route) = self.handle_input(cx.state, event) {
             if route == RouteTarget::Back {
-                cx.back();
+                nav.back();
             } else {
-                cx.navigate(route);
+                nav.navigate(route);
             }
         } else {
-            cx.consume();
+            nav.consume();
         }
     }
 
-    fn paint(&mut self, cx: &mut PaintCx<'_>) {
-        self.paint_content(cx);
+    fn paint(&mut self, cx: &mut GameCx<'_>, paint: &mut PaintCx<'_>) {
+        self.paint_content(paint, cx.state);
     }
 }

@@ -3,8 +3,8 @@ use crate::competition::types::{CompetitionPhase, CupStyle, Participant, Qualifi
 
 use crate::gfx::sprites;
 use crate::gfx::theme::{
-    BG_DARKEST, BG_PURPLE, BG_RED_BRIGHT, BG_WORLDCUP, BLACK, FILL_GRAY, FILL_GOLD, FILL_TEAL,
-    FONT_BODY, FONT_TEAL, FONT_GOLD, FONT_GRAY,
+    BG_DARKEST, BG_PURPLE, BG_RED_BRIGHT, BG_WORLDCUP, BLACK, FILL_GOLD, FILL_GRAY, FILL_TEAL,
+    FONT_BODY, FONT_GOLD, FONT_GRAY, FONT_TEAL,
 };
 use crate::store::ResourcesRef;
 use crate::text::format::{format_decimal, ordinal_dot};

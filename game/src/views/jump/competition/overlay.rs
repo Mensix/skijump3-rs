@@ -8,7 +8,7 @@ use crate::gfx::sprites::Sprite;
 use crate::gfx::theme::{FONT_GOLD, FONT_GRAY, FONT_TEAL};
 use crate::jump::hud;
 use crate::jump::types::{JumpPhase, JumpTelemetry};
-use crate::store::{GameStateRef, ResourcesRef};
+use crate::store::{GameState, ResourcesRef};
 use crate::text::format::format_decimal;
 use crate::text::lang::LangBase;
 use crate::views::jump::competition::ui_state::CompetitionUiState;
@@ -55,10 +55,9 @@ pub struct WcStandingEntry {
 
 impl OverlayData {
     /// Collect all data the overlay needs from the competition store.
-    pub fn collect(store: &GameStateRef) -> Option<Self> {
-        let coach_style = active_coach_style(store);
-        store
-            .borrow()
+    pub fn collect(state: &GameState) -> Option<Self> {
+        let coach_style = active_coach_style(state);
+        state
             .active_competition
             .as_ref()
             .and_then(|active| match active {
@@ -176,8 +175,8 @@ impl OverlayData {
     }
 }
 
-fn active_coach_style(store: &GameStateRef) -> u8 {
-    let pb = &store.borrow().profiles;
+fn active_coach_style(state: &GameState) -> u8 {
+    let pb = &state.profiles;
     let idx = match pb.active_order.first() {
         Some(&idx) => idx,
         None => return 0,
@@ -210,12 +209,11 @@ pub enum OverlayKind {
 /// jump scene during World Cup competition phases. Pure data-in/elements-out.
 pub struct CompetitionOverlay {
     resources: ResourcesRef,
-    store: GameStateRef,
 }
 
 impl CompetitionOverlay {
-    pub fn new(resources: ResourcesRef, store: GameStateRef) -> Self {
-        Self { resources, store }
+    pub fn new(resources: ResourcesRef) -> Self {
+        Self { resources }
     }
 
     /// Determine what overlay to draw, without rendering.
@@ -225,9 +223,10 @@ impl CompetitionOverlay {
         frame_counter: i32,
         ui_state: &CompetitionUiState,
         telemetry: Option<JumpTelemetry>,
+        state: &GameState,
     ) -> Option<OverlayContext> {
         let scene_phase = scene_phase?;
-        let data = OverlayData::collect(&self.store)?;
+        let data = OverlayData::collect(state)?;
         let kind = self.resolve_kind(&data, scene_phase, ui_state, &telemetry);
         let participant = data
             .current_participant
@@ -306,20 +305,20 @@ impl CompetitionOverlay {
     }
 
     /// Render all overlay elements for the current state.
-    pub fn render(&self, cx: &mut PaintCx<'_>, ctx: &OverlayContext) {
+    pub fn render(&self, cx: &mut PaintCx<'_>, ctx: &OverlayContext, state: &GameState) {
         match ctx.kind {
             OverlayKind::None => {}
             OverlayKind::Keymap => hud::push_keymap(cx, &self.resources.langbase),
             OverlayKind::CyclingWithInfoBox => {
-                self.cycling_info_elements(cx, ctx.frame_counter, ctx.hill_idx, &ctx.data);
+                self.cycling_info_elements(cx, ctx.frame_counter, ctx.hill_idx, &ctx.data, state);
                 if ctx.data.style != CupStyle::TeamCup {
-                    self.jumper_info_box(cx, &ctx.participant, false);
+                    self.jumper_info_box(cx, state, &ctx.participant, false);
                 }
             }
             OverlayKind::Round2WithInfoBox => {
-                self.cycling_info_elements(cx, ctx.frame_counter, ctx.hill_idx, &ctx.data);
+                self.cycling_info_elements(cx, ctx.frame_counter, ctx.hill_idx, &ctx.data, state);
                 if ctx.data.style != CupStyle::TeamCup {
-                    self.jumper_info_box(cx, &ctx.participant, true);
+                    self.jumper_info_box(cx, state, &ctx.participant, true);
                 }
             }
             OverlayKind::Coach => self.coach_elements(cx, ctx),
@@ -329,7 +328,7 @@ impl CompetitionOverlay {
                     if phase <= 130 {
                         self.koth_info_elements(cx, ctx);
                     } else if (146..=276).contains(&phase) {
-                        self.hill_info_elements(cx, ctx.hill_idx);
+                        self.hill_info_elements(cx, state, ctx.hill_idx);
                     }
                 }
             }
@@ -425,12 +424,11 @@ impl CompetitionOverlay {
     fn jumper_info_box(
         &self,
         cx: &mut PaintCx<'_>,
+        state: &GameState,
         participant: &Participant,
         round2_with_r1: bool,
     ) {
-        let (phase, rank, quali_wc) = self
-            .store
-            .borrow()
+        let (phase, rank, quali_wc) = state
             .active_competition
             .as_ref()
             .and_then(|active| {
@@ -493,6 +491,7 @@ impl CompetitionOverlay {
         frame_counter: i32,
         hill_idx: usize,
         data: &OverlayData,
+        state: &GameState,
     ) {
         let has_wc_leader = data.wc_standings_top5.first().is_some_and(|e| e.points > 0);
         let has_event_leader = data
@@ -504,14 +503,14 @@ impl CompetitionOverlay {
             if has_wc_leader {
                 let phase = (frame_counter as usize) % 292;
                 if phase <= 130 {
-                    self.hill_info_elements(cx, hill_idx);
+                    self.hill_info_elements(cx, state, hill_idx);
                 } else if (146..=276).contains(&phase) {
-                    self.wc_standings_elements(cx, data);
+                    self.wc_standings_elements(cx, data, state);
                 } else {
                     hud::push_info_panel_frame(cx);
                 }
             } else {
-                self.hill_info_elements(cx, hill_idx);
+                self.hill_info_elements(cx, state, hill_idx);
             }
             return;
         }
@@ -520,18 +519,18 @@ impl CompetitionOverlay {
         let phase = (frame_counter as usize) % cycle;
 
         if phase <= 130 {
-            self.top5_event_elements(cx, data);
+            self.top5_event_elements(cx, data, state);
         } else if (146..=276).contains(&phase) {
-            self.hill_info_elements(cx, hill_idx);
+            self.hill_info_elements(cx, state, hill_idx);
         } else if has_wc_leader && (292..=422).contains(&phase) {
-            self.wc_standings_elements(cx, data);
+            self.wc_standings_elements(cx, data, state);
         } else {
             hud::push_info_panel_frame(cx);
         }
     }
 
     /// Pascal drawtop5info: hill name + top 5 event points with gap behind leader
-    fn top5_event_elements(&self, cx: &mut PaintCx<'_>, data: &OverlayData) {
+    fn top5_event_elements(&self, cx: &mut PaintCx<'_>, data: &OverlayData, state: &GameState) {
         hud::push_info_panel_frame(cx);
         let hill_name_k = self
             .resources
@@ -552,7 +551,7 @@ impl CompetitionOverlay {
         }
 
         // Gap-to-leader line
-        if self.store.borrow().config.event_gap != 0 {
+        if state.config.event_gap != 0 {
             if let Some(ref pel) = data.current_participant {
                 let leader_pts = data.event_standings_top5.first().map_or(0.0, |e| e.points);
                 let current_pts = pel.points.unwrap_or(0.0);
@@ -570,19 +569,18 @@ impl CompetitionOverlay {
     }
 
     /// Pascal drawhrinfo: hill record name + distance
-    fn hill_info_elements(&self, cx: &mut PaintCx<'_>, hill_idx: usize) {
+    fn hill_info_elements(&self, cx: &mut PaintCx<'_>, state: &GameState, hill_idx: usize) {
         let hill_name_k = self
             .resources
             .hills
             .hill(hill_idx)
             .map(|h| format!("{} K{}", h.name, h.kr))
             .unwrap_or_default();
-        let records = &self.store.borrow().records;
         hud::push_hill_record_info(
             cx,
             &self.resources.langbase,
             &hill_name_k,
-            records.hill_record(hill_idx),
+            state.records.hill_record(hill_idx),
         );
     }
 
@@ -617,7 +615,7 @@ impl CompetitionOverlay {
     }
 
     /// Pascal drawwcinfo: top 5 WC / season standings with raw points.
-    fn wc_standings_elements(&self, cx: &mut PaintCx<'_>, data: &OverlayData) {
+    fn wc_standings_elements(&self, cx: &mut PaintCx<'_>, data: &OverlayData, state: &GameState) {
         hud::push_info_panel_frame(cx);
         cx.right_text(
             (308, 9),
@@ -628,7 +626,7 @@ impl CompetitionOverlay {
             let s = format!("{}  {}", entry.name, entry.points);
             cx.right_text((308, 20 + i as i32 * 7), FONT_GOLD, s);
         }
-        if self.store.borrow().config.wc_gap != 0 {
+        if state.config.wc_gap != 0 {
             if let (Some(leader), Some(current)) = (
                 data.wc_standings_top5.first(),
                 data.current_participant.as_ref(),

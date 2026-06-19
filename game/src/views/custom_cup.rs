@@ -6,10 +6,11 @@ use crate::gfx::theme::{
 };
 use crate::route::RouteTarget;
 use crate::save::SaveRef;
-use crate::store::{GameStateRef, ResourcesRef};
+use crate::screen::{GameCx, GameScreen};
+use crate::store::{GameState, ResourcesRef};
 use crate::text::format;
 use engine::oxide::input::Key;
-use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent};
+use engine::oxide::{PaintCx, ScreenEventCx, UiEvent};
 use serde::{Deserialize, Serialize};
 
 const MAX_HILLS: usize = 40;
@@ -33,7 +34,6 @@ struct CustomCupFile {
 
 pub struct CustomCupSetupView {
     resources: ResourcesRef,
-    store: GameStateRef,
     save_manager: SaveRef,
     selected: Vec<usize>,
     preview: usize,
@@ -46,11 +46,10 @@ pub struct CustomCupSetupView {
 }
 
 impl CustomCupSetupView {
-    pub fn new(resources: ResourcesRef, store: GameStateRef, save_manager: SaveRef) -> Self {
+    pub fn new(resources: ResourcesRef, save_manager: SaveRef) -> Self {
         let count = resources.hills.len();
         Self {
             resources,
-            store,
             save_manager,
             selected: vec![0],
             preview: 0,
@@ -87,7 +86,7 @@ impl CustomCupSetupView {
         }
     }
 
-    fn paint_content(&self, cx: &mut PaintCx<'_>) {
+    fn paint_content(&self, state: &GameState, cx: &mut PaintCx<'_>) {
         let lang = &self.resources.langbase;
         let help_line = format!("{}, {}, {}", lang.lstr(285), lang.lstr(286), lang.lstr(287));
         cx.fill((0, 0, 320, 200), BLACK);
@@ -112,7 +111,7 @@ impl CustomCupSetupView {
         cx.text(
             (250, 30),
             FONT_GRAY,
-            self.store.borrow().config.last_custom_cup_file.as_str(),
+            state.config.last_custom_cup_file.as_str(),
         );
 
         match self.mode {
@@ -171,14 +170,14 @@ impl CustomCupSetupView {
         cx.text((85, 108), FONT_GRAY, "Press a key...");
     }
 
-    fn handle_input(&mut self, event: UiEvent) -> Option<RouteTarget> {
+    fn handle_input(&mut self, state: &mut GameState, event: UiEvent) -> Option<RouteTarget> {
         if self.mode != CustomCupMode::Browse {
-            return self.handle_modal_input(event);
+            return self.handle_modal_input(state, event);
         }
 
         match event {
             UiEvent::KeyDown(Key::Escape) => Some(RouteTarget::Back),
-            UiEvent::KeyDown(Key::Enter) => self.start_custom_cup(),
+            UiEvent::KeyDown(Key::Enter) => self.start_custom_cup(state),
             UiEvent::KeyDown(Key::Left) => {
                 if self.preview > 0 {
                     self.preview -= 1;
@@ -222,7 +221,7 @@ impl CustomCupSetupView {
                 None
             }
             UiEvent::Text('s' | 'S') => {
-                self.filename_input = self.store.borrow().config.last_custom_cup_file.clone();
+                self.filename_input = state.config.last_custom_cup_file.clone();
                 if self.filename_input == "TEMP" || self.filename_input.is_empty() {
                     self.filename_input = "CUSTOM".to_string();
                 }
@@ -230,18 +229,18 @@ impl CustomCupSetupView {
                 None
             }
             UiEvent::Text('r' | 'R') => {
-                self.randomize_selection();
+                self.randomize_selection(state);
                 None
             }
             _ => None,
         }
     }
 
-    fn handle_modal_input(&mut self, event: UiEvent) -> Option<RouteTarget> {
+    fn handle_modal_input(&mut self, state: &mut GameState, event: UiEvent) -> Option<RouteTarget> {
         match self.mode {
-            CustomCupMode::SaveInput => self.handle_save_input(event),
-            CustomCupMode::ConfirmOverwrite => self.handle_overwrite_confirm(event),
-            CustomCupMode::Load => self.handle_load_input(event),
+            CustomCupMode::SaveInput => self.handle_save_input(state, event),
+            CustomCupMode::ConfirmOverwrite => self.handle_overwrite_confirm(state, event),
+            CustomCupMode::Load => self.handle_load_input(state, event),
             CustomCupMode::ConfirmDelete => self.handle_delete_confirm(event),
             CustomCupMode::Message => {
                 if matches!(event, UiEvent::KeyDown(_) | UiEvent::Text(_)) {
@@ -253,7 +252,7 @@ impl CustomCupSetupView {
         }
     }
 
-    fn handle_save_input(&mut self, event: UiEvent) -> Option<RouteTarget> {
+    fn handle_save_input(&mut self, state: &mut GameState, event: UiEvent) -> Option<RouteTarget> {
         match event {
             UiEvent::KeyDown(Key::Escape) => self.mode = CustomCupMode::Browse,
             UiEvent::KeyDown(Key::Enter) => {
@@ -267,7 +266,7 @@ impl CustomCupSetupView {
                 {
                     self.mode = CustomCupMode::ConfirmOverwrite;
                 } else {
-                    self.save_current_set();
+                    self.save_current_set(state);
                 }
             }
             UiEvent::KeyDown(Key::Backspace) => {
@@ -281,9 +280,13 @@ impl CustomCupSetupView {
         None
     }
 
-    fn handle_overwrite_confirm(&mut self, event: UiEvent) -> Option<RouteTarget> {
+    fn handle_overwrite_confirm(
+        &mut self,
+        state: &mut GameState,
+        event: UiEvent,
+    ) -> Option<RouteTarget> {
         match event {
-            UiEvent::Text('y' | 'Y') => self.save_current_set(),
+            UiEvent::Text('y' | 'Y') => self.save_current_set(state),
             UiEvent::Text('n' | 'N') | UiEvent::KeyDown(Key::Escape) => {
                 self.mode = CustomCupMode::Browse;
             }
@@ -292,10 +295,10 @@ impl CustomCupSetupView {
         None
     }
 
-    fn handle_load_input(&mut self, event: UiEvent) -> Option<RouteTarget> {
+    fn handle_load_input(&mut self, state: &mut GameState, event: UiEvent) -> Option<RouteTarget> {
         match event {
             UiEvent::KeyDown(Key::Escape) => self.mode = CustomCupMode::Browse,
-            UiEvent::KeyDown(Key::Enter) => self.load_selected_set(),
+            UiEvent::KeyDown(Key::Enter) => self.load_selected_set(state),
             UiEvent::KeyDown(Key::Delete) => self.mode = CustomCupMode::ConfirmDelete,
             UiEvent::KeyDown(Key::Left | Key::Up) | UiEvent::Text('-') => {
                 self.load_index = self.load_index.saturating_sub(1);
@@ -333,11 +336,10 @@ impl CustomCupSetupView {
         None
     }
 
-    fn start_custom_cup(&mut self) -> Option<RouteTarget> {
+    fn start_custom_cup(&mut self, state: &mut GameState) -> Option<RouteTarget> {
         if self.selected.is_empty() {
             return None;
         }
-        let state = self.store.borrow();
         let comp = factory::custom_cup(
             &state.profiles,
             self.resources
@@ -347,8 +349,7 @@ impl CustomCupSetupView {
             state.config.unique_computer_names != 0,
             state.config.ko_system != 0,
         );
-        drop(state);
-        self.store.borrow_mut().start_active(comp);
+        state.start_active(comp);
         Some(RouteTarget::CompetitionJump)
     }
 
@@ -372,7 +373,7 @@ impl CustomCupSetupView {
         };
     }
 
-    fn load_selected_set(&mut self) {
+    fn load_selected_set(&mut self, state: &mut GameState) {
         let Some(name) = self.load_entries.get(self.load_index).cloned() else {
             return;
         };
@@ -400,11 +401,11 @@ impl CustomCupSetupView {
         }
         self.selected = hills;
         self.preview = self.selected.last().copied().unwrap_or(0);
-        self.update_last_custom_cup_file(name);
+        self.update_last_custom_cup_file(state, name);
         self.mode = CustomCupMode::Browse;
     }
 
-    fn save_current_set(&mut self) {
+    fn save_current_set(&mut self, state: &mut GameState) {
         let name = normalize_set_name(&self.filename_input);
         let file = CustomCupFile {
             format_version: 1,
@@ -419,18 +420,17 @@ impl CustomCupSetupView {
             return;
         }
         self.filename_input = name.clone();
-        self.update_last_custom_cup_file(name);
+        self.update_last_custom_cup_file(state, name);
         self.show_message("Custom set saved");
     }
 
-    fn randomize_selection(&mut self) {
+    fn randomize_selection(&mut self, state: &mut GameState) {
         let target = if self.selected.len() >= 20 {
             MAX_HILLS
         } else {
             20
         };
         let wc_hill_count = self.all_hill_count.min(20).max(1);
-        let mut state = self.store.borrow_mut();
         while self.selected.len() < target && self.selected.len() < MAX_HILLS {
             let idx = state.rng.random_i32(wc_hill_count as i32).max(0) as usize;
             self.selected.push(idx);
@@ -442,8 +442,7 @@ impl CustomCupSetupView {
         self.mode = CustomCupMode::Message;
     }
 
-    fn update_last_custom_cup_file(&self, name: String) {
-        let mut state = self.store.borrow_mut();
+    fn update_last_custom_cup_file(&self, state: &mut GameState, name: String) {
         state.config.last_custom_cup_file = name;
         if let Err(e) = self.save_manager.save_config(&state.config) {
             eprintln!("Warning: failed to save config: {e}");
@@ -463,20 +462,20 @@ fn set_path(name: &str) -> String {
     format!("{CUSTOM_CUP_DIR}/{}.toml", normalize_set_name(name))
 }
 
-impl Screen<RouteTarget> for CustomCupSetupView {
-    fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
-        if let Some(route) = self.handle_input(event) {
+impl GameScreen for CustomCupSetupView {
+    fn event(&mut self, cx: &mut GameCx<'_>, nav: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
+        if let Some(route) = self.handle_input(cx.state, event) {
             if route == RouteTarget::Back {
-                cx.back();
+                nav.back();
             } else {
-                cx.navigate(route);
+                nav.navigate(route);
             }
         } else {
-            cx.consume();
+            nav.consume();
         }
     }
 
-    fn paint(&mut self, cx: &mut PaintCx<'_>) {
-        self.paint_content(cx);
+    fn paint(&mut self, cx: &mut GameCx<'_>, paint: &mut PaintCx<'_>) {
+        self.paint_content(cx.state, paint);
     }
 }

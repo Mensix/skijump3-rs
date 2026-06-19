@@ -5,11 +5,10 @@ use crate::competition::scoring::wc_points_for_rank;
 use crate::competition::types::{CompetitionPhase, CupStyle};
 use crate::gfx::theme::{BLACK, FONT_BODY, FONT_GRAY, FONT_TEAL};
 use crate::jump::types::JumpPhase;
-use crate::jump::JumpParticipant;
-use crate::jump::JumpPolicy;
 use crate::route::RouteTarget;
 use crate::save::SaveRef;
-use crate::store::{GameStateRef, ResourcesRef};
+use crate::screen::{GameCx, GameScreen};
+use crate::store::{GameState, ResourcesRef};
 use crate::text::format::format_decimal;
 use crate::views::jump::competition::controller::CompetitionJumpController;
 use crate::views::jump::competition::flow::{
@@ -19,9 +18,8 @@ use crate::views::jump::competition::results::{
     self as competition_results, CompetitionResultsRequest,
 };
 use crate::views::jump::competition::ui_state::{RenderMode, ResultScreen};
-use crate::views::jump::scene::JumpScene;
 use engine::oxide::Blinker;
-use engine::oxide::{Key, PaintCx, Screen, ScreenEventCx, UiEvent};
+use engine::oxide::{Key, PaintCx, ScreenEventCx, UiEvent};
 
 pub struct WorldCupJumpView {
     controller: CompetitionJumpController<Competition>,
@@ -29,17 +27,9 @@ pub struct WorldCupJumpView {
 }
 
 impl WorldCupJumpView {
-    pub(crate) fn new(resources: ResourcesRef, state: GameStateRef, save_manager: SaveRef) -> Self {
-        let scene = JumpScene::new(
-            ResourcesRef::clone(&resources),
-            state.clone(),
-            0,
-            15,
-            JumpParticipant::trainee(),
-            JumpPolicy::competition(),
-        );
+    pub(crate) fn new(resources: ResourcesRef, save_manager: SaveRef) -> Self {
         Self {
-            controller: CompetitionJumpController::new(resources, state, save_manager, Some(scene)),
+            controller: CompetitionJumpController::new(resources, save_manager, false, None),
             blinker: Blinker::new(),
         }
     }
@@ -47,6 +37,7 @@ impl WorldCupJumpView {
     fn apply_command(
         &mut self,
         command: CompetitionFlowCommand<IndividualJumpContext, IndividualResultsKind>,
+        state: &mut GameState,
     ) {
         match command {
             CompetitionFlowCommand::HumanJump {
@@ -56,32 +47,29 @@ impl WorldCupJumpView {
                 is_new_event,
             } => {
                 if is_new_event {
-                    self.controller.state().borrow_mut().setup_jump_event();
+                    state.setup_jump_event();
                 }
                 let phase_label = phase_label(self.controller.resources(), context.phase);
-                let is_leader = self
-                    .controller
-                    .state()
-                    .borrow()
+                let is_leader = state
                     .active_competition
                     .as_ref()
-                    .map(|active| {
-                        active.individual().is_some_and(|c| {
+                    .and_then(|active| {
+                        active.individual().and_then(|c| {
                             c.overall_standings()
                                 .first()
-                                .is_some_and(|s| s.id == participant.id)
+                                .map(|s| s.id == participant.id)
                         })
                     })
                     .unwrap_or(false);
                 self.controller
-                    .prepare_human_jump(participant, hill_idx, phase_label, None);
+                    .prepare_human_jump(participant, hill_idx, phase_label, None, state);
                 if let Some(scene) = self.controller.scene() {
                     scene.set_has_bib(is_leader);
                 }
             }
             CompetitionFlowCommand::ShowResults(IndividualResultsKind::Results) => {
                 if self.controller.render_mode() != RenderMode::Results {
-                    self.select_default_result_screen();
+                    self.select_default_result_screen(state);
                     self.controller.enter_results();
                 }
             }
@@ -91,19 +79,13 @@ impl WorldCupJumpView {
         }
     }
 
-    fn select_default_result_screen(&self) {
-        if let Some(phase) = self
-            .controller
-            .state()
-            .borrow()
+    fn select_default_result_screen(&self, state: &GameState) {
+        if let Some(phase) = state
             .active_competition
             .as_ref()
             .and_then(|active| active.individual().map(Competition::phase))
         {
-            let is_4h = self
-                .controller
-                .state()
-                .borrow()
+            let is_4h = state
                 .active_competition
                 .as_ref()
                 .and_then(|active| active.individual().map(Competition::is_four_hills_event))
@@ -111,7 +93,7 @@ impl WorldCupJumpView {
             self.controller
                 .ui_state()
                 .select_default_screen(is_4h, phase);
-            let extra_stats_enabled = self.controller.state().borrow().config.extra_statistics != 0;
+            let extra_stats_enabled = state.config.extra_statistics != 0;
             let showing_ko_pairs = is_4h
                 && matches!(
                     phase,
@@ -123,11 +105,11 @@ impl WorldCupJumpView {
         }
     }
 
-    fn results_page(&self, cx: &mut PaintCx<'_>) {
+    fn results_page(&self, cx: &mut PaintCx<'_>, state: &GameState) {
         competition_results::render(
             cx,
             self.controller.resources(),
-            self.controller.state(),
+            state,
             self.controller.ui_state(),
             CompetitionResultsRequest::Individual {
                 ko_cursor_visible: self.blinker.visible(10, 10),
@@ -137,7 +119,7 @@ impl WorldCupJumpView {
 
     /// Pascal: rank calculation — counts participants with points <= jumper's total.
     /// Shows `($X.)` at (255,45), left of the score at (308,45).
-    fn draw_rank(&self, cx: &mut PaintCx<'_>) {
+    fn draw_rank(&self, cx: &mut PaintCx<'_>, state: &GameState) {
         let Some(scene) = self.controller.scene() else {
             return;
         };
@@ -148,40 +130,33 @@ impl WorldCupJumpView {
             return;
         }
         let own_id = scene.participant_id();
-        if let Some(rank) = self
-            .controller
-            .state()
-            .borrow()
-            .active_competition
-            .as_ref()
-            .and_then(|active| {
-                let c = active.individual()?;
-                let standings = c.event_standings();
-                let own_before = standings
-                    .iter()
-                    .find(|p| p.id == own_id)
-                    .and_then(|p| p.points)
-                    .unwrap_or(0.0);
-                let own_total = own_before + outcome.score;
-                let rank = standings
-                    .iter()
-                    .filter(|p| p.id != own_id && p.points.is_some_and(|pts| pts > own_total))
-                    .count()
-                    + 1;
-                Some(rank)
-            })
-        {
+        if let Some(rank) = state.active_competition.as_ref().and_then(|active| {
+            let c = active.individual()?;
+            let standings = c.event_standings();
+            let own_before = standings
+                .iter()
+                .find(|p| p.id == own_id)
+                .and_then(|p| p.points)
+                .unwrap_or(0.0);
+            let own_total = own_before + outcome.score;
+            let rank = standings
+                .iter()
+                .filter(|p| p.id != own_id && p.points.is_some_and(|pts| pts > own_total))
+                .count()
+                + 1;
+            Some(rank)
+        }) {
             cx.right_text((255, 45), FONT_TEAL, format!("(${rank}.)"));
         }
     }
 
-    fn paint_content(&mut self, cx: &mut PaintCx<'_>) {
+    fn paint_content(&mut self, cx: &mut PaintCx<'_>, state: &GameState) {
         match self.controller.render_mode() {
             RenderMode::Jump => {
-                self.controller.render_jump(cx);
-                self.draw_rank(cx);
+                self.controller.render_jump(cx, state);
+                self.draw_rank(cx, state);
             }
-            RenderMode::Results => self.results_page(cx),
+            RenderMode::Results => self.results_page(cx, state),
             RenderMode::Done => {}
             RenderMode::Error => {
                 let msg = self.controller.ui_state().error_message();
@@ -192,7 +167,7 @@ impl WorldCupJumpView {
         }
     }
 
-    fn handle_input(&mut self, event: UiEvent) -> Option<RouteTarget> {
+    fn handle_input(&mut self, event: UiEvent, state: &mut GameState) -> Option<RouteTarget> {
         // Error screen: any key navigates back to main menu
         if let Some(route) = route_error_back(self.controller.ui_state(), event) {
             return Some(route);
@@ -201,16 +176,16 @@ impl WorldCupJumpView {
             return None;
         }
 
-        if self.is_result_display_state() {
-            return self.handle_result_event(event);
+        if self.is_result_display_state(state) {
+            return self.handle_result_event(event, state);
         }
 
         // Let the shared input controller process events first (save replay, etc.)
         let is_dq =
-            self.controller.scene().and_then(JumpScene::phase) == Some(JumpPhase::Disqualified);
+            self.controller.scene().and_then(|s| s.phase()) == Some(JumpPhase::Disqualified);
         match self
             .controller
-            .handle_jump_scene_event(event, true, !is_dq, false)
+            .handle_jump_scene_event(event, true, !is_dq, false, state)
         {
             JumpInputResult::Route(route) => return Some(route),
             JumpInputResult::Consumed => return None,
@@ -221,45 +196,43 @@ impl WorldCupJumpView {
     }
 }
 
-impl Screen<RouteTarget> for WorldCupJumpView {
-    fn update(&mut self) {
-        self.controller.record_acknowledged_human_jump();
+impl GameScreen for WorldCupJumpView {
+    fn update(&mut self, cx: &mut GameCx<'_>) {
+        self.controller.record_acknowledged_human_jump(cx.state);
 
         // Drive competition and dispatch any resulting command
-        if let Some(command) = self.controller.drive() {
-            self.apply_command(command);
+        if let Some(command) = self.controller.drive(cx.state) {
+            self.apply_command(command, cx.state);
         }
 
         if self.controller.render_mode() == RenderMode::Jump {
-            self.controller.update_scene();
+            self.controller.update_scene(cx.state);
         }
     }
 
-    fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
-        if let Some(route) = self.handle_input(event) {
+    fn event(&mut self, cx: &mut GameCx<'_>, nav: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
+        if let Some(route) = self.handle_input(event, cx.state) {
             if route == RouteTarget::Back {
-                cx.back();
+                nav.back();
             } else {
-                cx.navigate(route);
+                nav.navigate(route);
             }
         } else {
-            cx.consume();
+            nav.consume();
         }
     }
 
-    fn paint(&mut self, cx: &mut PaintCx<'_>) {
-        self.paint_content(cx);
+    fn paint(&mut self, cx: &mut GameCx<'_>, paint: &mut PaintCx<'_>) {
+        self.paint_content(paint, cx.state);
     }
 }
 
 impl WorldCupJumpView {
-    fn is_result_display_state(&self) -> bool {
+    fn is_result_display_state(&self, state: &GameState) -> bool {
         if self.controller.ui_state().has_page() {
             return true;
         }
-        self.controller
-            .state()
-            .borrow()
+        state
             .active_competition
             .as_ref()
             .and_then(|active| {
@@ -272,11 +245,10 @@ impl WorldCupJumpView {
             .unwrap_or(false)
     }
 
-    fn save_competition_results(&self) {
-        self.controller.save_results();
+    fn save_competition_results(&self, state: &mut GameState) {
+        self.controller.save_results(state);
         // WC-specific profile updates (bestpoints, etc.)
         let (style, participants, event_pts): (_, Vec<_>, Vec<_>) = {
-            let state = self.controller.state().borrow();
             let active = match state.active_competition.as_ref() {
                 Some(a) => a,
                 None => return,
@@ -293,7 +265,6 @@ impl WorldCupJumpView {
             let event_pts = c.event_standings().into_iter().map(|p| p.points).collect();
             (style, participants, event_pts)
         };
-        let mut state = self.controller.state().borrow_mut();
         let profiles = &mut state.profiles;
         for &(pidx_opt, pts_opt, fh_points, rank) in &participants {
             let Some(pidx) = pidx_opt else { continue };
@@ -327,21 +298,22 @@ impl WorldCupJumpView {
         }
     }
 
-    fn dismiss_results_and_advance(&mut self) {
+    fn dismiss_results_and_advance(&mut self, state: &mut GameState) {
         self.blinker.reset();
-        if let Some(command) = self.controller.dismiss_results_and_advance() {
-            self.apply_command(command);
+        if let Some(command) = self.controller.dismiss_results_and_advance(state) {
+            self.apply_command(command, state);
         }
     }
 
-    fn handle_result_event(&mut self, event: UiEvent) -> Option<RouteTarget> {
+    fn handle_result_event(
+        &mut self,
+        event: UiEvent,
+        state: &mut GameState,
+    ) -> Option<RouteTarget> {
         match event {
             UiEvent::KeyDown(Key::Right) | UiEvent::Text(' ') => {
                 let total = match self.controller.ui_state().current_screen() {
-                    ResultScreen::Stats => self
-                        .controller
-                        .state()
-                        .borrow()
+                    ResultScreen::Stats => state
                         .active_competition
                         .as_ref()
                         .and_then(|active| {
@@ -357,10 +329,7 @@ impl WorldCupJumpView {
                         .unwrap_or(1),
                     ResultScreen::KoPairs(_) => 1,
                     ResultScreen::List if self.controller.ui_state().is_compact() => 1,
-                    ResultScreen::List => self
-                        .controller
-                        .state()
-                        .borrow()
+                    ResultScreen::List => state
                         .active_competition
                         .as_ref()
                         .and_then(|active| active.individual().map(results::total_pages))
@@ -370,7 +339,7 @@ impl WorldCupJumpView {
                     return None;
                 }
                 // Pascal WaitForKey(0): any key on the last entry exits the list
-                self.dismiss_results_and_advance();
+                self.dismiss_results_and_advance(state);
                 None
             }
             UiEvent::Text('c' | 'C') => {
@@ -382,10 +351,7 @@ impl WorldCupJumpView {
                 None
             }
             UiEvent::Text('k' | 'K') => {
-                let ko = self
-                    .controller
-                    .state()
-                    .borrow()
+                let ko = state
                     .active_competition
                     .as_ref()
                     .and_then(|active| {
@@ -401,10 +367,7 @@ impl WorldCupJumpView {
                     })
                     .unwrap_or(false);
                 if ko {
-                    let round1 = self
-                        .controller
-                        .state()
-                        .borrow()
+                    let round1 = state
                         .active_competition
                         .as_ref()
                         .and_then(|active| {
@@ -422,10 +385,7 @@ impl WorldCupJumpView {
                 None
             }
             UiEvent::KeyDown(Key::Escape | Key::Enter) => {
-                let is_season_complete = self
-                    .controller
-                    .state()
-                    .borrow()
+                let is_season_complete = state
                     .active_competition
                     .as_ref()
                     .and_then(|active| {
@@ -435,10 +395,10 @@ impl WorldCupJumpView {
                     })
                     .unwrap_or(false);
                 if is_season_complete {
-                    self.save_competition_results();
+                    self.save_competition_results(state);
                     return Some(RouteTarget::Back);
                 }
-                self.dismiss_results_and_advance();
+                self.dismiss_results_and_advance(state);
                 None
             }
             _ => None,

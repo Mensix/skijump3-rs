@@ -2,16 +2,16 @@ use crate::competition::factory;
 use crate::gfx::sprites;
 use crate::gfx::theme::{BG_PURPLE, BLACK, FILL_GRAY, FONT_BODY, FONT_GOLD, FONT_TEAL};
 use crate::route::RouteTarget;
-use crate::store::{GameStateRef, ResourcesRef};
+use crate::screen::{GameCx, GameScreen};
+use crate::store::{GameState, ResourcesRef};
 use crate::text::format;
 use engine::oxide::input::Key;
 use engine::oxide::widget::EventCx;
 use engine::oxide::widgets::menu::{MenuItem as OxideMenuItem, PixelMenu};
-use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent, Widget};
+use engine::oxide::{PaintCx, ScreenEventCx, UiEvent, Widget};
 
 pub struct TrainingSetupView {
     resources: ResourcesRef,
-    store: GameStateRef,
     menu: PixelMenu,
     start: usize,
     total: usize,
@@ -34,9 +34,9 @@ impl TrainingSetupView {
         self.page_items() + 3
     }
 
-    pub fn new(resources: ResourcesRef, store: GameStateRef) -> Self {
+    pub fn new(resources: ResourcesRef, state: &GameState) -> Self {
         let total = resources.hills.len();
-        let selected = store.borrow().practice_hill.min(total.saturating_sub(1));
+        let selected = state.practice_hill.min(total.saturating_sub(1));
         let start = if total > 20 { selected / 20 * 20 } else { 0 };
         let page_n = (total.saturating_sub(start)).min(20);
         let n = page_n + usize::from(total > 20);
@@ -49,7 +49,6 @@ impl TrainingSetupView {
 
         Self {
             resources,
-            store,
             menu,
             start,
             total,
@@ -66,7 +65,7 @@ impl TrainingSetupView {
             .trailing("", 16)
     }
 
-    fn confirm(&mut self) -> Option<RouteTarget> {
+    fn confirm(&mut self, state: &mut GameState) -> Option<RouteTarget> {
         let sel = self.menu.selected();
         if self.menu.has_trailing() && sel == self.menu.item_count() {
             return Some(RouteTarget::MainMenu);
@@ -81,8 +80,8 @@ impl TrainingSetupView {
             None
         } else {
             let hill_idx = self.start + sel;
-            self.store.borrow_mut().practice_hill = hill_idx;
-            self.store.borrow_mut().start_active(factory::training());
+            state.practice_hill = hill_idx;
+            state.start_active(factory::training());
             Some(RouteTarget::Jump)
         }
     }
@@ -133,7 +132,12 @@ impl TrainingSetupView {
         cx.stroke((bx, by, 171, 9), FONT_BODY);
     }
 
-    fn handle_input(&mut self, ecx: &mut EventCx, event: UiEvent) -> Option<RouteTarget> {
+    fn handle_input(
+        &mut self,
+        ecx: &mut EventCx,
+        state: &mut GameState,
+        event: UiEvent,
+    ) -> Option<RouteTarget> {
         match event {
             UiEvent::KeyDown(Key::Escape) => {
                 return Some(RouteTarget::Back);
@@ -143,36 +147,36 @@ impl TrainingSetupView {
                 let menu_n = self.menu.item_count();
                 if n <= menu_n {
                     self.menu.set_selected(n - 1);
-                    return self.confirm();
+                    return self.confirm(state);
                 }
                 return None;
             }
             _ => {}
         }
         if let Some(_idx) = self.menu.event(ecx, event) {
-            self.confirm()
+            self.confirm(state)
         } else {
             None
         }
     }
 }
 
-impl Screen<RouteTarget> for TrainingSetupView {
-    fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
+impl GameScreen for TrainingSetupView {
+    fn event(&mut self, cx: &mut GameCx<'_>, nav: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
         match event {
             UiEvent::Quit | UiEvent::Tick => return,
             _ => {}
         }
         let mut ecx = EventCx::default();
-        if let Some(route) = self.handle_input(&mut ecx, event) {
-            cx.navigate(route);
+        if let Some(route) = self.handle_input(&mut ecx, cx.state, event) {
+            nav.navigate(route);
         }
         if ecx.is_consumed() {
-            cx.consume();
+            nav.consume();
         }
     }
 
-    fn paint(&mut self, cx: &mut PaintCx<'_>) {
-        self.paint_content(cx);
+    fn paint(&mut self, _cx: &mut GameCx<'_>, paint: &mut PaintCx<'_>) {
+        self.paint_content(paint);
     }
 }

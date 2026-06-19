@@ -1,28 +1,21 @@
 use crate::gfx::sprites;
 use crate::gfx::theme::{BG_PURPLE, BLACK, FILL_GRAY, FONT_BODY, FONT_GOLD, FONT_TEAL};
 use crate::route::RouteTarget;
-use crate::save::SaveRef;
-use crate::store::{GameStateRef, ResourcesRef};
+use crate::screen::{GameCx, GameScreen};
+use crate::store::ResourcesRef;
 use engine::oxide::widgets::menu::MenuItem as OxideMenuItem;
 use engine::oxide::widgets::menu::PixelMenu;
-use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent, Widget};
+use engine::oxide::{PaintCx, ScreenEventCx, UiEvent, Widget};
 
 pub struct WelcomeScreenView {
     menu: PixelMenu,
     languages: Vec<String>,
     resources: ResourcesRef,
-    store: GameStateRef,
-    save_manager: SaveRef,
 }
 
 impl WelcomeScreenView {
     #[must_use]
-    pub fn new(
-        resources: ResourcesRef,
-        store: GameStateRef,
-        languages: Vec<String>,
-        save_manager: SaveRef,
-    ) -> Self {
+    pub fn new(resources: ResourcesRef, languages: Vec<String>) -> Self {
         let count = languages.len();
         let items: Vec<OxideMenuItem> = (0..count)
             .map(|i| OxideMenuItem::new((i + 1) as u8, format!("{}", i)))
@@ -32,9 +25,7 @@ impl WelcomeScreenView {
                 .with_labels(false)
                 .with_box(false),
             resources,
-            store,
             languages,
-            save_manager,
         }
     }
 
@@ -60,30 +51,27 @@ impl WelcomeScreenView {
     }
 }
 
-impl Screen<RouteTarget> for WelcomeScreenView {
-    fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
+impl GameScreen for WelcomeScreenView {
+    fn event(&mut self, cx: &mut GameCx<'_>, nav: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
         let mut ecx = engine::oxide::widget::EventCx::default();
         match self.menu.event(&mut ecx, event) {
-            Some(0) => cx.navigate(RouteTarget::MainMenu),
+            Some(0) => nav.navigate(RouteTarget::MainMenu),
             Some(n) => {
                 self.resources.langbase.selected.set(n - 1);
-                {
-                    let mut state = self.store.borrow_mut();
-                    state.config.language = (n - 1) as i32;
-                    if let Err(e) = self.save_manager.save_config(&state.config) {
-                        eprintln!("Warning: failed to save config: {e}");
-                    }
+                cx.state.config.language = (n - 1) as i32;
+                if let Err(e) = cx.save_manager.save_config(&cx.state.config) {
+                    eprintln!("Warning: failed to save config: {e}");
                 }
-                cx.navigate(RouteTarget::MainMenu);
+                nav.navigate(RouteTarget::MainMenu);
             }
             _ => {}
         }
         if ecx.is_consumed() {
-            cx.consume();
+            nav.consume();
         }
     }
 
-    fn paint(&mut self, cx: &mut PaintCx<'_>) {
-        self.paint_content(cx);
+    fn paint(&mut self, _cx: &mut GameCx<'_>, paint: &mut PaintCx<'_>) {
+        self.paint_content(paint);
     }
 }

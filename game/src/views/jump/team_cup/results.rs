@@ -1,6 +1,6 @@
 use crate::competition::team_cup::types::{TeamCupResultsKind, TeamCupStandingsKind};
 use crate::gfx::theme::{BG_TEAM, BLACK, FILL_GOLD, FILL_GRAY, FONT_BODY, FONT_GOLD, FONT_GRAY};
-use crate::store::{GameStateRef, ResourcesRef};
+use crate::store::{GameState, ResourcesRef};
 use crate::text::format::format_decimal;
 use crate::text::layout::shorten_name;
 use engine::oxide::PaintCx;
@@ -8,7 +8,7 @@ use engine::oxide::PaintCx;
 pub(crate) fn render(
     cx: &mut PaintCx<'_>,
     resources: &ResourcesRef,
-    state: &GameStateRef,
+    state: &GameState,
     results_kind: TeamCupResultsKind,
 ) {
     cx.fill((0, 0, 320, 200), BLACK);
@@ -19,7 +19,6 @@ pub(crate) fn render(
         TeamCupResultsKind::LegResults => TeamCupStandingsKind::Leg,
     };
     let (header, standings) = state
-        .borrow()
         .active_competition
         .as_ref()
         .and_then(|active| {

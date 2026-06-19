@@ -1,7 +1,7 @@
 use crate::jump::config::JumpParticipant;
-use crate::jump::policy::JumpPolicy;
+use crate::jump::JumpPolicy;
 use crate::route::RouteTarget;
-use crate::store::{GameStateRef, ResourcesRef};
+use crate::store::{GameState, ResourcesRef};
 use crate::views::jump::competition::overlay::{CompetitionOverlay, OverlayKind};
 use crate::views::jump::competition::ui_state::CompetitionUiState;
 use crate::views::jump::competition::ui_state::RenderMode;
@@ -29,7 +29,7 @@ pub(crate) fn handle_human_jump(
     scene: &mut Option<JumpScene>,
     ui_state: &CompetitionUiState,
     resources: &ResourcesRef,
-    state: &GameStateRef,
+    state: &mut GameState,
     participant: JumpParticipant,
     hill_idx: usize,
     phase_label: String,
@@ -40,7 +40,7 @@ pub(crate) fn handle_human_jump(
         ui_state.reset_outcome_recorded();
         let mut new_scene = JumpScene::new(
             ResourcesRef::clone(resources),
-            GameStateRef::clone(state),
+            state,
             hill_idx,
             15,
             participant,
@@ -52,7 +52,15 @@ pub(crate) fn handle_human_jump(
         }
         *scene = Some(new_scene);
     } else if let Some(s) = scene {
-        prepare_human_jump_scene(s, ui_state, participant, hill_idx, phase_label, team_name);
+        prepare_human_jump_scene(
+            s,
+            ui_state,
+            participant,
+            hill_idx,
+            phase_label,
+            team_name,
+            state,
+        );
     }
 }
 
@@ -63,11 +71,12 @@ pub(crate) fn prepare_human_jump_scene(
     hill_idx: usize,
     phase_label: String,
     team_name: Option<String>,
+    state: &mut GameState,
 ) {
     if needs_human_jump_scene_rebuild(scene, ui_state, &participant, hill_idx) {
         ui_state.reset_acknowledged();
         ui_state.reset_outcome_recorded();
-        scene.rebuild_for_competition(hill_idx, 15, participant, phase_label);
+        scene.rebuild_for_competition(hill_idx, 15, participant, phase_label, state);
     } else {
         scene.set_phase_label(phase_label);
     }
@@ -106,6 +115,7 @@ pub(crate) fn render_jump_scene_with_overlay(
     scene: &mut JumpScene,
     overlay: &CompetitionOverlay,
     ui_state: &CompetitionUiState,
+    state: &GameState,
 ) {
     if scene.outcome().is_some() {
         scene.collect_telemetry();
@@ -115,15 +125,16 @@ pub(crate) fn render_jump_scene_with_overlay(
         scene.frame_counter(),
         ui_state,
         scene.telemetry(),
+        state,
     );
     scene.set_suppress_info_panel(
         overlay_ctx
             .as_ref()
             .is_some_and(|ctx| ctx.kind != OverlayKind::None),
     );
-    scene.render(cx);
+    scene.render(cx, state);
     if let Some(ctx) = overlay_ctx {
-        overlay.render(cx, &ctx);
+        overlay.render(cx, &ctx, state);
     }
 }
 
@@ -165,11 +176,12 @@ pub(crate) fn handle_competition_jump_input(
     scene: &mut JumpScene,
     event: UiEvent,
     consume_other_actions: bool,
+    state: &GameState,
 ) -> JumpInputResult {
-    let action = scene.handle_jump_input(event);
+    let action = scene.handle_jump_input(state, event);
     match action {
         JumpInputAction::SaveReplay => {
-            scene.open_save_dialog();
+            scene.open_save_dialog(state);
             JumpInputResult::Consumed
         }
         JumpInputAction::RouteBack => JumpInputResult::Route(RouteTarget::Back),
@@ -186,12 +198,13 @@ pub(crate) fn handle_jump_scene_event(
     consume_other_actions: bool,
     accepts_only_enter_escape: bool,
     acknowledge_only_unrecorded: bool,
+    state: &GameState,
 ) -> JumpInputResult {
     if handle_save_dialog(scene, &event) {
         return JumpInputResult::Consumed;
     }
 
-    match handle_competition_jump_input(scene, event, consume_other_actions) {
+    match handle_competition_jump_input(scene, event, consume_other_actions, state) {
         JumpInputResult::None => {}
         result => return result,
     }

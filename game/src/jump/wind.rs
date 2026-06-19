@@ -109,9 +109,18 @@ impl Wind {
         let mut x = jumper_screen_x;
         let mut y = jumper_screen_y;
         match self.place {
-            11 => { x += 10; y -= 20; }
-            12 => { x += 15; y -= 5; }
-            13 => { x -= 10; y += 12; }
+            11 => {
+                x += 10;
+                y -= 20;
+            }
+            12 => {
+                x += 15;
+                y -= 5;
+            }
+            13 => {
+                x -= 10;
+                y += 12;
+            }
             _ => return self.position,
         }
         WindPosition { x, y }

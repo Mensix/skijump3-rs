@@ -4,15 +4,14 @@ use crate::competition::factory;
 use crate::components::layout::MainLayout;
 use crate::gfx::theme::{BG_DARK, BG_RED, BLACK, FONT_BODY, FONT_GOLD};
 use crate::route::RouteTarget;
-use crate::store::{GameStateRef, ResourcesRef};
+use crate::screen::{GameCx, GameScreen};
+use crate::store::{GameState, ResourcesRef};
 use engine::oxide::widgets::menu::PixelMenu;
 use engine::oxide::Widget;
-use engine::oxide::{PaintCx, Screen, ScreenBackground, ScreenEventCx, UiEvent};
+use engine::oxide::{PaintCx, ScreenBackground, ScreenEventCx, UiEvent};
 
 pub struct JumpMenuView {
     menu: PixelMenu,
-    layout: MainLayout,
-    store: GameStateRef,
     resources: ResourcesRef,
     show_team_warning: Cell<bool>,
 }
@@ -29,7 +28,7 @@ const JUMP_MENU_ACTIONS: &[Option<RouteTarget>] = &[
 
 impl JumpMenuView {
     #[must_use]
-    pub fn new(layout: MainLayout, store: GameStateRef, resources: ResourcesRef) -> Self {
+    pub fn new(resources: ResourcesRef) -> Self {
         use engine::oxide::widgets::menu::MenuItem as OxideMenuItem;
 
         let items = vec![
@@ -45,70 +44,64 @@ impl JumpMenuView {
             menu: PixelMenu::new(11, 97, 108, 12, items, FONT_BODY, FONT_BODY)
                 .with_labels(false)
                 .with_box(false),
-            layout,
-            store,
             resources,
             show_team_warning: Cell::new(false),
         }
     }
-
-    fn paint_content(&self, cx: &mut PaintCx<'_>) {
-        self.layout.background(cx);
-        self.layout.jumpers(cx);
-        self.layout.registration(cx);
-        cx.fill((1, 94, 116, 106), BG_DARK);
-        cx.fill((11, 80, 100, 6), BG_DARK);
-        cx.text((11, 80), FONT_GOLD, self.layout.langbase.lstr(18));
-        paint_jump_menu(cx, &self.menu, &self.layout);
-        self.layout.footer(cx);
-        if self.show_team_warning.get() {
-            Self::paint_team_warning(cx, &self.layout);
-        }
-    }
 }
 
-impl Screen<RouteTarget> for JumpMenuView {
-    fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
+impl GameScreen for JumpMenuView {
+    fn event(&mut self, cx: &mut GameCx<'_>, nav: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
         let mut ecx = engine::oxide::widget::EventCx::default();
 
         if self.show_team_warning.get() {
             if matches!(event, UiEvent::KeyDown(_)) {
                 self.show_team_warning.set(false);
                 self.menu.set_show_box(true);
-                cx.consume();
+                nav.consume();
             }
             return;
         }
 
         match self.menu.event(&mut ecx, event) {
-            Some(1) => cx.navigate(self.start_world_cup()),
-            Some(2) => cx.navigate(RouteTarget::CustomCupSetup),
-            Some(3) => cx.navigate(self.start_four_hills()),
+            Some(1) => nav.navigate(self.start_world_cup(cx.state)),
+            Some(2) => nav.navigate(RouteTarget::CustomCupSetup),
+            Some(3) => nav.navigate(self.start_four_hills(cx.state)),
             Some(4) => {
-                let num_players = self.store.borrow().profiles.active_order.len();
+                let num_players = cx.state.profiles.active_order.len();
                 if num_players == 4 || num_players == 8 {
-                    cx.navigate(self.start_team_cup());
+                    nav.navigate(self.start_team_cup(cx.state));
                 } else {
                     self.menu.set_show_box(false);
                     self.show_team_warning.set(true);
-                    cx.consume();
+                    nav.consume();
                 }
             }
-            Some(0) => cx.navigate(RouteTarget::MainMenu),
+            Some(0) => nav.navigate(RouteTarget::MainMenu),
             Some(n) => {
                 if let Some(route) = JUMP_MENU_ACTIONS.get(n - 1).and_then(|&a| a) {
-                    cx.navigate(route);
+                    nav.navigate(route);
                 }
             }
             _ => {}
         }
         if ecx.is_consumed() {
-            cx.consume();
+            nav.consume();
         }
     }
 
-    fn paint(&mut self, cx: &mut PaintCx<'_>) {
-        self.paint_content(cx);
+    fn paint(&mut self, cx: &mut GameCx<'_>, paint: &mut PaintCx<'_>) {
+        cx.layout.background(paint);
+        cx.layout.jumpers(paint, &cx.state.profiles);
+        cx.layout.registration(paint);
+        paint.fill((1, 94, 116, 106), BG_DARK);
+        paint.fill((11, 80, 100, 6), BG_DARK);
+        paint.text((11, 80), FONT_GOLD, cx.layout.langbase.lstr(18));
+        paint_jump_menu(paint, &self.menu, &cx.layout);
+        cx.layout.footer(paint);
+        if self.show_team_warning.get() {
+            Self::paint_team_warning(paint, &cx.layout);
+        }
     }
 
     fn background(&self) -> ScreenBackground {
@@ -117,9 +110,9 @@ impl Screen<RouteTarget> for JumpMenuView {
 }
 
 impl JumpMenuView {
-    fn start_world_cup(&self) -> RouteTarget {
-        let profiles = self.store.borrow().profiles.clone();
-        let config = self.store.borrow().config.clone();
+    fn start_world_cup(&self, state: &mut GameState) -> RouteTarget {
+        let profiles = state.profiles.clone();
+        let config = state.config.clone();
         let comp = factory::world_cup(
             &profiles,
             self.resources.player_names(config.name_set_index as usize),
@@ -128,13 +121,13 @@ impl JumpMenuView {
             config.unique_computer_names != 0,
             config.ko_system != 0,
         );
-        self.store.borrow_mut().start_active(comp);
+        state.start_active(comp);
         RouteTarget::CompetitionJump
     }
 
-    fn start_four_hills(&self) -> RouteTarget {
-        let profiles = self.store.borrow().profiles.clone();
-        let config = self.store.borrow().config.clone();
+    fn start_four_hills(&self, state: &mut GameState) -> RouteTarget {
+        let profiles = state.profiles.clone();
+        let config = state.config.clone();
         let comp = factory::four_hills(
             &profiles,
             self.resources.player_names(config.name_set_index as usize),
@@ -143,19 +136,19 @@ impl JumpMenuView {
             config.unique_computer_names != 0,
             config.ko_system != 0,
         );
-        self.store.borrow_mut().start_active(comp);
+        state.start_active(comp);
         RouteTarget::CompetitionJump
     }
 
-    fn start_team_cup(&self) -> RouteTarget {
-        let profiles = self.store.borrow().profiles.clone();
+    fn start_team_cup(&self, state: &mut GameState) -> RouteTarget {
+        let profiles = state.profiles.clone();
         let num_players = profiles.active_order.len();
         let human_teams = num_players / 4;
         let names = self
             .resources
-            .player_names(self.store.borrow().config.name_set_index as usize)
+            .player_names(state.config.name_set_index as usize)
             .to_vec();
-        let name_set_index = self.store.borrow().config.name_set_index as usize;
+        let name_set_index = state.config.name_set_index as usize;
         let teams_def = self
             .resources
             .namesets
@@ -164,17 +157,16 @@ impl JumpMenuView {
         let hill_count = self.resources.hills.len();
 
         let comp = {
-            let mut s = self.store.borrow_mut();
             factory::team_cup(
                 &names,
                 &teams_def,
                 &profiles,
                 human_teams,
                 hill_count,
-                &mut s.rng,
+                &mut state.rng,
             )
         };
-        self.store.borrow_mut().start_active(comp);
+        state.start_active(comp);
         RouteTarget::CompetitionJump
     }
 

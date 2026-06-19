@@ -16,5 +16,3 @@ pub fn load_png(data: &[u8]) -> Result<RgbaImage, AssetError> {
         height,
     })
 }
-
-

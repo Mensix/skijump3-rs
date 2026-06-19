@@ -2,14 +2,13 @@ use crate::components::layout::MainLayout;
 use crate::components::modal::alert_box;
 use crate::gfx::theme::{BG_DARK, BG_PURPLE, BG_RED, FONT_BODY, FONT_GOLD, FONT_GRAY};
 use crate::route::RouteTarget;
-use crate::store::GameStateRef;
+use crate::screen::{GameCx, GameScreen};
 use engine::oxide::widgets::menu::PixelMenu;
 use engine::oxide::Widget;
-use engine::oxide::{Blinker, PaintCx, Screen, ScreenBackground, ScreenEventCx, UiEvent};
+use engine::oxide::{Blinker, PaintCx, ScreenBackground, ScreenEventCx, UiEvent};
 
 pub struct MainMenuView {
     menu: PixelMenu,
-    layout: MainLayout,
     confirming_quit: bool,
     quit_question: String,
     quit_prompt: String,
@@ -27,8 +26,7 @@ const MENU_ACTIONS: &[Option<RouteTarget>] = &[
 ];
 
 impl MainMenuView {
-    #[allow(clippy::needless_pass_by_value)]
-    pub fn new(layout: MainLayout, store: GameStateRef) -> Self {
+    pub fn new() -> Self {
         use engine::oxide::widgets::menu::MenuItem as OxideMenuItem;
 
         let items = vec![
@@ -40,47 +38,27 @@ impl MainMenuView {
             OxideMenuItem::new(6, ""),
             OxideMenuItem::new(0, "").with_y(12),
         ];
-        let selection = store
-            .borrow()
-            .selected_main_menu
-            .min(items.len().saturating_sub(1));
-        let mut menu = PixelMenu::new(11, 97, 108, 12, items, FONT_BODY, FONT_BODY)
+        let menu = PixelMenu::new(11, 97, 108, 12, items, FONT_BODY, FONT_BODY)
             .with_labels(false)
             .with_box(false);
-        menu.set_selected(selection);
         Self {
             menu,
-            layout,
             confirming_quit: false,
             quit_question: String::new(),
             quit_prompt: String::new(),
             quit_blinker: Blinker::new(),
         }
     }
-
-    fn paint_content(&mut self, cx: &mut PaintCx<'_>) {
-        self.layout.background(cx);
-        self.layout.jumpers(cx);
-        self.layout.registration(cx);
-        cx.fill((11, 80, 100, 6), BG_DARK);
-        cx.text((11, 80), FONT_GOLD, self.layout.langbase.lstr(17));
-        paint_main_menu(cx, &self.menu, &self.layout);
-        self.layout.footer(cx);
-        if self.confirming_quit {
-            let cursor_on = self.quit_blinker.visible(11, 10);
-            paint_quit_confirm(cx, &self.quit_question, &self.quit_prompt, cursor_on);
-        }
-    }
 }
 
-impl Screen<RouteTarget> for MainMenuView {
-    fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
+impl GameScreen for MainMenuView {
+    fn event(&mut self, cx: &mut GameCx<'_>, nav: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
         if self.confirming_quit {
             match event {
-                UiEvent::Text(c) if is_yes(c, &self.layout) => cx.quit(),
+                UiEvent::Text(c) if is_yes(c, &cx.layout) => nav.quit(),
                 UiEvent::KeyDown(_) | UiEvent::Text(_) => {
                     self.confirming_quit = false;
-                    cx.consume();
+                    nav.consume();
                 }
                 _ => {}
             }
@@ -92,27 +70,36 @@ impl Screen<RouteTarget> for MainMenuView {
             Some(0 | 7) => {
                 self.confirming_quit = true;
                 self.quit_blinker.reset();
-                let mut state = self.layout.state.borrow_mut();
-                let qi = 251 + (state.rng.random_i32(3) as usize).min(2);
-                let pi = 256 + (state.rng.random_i32(3) as usize).min(2);
-                self.quit_question = self.layout.langbase.lstr(qi).to_string();
-                self.quit_prompt = self.layout.langbase.lstr(pi).to_string();
-                cx.consume();
+                let qi = 251 + (cx.state.rng.random_i32(3) as usize).min(2);
+                let pi = 256 + (cx.state.rng.random_i32(3) as usize).min(2);
+                self.quit_question = cx.layout.langbase.lstr(qi).to_string();
+                self.quit_prompt = cx.layout.langbase.lstr(pi).to_string();
+                nav.consume();
             }
             Some(n) => {
                 if let Some(route) = MENU_ACTIONS.get(n - 1).and_then(|&a| a) {
-                    cx.navigate(route);
+                    nav.navigate(route);
                 }
             }
             _ => {}
         }
         if ecx.is_consumed() {
-            cx.consume();
+            nav.consume();
         }
     }
 
-    fn paint(&mut self, cx: &mut PaintCx<'_>) {
-        self.paint_content(cx);
+    fn paint(&mut self, cx: &mut GameCx<'_>, paint: &mut PaintCx<'_>) {
+        cx.layout.background(paint);
+        cx.layout.jumpers(paint, &cx.state.profiles);
+        cx.layout.registration(paint);
+        paint.fill((11, 80, 100, 6), BG_DARK);
+        paint.text((11, 80), FONT_GOLD, cx.layout.langbase.lstr(17));
+        paint_main_menu(paint, &self.menu, &cx.layout);
+        cx.layout.footer(paint);
+        if self.confirming_quit {
+            let cursor_on = self.quit_blinker.visible(11, 10);
+            paint_quit_confirm(paint, &self.quit_question, &self.quit_prompt, cursor_on);
+        }
     }
 
     fn background(&self) -> ScreenBackground {

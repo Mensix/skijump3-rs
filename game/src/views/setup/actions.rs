@@ -2,6 +2,7 @@ use crate::components::page_nav::cycle_index;
 use crate::data::records::RecordStore;
 use crate::route::RouteTarget;
 use crate::save::config::Config;
+use crate::store::GameState;
 use crate::views::jump::input::JumpKeyBindings;
 use engine::oxide::input::{Key, UiEvent};
 use engine::oxide::widgets::menu::PixelMenu;
@@ -9,22 +10,31 @@ use engine::oxide::widgets::menu::PixelMenu;
 use super::state::SetupModal;
 use super::view::SetupView;
 
-pub(crate) fn handle_event(view: &mut SetupView, event: UiEvent) -> Option<RouteTarget> {
+pub(crate) fn handle_event(
+    view: &mut SetupView,
+    state: &mut GameState,
+    event: UiEvent,
+) -> Option<RouteTarget> {
     match view.modal.get() {
-        Some(SetupModal::WindPlace(pos)) => handle_wind_place(view, event, pos),
-        Some(SetupModal::SeeComps(val)) => handle_see_comps(view, event, val),
-        Some(SetupModal::ConfirmReset(_)) => handle_confirm_reset(view, event),
-        Some(SetupModal::LanguagePicker(sel)) => handle_language_picker(view, event, sel),
+        Some(SetupModal::WindPlace(pos)) => handle_wind_place(view, state, event, pos),
+        Some(SetupModal::SeeComps(val)) => handle_see_comps(view, state, event, val),
+        Some(SetupModal::ConfirmReset(_)) => handle_confirm_reset(view, state, event),
+        Some(SetupModal::LanguagePicker(sel)) => handle_language_picker(view, state, event, sel),
         Some(SetupModal::ConfigureKeys { selected, capture }) => {
-            handle_configure_keys(view, event, selected, capture)
+            handle_configure_keys(view, state, event, selected, capture)
         }
-        Some(SetupModal::NameSetInput) => handle_name_set_input(view, event),
-        Some(SetupModal::HillGoals(selected)) => handle_hill_goals(view, event, selected),
-        None => handle_screen_event(view, event),
+        Some(SetupModal::NameSetInput) => handle_name_set_input(view, state, event),
+        Some(SetupModal::HillGoals(selected)) => handle_hill_goals(view, state, event, selected),
+        None => handle_screen_event(view, state, event),
     }
 }
 
-fn handle_hill_goals(view: &mut SetupView, event: UiEvent, selected: usize) -> Option<RouteTarget> {
+fn handle_hill_goals(
+    view: &mut SetupView,
+    state: &mut GameState,
+    event: UiEvent,
+    selected: usize,
+) -> Option<RouteTarget> {
     let hill_count = view.resources.hills.len().min(20);
     match event {
         UiEvent::KeyDown(Key::Up) => {
@@ -37,26 +47,28 @@ fn handle_hill_goals(view: &mut SetupView, event: UiEvent, selected: usize) -> O
         }
         UiEvent::KeyDown(Key::Home) => view.modal.set(Some(SetupModal::HillGoals(0))),
         UiEvent::KeyDown(Key::End | Key::Escape) => {
-            save_records(view);
+            save_records(view, state);
             view.modal.set(None);
         }
         UiEvent::KeyDown(Key::Enter) if selected >= hill_count => {
-            save_records(view);
+            save_records(view, state);
             view.modal.set(None);
         }
-        UiEvent::KeyDown(Key::Left) | UiEvent::Text('-') => adjust_hill_goal(view, selected, -0.5),
-        UiEvent::KeyDown(Key::Right) | UiEvent::Text('+') => adjust_hill_goal(view, selected, 0.5),
+        UiEvent::KeyDown(Key::Left) | UiEvent::Text('-') => {
+            adjust_hill_goal(state, selected, -0.5, hill_count)
+        }
+        UiEvent::KeyDown(Key::Right) | UiEvent::Text('+') => {
+            adjust_hill_goal(state, selected, 0.5, hill_count)
+        }
         _ => {}
     }
     None
 }
 
-fn adjust_hill_goal(view: &mut SetupView, selected: usize, delta: f64) {
-    let hill_count = view.resources.hills.len().min(20);
+fn adjust_hill_goal(state: &mut GameState, selected: usize, delta: f64, hill_count: usize) {
     if selected >= hill_count {
         return;
     }
-    let mut state = view.store.borrow_mut();
     if state.records.hill_goals.len() < hill_count {
         state.records.hill_goals.resize(hill_count, 0.0);
     }
@@ -64,11 +76,8 @@ fn adjust_hill_goal(view: &mut SetupView, selected: usize, delta: f64) {
     state.records.hill_goals[selected] = (value * 10.0).round() / 10.0;
 }
 
-fn save_records(view: &SetupView) {
-    if let Err(e) = view
-        .save_manager()
-        .save_records(&view.store.borrow().records)
-    {
+fn save_records(view: &SetupView, state: &GameState) {
+    if let Err(e) = view.save_manager().save_records(&state.records) {
         eprintln!("Warning: failed to save records: {e}");
     }
 }
@@ -97,6 +106,7 @@ fn set_config_key(config: &mut Config, item: usize, code: i32) {
 
 fn handle_configure_keys(
     view: &mut SetupView,
+    state: &mut GameState,
     event: UiEvent,
     selected: usize,
     capture: Option<usize>,
@@ -111,17 +121,12 @@ fn handle_configure_keys(
             }
             _ => {
                 if let Some(code) = JumpKeyBindings::code_for(event) {
-                    let duplicate = {
-                        let cfg = view.config();
-                        (0..5).any(|idx| idx != item && config_key(&cfg, idx) == code)
-                    };
+                    let duplicate =
+                        (0..5).any(|idx| idx != item && config_key(&state.config, idx) == code);
                     if !duplicate {
-                        {
-                            let mut state = view.store.borrow_mut();
-                            set_config_key(&mut state.config, item, code);
-                            if let Err(e) = view.save_manager().save_config(&state.config) {
-                                eprintln!("Warning: failed to save config: {e}");
-                            }
+                        set_config_key(&mut state.config, item, code);
+                        if let Err(e) = view.save_manager().save_config(&state.config) {
+                            eprintln!("Warning: failed to save config: {e}");
                         }
                         view.modal.set(Some(SetupModal::ConfigureKeys {
                             selected,
@@ -162,7 +167,6 @@ fn handle_configure_keys(
                 capture: Some(selected),
             })),
             5 => {
-                let mut state = view.store.borrow_mut();
                 let defaults = Config::default();
                 state.config.key_up = defaults.key_up;
                 state.config.key_right = defaults.key_right;
@@ -200,7 +204,11 @@ fn handle_configure_keys(
     None
 }
 
-fn handle_name_set_input(view: &mut SetupView, event: UiEvent) -> Option<RouteTarget> {
+fn handle_name_set_input(
+    view: &mut SetupView,
+    state: &mut GameState,
+    event: UiEvent,
+) -> Option<RouteTarget> {
     match event {
         UiEvent::Text(c) => {
             let ns_len = view.resources.namesets.len();
@@ -214,12 +222,9 @@ fn handle_name_set_input(view: &mut SetupView, event: UiEvent) -> Option<RouteTa
                 return None;
             };
             if idx < ns_len {
-                {
-                    let mut state = view.store.borrow_mut();
-                    state.config.name_set_index = idx as i32;
-                    if let Err(e) = view.save_manager().save_config(&state.config) {
-                        eprintln!("Warning: failed to save config: {e}");
-                    }
+                state.config.name_set_index = idx as i32;
+                if let Err(e) = view.save_manager().save_config(&state.config) {
+                    eprintln!("Warning: failed to save config: {e}");
                 }
                 view.modal.set(None);
             }
@@ -230,7 +235,12 @@ fn handle_name_set_input(view: &mut SetupView, event: UiEvent) -> Option<RouteTa
     None
 }
 
-fn handle_wind_place(view: &mut SetupView, event: UiEvent, pos: usize) -> Option<RouteTarget> {
+fn handle_wind_place(
+    view: &mut SetupView,
+    state: &mut GameState,
+    event: UiEvent,
+    pos: usize,
+) -> Option<RouteTarget> {
     let winds = 11;
     let items = winds + 1; // 11 places + 0. exit
     match event {
@@ -245,12 +255,9 @@ fn handle_wind_place(view: &mut SetupView, event: UiEvent, pos: usize) -> Option
         UiEvent::KeyDown(Key::Enter) | UiEvent::Text(' ') => {
             if pos < winds {
                 let place = if pos < 8 { pos + 1 } else { pos + 3 };
-                {
-                    let mut state = view.store.borrow_mut();
-                    state.config.wind_position = place as i32;
-                    if let Err(e) = view.save_manager().save_config(&state.config) {
-                        eprintln!("Warning: failed to save config: {e}");
-                    }
+                state.config.wind_position = place as i32;
+                if let Err(e) = view.save_manager().save_config(&state.config) {
+                    eprintln!("Warning: failed to save config: {e}");
                 }
             }
             view.modal.set(None);
@@ -263,11 +270,11 @@ fn handle_wind_place(view: &mut SetupView, event: UiEvent, pos: usize) -> Option
     None
 }
 
-pub(crate) fn seecomp_options(view: &SetupView) -> Vec<(usize, String)> {
+pub(crate) fn seecomp_options(view: &SetupView, state: &GameState) -> Vec<(usize, String)> {
     let names = view
         .resources
         .namesets
-        .names_for_config(view.config().name_set_index);
+        .names_for_config(state.config.name_set_index);
     let cats = [235, 236, 237, 238, 239, 240];
     let mut opts = Vec::new();
     for (i, name) in names.iter().enumerate() {
@@ -281,8 +288,13 @@ pub(crate) fn seecomp_options(view: &SetupView) -> Vec<(usize, String)> {
     opts
 }
 
-fn handle_see_comps(view: &mut SetupView, event: UiEvent, idx: usize) -> Option<RouteTarget> {
-    let opts = seecomp_options(view);
+fn handle_see_comps(
+    view: &mut SetupView,
+    state: &mut GameState,
+    event: UiEvent,
+    idx: usize,
+) -> Option<RouteTarget> {
+    let opts = seecomp_options(view, state);
     match event {
         UiEvent::KeyDown(Key::Up | Key::Left) => {
             let new_idx = if idx == 0 { opts.len() - 1 } else { idx - 1 };
@@ -294,12 +306,9 @@ fn handle_see_comps(view: &mut SetupView, event: UiEvent, idx: usize) -> Option<
         }
         UiEvent::KeyDown(Key::Enter) => {
             let cfg_val = opts[idx].0;
-            {
-                let mut state = view.store.borrow_mut();
-                state.config.visible_computers = cfg_val as i32;
-                if let Err(e) = view.save_manager().save_config(&state.config) {
-                    eprintln!("Warning: failed to save config: {e}");
-                }
+            state.config.visible_computers = cfg_val as i32;
+            if let Err(e) = view.save_manager().save_config(&state.config) {
+                eprintln!("Warning: failed to save config: {e}");
             }
             view.modal.set(None);
         }
@@ -311,7 +320,11 @@ fn handle_see_comps(view: &mut SetupView, event: UiEvent, idx: usize) -> Option<
     None
 }
 
-fn handle_confirm_reset(view: &mut SetupView, event: UiEvent) -> Option<RouteTarget> {
+fn handle_confirm_reset(
+    view: &mut SetupView,
+    state: &mut GameState,
+    event: UiEvent,
+) -> Option<RouteTarget> {
     match event {
         UiEvent::Text(c) if c == 'y' || c == 'Y' => {
             if let Some(SetupModal::ConfirmReset(kind)) = view.modal.get() {
@@ -320,7 +333,7 @@ fn handle_confirm_reset(view: &mut SetupView, event: UiEvent) -> Option<RouteTar
                 } else {
                     RecordStore::cleared_default()
                 };
-                view.store.borrow_mut().records = records.clone();
+                state.records = records.clone();
                 if let Err(e) = view.save_manager().save_records(&records) {
                     eprintln!("Warning: failed to save records: {e}");
                 }
@@ -333,7 +346,12 @@ fn handle_confirm_reset(view: &mut SetupView, event: UiEvent) -> Option<RouteTar
     None
 }
 
-fn handle_language_picker(view: &mut SetupView, event: UiEvent, sel: usize) -> Option<RouteTarget> {
+fn handle_language_picker(
+    view: &mut SetupView,
+    state: &mut GameState,
+    event: UiEvent,
+    sel: usize,
+) -> Option<RouteTarget> {
     let langs = &view.langbase().languages;
     match event {
         UiEvent::KeyDown(Key::Up | Key::Left) => {
@@ -345,12 +363,9 @@ fn handle_language_picker(view: &mut SetupView, event: UiEvent, sel: usize) -> O
             view.modal.set(Some(SetupModal::LanguagePicker(new_sel)));
         }
         UiEvent::KeyDown(Key::Enter) | UiEvent::Text(' ') => {
-            {
-                let mut state = view.store.borrow_mut();
-                state.config.language = sel as i32;
-                if let Err(e) = view.save_manager().save_config(&state.config) {
-                    eprintln!("Warning: failed to save config: {e}");
-                }
+            state.config.language = sel as i32;
+            if let Err(e) = view.save_manager().save_config(&state.config) {
+                eprintln!("Warning: failed to save config: {e}");
             }
             view.resources.langbase.selected.set(sel);
             view.modal.set(None);
@@ -371,7 +386,11 @@ fn handle_language_picker(view: &mut SetupView, event: UiEvent, sel: usize) -> O
     None
 }
 
-fn handle_screen_event(view: &mut SetupView, event: UiEvent) -> Option<RouteTarget> {
+fn handle_screen_event(
+    view: &mut SetupView,
+    state: &mut GameState,
+    event: UiEvent,
+) -> Option<RouteTarget> {
     let screen = view.screen.get();
     let entries = view.menu.item_count();
 
@@ -429,7 +448,7 @@ fn handle_screen_event(view: &mut SetupView, event: UiEvent) -> Option<RouteTarg
                 if screen < view.selected_by_screen.len() {
                     view.selected_by_screen[screen].set(selected);
                 }
-                if let Some(route) = activate_item(view, screen, selected) {
+                if let Some(route) = activate_item(view, state, screen, selected) {
                     return Some(route);
                 }
             }
@@ -456,7 +475,7 @@ fn handle_screen_event(view: &mut SetupView, event: UiEvent) -> Option<RouteTarg
                 }
                 view.switch_screen(0);
             } else {
-                if let Some(route) = activate_item(view, screen, sel) {
+                if let Some(route) = activate_item(view, state, screen, sel) {
                     return Some(route);
                 }
             }
@@ -491,7 +510,12 @@ fn handle_screen_event(view: &mut SetupView, event: UiEvent) -> Option<RouteTarg
     None
 }
 
-fn activate_item(view: &mut SetupView, screen: usize, item: usize) -> Option<RouteTarget> {
+fn activate_item(
+    view: &mut SetupView,
+    state: &mut GameState,
+    screen: usize,
+    item: usize,
+) -> Option<RouteTarget> {
     match (screen, item) {
         (0, 0..=2) => view.switch_screen(item + 1),
         (0, 3) => view.modal.set(Some(SetupModal::ConfigureKeys {
@@ -501,21 +525,19 @@ fn activate_item(view: &mut SetupView, screen: usize, item: usize) -> Option<Rou
         (0, 4) => view.modal.set(Some(SetupModal::HillGoals(0))),
         (0, 5) => return Some(RouteTarget::HillMakerSetup),
         (1, 0) => {
-            let current = view.config().language;
+            let current = state.config.language;
             let idx = if current >= 0 { current as usize } else { 0 };
             let langs = &view.langbase().languages;
             let idx = idx.min(langs.len().saturating_sub(1));
             view.modal.set(Some(SetupModal::LanguagePicker(idx)));
         }
         (1, 1) => {
-            let mut state = view.store.borrow_mut();
             state.config.sound_effects = i32::from(state.config.sound_effects == 0);
             if let Err(e) = view.save_manager().save_config(&state.config) {
                 eprintln!("Warning: failed to save config: {e}");
             }
         }
         (1, 2) => {
-            let mut state = view.store.borrow_mut();
             state.config.graphics_detail = i32::from(state.config.graphics_detail == 0);
             if let Err(e) = view.save_manager().save_config(&state.config) {
                 eprintln!("Warning: failed to save config: {e}");
@@ -523,64 +545,57 @@ fn activate_item(view: &mut SetupView, screen: usize, item: usize) -> Option<Rou
         }
         (1, 3) => view.modal.set(Some(SetupModal::NameSetInput)),
         (2, 0) => {
-            let mut state = view.store.borrow_mut();
             state.config.training_rounds = (state.config.training_rounds + 1) % 4;
             if let Err(e) = view.save_manager().save_config(&state.config) {
                 eprintln!("Warning: failed to save config: {e}");
             }
         }
         (2, 1) => {
-            let mut state = view.store.borrow_mut();
             state.config.extra_statistics = i32::from(state.config.extra_statistics == 0);
             if let Err(e) = view.save_manager().save_config(&state.config) {
                 eprintln!("Warning: failed to save config: {e}");
             }
         }
         (2, 2) => {
-            let mut state = view.store.borrow_mut();
             state.config.event_gap = i32::from(state.config.event_gap == 0);
             if let Err(e) = view.save_manager().save_config(&state.config) {
                 eprintln!("Warning: failed to save config: {e}");
             }
         }
         (2, 3) => {
-            let mut state = view.store.borrow_mut();
             state.config.wc_gap = i32::from(state.config.wc_gap == 0);
             if let Err(e) = view.save_manager().save_config(&state.config) {
                 eprintln!("Warning: failed to save config: {e}");
             }
         }
         (2, 4) => {
-            let mut state = view.store.borrow_mut();
             state.config.compact_results = i32::from(state.config.compact_results == 0);
             if let Err(e) = view.save_manager().save_config(&state.config) {
                 eprintln!("Warning: failed to save config: {e}");
             }
         }
         (2, 5) => {
-            let mut state = view.store.borrow_mut();
             state.config.invisible_back = i32::from(state.config.invisible_back == 0);
             if let Err(e) = view.save_manager().save_config(&state.config) {
                 eprintln!("Warning: failed to save config: {e}");
             }
         }
         (2, 6) => {
-            let mut state = view.store.borrow_mut();
-            state.config.auto_hill_record_replay = i32::from(state.config.auto_hill_record_replay == 0);
+            state.config.auto_hill_record_replay =
+                i32::from(state.config.auto_hill_record_replay == 0);
             if let Err(e) = view.save_manager().save_config(&state.config) {
                 eprintln!("Warning: failed to save config: {e}");
             }
         }
         (2, 7) => {
-            let mut state = view.store.borrow_mut();
             state.config.goals_enabled = i32::from(state.config.goals_enabled == 0);
             if let Err(e) = view.save_manager().save_config(&state.config) {
                 eprintln!("Warning: failed to save config: {e}");
             }
         }
         (2, 8) => {
-            let current = view.config().visible_computers;
-            let opts = seecomp_options(view);
+            let current = state.config.visible_computers;
+            let opts = seecomp_options(view, state);
             let idx = opts
                 .iter()
                 .position(|(v, _)| *v == current as usize)
@@ -588,26 +603,23 @@ fn activate_item(view: &mut SetupView, screen: usize, item: usize) -> Option<Rou
             view.modal.set(Some(SetupModal::SeeComps(idx)));
         }
         (2, 9) => {
-            let place = view.config().wind_position;
+            let place = state.config.wind_position;
             let pos = if place <= 8 { place - 1 } else { place - 3 };
             view.modal.set(Some(SetupModal::WindPlace(pos as usize)));
         }
         (2, 10) => {
-            let mut state = view.store.borrow_mut();
             state.config.ko_system = i32::from(state.config.ko_system == 0);
             if let Err(e) = view.save_manager().save_config(&state.config) {
                 eprintln!("Warning: failed to save config: {e}");
             }
         }
         (3, 0) => {
-            let mut state = view.store.borrow_mut();
             state.config.computer_hill_records = i32::from(state.config.computer_hill_records == 0);
             if let Err(e) = view.save_manager().save_config(&state.config) {
                 eprintln!("Warning: failed to save config: {e}");
             }
         }
         (3, 1) => {
-            let mut state = view.store.borrow_mut();
             state.config.unique_computer_names = i32::from(state.config.unique_computer_names == 0);
             if let Err(e) = view.save_manager().save_config(&state.config) {
                 eprintln!("Warning: failed to save config: {e}");
@@ -616,7 +628,6 @@ fn activate_item(view: &mut SetupView, screen: usize, item: usize) -> Option<Rou
         (3, 2) => view.modal.set(Some(SetupModal::ConfirmReset(1))),
         (3, 3) => view.modal.set(Some(SetupModal::ConfirmReset(0))),
         (3, 4) => {
-            let mut state = view.store.borrow_mut();
             state.config = Config::default();
             if let Err(e) = view.save_manager().save_config(&state.config) {
                 eprintln!("Warning: failed to save config: {e}");

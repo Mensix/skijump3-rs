@@ -1,13 +1,14 @@
 use crate::components::modal::alert_prompt;
 use crate::gfx::theme::{BG_PURPLE, BG_RED, BLACK, FONT_BODY, FONT_GOLD, FONT_GRAY};
 use crate::route::RouteTarget;
-use crate::store::{GameStateRef, ResourcesRef};
+use crate::screen::{GameCx, GameScreen};
+use crate::store::ResourcesRef;
 use engine::oxide::input::Key;
 use engine::oxide::widgets::menu::{MenuItem, PixelMenu};
 use engine::oxide::widgets::text_input::{TextInput, TextInputMessage};
 use engine::oxide::Blinker;
 use engine::oxide::Widget;
-use engine::oxide::{PaintCx, Screen, ScreenBackground, ScreenEventCx, UiEvent};
+use engine::oxide::{PaintCx, ScreenBackground, ScreenEventCx, UiEvent};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug)]
@@ -55,7 +56,6 @@ struct CustomHillToml {
 
 pub struct EditHillView {
     resources: ResourcesRef,
-    store: GameStateRef,
     menu: PixelMenu,
     mode: EditMode,
     values: [String; 12],
@@ -64,12 +64,12 @@ pub struct EditHillView {
 }
 
 impl EditHillView {
-    pub fn new(resources: ResourcesRef, store: GameStateRef) -> Self {
+    pub fn new(resources: ResourcesRef, initial_filename: Option<String>) -> Self {
         let items = (1..=12).map(|n| MenuItem::new(n, "")).collect();
         let menu = PixelMenu::new(10, 8, 110, 13, items, FONT_BODY, FONT_BODY)
             .with_labels(false)
             .trailing("", 13);
-        let values = [
+        let default_values = [
             "Default".into(),
             "120".into(),
             "1".into(),
@@ -83,16 +83,12 @@ impl EditHillView {
             "NEW1".into(),
             "".into(),
         ];
-        let values = store
-            .borrow_mut()
-            .nav_edit_hill
-            .take()
+        let values = initial_filename
             .and_then(|filename| Self::load_values(&resources, &filename))
-            .unwrap_or(values);
+            .unwrap_or(default_values);
         let initial_values = values.clone();
         Self {
             resources,
-            store,
             menu,
             mode: EditMode::Viewing,
             values,
@@ -252,20 +248,20 @@ impl EditHillView {
     }
 }
 
-impl Screen<RouteTarget> for EditHillView {
-    fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
+impl GameScreen for EditHillView {
+    fn event(&mut self, cx: &mut GameCx<'_>, nav: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
         match &mut self.mode {
             EditMode::ConfirmOverwrite { .. } => {
                 if matches!(event, UiEvent::KeyDown(_) | UiEvent::Text(_)) {
                     if matches!(event, UiEvent::Text('Y' | 'y')) {
                         self.save();
-                        cx.back();
+                        nav.back();
                     } else {
                         self.mode = EditMode::Viewing;
                         self.menu.set_selected(10); // back to FILENAME field
                     }
                 }
-                cx.consume();
+                nav.consume();
                 return;
             }
             EditMode::Alert {
@@ -275,7 +271,7 @@ impl Screen<RouteTarget> for EditHillView {
                     self.values[*field - 1] = old_value.clone();
                     self.mode = EditMode::Viewing;
                 }
-                cx.consume();
+                nav.consume();
                 return;
             }
             EditMode::Editing { field, input } => {
@@ -298,7 +294,7 @@ impl Screen<RouteTarget> for EditHillView {
                     None => {}
                 }
                 if ecx.is_consumed() {
-                    cx.consume();
+                    nav.consume();
                 }
                 return;
             }
@@ -309,7 +305,7 @@ impl Screen<RouteTarget> for EditHillView {
         match self.menu.event(&mut ecx, event) {
             Some(0) => {
                 if !self.has_changes() {
-                    cx.back();
+                    nav.back();
                 } else {
                     let filename = &self.values[10];
                     if !Self::is_valid_filename(filename) {
@@ -328,14 +324,14 @@ impl Screen<RouteTarget> for EditHillView {
                         };
                     } else {
                         self.save();
-                        cx.back();
+                        nav.back();
                     }
                 }
             }
             Some(12) => {
                 self.values = self.initial_values.clone();
-                self.store.borrow_mut().nav_edit_hill = None;
-                cx.back();
+                cx.state.nav_edit_hill = None;
+                nav.back();
             }
             Some(n @ 1..=11) => {
                 if matches!(event, UiEvent::KeyDown(Key::Enter) | UiEvent::Text(' ')) {
@@ -345,16 +341,16 @@ impl Screen<RouteTarget> for EditHillView {
             _ => {}
         }
         if ecx.is_consumed() {
-            cx.consume();
+            nav.consume();
         }
     }
 
-    fn paint(&mut self, cx: &mut PaintCx<'_>) {
+    fn paint(&mut self, _cx: &mut GameCx<'_>, paint: &mut PaintCx<'_>) {
         let xx = 15i32;
         let xx2 = 120i32;
 
-        cx.fill((0, 0, 320, 200), BLACK);
-        cx.pattern_fill((0, 0, 320, 200), BG_PURPLE);
+        paint.fill((0, 0, 320, 200), BLACK);
+        paint.pattern_fill((0, 0, 320, 200), BG_PURPLE);
 
         let labels = [
             "HILL.NAME",
@@ -394,26 +390,26 @@ impl Screen<RouteTarget> for EditHillView {
                 format!("{}. {}", temp, labels[temp - 1])
             };
 
-            cx.text((xx, yy), FONT_BODY, &label);
+            paint.text((xx, yy), FONT_BODY, &label);
 
             if !descriptions[temp - 1].is_empty() {
-                cx.text((xx2 + 40, yy), FONT_GRAY, descriptions[temp - 1]);
+                paint.text((xx2 + 40, yy), FONT_GRAY, descriptions[temp - 1]);
             }
 
             if !self.values[temp - 1].is_empty() {
-                cx.text((xx2, yy), FONT_GOLD, &self.values[temp - 1]);
+                paint.text((xx2, yy), FONT_GOLD, &self.values[temp - 1]);
             }
         }
 
-        cx.text((xx, 179), FONT_GOLD, "0. EXIT and SAVE");
+        paint.text((xx, 179), FONT_GOLD, "0. EXIT and SAVE");
 
         if matches!(self.mode, EditMode::Viewing | EditMode::Editing { .. }) {
-            self.menu.paint(cx);
+            self.menu.paint(paint);
         }
 
         match &self.mode {
             EditMode::Editing { input, .. } => {
-                input.paint(cx);
+                input.paint(paint);
             }
             EditMode::Alert {
                 ref message,
@@ -422,7 +418,7 @@ impl Screen<RouteTarget> for EditHillView {
             } => {
                 let prompt = self.resources.langbase.lstr(15);
                 alert_prompt(
-                    cx,
+                    paint,
                     BG_RED,
                     message,
                     format!("{subtitle}  {prompt}"),
@@ -433,7 +429,7 @@ impl Screen<RouteTarget> for EditHillView {
             EditMode::ConfirmOverwrite { filename } => {
                 let prompt = self.resources.langbase.lstr(346);
                 alert_prompt(
-                    cx,
+                    paint,
                     BG_RED,
                     format!("FILE {filename}.TOML ALREADY EXISTS."),
                     format!("{} (Y/N):", prompt),

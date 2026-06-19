@@ -4,10 +4,10 @@ use crate::jump::replay::ReplayTrace;
 use crate::jump::sim;
 use crate::jump::snow::{calculate_snow_count, SnowSystem};
 use crate::jump::types::{JumpOutcome, JumpPhase, JumpTelemetry};
-use crate::jump::{JumpParticipant, JumpPolicy, JumpRunner, JumpRunnerRenderEnv};
 use crate::jump::wind::Wind;
+use crate::jump::{JumpParticipant, JumpPolicy, JumpRunner, JumpRunnerRenderEnv};
 use crate::rng::Random;
-use crate::store::{GameStateRef, ResourcesRef};
+use crate::store::{GameState, ResourcesRef};
 use crate::views::jump::input::{JumpInputAction, JumpInputController, JumpKeyBindings};
 use crate::views::replay::save_dialog::{SaveAction, SaveReplayDialog};
 use engine::oxide::input::UiEvent;
@@ -26,46 +26,42 @@ pub struct JumpScene {
     runner: JumpRunner,
     save_dialog: SaveReplayDialog,
     resources: ResourcesRef,
-    store: GameStateRef,
     telemetry: Option<JumpTelemetry>,
     auto_replay_prompted: bool,
 }
 
 impl JumpScene {
-    fn prepare_snow(store: &GameStateRef, existing: Option<SnowSystem>) -> SnowSystem {
+    fn prepare_snow(state: &mut GameState, existing: Option<SnowSystem>) -> SnowSystem {
         let mut snow = existing.unwrap_or_default();
-        let is_first = store.borrow_mut().consume_first_jump_event();
+        let is_first = state.consume_first_jump_event();
         if is_first {
-            let low_detail = store.borrow().config.graphics_detail == 1;
-            {
-                let guard = &mut *store.borrow_mut();
-                guard
-                    .wind
-                    .initialize(&mut guard.rng, guard.config.wind_position as u8);
-                let snow_count = calculate_snow_count(&mut guard.rng);
-                snow.set_count(snow_count, &mut guard.rng);
-                let snow_count = if low_detail { 0 } else { snow_count };
-                if snow_count == 0 {
-                    snow.clear_count();
-                }
-                guard.wind.sample(&mut guard.rng);
+            let low_detail = state.config.graphics_detail == 1;
+            state
+                .wind
+                .initialize(&mut state.rng, state.config.wind_position as u8);
+            let snow_count = calculate_snow_count(&mut state.rng);
+            snow.set_count(snow_count, &mut state.rng);
+            let snow_count = if low_detail { 0 } else { snow_count };
+            if snow_count == 0 {
+                snow.clear_count();
             }
+            state.wind.sample(&mut state.rng);
         }
         snow
     }
 
     pub fn new(
         resources: ResourcesRef,
-        store: GameStateRef,
+        state: &mut GameState,
         hill_idx: usize,
         start_gate: i32,
         participant: JumpParticipant,
         policy: JumpPolicy,
     ) -> Self {
-        let snow = Self::prepare_snow(&store, None);
+        let snow = Self::prepare_snow(state, None);
         let runner = Self::build_runner(
             resources.clone(),
-            &store,
+            state,
             hill_idx,
             start_gate,
             participant,
@@ -78,13 +74,13 @@ impl JumpScene {
             save_dialog: SaveReplayDialog::new(resources.clone()),
             telemetry: None,
             resources,
-            store,
             auto_replay_prompted: false,
         }
     }
 
     pub fn rebuild(
         &mut self,
+        state: &mut GameState,
         hill_idx: usize,
         start_gate: i32,
         participant: JumpParticipant,
@@ -94,10 +90,10 @@ impl JumpScene {
         self.telemetry = None;
         self.auto_replay_prompted = false;
         let existing_snow = self.runner.clone_snow();
-        let snow = Self::prepare_snow(&self.store, Some(existing_snow));
+        let snow = Self::prepare_snow(state, Some(existing_snow));
         self.runner = Self::build_runner(
             self.resources.clone(),
-            &self.store,
+            state,
             hill_idx,
             start_gate,
             participant,
@@ -113,8 +109,10 @@ impl JumpScene {
         start_gate: i32,
         participant: JumpParticipant,
         phase_label: String,
+        state: &mut GameState,
     ) {
         self.rebuild(
+            state,
             hill_idx,
             start_gate,
             participant,
@@ -139,21 +137,16 @@ impl JumpScene {
         self.runner.set_has_bib(val);
     }
 
-    pub fn reset_state(&mut self, start_gate: i32) {
+    pub fn reset_state(&mut self, state: &GameState, start_gate: i32) {
         let hill_idx = self.runner.hill_idx();
-        let record_distance = self
-            .store
-            .borrow()
-            .records
-            .hill_record(hill_idx)
-            .map_or(0.0, |r| r.len);
-        let goal_distance = self.goal_distance(hill_idx);
+        let record_distance = state.records.hill_record(hill_idx).map_or(0.0, |r| r.len);
+        let goal_distance = goal_distance(state, hill_idx);
         self.runner
             .reset_state(start_gate, record_distance, goal_distance);
     }
 
-    pub fn handle_jump_input(&mut self, event: UiEvent) -> JumpInputAction {
-        let config = &self.store.borrow().config;
+    pub fn handle_jump_input(&mut self, state: &GameState, event: UiEvent) -> JumpInputAction {
+        let config = &state.config;
         let keys = JumpKeyBindings::from_config(config);
         JumpInputController.handle_event(event, &mut self.runner, keys)
     }
@@ -199,7 +192,7 @@ impl JumpScene {
         self.save_dialog.is_active()
     }
 
-    pub fn open_save_dialog(&mut self) {
+    pub fn open_save_dialog(&mut self, state: &GameState) {
         let outcome = self.runner.outcome();
         let distance = outcome
             .map(|o| format!("{:.1}", o.distance))
@@ -210,7 +203,7 @@ impl JumpScene {
             .hill(self.runner.hill_idx())
             .map(|h| format!("{} K{}", h.name, h.kr))
             .unwrap_or_default();
-        let pb = self.store.borrow().profiles.clone();
+        let pb = state.profiles.clone();
         let author_name = pb
             .active_order
             .first()
@@ -285,37 +278,33 @@ impl JumpScene {
         ))
     }
 
-    pub fn render(&mut self, cx: &mut PaintCx<'_>) {
+    pub fn render(&mut self, cx: &mut PaintCx<'_>, state: &GameState) {
         if self.is_save_dialog_active() {
             self.save_dialog.paint(cx);
             return;
         }
-        let s = self.store.borrow();
         self.runner.render(
             cx,
             JumpRunnerRenderEnv {
                 font: &self.resources.font,
                 langbase: &self.resources.langbase,
                 hills: &self.resources.hills,
-                records: &s.records,
-                wind: &s.wind,
+                records: &state.records,
+                wind: &state.wind,
             },
         )
     }
 
-    pub fn update(&mut self) {
+    pub fn update(&mut self, state: &mut GameState) {
         if self.is_save_dialog_active() {
             return;
         }
-        let mut guard = self.store.borrow_mut();
-        let state = &mut *guard;
         self.runner.update(&mut state.rng, &mut state.wind);
-        drop(guard);
-        self.open_auto_hill_record_replay_dialog();
+        self.open_auto_hill_record_replay_dialog(state);
     }
 
-    fn open_auto_hill_record_replay_dialog(&mut self) {
-        if self.auto_replay_prompted || self.store.borrow().config.auto_hill_record_replay == 0 {
+    fn open_auto_hill_record_replay_dialog(&mut self, state: &GameState) {
+        if self.auto_replay_prompted || state.config.auto_hill_record_replay == 0 {
             return;
         }
         let Some(outcome) = self.runner.outcome() else {
@@ -325,22 +314,17 @@ impl JumpScene {
             return;
         }
         let hill_idx = self.runner.hill_idx();
-        let record_distance = self
-            .store
-            .borrow()
-            .records
-            .hill_record(hill_idx)
-            .map_or(0.0, |r| r.len);
+        let record_distance = state.records.hill_record(hill_idx).map_or(0.0, |r| r.len);
         if record_distance > 0.0 && outcome.distance > record_distance {
             self.auto_replay_prompted = true;
-            self.open_save_dialog();
+            self.open_save_dialog(state);
         }
     }
 
     #[allow(clippy::too_many_arguments)]
     fn build_runner(
         resources: ResourcesRef,
-        store: &GameStateRef,
+        state: &GameState,
         hill_idx: usize,
         start_gate: i32,
         participant: JumpParticipant,
@@ -350,12 +334,8 @@ impl JumpScene {
     ) -> JumpRunner {
         let hill = resources.hills.hill(hill_idx).cloned();
         let terrain = resources.terrain(hill_idx).map(|t| (*t).clone());
-        let record_distance = store
-            .borrow()
-            .records
-            .hill_record(hill_idx)
-            .map_or(0.0, |r| r.len);
-        let goal_distance = goal_distance(store, hill_idx);
+        let record_distance = state.records.hill_record(hill_idx).map_or(0.0, |r| r.len);
+        let goal_distance = goal_distance(state, hill_idx);
         let snow_count = snow.count();
         JumpRunner::new(
             JumpConfig {
@@ -368,21 +348,16 @@ impl JumpScene {
                 policy,
                 record_distance,
                 goal_distance,
-                draw_back: store.borrow().config.invisible_back == 0,
+                draw_back: state.config.invisible_back == 0,
                 phase_label,
                 team_name: String::new(),
             },
             snow,
         )
     }
-
-    fn goal_distance(&self, hill_idx: usize) -> f64 {
-        goal_distance(&self.store, hill_idx)
-    }
 }
 
-fn goal_distance(store: &GameStateRef, hill_idx: usize) -> f64 {
-    let state = store.borrow();
+fn goal_distance(state: &GameState, hill_idx: usize) -> f64 {
     if state.config.goals_enabled == 0 {
         return 0.0;
     }

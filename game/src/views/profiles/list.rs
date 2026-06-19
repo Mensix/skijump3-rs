@@ -4,14 +4,15 @@ use crate::gfx::jumper_colors::{ski_color, suit_color_shade};
 use crate::gfx::theme::{BG_RED, BLACK, FILL_GRAY, FONT_BODY};
 use crate::route::RouteTarget;
 use crate::save::SaveRef;
-use crate::store::{GameStateRef, ResourcesRef};
+use crate::screen::{GameCx, GameScreen};
+use crate::store::{GameState, ResourcesRef};
 use crate::text::layout::{lstr, replace_display_name};
 use engine::oxide::input::Key;
 use engine::oxide::widget::EventCx;
 use engine::oxide::widgets::confirm::{ConfirmDialog as OxideConfirmDialog, ConfirmMessage};
 use engine::oxide::widgets::selector::{NumericSelector, SelectorMessage};
 use engine::oxide::widgets::text_input::{TextInput as OxideTextInput, TextInputMessage};
-use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent, Widget};
+use engine::oxide::{PaintCx, ScreenEventCx, UiEvent, Widget};
 
 use super::actions::{
     apply_question, commit_text_input, handle_edit_enter, handle_list_delete, handle_list_enter,
@@ -73,7 +74,6 @@ pub(super) enum Mode {
 
 pub struct ProfilesView {
     pub(super) resources: ResourcesRef,
-    pub(super) store: GameStateRef,
     pub(super) save_manager: SaveRef,
     pub(super) selected: usize,
     pub(super) mode: Mode,
@@ -92,10 +92,9 @@ pub(super) enum Pending {
 }
 
 impl ProfilesView {
-    pub const fn new(resources: ResourcesRef, store: GameStateRef, save_manager: SaveRef) -> Self {
+    pub const fn new(resources: ResourcesRef, save_manager: SaveRef) -> Self {
         Self {
             resources,
-            store,
             save_manager,
             selected: 0,
             mode: Mode::List,
@@ -114,21 +113,24 @@ impl ProfilesView {
         }
     }
 
-    pub(super) fn entries(&self) -> usize {
-        let store = &self.store.borrow().profiles;
-        let np = store.num_profiles();
-        if store.has_slot() {
+    pub(super) fn entries(&self, state: &GameState) -> usize {
+        let np = state.profiles.num_profiles();
+        if state.profiles.has_slot() {
             np + 1
         } else {
             np
         }
     }
 
-    pub(super) fn unique_default_profile(&self) -> Profile {
-        let store = &self.store.borrow().profiles;
+    pub(super) fn unique_default_profile(&self, state: &GameState) -> Profile {
         let mut profile = Profile::default();
         let mut counter = 2;
-        while store.profiles.iter().any(|p| p.name == profile.name) {
+        while state
+            .profiles
+            .profiles
+            .iter()
+            .any(|p| p.name == profile.name)
+        {
             profile.name = format!("SKI JUMPER {counter}");
             counter += 1;
         }
@@ -142,32 +144,31 @@ impl ProfilesView {
         }
     }
 
-    pub(super) fn active_profile(&self) -> Option<usize> {
+    pub(super) fn active_profile(&self, state: &GameState) -> Option<usize> {
         match self.mode {
             Mode::Edit { profile, .. }
             | Mode::TextInput { profile, .. }
             | Mode::ColorSelect { profile, .. }
             | Mode::ReplaceSelect { profile, .. } => Some(profile),
-            _ => (self.selected < self.store.borrow().profiles.num_profiles())
-                .then_some(self.selected),
+            _ => (self.selected < state.profiles.num_profiles()).then_some(self.selected),
         }
     }
 
-    fn paint_content(&self, cx: &mut PaintCx<'_>) {
+    fn paint_content(&self, state: &GameState, cx: &mut PaintCx<'_>) {
         draw_screen_base(self, cx);
 
-        if let Some(profile) = self.active_profile() {
+        if let Some(profile) = self.active_profile(state) {
             let edit_phase = !matches!(self.mode, Mode::List | Mode::Question { .. });
-            draw_profile(self, cx, profile, edit_phase);
+            draw_profile(self, state, cx, profile, edit_phase);
             if matches!(self.mode, Mode::List) {
-                draw_help(self, cx, Some(profile));
+                draw_help(self, state, cx, Some(profile));
             }
         } else {
             draw_empty_edit(cx);
-            draw_help(self, cx, None);
+            draw_help(self, state, cx, None);
         }
 
-        draw_list(self, cx);
+        draw_list(self, state, cx);
 
         match &self.mode {
             Mode::TextInput { input, .. } => input.paint(cx),
@@ -214,13 +215,13 @@ impl ProfilesView {
                     if value
                         <= self
                             .resources
-                            .player_names(self.store.borrow().config.name_set_index as usize)
+                            .player_names(state.config.name_set_index as usize)
                             .len()
                     {
                         let n = replace_display_name(
                             value,
                             self.resources
-                                .player_names(self.store.borrow().config.name_set_index as usize),
+                                .player_names(state.config.name_set_index as usize),
                             &self.resources.font,
                             x,
                         );
@@ -242,24 +243,24 @@ impl ProfilesView {
         }
     }
 
-    fn handle_input(&mut self, event: UiEvent) -> Option<RouteTarget> {
+    fn handle_input(&mut self, state: &mut GameState, event: UiEvent) -> Option<RouteTarget> {
         if matches!(self.mode, Mode::List) {
             match event {
                 UiEvent::KeyDown(Key::Up) => {
-                    let total = self.entries() + 1;
+                    let total = self.entries(state) + 1;
                     self.selected = cycle_index(self.selected, total, -1);
                 }
                 UiEvent::KeyDown(Key::Down) => {
-                    let total = self.entries() + 1;
+                    let total = self.entries(state) + 1;
                     self.selected = cycle_index(self.selected, total, 1);
                 }
                 UiEvent::KeyDown(Key::Enter) | UiEvent::Text(' ') => {
-                    if let Some(route) = handle_list_enter(self) {
+                    if let Some(route) = handle_list_enter(self, state) {
                         return Some(route);
                     }
                 }
                 UiEvent::KeyDown(Key::Delete | Key::Backspace) => {
-                    handle_list_delete(self);
+                    handle_list_delete(self, state);
                 }
                 UiEvent::KeyDown(Key::Escape) => return Some(RouteTarget::Back),
                 UiEvent::KeyDown(_) | UiEvent::Text(_) | UiEvent::Quit | UiEvent::Tick => {}
@@ -313,7 +314,6 @@ impl ProfilesView {
                 if let Some(action) = selector.event(&mut ecx, event) {
                     pending = Some(match action {
                         SelectorMessage::Commit(value) => {
-                            let mut state = self.store.borrow_mut();
                             match field {
                                 ColorField::Suit => {
                                     state.profiles.profiles[*profile].suit_color = value
@@ -333,7 +333,7 @@ impl ProfilesView {
                 if let Some(action) = selector.event(&mut ecx, event) {
                     match action {
                         SelectorMessage::Commit(value) => {
-                            self.store.borrow_mut().profiles.profiles[*profile].replace = value;
+                            state.profiles.profiles[*profile].replace = value;
                             pending = Some(Pending::ReplaceCommit(*profile));
                         }
                         SelectorMessage::Cancel => {
@@ -356,11 +356,11 @@ impl ProfilesView {
 
         match pending {
             Some(Pending::EditEnter(profile, selected)) => {
-                handle_edit_enter(self, profile, selected);
+                handle_edit_enter(self, state, profile, selected);
             }
             Some(Pending::TextCommit(profile, field, value)) => {
-                commit_text_input(self, profile, field, &value);
-                save_players(self);
+                commit_text_input(self, state, profile, field, &value);
+                save_players(self, state);
             }
             Some(Pending::TextCancel(profile, field)) => {
                 self.mode = Mode::Edit {
@@ -372,7 +372,7 @@ impl ProfilesView {
                 };
             }
             Some(Pending::ColorCommit(profile, field)) => {
-                save_players(self);
+                save_players(self, state);
                 self.mode = Mode::Edit {
                     profile,
                     selected: match field {
@@ -391,7 +391,7 @@ impl ProfilesView {
                 };
             }
             Some(Pending::ReplaceCommit(profile)) => {
-                save_players(self);
+                save_players(self, state);
                 self.mode = Mode::Edit {
                     profile,
                     selected: 4,
@@ -404,8 +404,8 @@ impl ProfilesView {
                 }
             }
             Some(Pending::QuestionYes(action)) => {
-                apply_question(self, action);
-                save_players(self);
+                apply_question(self, state, action);
+                save_players(self, state);
             }
             Some(Pending::QuestionNo(action)) => {
                 self.mode = match action {
@@ -422,23 +422,23 @@ impl ProfilesView {
     }
 }
 
-impl Screen<RouteTarget> for ProfilesView {
-    fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
+impl GameScreen for ProfilesView {
+    fn event(&mut self, cx: &mut GameCx<'_>, nav: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
         if matches!(event, UiEvent::Quit | UiEvent::Tick) {
             return;
         }
-        if let Some(route) = self.handle_input(event) {
+        if let Some(route) = self.handle_input(cx.state, event) {
             if route == RouteTarget::Back {
-                cx.back();
+                nav.back();
             } else {
-                cx.navigate(route);
+                nav.navigate(route);
             }
         } else {
-            cx.consume();
+            nav.consume();
         }
     }
 
-    fn paint(&mut self, cx: &mut PaintCx<'_>) {
-        self.paint_content(cx);
+    fn paint(&mut self, cx: &mut GameCx<'_>, paint: &mut PaintCx<'_>) {
+        self.paint_content(cx.state, paint);
     }
 }

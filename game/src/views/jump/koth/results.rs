@@ -1,7 +1,7 @@
 use crate::competition::koth::types::KothRuntime;
 use crate::gfx::sprites;
 use crate::gfx::theme::{BG_GREEN, BLACK, FILL_GRAY, FONT_BODY, FONT_GOLD, FONT_GRAY};
-use crate::store::{GameStateRef, ResourcesRef};
+use crate::store::{GameState, ResourcesRef};
 use crate::text::format::format_decimal;
 use crate::text::lang::LangBase;
 use engine::color::Rgba;
@@ -121,113 +121,109 @@ fn build_entries(c: &KothRuntime) -> (Vec<KothEntry>, usize, bool) {
 }
 
 /// Render the KOTH results list (Pascal kothlista).
-pub fn render(cx: &mut PaintCx<'_>, resources: &ResourcesRef, state: &GameStateRef) {
-    state
-        .borrow()
-        .active_competition
-        .as_ref()
-        .and_then(|active| {
-            let c = active.koth_runtime()?;
-            let (entries, remaining, _is_final) = build_entries(c);
+pub fn render(cx: &mut PaintCx<'_>, resources: &ResourcesRef, state: &GameState) {
+    state.active_competition.as_ref().and_then(|active| {
+        let c = active.koth_runtime()?;
+        let (entries, remaining, _is_final) = build_entries(c);
 
-            let title = if remaining <= 1 {
-                format!("{}!", resources.langbase.lstr(31))
-            } else {
-                format!(
-                    "{} {}",
-                    resources.langbase.lstr(31),
-                    resources.langbase.lstr(95)
-                )
-            };
+        let title = if remaining <= 1 {
+            format!("{}!", resources.langbase.lstr(31))
+        } else {
+            format!(
+                "{} {}",
+                resources.langbase.lstr(31),
+                resources.langbase.lstr(95)
+            )
+        };
 
-            let kp = KothPage {
-                items: entries,
-                title,
-            };
+        let kp = KothPage {
+            items: entries,
+            title,
+        };
 
-            // new_screen_with_bg(1, KOTH_BG) — like Hall of Fame
-            cx.fill((0, 0, 320, 200), BLACK);
-            cx.pattern_fill((0, 0, 320, 19), FILL_GRAY);
-            cx.pattern_fill((0, 20, 320, 180), KOTH_BG);
-            cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
+        // new_screen_with_bg(1, KOTH_BG) — like Hall of Fame
+        cx.fill((0, 0, 320, 200), BLACK);
+        cx.pattern_fill((0, 0, 320, 19), FILL_GRAY);
+        cx.pattern_fill((0, 20, 320, 180), KOTH_BG);
+        cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
 
-            // Pascal-style: just "Done" hint (no prev/next pagination for KOTH)
-            cx.right_text(
-                (319, 13),
-                FONT_GRAY,
-                format!("{}-)", resources.langbase.lstr(248)),
-            );
+        // Pascal-style: just "Done" hint (no prev/next pagination for KOTH)
+        cx.right_text(
+            (319, 13),
+            FONT_GRAY,
+            format!("{}-)", resources.langbase.lstr(248)),
+        );
 
-            // Title
-            cx.text((30, 6), FONT_BODY, &kp.title);
+        // Title
+        cx.text((30, 6), FONT_BODY, &kp.title);
 
-            let mut y = START_Y;
-            let mut last_rank = 0usize;
-            for entry in kp.items.iter().take(ITEMS_PER_PAGE) {
+        let mut y = START_Y;
+        let mut last_rank = 0usize;
+        for entry in kp.items.iter().take(ITEMS_PER_PAGE) {
+            if y > 180 {
+                break;
+            }
+
+            // Pascal separator before the eliminated player (entry with Pos=0, type=3, gold text)
+            if entry.separator_before {
+                let label = separator_label(&resources.langbase, c.current_elimination_round);
+                y += ROW_STEP / 2;
                 if y > 180 {
                     break;
                 }
-
-                // Pascal separator before the eliminated player (entry with Pos=0, type=3, gold text)
-                if entry.separator_before {
-                    let label = separator_label(&resources.langbase, c.current_elimination_round);
-                    y += ROW_STEP / 2;
-                    if y > 180 {
-                        break;
-                    }
-                    cx.text((COL_NAME, y), FONT_GOLD, &label);
-                    y += ROW_STEP;
-                    if y > 180 {
-                        break;
-                    }
-                    y += ROW_STEP / 2;
-                }
-
-                let (col_name, col_rank, col_extra) = if entry.is_human {
-                    (FONT_BODY, FONT_GOLD, FONT_GOLD)
-                } else {
-                    (FONT_GRAY, FONT_GOLD, FONT_GRAY)
-                };
-
-                if entry.rank != last_rank {
-                    cx.right_text((COL_RANK, y), col_rank, format!("{}.", entry.rank));
-                }
-                last_rank = entry.rank;
-
-                let name = if entry.name.len() > 30 {
-                    format!("{}..", &entry.name[..28])
-                } else {
-                    entry.name.clone()
-                };
-                cx.text((COL_NAME, y), col_name, name);
-
-                let pts = format_decimal(entry.points);
-                cx.right_text((COL_POINTS, y), col_name, pts);
-
-                if entry.dist1 > 0.0 {
-                    let dist_str = if entry.dist2 > 0.0 {
-                        format!(
-                            "({}-{}µ)",
-                            format_decimal(entry.dist1),
-                            format_decimal(entry.dist2),
-                        )
-                    } else {
-                        format!("({}µ)", format_decimal(entry.dist1))
-                    };
-                    cx.text((COL_DIST, y), col_extra, dist_str);
-                }
-
-                if entry.is_king {
-                    cx.text(
-                        (COL_EXTRA, y),
-                        col_rank,
-                        resources.langbase.lstr(143).to_string(),
-                    );
-                }
-
+                cx.text((COL_NAME, y), FONT_GOLD, &label);
                 y += ROW_STEP;
+                if y > 180 {
+                    break;
+                }
+                y += ROW_STEP / 2;
             }
 
-            Some(())
-        });
+            let (col_name, col_rank, col_extra) = if entry.is_human {
+                (FONT_BODY, FONT_GOLD, FONT_GOLD)
+            } else {
+                (FONT_GRAY, FONT_GOLD, FONT_GRAY)
+            };
+
+            if entry.rank != last_rank {
+                cx.right_text((COL_RANK, y), col_rank, format!("{}.", entry.rank));
+            }
+            last_rank = entry.rank;
+
+            let name = if entry.name.len() > 30 {
+                format!("{}..", &entry.name[..28])
+            } else {
+                entry.name.clone()
+            };
+            cx.text((COL_NAME, y), col_name, name);
+
+            let pts = format_decimal(entry.points);
+            cx.right_text((COL_POINTS, y), col_name, pts);
+
+            if entry.dist1 > 0.0 {
+                let dist_str = if entry.dist2 > 0.0 {
+                    format!(
+                        "({}-{}µ)",
+                        format_decimal(entry.dist1),
+                        format_decimal(entry.dist2),
+                    )
+                } else {
+                    format!("({}µ)", format_decimal(entry.dist1))
+                };
+                cx.text((COL_DIST, y), col_extra, dist_str);
+            }
+
+            if entry.is_king {
+                cx.text(
+                    (COL_EXTRA, y),
+                    col_rank,
+                    resources.langbase.lstr(143).to_string(),
+                );
+            }
+
+            y += ROW_STEP;
+        }
+
+        Some(())
+    });
 }

@@ -1,5 +1,5 @@
+use crate::data::profile::ProfileStore;
 use crate::gfx::theme::{FILL_DARK, FILL_PURPLE, FONT_BODY, FONT_GOLD, FONT_GRAY};
-use crate::store::GameStateRef;
 use crate::text::format;
 use crate::text::lang::LangBase;
 use engine::oxide::PaintCx;
@@ -9,30 +9,23 @@ use std::rc::Rc;
 pub struct MainLayout {
     pub langbase: Rc<LangBase>,
     version: String,
-    pub state: GameStateRef,
 }
 
 impl MainLayout {
-    pub fn new(langbase: Rc<LangBase>, version: String, state: GameStateRef) -> Self {
-        Self {
-            langbase,
-            version,
-            state,
-        }
+    pub fn new(langbase: Rc<LangBase>, version: String) -> Self {
+        Self { langbase, version }
     }
 
     pub fn background(&self, cx: &mut PaintCx<'_>) {
         cx.text((170, 51), FONT_BODY, self.langbase.lstr(34));
     }
 
-    pub fn jumpers(&self, cx: &mut PaintCx<'_>) {
-        let state = self.state.borrow();
-        let pb = &state.profiles;
-        for (i, &profile_idx) in pb.active_order.iter().enumerate() {
-            if profile_idx >= pb.profiles.len() {
+    pub fn jumpers(&self, cx: &mut PaintCx<'_>, profiles: &ProfileStore) {
+        for (i, &profile_idx) in profiles.active_order.iter().enumerate() {
+            if profile_idx >= profiles.profiles.len() {
                 continue;
             }
-            let profile = &pb.profiles[profile_idx];
+            let profile = &profiles.profiles[profile_idx];
             let y = (i as i32) * 9 + 64;
             cx.right_text((162, y), FONT_GRAY, format::ordinal_dot(i + 1));
             cx.text((170, y), FONT_GRAY, &profile.name);

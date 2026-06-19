@@ -169,7 +169,8 @@ mod tests {
     fn first_competition_qualification_order_matches_pascal() {
         let profiles = ProfileStore::new();
         let names = vec!["ROAR".into(), "ADAM".into()];
-        let mut comp = build_competition(CupStyle::WorldCup, &profiles, &names, 20, 0, false, false);
+        let mut comp =
+            build_competition(CupStyle::WorldCup, &profiles, &names, 20, 0, false, false);
 
         comp.advance();
         assert_eq!(comp.current_jumper(), Some(74));

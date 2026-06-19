@@ -6,10 +6,11 @@ use crate::gfx::theme::{
 use crate::route::RouteTarget;
 use crate::save::config::Config;
 use crate::save::SaveRef;
-use crate::store::{GameStateRef, ResourcesRef};
+use crate::screen::{GameCx, GameScreen};
+use crate::store::{GameState, ResourcesRef};
 use crate::text::layout::shorten_name;
 use engine::oxide::input::Key;
-use engine::oxide::{PaintCx, Screen, ScreenEventCx, UiEvent};
+use engine::oxide::{PaintCx, ScreenEventCx, UiEvent};
 use std::cell::{Cell, RefCell};
 
 use crate::text::lang::LangBase;
@@ -23,7 +24,6 @@ enum KothMode {
 
 pub struct KothSetupView {
     resources: ResourcesRef,
-    store: GameStateRef,
     save_manager: SaveRef,
     selected: Cell<usize>,
     mode: Cell<KothMode>,
@@ -34,12 +34,9 @@ pub struct KothSetupView {
 }
 
 impl KothSetupView {
-    pub fn new(resources: ResourcesRef, store: GameStateRef, save_manager: SaveRef) -> Self {
-        let pack = store.borrow().config.koth_pack;
-        builder::apply_koth_pack(&store, &save_manager, pack as u8);
+    pub fn new(resources: ResourcesRef, save_manager: SaveRef) -> Self {
         Self {
             resources,
-            store,
             save_manager,
             selected: Cell::new(1),
             mode: Cell::new(KothMode::Main),
@@ -49,79 +46,76 @@ impl KothSetupView {
         }
     }
 
-    fn config(&self) -> std::cell::Ref<'_, Config> {
-        std::cell::Ref::map(self.store.borrow(), |s| &s.config)
-    }
-
-    fn update_config(&self, f: impl FnOnce(&mut Config)) {
-        let mut state = self.store.borrow_mut();
-        f(&mut state.config);
-        if let Err(e) = self.save_manager.save_config(&state.config) {
+    fn update_config(&self, config: &mut Config, f: impl FnOnce(&mut Config)) {
+        f(config);
+        if let Err(e) = self.save_manager.save_config(config) {
             eprintln!("Warning: failed to save config: {e}");
         }
     }
 
-    fn col1(&self) -> engine::color::Rgba {
-        let cfg = self.config();
-        if cfg.koth_pack > 0 {
+    fn col1(&self, state: &GameState) -> engine::color::Rgba {
+        if state.config.koth_pack > 0 {
             FONT_GRAY
         } else {
             FONT_BODY
         }
     }
 
-    fn col2(&self) -> engine::color::Rgba {
-        let cfg = self.config();
-        if cfg.koth_pack > 0 {
+    fn col2(&self, state: &GameState) -> engine::color::Rgba {
+        if state.config.koth_pack > 0 {
             FONT_GRAY
         } else {
             FONT_GOLD
         }
     }
 
-    fn paint_content(&self, cx: &mut PaintCx<'_>) {
-        cx.fill((0, 0, 320, 200), BLACK);
-        cx.pattern_fill((0, 0, 169, 99), FILL_GRAY);
-        cx.pattern_fill((0, 100, 169, 100), BG_RED);
-        cx.pattern_fill((170, 0, 150, 200), BG_PURPLE);
+    fn paint_content(&self, paint: &mut PaintCx<'_>, state: &GameState) {
+        paint.fill((0, 0, 320, 200), BLACK);
+        paint.pattern_fill((0, 0, 169, 99), FILL_GRAY);
+        paint.pattern_fill((0, 100, 169, 100), BG_RED);
+        paint.pattern_fill((170, 0, 150, 200), BG_PURPLE);
         let lang = &self.resources.langbase;
-        let cfg = self.config();
+        let cfg = &state.config;
 
         if self.mode.get() == KothMode::Opponents {
-            cx.pattern_fill((170, 0, 150, 200), BG_PURPLE);
-            cx.text((180, 2), FONT_BODY, lang.lstr(138));
-            cx.text((180, 9), FONT_GRAY, lang.lstr(139));
-            cx.text((180, 16), FONT_GRAY, lang.lstr(140));
-            cx.text((180, 24), FONT_TEAL, lang.lstr(141));
-            cx.right_text((310, 24), FONT_TEAL, lang.lstr(142));
+            paint.pattern_fill((170, 0, 150, 200), BG_PURPLE);
+            paint.text((180, 2), FONT_BODY, lang.lstr(138));
+            paint.text((180, 9), FONT_GRAY, lang.lstr(139));
+            paint.text((180, 16), FONT_GRAY, lang.lstr(140));
+            paint.text((180, 24), FONT_TEAL, lang.lstr(141));
+            paint.right_text((310, 24), FONT_TEAL, lang.lstr(142));
         } else {
             // --- right panel: "Computer Jumpers:" (white, Pascal 240) ---
-            cx.text((180, 10), FONT_BODY, lang.lstr(120));
+            paint.text((180, 10), FONT_BODY, lang.lstr(120));
             if cfg.koth_opponent_count > 0 {
                 for i in 0..cfg.koth_opponent_count.min(20) as usize {
                     let idx = cfg.koth_opponent_ids.get(i).copied().unwrap_or(1) as usize;
                     let name = self
                         .resources
-                        .player_names(self.store.borrow().config.name_set_index as usize)
+                        .player_names(cfg.name_set_index as usize)
                         .get(idx - 1)
                         .map(|s| shorten_name(s, &self.resources.font, 110))
                         .unwrap_or_else(|| "?".to_string());
                     let y = (20 + (i + 1) * 8) as i32;
-                    cx.text((180, y), FONT_GOLD, format!("{} #{}", name, idx));
+                    paint.text((180, y), FONT_GOLD, format!("{} #{}", name, idx));
                 }
             } else {
-                cx.text((180, 30), FONT_GOLD, lang.lstr(9));
+                paint.text((180, 30), FONT_GOLD, lang.lstr(9));
             }
         }
 
         // --- left panel: menu background (Pascal MakeMenu bgcolor=245) ---
-        cx.pattern_fill((4, 7, 160, 63), FILL_GRAY);
+        paint.pattern_fill((4, 7, 160, 63), FILL_GRAY);
 
         // --- left panel: menu items ---
-        cx.text((10, 10), FONT_BODY, format!("1 - {}", lang.lstr(121)));
-        cx.text((10, 20), FONT_BODY, format!("2 - {}", lang.lstr(122)));
-        cx.text((10, 30), FONT_BODY, format!("3 - {}", lang.lstr(123)));
-        cx.text((10, 40), self.col1(), format!("4 - {}", lang.lstr(124)));
+        paint.text((10, 10), FONT_BODY, format!("1 - {}", lang.lstr(121)));
+        paint.text((10, 20), FONT_BODY, format!("2 - {}", lang.lstr(122)));
+        paint.text((10, 30), FONT_BODY, format!("3 - {}", lang.lstr(123)));
+        paint.text(
+            (10, 40),
+            self.col1(state),
+            format!("4 - {}", lang.lstr(124)),
+        );
         let hill_name = if cfg.koth_hill == 0 {
             lang.lstr(155)
         } else {
@@ -131,20 +125,32 @@ impl KothSetupView {
                 .map(|h| h.name.as_str())
                 .unwrap_or("?")
         };
-        cx.text((80, 40), self.col2(), hill_name);
-        cx.text((10, 50), self.col1(), format!("5 - {}", lang.lstr(125)));
+        paint.text((80, 40), self.col2(state), hill_name);
+        paint.text(
+            (10, 50),
+            self.col1(state),
+            format!("5 - {}", lang.lstr(125)),
+        );
         let wind_str = if cfg.koth_wind != 0 {
             lang.lstr(6)
         } else {
             lang.lstr(7)
         };
-        cx.text((80, 50), self.col2(), wind_str);
-        cx.text((10, 60), self.col1(), format!("6 - {}", lang.lstr(126)));
-        cx.text((80, 60), self.col2(), lang.lstr(cfg.koth_rounds as usize));
-        cx.text((10, 80), FONT_BODY, format!("0 - {}", lang.lstr(127)));
+        paint.text((80, 50), self.col2(state), wind_str);
+        paint.text(
+            (10, 60),
+            self.col1(state),
+            format!("6 - {}", lang.lstr(126)),
+        );
+        paint.text(
+            (80, 60),
+            self.col2(state),
+            lang.lstr(cfg.koth_rounds as usize),
+        );
+        paint.text((10, 80), FONT_BODY, format!("0 - {}", lang.lstr(127)));
 
         // --- left panel bottom: K.O.T.H Challenge Level (gold, Pascal 246) ---
-        cx.text((10, 110), FONT_GOLD, lang.lstr(130));
+        paint.text((10, 110), FONT_GOLD, lang.lstr(130));
 
         // --- left panel bottom: pack list (Pascal kothchallenge) ---
         let is_pack_mode = self.mode.get() == KothMode::Packs;
@@ -166,7 +172,7 @@ impl KothSetupView {
                     FONT_GRAY
                 }
             };
-            cx.text((10, py), color, title);
+            paint.text((10, py), color, title);
             py += 8;
             if pack == 6 {
                 py += 8;
@@ -177,77 +183,75 @@ impl KothSetupView {
             KothMode::Main => {
                 let sel = self.selected.get();
                 if sel == 0 {
-                    cx.stroke((4, 77, 160, 10), FONT_BODY);
+                    paint.stroke((4, 77, 160, 10), FONT_BODY);
                 } else if sel <= 6 {
                     let sy = (10 + (sel - 1) * 10) as i32;
-                    cx.stroke((4, sy - 3, 160, 10), FONT_BODY);
+                    paint.stroke((4, sy - 3, 160, 10), FONT_BODY);
                 }
             }
             KothMode::Packs => {
                 let cur = self.pack_cursor.get();
                 let pcy = pack_cursor_y(cur);
-                cx.stroke((4, pcy - 3, 160, 10), FONT_BODY);
+                paint.stroke((4, pcy - 3, 160, 10), FONT_BODY);
             }
             _ => {}
         }
 
         // Draw opponent rows — stack + preview (like CustomCupSetupView)
         if self.mode.get() == KothMode::Opponents {
-            let names = self
-                .resources
-                .player_names(self.store.borrow().config.name_set_index as usize);
+            let names = self.resources.player_names(cfg.name_set_index as usize);
             let sel = self.selected_opponents.borrow();
             let prev = self.preview_opponent.get();
             // selected opponents in gold
             for (i, &id) in sel.iter().enumerate() {
                 let name = names.get(id - 1).map(|s| s.as_str()).unwrap_or("?");
                 let y = (i as i32 + 1) * 8 + 25;
-                cx.fill((178, y - 2, 137, 10), BG_PURPLE);
-                cx.text(
+                paint.fill((178, y - 2, 137, 10), BG_PURPLE);
+                paint.text(
                     (180, y),
                     FONT_GOLD,
                     shorten_name(name, &self.resources.font, 110),
                 );
-                cx.right_text((310, y), FONT_GOLD, format!("#{}", id));
+                paint.right_text((310, y), FONT_GOLD, format!("#{}", id));
             }
             // preview slot at bottom (white)
             if sel.len() < 20 {
                 let y = (sel.len() as i32 + 1) * 8 + 25;
                 let name = names.get(prev).map(|s| s.as_str()).unwrap_or("?");
-                cx.fill((178, y - 2, 137, 10), BG_PURPLE);
-                cx.text(
+                paint.fill((178, y - 2, 137, 10), BG_PURPLE);
+                paint.text(
                     (180, y),
                     FONT_BODY,
                     shorten_name(name, &self.resources.font, 110),
                 );
-                cx.right_text((310, y), FONT_BODY, format!("#{}", prev + 1));
+                paint.right_text((310, y), FONT_BODY, format!("#{}", prev + 1));
             }
         }
     }
 
-    fn handle_input(&mut self, event: UiEvent) -> Option<RouteTarget> {
+    fn handle_input(&mut self, event: UiEvent, state: &mut GameState) -> Option<RouteTarget> {
         match self.mode.get() {
-            KothMode::Main => self.handle_main(event),
-            KothMode::Packs => self.handle_packs(event),
-            KothMode::Opponents => self.handle_opponents(event),
+            KothMode::Main => self.handle_main(event, state),
+            KothMode::Packs => self.handle_packs(event, state),
+            KothMode::Opponents => self.handle_opponents(event, state),
         }
     }
 }
 
-impl Screen<RouteTarget> for KothSetupView {
-    fn event(&mut self, cx: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
-        if let Some(route) = self.handle_input(event) {
-            cx.navigate(route);
+impl GameScreen for KothSetupView {
+    fn event(&mut self, cx: &mut GameCx<'_>, nav: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
+        if let Some(route) = self.handle_input(event, cx.state) {
+            nav.navigate(route);
         }
     }
 
-    fn paint(&mut self, cx: &mut PaintCx<'_>) {
-        self.paint_content(cx);
+    fn paint(&mut self, cx: &mut GameCx<'_>, paint: &mut PaintCx<'_>) {
+        self.paint_content(paint, cx.state);
     }
 }
 
 impl KothSetupView {
-    fn handle_main(&mut self, event: UiEvent) -> Option<RouteTarget> {
+    fn handle_main(&mut self, event: UiEvent, state: &mut GameState) -> Option<RouteTarget> {
         match &event {
             UiEvent::KeyDown(Key::Escape) => Some(RouteTarget::MainMenu),
             UiEvent::KeyDown(Key::Up | Key::Left) => {
@@ -260,7 +264,9 @@ impl KothSetupView {
                 self.selected.set(if s >= 6 { 0 } else { s + 1 });
                 None
             }
-            UiEvent::KeyDown(Key::Enter) | UiEvent::Text(' ') => self.activate(self.selected.get()),
+            UiEvent::KeyDown(Key::Enter) | UiEvent::Text(' ') => {
+                self.activate(self.selected.get(), state)
+            }
             UiEvent::Text(ch) if *ch >= '0' && *ch <= '6' => {
                 let n = *ch as usize - '0' as usize;
                 self.selected.set(n);
@@ -270,7 +276,7 @@ impl KothSetupView {
         }
     }
 
-    fn handle_packs(&mut self, event: UiEvent) -> Option<RouteTarget> {
+    fn handle_packs(&mut self, event: UiEvent, state: &mut GameState) -> Option<RouteTarget> {
         match &event {
             UiEvent::KeyDown(Key::Escape) => {
                 self.mode.set(KothMode::Main);
@@ -289,7 +295,7 @@ impl KothSetupView {
             UiEvent::KeyDown(Key::Enter) | UiEvent::Text(' ') => {
                 let cur = self.pack_cursor.get();
                 let pack = if cur == 0 { 0 } else { cur as i32 };
-                self.apply_pack(pack);
+                self.apply_pack(pack, state);
                 None
             }
             UiEvent::Text(ch) if *ch >= '1' && *ch <= '6' => {
@@ -305,14 +311,14 @@ impl KothSetupView {
         }
     }
 
-    fn handle_opponents(&mut self, event: UiEvent) -> Option<RouteTarget> {
+    fn handle_opponents(&mut self, event: UiEvent, state: &mut GameState) -> Option<RouteTarget> {
         let max_idx = self
             .resources
-            .player_names(self.store.borrow().config.name_set_index as usize)
+            .player_names(state.config.name_set_index as usize)
             .len();
         match event {
             UiEvent::KeyDown(Key::Escape) => {
-                self.update_config(|cfg| {
+                self.update_config(&mut state.config, |cfg| {
                     let sel = self.selected_opponents.borrow();
                     cfg.koth_opponent_ids = sel.iter().map(|&v| v as i32).collect();
                     cfg.koth_opponent_count = sel.len() as i32;
@@ -392,29 +398,32 @@ impl KothSetupView {
         }
     }
 
-    fn apply_pack(&self, pack: i32) {
-        self.update_config(|cfg| cfg.koth_pack = pack);
-        builder::apply_koth_pack(&self.store, &self.save_manager, pack as u8);
+    fn apply_pack(&self, pack: i32, state: &mut GameState) {
+        self.update_config(&mut state.config, |cfg| cfg.koth_pack = pack);
+        builder::apply_koth_pack(state, &self.save_manager, pack as u8);
         self.mode.set(KothMode::Main);
     }
 
-    fn activate(&self, n: usize) -> Option<RouteTarget> {
+    fn activate(&self, n: usize, state: &mut GameState) -> Option<RouteTarget> {
         match n {
             0 => Some(RouteTarget::MainMenu),
-            1 => self.start_koth(),
+            1 => self.start_koth(state),
             2 => {
-                let cfg = self.config();
-                let pack = cfg.koth_pack;
+                let pack = state.config.koth_pack;
                 self.pack_cursor
                     .set(if pack == 0 { 0 } else { pack as usize });
                 self.mode.set(KothMode::Packs);
                 None
             }
             3 => {
-                self.update_config(|cfg| cfg.koth_pack = 0);
-                let cfg = self.config();
-                *self.selected_opponents.borrow_mut() = if cfg.koth_opponent_count > 0 {
-                    cfg.koth_opponent_ids.iter().map(|&v| v as usize).collect()
+                self.update_config(&mut state.config, |cfg| cfg.koth_pack = 0);
+                *self.selected_opponents.borrow_mut() = if state.config.koth_opponent_count > 0 {
+                    state
+                        .config
+                        .koth_opponent_ids
+                        .iter()
+                        .map(|&v| v as usize)
+                        .collect()
                 } else {
                     Vec::new()
                 };
@@ -424,11 +433,13 @@ impl KothSetupView {
             }
             4 => Some(RouteTarget::KothHillPicker),
             5 => {
-                self.update_config(|cfg| cfg.koth_wind = if cfg.koth_wind != 0 { 0 } else { 1 });
+                self.update_config(&mut state.config, |cfg| {
+                    cfg.koth_wind = if cfg.koth_wind != 0 { 0 } else { 1 }
+                });
                 None
             }
             6 => {
-                self.update_config(|cfg| {
+                self.update_config(&mut state.config, |cfg| {
                     cfg.koth_rounds = if cfg.koth_rounds == 1 { 2 } else { 1 };
                 });
                 None
@@ -437,27 +448,21 @@ impl KothSetupView {
         }
     }
 
-    fn start_koth(&self) -> Option<RouteTarget> {
-        let profiles = self.store.borrow().profiles.clone();
-        let config = self.config();
+    fn start_koth(&self, state: &mut GameState) -> Option<RouteTarget> {
+        let profiles = state.profiles.clone();
         let hill_count = self.resources.hills.len();
-        let name_set_index = self.store.borrow().config.name_set_index as usize;
-        let comp = {
-            let s = self.store.borrow_mut();
-            factory::koth(
-                &config,
-                &profiles,
-                self.resources.player_names(name_set_index),
-                hill_count,
-                config.unique_computer_names != 0,
-                s.rng.clone(),
-            )
-        };
-        self.store.borrow_mut().start_active(comp);
-        self.store
-            .borrow_mut()
-            .wind
-            .set_enabled(config.koth_wind != 0);
+        let name_set_index = state.config.name_set_index as usize;
+        let rng_clone = state.rng.clone();
+        let comp = factory::koth(
+            &state.config,
+            &profiles,
+            self.resources.player_names(name_set_index),
+            hill_count,
+            state.config.unique_computer_names != 0,
+            rng_clone,
+        );
+        state.start_active(comp);
+        state.wind.set_enabled(state.config.koth_wind != 0);
         Some(RouteTarget::CompetitionJump)
     }
 }
