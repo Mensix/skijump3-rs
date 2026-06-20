@@ -3,11 +3,49 @@ const MT_M: usize = 397;
 const UPPER_MASK: u32 = 0x8000_0000;
 const LOWER_MASK: u32 = 0x7fff_ffff;
 const MATRIX_A: u32 = 0x9908_b0df;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 #[derive(Debug, Clone)]
 pub struct Random {
     state: [u32; MT_N],
     index: usize,
+}
+
+#[derive(Serialize, Deserialize)]
+struct RandomSave {
+    state: Vec<u32>,
+    index: usize,
+}
+
+impl Serialize for Random {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        RandomSave {
+            state: self.state.to_vec(),
+            index: self.index,
+        }
+        .serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for Random {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let save = RandomSave::deserialize(deserializer)?;
+        let mut state = [0; MT_N];
+        if save.state.len() != MT_N {
+            return Err(serde::de::Error::custom("invalid RNG state length"));
+        }
+        state.copy_from_slice(&save.state);
+        Ok(Self {
+            state,
+            index: save.index.min(MT_N),
+        })
+    }
 }
 
 impl Default for Random {

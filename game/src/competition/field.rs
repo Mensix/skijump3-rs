@@ -1,9 +1,10 @@
 use crate::competition::core::ranking::ranked_order;
 use crate::competition::types::{CompetitionPhase, Participant, QualificationStatus};
+use serde::{Deserialize, Serialize};
 
 /// Criterion for sorting the participant list.
 #[allow(clippy::enum_variant_names)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SortBy {
     WcPoints,
     FourHillsPoints,
@@ -15,7 +16,7 @@ pub enum SortBy {
 /// Maintains two orderings independently:
 /// - `master_order` — sorted by season points (World Cup / Four Hills)
 /// - `event_order`  — sorted by current event points
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompetitionField {
     participants: Vec<Participant>,
     pub master_order: Vec<usize>,

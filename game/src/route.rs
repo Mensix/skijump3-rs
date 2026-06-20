@@ -14,6 +14,7 @@ pub enum RouteTarget {
     HillRecords,
     OptionsMenu,
     ProfilesList,
+    LoadCup,
     KothSetup,
     KothHillPicker,
     HillMakerSetup,

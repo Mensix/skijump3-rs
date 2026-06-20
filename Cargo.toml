@@ -25,13 +25,9 @@ edition.workspace = true
 name = "skijump3"
 path = "src/main.rs"
 
-[lib]
-crate-type = ["rlib"]
-
 [lints]
 workspace = true
 
 [dependencies]
 engine = { path = "engine" }
 game = { path = "game" }
-

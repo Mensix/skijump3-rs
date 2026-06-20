@@ -1,11 +1,12 @@
 use crate::competition::core::competitor::Competitor;
 use crate::jump::config::JumpParticipant;
+use serde::{Deserialize, Serialize};
 
 pub const NUM_TEAMS: usize = 15;
 pub const MEMBERS_PER_TEAM: usize = 4;
 pub const NUM_LEGS: usize = 6;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TeamCupRuntime {
     pub teams: Vec<TeamCupTeam>,
     pub schedule: Vec<usize>,
@@ -19,7 +20,7 @@ pub struct TeamCupRuntime {
     pub human_jumped_in_slot: bool,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TeamCupTeam {
     pub name: String,
     pub members: Vec<TeamCupMember>,
@@ -28,7 +29,7 @@ pub struct TeamCupTeam {
     pub is_human_team: bool,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TeamCupMember {
     pub competitor: Competitor,
     pub jumps: Vec<TeamCupJumpResult>,
@@ -40,7 +41,7 @@ impl TeamCupMember {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct TeamCupJumpResult {
     pub leg: usize,
     pub round: usize,
@@ -49,7 +50,7 @@ pub struct TeamCupJumpResult {
     pub gate: u8,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TeamCupPhase {
     Setup,
     Jumping,
@@ -58,19 +59,19 @@ pub enum TeamCupPhase {
     Complete,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TeamCupResultsKind {
     LegResults,
     Standings,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TeamCupStandingsKind {
     Leg,
     Overall,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TeamCupJumpContext {
     pub leg_idx: usize,
     pub round_idx: usize,

@@ -1,6 +1,7 @@
 pub(crate) const DEFAULT_START_GATE: i32 = 15;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum JumpPhase {
     Info,
     OnBar,
@@ -11,7 +12,7 @@ pub enum JumpPhase {
     Disqualified,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct FlightWind {
     pub(crate) value: i32,
     pub(crate) windy: i32,
@@ -31,7 +32,7 @@ pub enum JumpInput {
     ShowResult,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum LandingStyle {
     None,
     Telemark,
@@ -48,7 +49,7 @@ impl LandingStyle {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub(crate) enum FallType {
     None,
     Normal,
@@ -67,7 +68,7 @@ impl FallType {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct JumpTelemetry {
     pub grade: u8,
     pub height: u8,
@@ -86,7 +87,7 @@ impl JumpTelemetry {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct JumpOutcome {
     pub(crate) distance: f64,
     pub(crate) score: f64,
@@ -96,7 +97,7 @@ pub struct JumpOutcome {
     pub(crate) aborted: bool,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct JumpSnapshot {
     pub(crate) phase: JumpPhase,
     pub(crate) frame: i32,

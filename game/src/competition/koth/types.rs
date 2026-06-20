@@ -1,8 +1,9 @@
 use crate::competition::core::competitor::Competitor;
 use crate::jump::config::JumpParticipant;
 use crate::rng::Random;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KothRuntime {
     pub participants: Vec<KothParticipant>,
     pub human_indices: Vec<usize>,
@@ -15,7 +16,7 @@ pub struct KothRuntime {
     pub rng: Random,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KothParticipant {
     pub competitor: Competitor,
     pub total_points: f64,
@@ -37,7 +38,7 @@ impl KothParticipant {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct KothJumpResult {
     pub elimination_round: u8,
     pub jump_round: u8,
@@ -45,19 +46,19 @@ pub struct KothJumpResult {
     pub score: f64,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum KothPhase {
     Setup,
     Jumping,
     Complete,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum KothResultsKind {
     Results,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct KothJumpContext {
     pub participant_idx: usize,
     pub start_order_pos: usize,

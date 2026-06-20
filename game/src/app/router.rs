@@ -6,8 +6,8 @@ use crate::screen::{GameCx, GameScreen};
 use crate::store::{GameState, ResourcesRef};
 use crate::views::{
     CompetitionJumpView, CustomCupSetupView, EditHillView, HallOfFameView, HillMakerView,
-    HillRecordsView, JumpMenuView, KothHillPickerView, KothSetupView, MainMenuView, ProfilesView,
-    ReplayBrowserView, ReplayView, SetupView, TrainingSetupView, WelcomeScreenView,
+    HillRecordsView, JumpMenuView, KothHillPickerView, KothSetupView, LoadCupView, MainMenuView,
+    ProfilesView, ReplayBrowserView, ReplayView, SetupView, TrainingSetupView, WelcomeScreenView,
 };
 use engine::oxide::{NavAction, PaintCx, ScreenBackground, ScreenEventCx, UiEvent};
 use std::rc::Rc;
@@ -49,6 +49,7 @@ fn make_screen(
         RouteTarget::ProfilesList => {
             Box::new(ProfilesView::new(resources.clone(), save_manager.clone()))
         }
+        RouteTarget::LoadCup => Box::new(LoadCupView::new(save_manager.clone())),
         RouteTarget::HallOfFame => Box::new(HallOfFameView::new(resources.clone())),
         RouteTarget::HillRecords => Box::new(HillRecordsView::new(resources.clone())),
         RouteTarget::OptionsMenu => {

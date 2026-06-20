@@ -137,7 +137,11 @@ impl Renderer {
         let Some(texture) = self.textures.get(&id) else {
             return Err("TextureId not found".into());
         };
-        self.canvas.copy(texture, src.map(sdl2::rect::Rect::from), dst.map(sdl2::rect::Rect::from))?;
+        self.canvas.copy(
+            texture,
+            src.map(sdl2::rect::Rect::from),
+            dst.map(sdl2::rect::Rect::from),
+        )?;
         Ok(())
     }
 
@@ -205,8 +209,11 @@ impl Renderer {
         };
 
         for_tiled_segments(rect, tile_w, tile_h, |src, dst| {
-            self.canvas
-                .copy(texture, Some(sdl2::rect::Rect::from(src)), Some(sdl2::rect::Rect::from(dst)))
+            self.canvas.copy(
+                texture,
+                Some(sdl2::rect::Rect::from(src)),
+                Some(sdl2::rect::Rect::from(dst)),
+            )
         })?;
 
         if let Some(t) = self.textures.get_mut(&pattern_id) {
@@ -253,7 +260,9 @@ impl Renderer {
         self.canvas.copy(
             &self.scratch_texture,
             Some(sdl2::rect::Rect::from(Rect::new(0, 0, vis_w, vis_h))),
-            Some(sdl2::rect::Rect::from(Rect::new(vis_left, vis_top, vis_w, vis_h))),
+            Some(sdl2::rect::Rect::from(Rect::new(
+                vis_left, vis_top, vis_w, vis_h,
+            ))),
         )?;
         Ok(())
     }
@@ -276,7 +285,8 @@ impl Renderer {
             return Ok(());
         }
         self.canvas.set_draw_color(color.to_sdl());
-        self.canvas.fill_rect(sdl2::rect::Rect::from(Rect::new(x, y, w as u32, h as u32)))?;
+        self.canvas
+            .fill_rect(sdl2::rect::Rect::from(Rect::new(x, y, w as u32, h as u32)))?;
         Ok(())
     }
 
@@ -466,7 +476,18 @@ mod tests {
     fn rgba_region_clips_to_screen_bounds() {
         let src = vec![128u8; 4 * 4 * 4];
         let mut out = Vec::new();
-        let rect = rgba_region_to_rgba(&src, 4, 4, 0, 0, WIDTH as i32 - 2, HEIGHT as i32 - 2, 4, 4, &mut out);
+        let rect = rgba_region_to_rgba(
+            &src,
+            4,
+            4,
+            0,
+            0,
+            WIDTH as i32 - 2,
+            HEIGHT as i32 - 2,
+            4,
+            4,
+            &mut out,
+        );
         assert_eq!(rect, Some((WIDTH as i32 - 2, HEIGHT as i32 - 2, 2, 2)));
         assert_eq!(out.len(), 2 * 2 * 4);
     }

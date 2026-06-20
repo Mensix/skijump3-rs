@@ -1,4 +1,5 @@
 pub mod config;
+pub mod cup;
 pub mod players;
 pub mod records;
 
@@ -6,11 +7,13 @@ use std::cell::RefCell;
 use std::fmt;
 use std::rc::Rc;
 
+use crate::competition::ActiveCompetition;
 use crate::data::profile::ProfileStore;
 use crate::data::records::RecordStore;
 use crate::text::lang::LangBase;
 
 use self::config::Config;
+use self::cup::{cup_save_filename, CupSaveData, CupSaveEntry};
 use crate::files::FileStore;
 
 pub type SaveRef = Rc<SaveManager>;
@@ -105,6 +108,39 @@ impl SaveManager {
         self.save_bytes("hiscores.toml", &data)
     }
 
+    pub fn save_active_cup(&self, active: &ActiveCompetition) -> Result<String, SaveError> {
+        let saved_at = current_timestamp_string();
+        let filename = cup_save_filename(&saved_at);
+        let data = CupSaveData::new(active.clone(), saved_at).to_toml_bytes()?;
+        self.save_bytes(&filename, &data)?;
+        Ok(filename)
+    }
+
+    pub fn load_cup(&self, filename: &str) -> Result<CupSaveData, SaveError> {
+        let data = self.files.read(filename).map_err(SaveError::Io)?;
+        CupSaveData::from_toml_bytes(&data)
+    }
+
+    pub fn list_cup_saves(&self) -> Vec<CupSaveEntry> {
+        let Ok(names) = self.files.list_by_ext("toml") else {
+            return Vec::new();
+        };
+        let mut entries = Vec::new();
+        for filename in names.into_iter().filter(|name| name.starts_with("cup_")) {
+            let Ok(data) = self.load_cup(&filename) else {
+                continue;
+            };
+            entries.push(CupSaveEntry {
+                filename,
+                title: data.title(),
+                saved_at: data.saved_at,
+                kind: data.active.kind(),
+            });
+        }
+        entries.sort_by(|a, b| b.saved_at.cmp(&a.saved_at));
+        entries
+    }
+
     /// Load profiles from players.toml (save then asset fallback).
     pub fn load_players(&self) -> ProfileStore {
         *self.profiles_loaded.borrow_mut() = true;
@@ -119,4 +155,13 @@ impl SaveManager {
             Err(_) => ProfileStore::new(),
         }
     }
+}
+
+fn current_timestamp_string() -> String {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or_else(
+            |_| "0".to_string(),
+            |duration| duration.as_secs().to_string(),
+        )
 }

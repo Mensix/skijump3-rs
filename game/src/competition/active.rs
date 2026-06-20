@@ -1,9 +1,10 @@
 use crate::competition::koth::types::KothRuntime;
 use crate::competition::machine::Competition;
 use crate::competition::team_cup::types::TeamCupRuntime;
+use serde::{Deserialize, Serialize};
 
 #[allow(clippy::large_enum_variant)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ActiveCompetition {
     Training,
     Individual(Competition),
@@ -11,7 +12,7 @@ pub enum ActiveCompetition {
     Koth(KothRuntime),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ActiveCompetitionKind {
     Training,
     Individual,

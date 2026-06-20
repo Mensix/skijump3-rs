@@ -22,6 +22,7 @@ const MENU_ACTIONS: &[Option<RouteTarget>] = &[
     Some(RouteTarget::HallOfFame),
     Some(RouteTarget::HillRecords),
     Some(RouteTarget::Replays),
+    Some(RouteTarget::LoadCup),
     Some(RouteTarget::Quit),
 ];
 
@@ -36,6 +37,7 @@ impl MainMenuView {
             OxideMenuItem::new(4, ""),
             OxideMenuItem::new(5, ""),
             OxideMenuItem::new(6, ""),
+            OxideMenuItem::new(7, ""),
             OxideMenuItem::new(0, "").with_y(12),
         ];
         let menu = PixelMenu::new(11, 97, 108, 12, items, FONT_BODY, FONT_BODY)
@@ -67,7 +69,7 @@ impl GameScreen for MainMenuView {
 
         let mut ecx = engine::oxide::widget::EventCx::default();
         match self.menu.event(&mut ecx, event) {
-            Some(0 | 7) => {
+            Some(0 | 8) => {
                 self.confirming_quit = true;
                 self.quit_blinker.reset();
                 let qi = 251 + (cx.state.rng.random_i32(3) as usize).min(2);
@@ -108,9 +110,9 @@ impl GameScreen for MainMenuView {
 }
 
 fn paint_main_menu(cx: &mut PaintCx<'_>, menu: &PixelMenu, layout: &MainLayout) {
-    let y_offsets = [0, 0, 0, 0, 0, 0, 12];
-    for (i, label) in [20, 21, 22, 23, 24, 25, 26].iter().enumerate() {
-        let num = if i == 6 { 0 } else { i + 1 };
+    let y_offsets = [0, 0, 0, 0, 0, 0, 0, 12];
+    for (i, label) in [20, 21, 22, 23, 24, 25, 520, 26].iter().enumerate() {
+        let num = if i == 7 { 0 } else { i + 1 };
         let y = 98 + (i as i32) * 12 + y_offsets[i];
         cx.text(
             (11, y),

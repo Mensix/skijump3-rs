@@ -4,6 +4,7 @@ use crate::competition::types::{
     CompetitionJumpOutcome, CompetitionPhase, CupStyle, Participant, QualificationStatus,
 };
 use crate::jump::types::{FallType, JumpOutcome};
+use serde::{Deserialize, Serialize};
 
 const QUALIFICATION_SPOTS: usize = 50;
 const ROUND2_SPOTS: usize = 30;
@@ -11,7 +12,7 @@ const PRE_QUALIFIED_COUNT: usize = 10;
 
 /// Pure decision returned by `Competition::decide_next()`.
 /// No mutation, no IO — just describes what the caller should do.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum StepDecision {
     /// Show a results/standings screen (then caller must `advance`).
     ShowResults,
@@ -35,7 +36,7 @@ pub enum StepDecision {
 /// 3. `record_jump(points, length)` → store result
 /// 4. `advance()` → move to next jumper or next phase
 /// 5. `is_over()` → season finished?
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Competition {
     pub(crate) field: CompetitionField,
     pub(crate) style: CupStyle,

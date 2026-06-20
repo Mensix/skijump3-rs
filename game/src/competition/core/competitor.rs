@@ -1,8 +1,9 @@
 use crate::data::profile::{Profile, ProfileStore};
 use crate::jump::config::JumpParticipant;
 use crate::jump::policy::JumperControl;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Competitor {
     pub id: usize,
     pub ai_id: usize,

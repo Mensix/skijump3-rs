@@ -1,10 +1,11 @@
 use crate::competition::core::competitor::Competitor;
 use crate::jump::types::FallType;
+use serde::{Deserialize, Serialize};
 
 /// A jump result as recorded into the competition. Carries only the fields
 /// the competition cares about: score, distance, and whether the jumper
 /// crashed (which may cause an injury).
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub(crate) struct CompetitionJumpOutcome {
     pub(crate) score: f64,
     pub(crate) distance: f64,
@@ -12,7 +13,7 @@ pub(crate) struct CompetitionJumpOutcome {
 }
 
 /// Identifies the scoring/ruleset for a competition series.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum CupStyle {
     WorldCup,
     CustomCup,
@@ -21,7 +22,7 @@ pub enum CupStyle {
 }
 
 /// High-level phase of a single competition event.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum CompetitionPhase {
     Setup,
     Training(usize),
@@ -92,7 +93,7 @@ impl CompetitionPhase {
 }
 
 /// Whether a jumper made the cut for the current round.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum QualificationStatus {
     NotQualified,
     Qualified,
@@ -113,7 +114,7 @@ impl QualificationStatus {
 }
 
 /// One jumper in the Pascal 75-slot competition roster.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Participant {
     pub id: usize,
     pub ai_id: usize,

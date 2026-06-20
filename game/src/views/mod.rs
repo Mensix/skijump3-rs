@@ -1,5 +1,6 @@
 pub mod custom_cup;
 pub mod jump;
+pub mod load_cup;
 pub mod menu;
 pub mod profiles;
 pub mod records;
@@ -10,6 +11,7 @@ pub mod welcome;
 pub use custom_cup::CustomCupSetupView;
 pub(crate) use jump::CompetitionJumpView;
 pub use jump::{EditHillView, HillMakerView, KothHillPickerView, KothSetupView, TrainingSetupView};
+pub use load_cup::LoadCupView;
 pub use menu::{JumpMenuView, MainMenuView};
 pub use profiles::ProfilesView;
 pub use records::{HallOfFameView, HillRecordsView};
