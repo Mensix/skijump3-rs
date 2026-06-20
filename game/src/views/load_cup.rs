@@ -122,11 +122,6 @@ fn paint_panel(
     }
 
     let entry = &entries[selected];
-    cx.text(
-        (272, 85),
-        FONT_GRAY,
-        format!("{}/{}", selected + 1, entries.len()),
-    );
     cx.text((150, 71), FONT_GRAY, "Filename:");
     cx.text((150, 106), FONT_GRAY, "Cup:");
     cx.text((150, 146), FONT_GRAY, "Saved:");
