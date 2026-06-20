@@ -6,7 +6,6 @@ use crate::save::parse_toml;
 /// TOML wrapper to version the file — mirrors save/config.rs pattern.
 #[derive(Debug, Deserialize, Serialize)]
 struct ProfilesFile {
-    format_version: u32,
     #[serde(flatten)]
     store: ProfileStore,
 }
@@ -14,7 +13,6 @@ struct ProfilesFile {
 impl ProfileStore {
     pub fn from_toml_bytes(data: &[u8]) -> Self {
         let file: ProfilesFile = parse_toml(data);
-        assert_eq!(file.format_version, 1, "Unsupported players format_version: {}", file.format_version);
 
         let store = &file.store;
 
@@ -30,7 +28,6 @@ impl ProfileStore {
 
     pub fn to_toml_bytes(&self) -> Vec<u8> {
         let file = ProfilesFile {
-            format_version: 1,
             store: self.clone(),
         };
         toml::to_string(&file)

@@ -6,20 +6,20 @@ use std::collections::BTreeMap;
 const NUM_STR: usize = 599;
 
 #[derive(Debug, Deserialize)]
+
 struct LanguageManifest {
-    format_version: u32,
     languages: Vec<LanguageEntry>,
 }
 
 #[derive(Debug, Deserialize)]
+
 struct LanguageEntry {
-    id: String,
     file: String,
 }
 
 #[derive(Debug, Deserialize)]
+
 struct LanguageToml {
-    id: String,
     name: String,
     strings: BTreeMap<String, String>,
 }

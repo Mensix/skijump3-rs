@@ -3,8 +3,7 @@ use crate::jump::JumpPolicy;
 use crate::route::RouteTarget;
 use crate::store::{GameState, ResourcesRef};
 use crate::views::jump::competition::overlay::{CompetitionOverlay, OverlayKind};
-use crate::views::jump::competition::ui_state::CompetitionUiState;
-use crate::views::jump::competition::ui_state::RenderMode;
+use crate::views::jump::competition::ui_state::{CompetitionUiState, RenderMode};
 use crate::views::jump::input::JumpInputAction;
 use crate::views::jump::scene::JumpScene;
 use engine::oxide::input::{Key, UiEvent};
@@ -95,19 +94,6 @@ fn needs_human_jump_scene_rebuild(
         || scene.hill_idx() != hill_idx
         || ui_state.is_outcome_recorded()
         || (scene.outcome().is_some() && ui_state.is_result_acknowledged())
-}
-
-pub(crate) fn command_or_error<C, R>(
-    ui_state: &mut CompetitionUiState,
-    result: Result<Option<CompetitionFlowCommand<C, R>>, impl std::fmt::Display>,
-) -> Option<CompetitionFlowCommand<C, R>> {
-    match result {
-        Ok(command) => command,
-        Err(e) => {
-            ui_state.enter_error(e.to_string());
-            None
-        }
-    }
 }
 
 pub(crate) fn render_jump_scene_with_overlay(

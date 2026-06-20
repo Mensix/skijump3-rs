@@ -4,7 +4,6 @@ use crate::save::parse_toml;
 
 #[derive(Debug, Deserialize, Serialize)]
 struct ConfigFile {
-    format_version: u32,
     #[serde(flatten)]
     config: Config,
 }
@@ -94,7 +93,6 @@ impl Config {
 
     pub fn to_toml_bytes(&self) -> Vec<u8> {
         let file = ConfigFile {
-            format_version: 1,
             config: self.clone(),
         };
         toml::to_string(&file)

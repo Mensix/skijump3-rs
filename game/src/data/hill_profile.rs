@@ -3,8 +3,6 @@ use crate::gfx::png::load_png;
 use serde::Deserialize;
 use std::rc::Rc;
 
-pub const HILL_PROFILE_LEN: usize = 1300;
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HillTerrain {
     front_visual: Rc<[u8]>,
@@ -19,8 +17,8 @@ pub struct HillTerrain {
 }
 
 #[derive(Deserialize)]
+
 struct TerrainMetadata {
-    format_version: u32,
     width: u16,
     height: u16,
     back_width: u16,

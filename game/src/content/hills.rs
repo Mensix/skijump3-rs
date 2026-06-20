@@ -1,31 +1,28 @@
 use crate::data::hill::{HillCatalog, HillInfo};
 use crate::files::FileStore;
 use serde::Deserialize;
-use std::collections::HashSet;
 
 #[derive(Debug, Deserialize)]
+
 struct HillsManifest {
-    format_version: u32,
-    default: String,
     catalogs: Vec<CatalogEntry>,
 }
 
 #[derive(Debug, Deserialize)]
+
 struct CatalogEntry {
-    id: String,
     file: String,
 }
 
 #[derive(Debug, Deserialize)]
+
 struct HillCatalogToml {
-    id: String,
-    name: String,
     hills: Vec<HillToml>,
 }
 
 #[derive(Debug, Deserialize)]
+
 struct HillToml {
-    id: String,
     name: String,
     #[serde(default)]
     terrain_index: Option<TerrainIndexToml>,
@@ -70,14 +67,11 @@ pub(crate) fn load_hills(
     };
 
     let mut all_hills = Vec::new();
-    let mut seen_catalog_ids: HashSet<String> = HashSet::new();
-    let mut seen_hill_ids: HashSet<String> = HashSet::new();
 
     for entry in &manifest.catalogs {
         let full_path = format!("{base_dir}{}", entry.file);
         let cat: HillCatalogToml = super::read_toml(files, &full_path);
-        seen_catalog_ids.insert(cat.id.clone());
-        append_catalog(&mut all_hills, &mut seen_hill_ids, &cat);
+        append_catalog(&mut all_hills, &cat);
     }
 
     let mut custom_names = files.list_save_subdir_by_ext("custom_hills", "toml");
@@ -85,7 +79,7 @@ pub(crate) fn load_hills(
     for name in custom_names {
         let full_path = format!("custom_hills/{name}");
         let cat: HillCatalogToml = super::read_toml(files, &full_path);
-        append_catalog(&mut all_hills, &mut seen_hill_ids, &cat);
+        append_catalog(&mut all_hills, &cat);
     }
 
     HillCatalog::new(all_hills)
@@ -93,11 +87,9 @@ pub(crate) fn load_hills(
 
 fn append_catalog(
     all_hills: &mut Vec<HillInfo>,
-    seen_hill_ids: &mut HashSet<String>,
     cat: &HillCatalogToml,
 ) {
     for (idx, h) in cat.hills.iter().enumerate() {
-        seen_hill_ids.insert(format!("{}:{}", cat.id, h.id));
         all_hills.push(HillInfo {
             name: h.name.clone(),
             kr: h.kr,

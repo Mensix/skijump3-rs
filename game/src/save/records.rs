@@ -6,7 +6,6 @@ use crate::save::parse_toml;
 /// TOML wrapper — mirrors save/config.rs and save/players.rs pattern.
 #[derive(Debug, Deserialize, Serialize)]
 struct RecordsFile {
-    format_version: u32,
     #[serde(flatten)]
     store: RecordStore,
 }
@@ -14,7 +13,6 @@ struct RecordsFile {
 impl RecordStore {
     pub fn from_toml_bytes(data: &[u8]) -> Self {
         let file: RecordsFile = parse_toml(data);
-        assert_eq!(file.format_version, 1, "Unsupported hiscores format_version: {}", file.format_version);
 
         let store = &file.store;
 
@@ -27,7 +25,6 @@ impl RecordStore {
 
     pub fn to_toml_bytes(&self) -> Vec<u8> {
         let file = RecordsFile {
-            format_version: 1,
             store: self.clone(),
         };
         toml::to_string(&file)

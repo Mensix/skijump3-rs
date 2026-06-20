@@ -15,7 +15,6 @@ use crate::views::jump::competition::flow::{
     CompetitionFlowCommand, JumpInputResult,
 };
 use crate::views::jump::competition::overlay::CompetitionOverlay;
-use crate::views::jump::competition::persistence;
 use crate::views::jump::competition::ui_state::{CompetitionUiState, RenderMode};
 use crate::views::jump::scene::JumpScene;
 use engine::oxide::input::UiEvent;
@@ -216,11 +215,9 @@ where
         if self.profiles_saved {
             return;
         }
-        persistence::save_profiles_and_records_once(
-            &mut self.profiles_saved,
-            &self.save_manager,
-            state,
-        );
+        self.profiles_saved = true;
+        self.save_manager.save_players(&state.profiles);
+        self.save_manager.save_records(&state.records);
     }
 
     pub(crate) fn dismiss_results_and_advance(

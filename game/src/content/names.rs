@@ -50,19 +50,19 @@ impl NameCatalog {
 }
 
 #[derive(Debug, Deserialize)]
+
 struct NameSetManifest {
-    format_version: u32,
-    default: String,
     namesets: Vec<NameSetEntry>,
 }
 
 #[derive(Debug, Deserialize)]
+
 struct NameSetEntry {
-    id: String,
     file: String,
 }
 
 #[derive(Debug, Deserialize)]
+
 struct TeamToml {
     name: String,
     #[serde(default)]
@@ -70,9 +70,8 @@ struct TeamToml {
 }
 
 #[derive(Debug, Deserialize)]
+
 struct NameSetToml {
-    id: String,
-    name: String,
     title: String,
     names: Vec<String>,
     #[serde(default)]
