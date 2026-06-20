@@ -1,16 +1,16 @@
 use crate::oxide::input::{Key, UiEvent};
-use sdl2::EventPump;
+use sdl3::EventPump;
 use std::collections::HashSet;
 
 pub struct Input {
     event_pump: EventPump,
-    keys_held: HashSet<sdl2::keyboard::Keycode>,
+    keys_held: HashSet<sdl3::keyboard::Keycode>,
     running: bool,
 }
 
 impl Input {
-    pub fn new(sdl: &sdl2::Sdl) -> Result<Self, String> {
-        let event_pump = sdl.event_pump()?;
+    pub fn new(sdl: &sdl3::Sdl) -> Result<Self, String> {
+        let event_pump = sdl.event_pump().map_err(|e| e.to_string())?;
         Ok(Self {
             event_pump,
             keys_held: HashSet::new(),
@@ -19,8 +19,8 @@ impl Input {
     }
 
     pub fn drain_events(&mut self) -> Vec<UiEvent> {
-        use sdl2::event::Event as SdlEvent;
-        use sdl2::keyboard::Keycode;
+        use sdl3::event::Event as SdlEvent;
+        use sdl3::keyboard::Keycode;
         let mut events = Vec::new();
         for event in self.event_pump.poll_iter() {
             match event {
@@ -35,7 +35,7 @@ impl Input {
                 } => {
                     self.keys_held.insert(k);
                     let shifted = keymod.intersects(
-                        sdl2::keyboard::Mod::LSHIFTMOD | sdl2::keyboard::Mod::RSHIFTMOD,
+                        sdl3::keyboard::Mod::LSHIFTMOD | sdl3::keyboard::Mod::RSHIFTMOD,
                     );
                     let mapped = match k {
                         Keycode::Up => Some(Key::Up),
@@ -205,43 +205,43 @@ impl Input {
                             events.push(UiEvent::Text(if shifted { 'Z' } else { 'z' }));
                             None
                         }
-                        Keycode::Num0 => {
+                        Keycode::_0 => {
                             events.push(UiEvent::Text('0'));
                             None
                         }
-                        Keycode::Num1 => {
+                        Keycode::_1 => {
                             events.push(UiEvent::Text('1'));
                             None
                         }
-                        Keycode::Num2 => {
+                        Keycode::_2 => {
                             events.push(UiEvent::Text('2'));
                             None
                         }
-                        Keycode::Num3 => {
+                        Keycode::_3 => {
                             events.push(UiEvent::Text('3'));
                             None
                         }
-                        Keycode::Num4 => {
+                        Keycode::_4 => {
                             events.push(UiEvent::Text('4'));
                             None
                         }
-                        Keycode::Num5 => {
+                        Keycode::_5 => {
                             events.push(UiEvent::Text('5'));
                             None
                         }
-                        Keycode::Num6 => {
+                        Keycode::_6 => {
                             events.push(UiEvent::Text('6'));
                             None
                         }
-                        Keycode::Num7 => {
+                        Keycode::_7 => {
                             events.push(UiEvent::Text('7'));
                             None
                         }
-                        Keycode::Num8 => {
+                        Keycode::_8 => {
                             events.push(UiEvent::Text('8'));
                             None
                         }
-                        Keycode::Num9 => {
+                        Keycode::_9 => {
                             events.push(UiEvent::Text('9'));
                             None
                         }
@@ -263,7 +263,7 @@ impl Input {
     }
 
     #[must_use]
-    pub fn is_held(&self, key: sdl2::keyboard::Keycode) -> bool {
+    pub fn is_held(&self, key: sdl3::keyboard::Keycode) -> bool {
         self.keys_held.contains(&key)
     }
 

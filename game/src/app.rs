@@ -17,7 +17,7 @@ use self::rendering::{FrameAssets, FrameRenderer};
 use self::state::load_app;
 
 pub struct Game {
-    _sdl: sdl2::Sdl,
+    _sdl: sdl3::Sdl,
     renderer: Renderer,
     input: Input,
     font: Font,
@@ -75,8 +75,8 @@ impl Game {
         })
     }
 
-    fn init_sdl() -> Result<(sdl2::Sdl, Renderer, Input), String> {
-        let sdl = sdl2::init()?;
+    fn init_sdl() -> Result<(sdl3::Sdl, Renderer, Input), String> {
+        let sdl = sdl3::init().map_err(|e| e.to_string())?;
         let renderer = Renderer::new(&sdl)?;
         let input = Input::new(&sdl)?;
         Ok((sdl, renderer, input))

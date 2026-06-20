@@ -1,4 +1,4 @@
-use sdl2::pixels::Color;
+use sdl3::pixels::Color;
 use std::hash::{Hash, Hasher};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

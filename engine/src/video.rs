@@ -1,5 +1,5 @@
-use sdl2::pixels::{Color, PixelFormatEnum};
-use sdl2::render::{BlendMode, Texture};
+use sdl3::pixels::{Color, PixelFormat};
+use sdl3::render::{BlendMode, ScaleMode, Texture, WindowCanvas};
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
@@ -45,14 +45,20 @@ impl Rect {
     }
 }
 
-impl From<Rect> for sdl2::rect::Rect {
+impl From<Rect> for sdl3::rect::Rect {
     fn from(r: Rect) -> Self {
-        sdl2::rect::Rect::new(r.x, r.y, r.w, r.h)
+        sdl3::rect::Rect::new(r.x, r.y, r.w, r.h)
+    }
+}
+
+impl From<Rect> for sdl3::render::FRect {
+    fn from(r: Rect) -> Self {
+        sdl3::render::FRect::new(r.x as f32, r.y as f32, r.w as f32, r.h as f32)
     }
 }
 
 pub struct Renderer {
-    canvas: sdl2::render::WindowCanvas,
+    canvas: WindowCanvas,
     scratch_rgba: Vec<u8>,
     last_tick: Instant,
     scratch_texture: Texture,
@@ -61,8 +67,8 @@ pub struct Renderer {
 }
 
 impl Renderer {
-    pub fn new(sdl: &sdl2::Sdl) -> Result<Self, String> {
-        let video = sdl.video()?;
+    pub fn new(sdl: &sdl3::Sdl) -> Result<Self, String> {
+        let video = sdl.video().map_err(|e| e.to_string())?;
 
         let window = video
             .window("Ski Jump International v3", WIDTH * 2, HEIGHT * 2)
@@ -71,26 +77,27 @@ impl Renderer {
             .build()
             .map_err(|e| e.to_string())?;
 
-        let mut canvas = window
-            .into_canvas()
-            .present_vsync()
-            .build()
-            .map_err(|e| e.to_string())?;
+        let mut canvas = window.into_canvas();
 
         canvas
-            .set_logical_size(WIDTH, HEIGHT)
+            .set_logical_size(
+                WIDTH,
+                HEIGHT,
+                sdl3::sys::render::SDL_RendererLogicalPresentation::STRETCH,
+            )
             .map_err(|e| e.to_string())?;
 
         let tc = canvas.texture_creator();
         let mut scratch_texture = tc
             .create_texture(
-                PixelFormatEnum::ABGR8888,
-                sdl2::render::TextureAccess::Streaming,
+                PixelFormat::ABGR8888,
+                sdl3::render::TextureAccess::Streaming,
                 WIDTH,
                 HEIGHT,
             )
             .map_err(|e| e.to_string())?;
         scratch_texture.set_blend_mode(BlendMode::Blend);
+        scratch_texture.set_scale_mode(ScaleMode::Nearest);
 
         Ok(Self {
             canvas,
@@ -111,16 +118,17 @@ impl Renderer {
         let tc = self.canvas.texture_creator();
         let mut texture = tc
             .create_texture(
-                PixelFormatEnum::ABGR8888,
-                sdl2::render::TextureAccess::Static,
+                PixelFormat::ABGR8888,
+                sdl3::render::TextureAccess::Static,
                 width,
                 height,
             )
             .map_err(|e| e.to_string())?;
         texture.set_blend_mode(BlendMode::Blend);
+        texture.set_scale_mode(ScaleMode::Nearest);
         texture
             .update(None, pixels, (width * 4) as usize)
-            .map_err(|e: sdl2::render::UpdateTextureError| e.to_string())?;
+            .map_err(|e: sdl3::render::UpdateTextureError| e.to_string())?;
 
         let id = TextureId(self.next_texture_id);
         self.next_texture_id += 1;
@@ -137,11 +145,13 @@ impl Renderer {
         let Some(texture) = self.textures.get(&id) else {
             return Err("TextureId not found".into());
         };
-        self.canvas.copy(
-            texture,
-            src.map(sdl2::rect::Rect::from),
-            dst.map(sdl2::rect::Rect::from),
-        )?;
+        self.canvas
+            .copy(
+                texture,
+                src.map(sdl3::render::FRect::from),
+                dst.map(sdl3::render::FRect::from),
+            )
+            .map_err(|e| e.to_string())?;
         Ok(())
     }
 
@@ -168,7 +178,7 @@ impl Renderer {
     }
 
     pub fn end_frame(&mut self) {
-        self.canvas.present();
+        let _ = self.canvas.present();
     }
 
     // RGBA texture helpers --------------------------------------------------
@@ -209,11 +219,13 @@ impl Renderer {
         };
 
         for_tiled_segments(rect, tile_w, tile_h, |src, dst| {
-            self.canvas.copy(
-                texture,
-                Some(sdl2::rect::Rect::from(src)),
-                Some(sdl2::rect::Rect::from(dst)),
-            )
+            self.canvas
+                .copy(
+                    texture,
+                    Some(sdl3::render::FRect::from(src)),
+                    Some(sdl3::render::FRect::from(dst)),
+                )
+                .map_err(|e| e.to_string())
         })?;
 
         if let Some(t) = self.textures.get_mut(&pattern_id) {
@@ -252,18 +264,20 @@ impl Renderer {
         };
         self.scratch_texture
             .update(
-                Some(sdl2::rect::Rect::from(Rect::new(0, 0, vis_w, vis_h))),
+                Some(sdl3::rect::Rect::from(Rect::new(0, 0, vis_w, vis_h))),
                 &self.scratch_rgba,
                 (vis_w * 4) as usize,
             )
-            .map_err(|e: sdl2::render::UpdateTextureError| e.to_string())?;
-        self.canvas.copy(
-            &self.scratch_texture,
-            Some(sdl2::rect::Rect::from(Rect::new(0, 0, vis_w, vis_h))),
-            Some(sdl2::rect::Rect::from(Rect::new(
-                vis_left, vis_top, vis_w, vis_h,
-            ))),
-        )?;
+            .map_err(|e: sdl3::render::UpdateTextureError| e.to_string())?;
+        self.canvas
+            .copy(
+                &self.scratch_texture,
+                Some(sdl3::render::FRect::from(Rect::new(0, 0, vis_w, vis_h))),
+                Some(sdl3::render::FRect::from(Rect::new(
+                    vis_left, vis_top, vis_w, vis_h,
+                ))),
+            )
+            .map_err(|e| e.to_string())?;
         Ok(())
     }
 
@@ -286,7 +300,13 @@ impl Renderer {
         }
         self.canvas.set_draw_color(color.to_sdl());
         self.canvas
-            .fill_rect(sdl2::rect::Rect::from(Rect::new(x, y, w as u32, h as u32)))?;
+            .fill_rect(Some(sdl3::render::FRect::new(
+                x as f32,
+                y as f32,
+                w as f32,
+                h as f32,
+            )))
+            .map_err(|e| e.to_string())?;
         Ok(())
     }
 
