@@ -130,9 +130,12 @@ fn paint_panel(
     cx.text((150, 71), FONT_GRAY, "Filename:");
     cx.text((150, 106), FONT_GRAY, "Cup:");
     cx.text((150, 146), FONT_GRAY, "Saved:");
-    cx.fill((163, 78, 95, 21), FILL_PURPLE);
-    cx.fill((164, 79, 93, 19), BG_PURPLE);
-    cx.text((170, 85), FONT_GOLD, &entry.filename);
+    let fw = cx.string_width(&entry.filename) as i32;
+    let bx = 163;
+    let bw = (fw + 14).min(155).max(20);
+    cx.fill((bx, 78, bw, 21), FILL_PURPLE);
+    cx.fill((bx + 1, 79, bw - 2, 19), BG_PURPLE);
+    cx.text((bx + 7, 85), FONT_GOLD, &entry.filename);
     cx.text((170, 115), FONT_BODY, &entry.title);
     cx.text((170, 155), FONT_BODY, &entry.saved_at);
 
