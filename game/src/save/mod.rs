@@ -158,10 +158,5 @@ impl SaveManager {
 }
 
 fn current_timestamp_string() -> String {
-    std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map_or_else(
-            |_| "0".to_string(),
-            |duration| duration.as_secs().to_string(),
-        )
+    chrono::Local::now().format("%Y-%m-%d %H:%M").to_string()
 }

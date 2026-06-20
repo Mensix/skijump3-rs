@@ -13,6 +13,7 @@ PLAYERS.SKI
 HISCORE.SKI
 hiscores.toml
 players.toml
+cup_*.toml
 
 # lockfiles – generated per-platform
 Cargo.lock

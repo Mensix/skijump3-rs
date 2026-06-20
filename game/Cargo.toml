@@ -15,6 +15,7 @@ png = "0.18.1"
 thiserror = "2"
 rust-embed = "8.11.0"
 sdl2 = { workspace = true }
+chrono = "0.4"
 
 [dev-dependencies]
 tempfile = "3"
