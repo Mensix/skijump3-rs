@@ -6,7 +6,6 @@ use crate::store::ResourcesRef;
 use engine::oxide::input::Key;
 use engine::oxide::widgets::menu::{MenuItem, PixelMenu};
 use engine::oxide::widgets::text_input::{TextInput, TextInputMessage};
-use engine::oxide::Blinker;
 use engine::oxide::Widget;
 use engine::oxide::{PaintCx, ScreenBackground, ScreenEventCx, UiEvent};
 use serde::{Deserialize, Serialize};
@@ -60,7 +59,6 @@ pub struct EditHillView {
     mode: EditMode,
     values: [String; 12],
     initial_values: [String; 12],
-    blinker: Blinker,
 }
 
 impl EditHillView {
@@ -93,7 +91,6 @@ impl EditHillView {
             mode: EditMode::Viewing,
             values,
             initial_values,
-            blinker: Blinker::new(),
         }
     }
 
@@ -417,12 +414,7 @@ impl GameScreen for EditHillView {
                 ..
             } => {
                 let prompt = self.resources.langbase.lstr(15);
-                alert_prompt(
-                    paint,
-                    message,
-                    format!("{subtitle}  {prompt}"),
-                    self.blinker.visible(11, 10),
-                );
+                alert_prompt(paint, message, format!("{subtitle}  {prompt}"));
             }
             EditMode::ConfirmOverwrite { filename } => {
                 let prompt = self.resources.langbase.lstr(346);
@@ -430,7 +422,6 @@ impl GameScreen for EditHillView {
                     paint,
                     format!("FILE {filename}.TOML ALREADY EXISTS."),
                     format!("{} (Y/N):", prompt),
-                    self.blinker.visible(11, 10),
                 );
             }
             EditMode::Viewing => {}

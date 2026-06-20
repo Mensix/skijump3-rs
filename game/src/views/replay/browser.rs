@@ -135,7 +135,6 @@ fn paint_delete_confirm(cx: &mut PaintCx<'_>, filename: &str) {
         cx,
         format!("Delete {filename}.SJR?"),
         "Are You Sure? (Y/N):",
-        true,
     );
 }
 

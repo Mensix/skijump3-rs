@@ -161,7 +161,7 @@ impl CustomCupSetupView {
     }
 
     fn paint_confirm(&self, cx: &mut PaintCx<'_>, line1: &str, line2: &str) {
-        alert_prompt(cx, line1, line2, true);
+        alert_prompt(cx, line1, line2);
     }
 
     fn paint_message(&self, cx: &mut PaintCx<'_>) {

@@ -5,14 +5,13 @@ use crate::route::RouteTarget;
 use crate::screen::{GameCx, GameScreen};
 use engine::oxide::widgets::menu::PixelMenu;
 use engine::oxide::Widget;
-use engine::oxide::{Blinker, PaintCx, ScreenBackground, ScreenEventCx, UiEvent};
+use engine::oxide::{PaintCx, ScreenBackground, ScreenEventCx, UiEvent};
 
 pub struct MainMenuView {
     menu: PixelMenu,
     confirming_quit: bool,
     quit_question: String,
     quit_prompt: String,
-    quit_blinker: Blinker,
 }
 
 const MENU_ACTIONS: &[Option<RouteTarget>] = &[
@@ -46,7 +45,6 @@ impl MainMenuView {
             confirming_quit: false,
             quit_question: String::new(),
             quit_prompt: String::new(),
-            quit_blinker: Blinker::new(),
         }
     }
 }
@@ -69,7 +67,6 @@ impl GameScreen for MainMenuView {
         match self.menu.event(&mut ecx, event) {
             Some(0 | 7) => {
                 self.confirming_quit = true;
-                self.quit_blinker.reset();
                 let qi = 251 + (cx.state.rng.random_i32(3) as usize).min(2);
                 let pi = 256 + (cx.state.rng.random_i32(3) as usize).min(2);
                 self.quit_question = cx.layout.langbase.lstr(qi).to_string();
@@ -96,8 +93,7 @@ impl GameScreen for MainMenuView {
         paint_main_menu(paint, &self.menu, &cx.layout);
         cx.layout.footer(paint);
         if self.confirming_quit {
-            let cursor_on = self.quit_blinker.visible(11, 10);
-            paint_quit_confirm(paint, &self.quit_question, &self.quit_prompt, cursor_on);
+            paint_quit_confirm(paint, &self.quit_question, &self.quit_prompt);
         }
     }
 
@@ -122,8 +118,8 @@ fn paint_main_menu(cx: &mut PaintCx<'_>, menu: &PixelMenu, layout: &MainLayout) 
     cx.stroke((5, y, 109, 13), FONT_BODY);
 }
 
-fn paint_quit_confirm(cx: &mut PaintCx<'_>, question: &str, prompt: &str, cursor_on: bool) {
-    alert_prompt(cx, question, format!("{prompt} (Y/N):"), cursor_on);
+fn paint_quit_confirm(cx: &mut PaintCx<'_>, question: &str, prompt: &str) {
+    alert_prompt(cx, question, format!("{prompt} (Y/N):"));
 }
 
 fn is_yes(c: char, layout: &MainLayout) -> bool {

@@ -283,7 +283,6 @@ impl SaveReplayDialog {
             cx,
             format!("{}.SJR {}", filename, self.resources.langbase.lstr(345)),
             format!("{} (Y/N):", self.resources.langbase.lstr(346)),
-            self.cursor_blink.visible(11, 10),
         );
     }
 

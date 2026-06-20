@@ -9,7 +9,7 @@ use crate::views::jump::team_cup::TeamCupJumpView;
 use crate::views::jump::training_jump::TrainingJumpView;
 use crate::views::jump::world_cup::WorldCupJumpView;
 use engine::oxide::input::Key;
-use engine::oxide::{Blinker, PaintCx, ScreenBackground, ScreenEventCx, UiEvent};
+use engine::oxide::{PaintCx, ScreenBackground, ScreenEventCx, UiEvent};
 
 pub(crate) enum CompetitionJumpView {
     Training(CompetitionShell<TrainingJumpView>),
@@ -21,7 +21,6 @@ pub(crate) enum CompetitionJumpView {
 pub(crate) struct CompetitionShell<T> {
     inner: T,
     save_prompt: bool,
-    blinker: Blinker,
 }
 
 impl<T> CompetitionShell<T> {
@@ -29,7 +28,6 @@ impl<T> CompetitionShell<T> {
         Self {
             inner,
             save_prompt: false,
-            blinker: Blinker::new(),
         }
     }
 }
@@ -134,7 +132,6 @@ fn shell_event<T: GameScreen>(
             .is_some_and(|a| a.kind() != ActiveCompetitionKind::Training)
     {
         shell.save_prompt = true;
-        shell.blinker.reset();
         nav.consume();
         return;
     }
@@ -177,7 +174,6 @@ fn shell_paint<T: GameScreen>(
             paint,
             cx.layout.langbase.lstr(521),
             cx.layout.langbase.lstr(522),
-            shell.blinker.visible(11, 10),
         );
     }
 }

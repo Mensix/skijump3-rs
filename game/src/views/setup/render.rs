@@ -73,7 +73,6 @@ pub(crate) fn paint_content(view: &SetupView, state: &GameState, cx: &mut PaintC
                 cx,
                 format!("{} {}", label, view.langbase().lstr(192)),
                 view.langbase().lstr(193),
-                view.cursor_blink.visible(11, 10),
             );
         }
         Some(SetupModal::LanguagePicker(sel)) => {
