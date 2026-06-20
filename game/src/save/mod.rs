@@ -134,7 +134,6 @@ impl SaveManager {
                 filename,
                 title: data.title(),
                 saved_at: data.saved_at,
-                kind: data.active.kind(),
             });
         }
         entries.sort_by(|a, b| b.saved_at.cmp(&a.saved_at));

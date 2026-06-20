@@ -71,8 +71,8 @@ impl GameScreen for LoadCupView {
 
     fn paint(&mut self, cx: &mut GameCx<'_>, paint: &mut PaintCx<'_>) {
         paint.fill((11, 80, 100, 6), BG_DARK);
-        paint.text((11, 80), FONT_GOLD, cx.layout.langbase.lstr(17));
-        paint_main_menu(paint, &cx.layout);
+        paint.text((11, 80), FONT_GOLD, cx.layout.langbase.lstr(18));
+        paint_jump_menu(paint, &cx.layout);
         cx.layout.footer(paint);
         paint_panel(
             paint,
@@ -81,6 +81,7 @@ impl GameScreen for LoadCupView {
             self.error.as_deref(),
             cx.layout.langbase.lstr(520),
             cx.layout.langbase.lstr(523),
+            cx.layout.langbase.lstr(146),
         );
     }
 
@@ -89,8 +90,8 @@ impl GameScreen for LoadCupView {
     }
 }
 
-fn paint_main_menu(cx: &mut PaintCx<'_>, layout: &MainLayout) {
-    for (i, label) in [20, 21, 22, 23, 24, 25, 520, 26].iter().enumerate() {
+fn paint_jump_menu(cx: &mut PaintCx<'_>, layout: &MainLayout) {
+    for (i, label) in [27, 28, 29, 30, 31, 32, 520, 33].iter().enumerate() {
         let num = if i == 7 { 0 } else { i + 1 };
         let y = 98 + (i as i32) * 12 + if i == 7 { 12 } else { 0 };
         cx.text(
@@ -108,26 +109,33 @@ fn paint_panel(
     error: Option<&str>,
     title: &str,
     empty_text: &str,
+    nav_hint: &str,
 ) {
     cx.pattern_fill((145, 50, 174, 149), BG_PURPLE);
     cx.pattern_fill((128, 70, 17, 129), BG_PURPLE);
     cx.text((170, 51), FONT_GRAY, format!("{}:", title));
+    cx.text((150, 185), FONT_GRAY, nav_hint);
+
     if entries.is_empty() {
         cx.text((170, 80), FONT_GOLD, empty_text);
         return;
     }
+
     let entry = &entries[selected];
     cx.text(
         (272, 85),
         FONT_GRAY,
         format!("{}/{}", selected + 1, entries.len()),
     );
-    cx.fill((163, 78, 120, 21), FILL_PURPLE);
-    cx.fill((164, 79, 118, 19), BG_PURPLE);
+    cx.text((150, 71), FONT_GRAY, "Filename:");
+    cx.text((150, 106), FONT_GRAY, "Cup:");
+    cx.text((150, 146), FONT_GRAY, "Saved:");
+    cx.fill((163, 78, 95, 21), FILL_PURPLE);
+    cx.fill((164, 79, 93, 19), BG_PURPLE);
     cx.text((170, 85), FONT_GOLD, &entry.filename);
     cx.text((170, 115), FONT_BODY, &entry.title);
-    cx.text((170, 135), FONT_GRAY, format!("{:?}", entry.kind));
-    cx.text((170, 155), FONT_GRAY, &entry.saved_at);
+    cx.text((170, 155), FONT_BODY, &entry.saved_at);
+
     if let Some(error) = error {
         cx.text((150, 180), FONT_GRAY, error);
     }

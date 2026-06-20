@@ -23,7 +23,8 @@ const JUMP_MENU_ACTIONS: &[Option<RouteTarget>] = &[
     None,                         // 4 - TeamCup (starts shared competition shell)
     Some(RouteTarget::KothSetup), // 5 - King of the Hill
     Some(RouteTarget::Practice),  // 6 - Practice
-    Some(RouteTarget::MainMenu),  // 7 - MainMenu
+    Some(RouteTarget::LoadCup),   // 7 - Load Cup
+    Some(RouteTarget::MainMenu),  // 0 - Back to Main Menu
 ];
 
 impl JumpMenuView {
@@ -38,6 +39,7 @@ impl JumpMenuView {
             OxideMenuItem::new(4, ""),
             OxideMenuItem::new(5, ""),
             OxideMenuItem::new(6, ""),
+            OxideMenuItem::new(7, ""),
             OxideMenuItem::new(0, "").with_y(12),
         ];
         Self {
@@ -77,6 +79,7 @@ impl GameScreen for JumpMenuView {
                     nav.consume();
                 }
             }
+            Some(7) => nav.navigate(RouteTarget::LoadCup),
             Some(0) => nav.navigate(RouteTarget::MainMenu),
             Some(n) => {
                 if let Some(route) = JUMP_MENU_ACTIONS.get(n - 1).and_then(|&a| a) {
@@ -183,9 +186,9 @@ impl JumpMenuView {
 }
 
 fn paint_jump_menu(cx: &mut PaintCx<'_>, menu: &PixelMenu, layout: &MainLayout) {
-    let y_offsets = [0, 0, 0, 0, 0, 0, 12];
-    for (i, label) in [27, 28, 29, 30, 31, 32, 33].iter().enumerate() {
-        let num = if i == 6 { 0 } else { i + 1 };
+    let y_offsets = [0, 0, 0, 0, 0, 0, 0, 12];
+    for (i, label) in [27, 28, 29, 30, 31, 32, 520, 33].iter().enumerate() {
+        let num = if i == 7 { 0 } else { i + 1 };
         let y = 98 + (i as i32) * 12 + y_offsets[i];
         cx.text(
             (11, y),

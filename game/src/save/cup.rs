@@ -9,7 +9,6 @@ pub struct CupSaveEntry {
     pub filename: String,
     pub title: String,
     pub saved_at: String,
-    pub kind: ActiveCompetitionKind,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

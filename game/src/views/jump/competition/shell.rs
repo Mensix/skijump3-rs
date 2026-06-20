@@ -127,7 +127,13 @@ fn shell_event<T: GameScreen>(
         return;
     }
 
-    if matches!(event, UiEvent::KeyDown(Key::Escape)) {
+    if matches!(event, UiEvent::KeyDown(Key::Escape))
+        && cx
+            .state
+            .active_competition
+            .as_ref()
+            .is_some_and(|a| a.kind() != ActiveCompetitionKind::Training)
+    {
         shell.save_prompt = true;
         shell.blinker.reset();
         nav.consume();
