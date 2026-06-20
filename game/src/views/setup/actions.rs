@@ -241,7 +241,7 @@ fn handle_wind_place(
     event: UiEvent,
     pos: usize,
 ) -> Option<RouteTarget> {
-    let winds = 11;
+    let winds = 10;
     let items = winds + 1; // 11 places + 0. exit
     match event {
         UiEvent::KeyDown(Key::Up | Key::Left) => {
@@ -254,8 +254,7 @@ fn handle_wind_place(
         }
         UiEvent::KeyDown(Key::Enter) | UiEvent::Text(' ') => {
             if pos < winds {
-                let place = if pos < 8 { pos + 1 } else { pos + 3 };
-                state.config.wind_position = place as i32;
+                state.config.wind_position = pos as i32;
                 if let Err(e) = view.save_manager().save_config(&state.config) {
                     eprintln!("Warning: failed to save config: {e}");
                 }
@@ -603,8 +602,7 @@ fn activate_item(
             view.modal.set(Some(SetupModal::SeeComps(idx)));
         }
         (2, 9) => {
-            let place = state.config.wind_position;
-            let pos = if place <= 8 { place - 1 } else { place - 3 };
+            let pos = state.config.wind_position;
             view.modal.set(Some(SetupModal::WindPlace(pos as usize)));
         }
         (2, 10) => {

@@ -25,8 +25,8 @@ pub fn build_koth(
 
     let jump_rounds_per_elimination = config.koth_rounds.clamp(1, 2) as u8;
     let _pack = config.koth_pack.clamp(1, 6) as u8;
-    let packed_hill = if config.koth_hill > 0 {
-        Some(config.koth_hill as usize - 1)
+    let packed_hill = if config.koth_hill >= 0 {
+        Some(config.koth_hill as usize)
     } else {
         None
     };

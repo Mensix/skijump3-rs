@@ -27,15 +27,11 @@ pub(crate) fn paint_content(view: &SetupView, state: &GameState, cx: &mut PaintC
             cx.fill((55, 20, 220, 160), BG_PURPLE);
             cx.text((75, 30), FONT_GOLD, view.langbase().lstr(221));
 
-            let winds = 11;
-            for apu1 in 1..=winds {
-                let yy = (apu1 as i32) * 10 + 34;
-                let name = if apu1 <= 8 {
-                    wind_place_name(view.langbase(), apu1)
-                } else {
-                    wind_place_name(view.langbase(), apu1 + 2)
-                };
-                cx.right_text((85, yy), FONT_GOLD, format!("{apu1}."));
+            let winds = 10;
+            for apu in 0..=winds {
+                let yy = ((apu + 1) as i32) * 10 + 34;
+                let name = wind_place_name(view.langbase(), apu);
+                cx.right_text((85, yy), FONT_GOLD, format!("{}.", apu + 1));
                 cx.text((90, yy), FONT_BODY, name);
             }
 

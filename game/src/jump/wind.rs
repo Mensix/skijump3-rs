@@ -81,13 +81,15 @@ impl Wind {
     pub const fn set_place(&mut self, place: u8) {
         self.place = place;
         self.position = match place {
-            2 => WindPosition { x: 10, y: 97 },
-            3 => WindPosition { x: 268, y: 180 },
-            4 => WindPosition { x: 150, y: 180 },
-            5 => WindPosition { x: 268, y: 97 },
-            6 => WindPosition { x: 268, y: 21 },
-            7 => WindPosition { x: 150, y: 21 },
-            8 => WindPosition { x: 56, y: 33 },
+            1 => WindPosition { x: 10, y: 97 },
+            2 => WindPosition { x: 268, y: 180 },
+            3 => WindPosition { x: 150, y: 180 },
+            4 => WindPosition { x: 268, y: 97 },
+            5 => WindPosition { x: 268, y: 21 },
+            6 => WindPosition { x: 150, y: 21 },
+            7 => WindPosition { x: 56, y: 33 },
+            8 => WindPosition { x: 10, y: 180 },
+            9 => WindPosition { x: 15, y: 180 },
             _ => WindPosition { x: 10, y: 180 },
         };
     }
@@ -109,11 +111,11 @@ impl Wind {
         let mut x = jumper_screen_x;
         let mut y = jumper_screen_y;
         match self.place {
-            11 => {
+            8 => {
                 x += 10;
                 y -= 20;
             }
-            12 => {
+            9 => {
                 x += 15;
                 y -= 5;
             }

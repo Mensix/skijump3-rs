@@ -38,6 +38,7 @@ pub(crate) fn hex_char(index: usize) -> &'static str {
 
 pub(crate) fn wind_place_name(langbase: &LangBase, place: usize) -> String {
     match place {
+        0 => langbase.lstr(389).to_string(),
         1 => format!("{}-{}", langbase.lstr(392), langbase.lstr(393)),
         2 => format!("{}-{}", langbase.lstr(391), langbase.lstr(393)),
         3 => format!("{}-{}", langbase.lstr(392), langbase.lstr(395)),
@@ -45,10 +46,9 @@ pub(crate) fn wind_place_name(langbase: &LangBase, place: usize) -> String {
         5 => format!("{}-{}", langbase.lstr(391), langbase.lstr(395)),
         6 => format!("{}-{}", langbase.lstr(390), langbase.lstr(395)),
         7 => format!("{}-{}", langbase.lstr(390), langbase.lstr(394)),
-        8 => format!("{}-{}", langbase.lstr(390), langbase.lstr(393)),
-        11 => format!("{}: {}", langbase.lstr(396), langbase.lstr(390)),
-        12 => format!("{}: {}", langbase.lstr(396), langbase.lstr(391)),
-        13 => format!("{}: {}", langbase.lstr(396), langbase.lstr(392)),
+        8 => format!("{}: {}", langbase.lstr(396), langbase.lstr(390)),
+        9 => format!("{}: {}", langbase.lstr(396), langbase.lstr(391)),
+        10 => format!("{}: {}", langbase.lstr(396), langbase.lstr(392)),
         _ => unreachable!(),
     }
 }

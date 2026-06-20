@@ -155,10 +155,10 @@ mod tests {
     #[test]
     fn active_profile_replace_removes_computer_name() {
         let mut profiles = ProfileStore::new();
-        profiles.profiles[0].replace = 1;
+        profiles.profiles[0].replace = 0;
         let names = vec!["ROAR".into(), "ADAM".into(), "JANNE".into()];
 
-        let comp = build_competition(CupStyle::WorldCup, &profiles, &names, 20, 0, false, false);
+        let comp = build_competition(CupStyle::WorldCup, &profiles, &names, 20, 0, true, false);
 
         assert_eq!(comp.field.get(0).name, "ADAM");
         assert_eq!(comp.field.get(0).ai_id, 0);

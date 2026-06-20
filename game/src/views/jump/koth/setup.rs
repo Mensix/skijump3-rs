@@ -89,7 +89,7 @@ impl KothSetupView {
             paint.text((180, 10), FONT_BODY, lang.lstr(120));
             if cfg.koth_opponent_count > 0 {
                 for i in 0..cfg.koth_opponent_count.min(20) as usize {
-                    let idx = cfg.koth_opponent_ids.get(i).copied().unwrap_or(1) as usize;
+                    let idx = cfg.koth_opponent_ids.get(i).copied().unwrap_or(0) as usize;
                     let name = self
                         .resources
                         .player_names(cfg.name_set_index as usize)
@@ -116,12 +116,12 @@ impl KothSetupView {
             self.col1(state),
             format!("4 - {}", lang.lstr(124)),
         );
-        let hill_name = if cfg.koth_hill == 0 {
+        let hill_name = if cfg.koth_hill < 0 {
             lang.lstr(155)
         } else {
             self.resources
                 .hills
-                .hill(cfg.koth_hill as usize - 1)
+                .hill(cfg.koth_hill as usize)
                 .map(|h| h.name.as_str())
                 .unwrap_or("?")
         };

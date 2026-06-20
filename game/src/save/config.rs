@@ -67,7 +67,7 @@ impl Default for Config {
             name_set_index: 0,
             last_custom_cup_file: String::from("TEMP"),
             graphics_detail: 0,
-            visible_computers: 1,
+            visible_computers: 0,
             jumper_count: 1,
             jumper_names: vec![String::from("A TEAM")],
             player_count: 1,
@@ -75,15 +75,15 @@ impl Default for Config {
             koth_wind: 0,
             koth_rounds: 2,
             koth_pack: 1,
-            koth_hill: 0,
+            koth_hill: -1,
             koth_opponent_count: 1,
-            koth_opponent_ids: vec![1],
+            koth_opponent_ids: vec![0],
             key_up: 72,
             key_right: 77,
             key_left: 75,
             key_telemark: 21524,
             key_replay: 21011,
-            wind_position: 1,
+            wind_position: 0,
         }
     }
 }

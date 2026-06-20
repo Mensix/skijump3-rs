@@ -26,7 +26,7 @@ where
     let mut rank = 1;
     for i in 0..ranked.len() {
         if i > 0 && ranked[i].score < ranked[i - 1].score {
-            rank = i;
+            rank = i + 1;
         }
         ranked[i].rank = rank;
     }

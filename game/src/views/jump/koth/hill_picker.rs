@@ -79,12 +79,12 @@ impl KothHillPickerView {
             };
             self.menu = self.rebuild_menu();
         } else if sel == self.menu.item_count() {
-            state.config.koth_hill = 0;
+            state.config.koth_hill = -1;
             let cfg = state.config.clone();
             let _ = self.save_manager.save_config(&cfg);
         } else {
             let hill_idx = self.start + sel;
-            state.config.koth_hill = hill_idx as i32 + 1;
+            state.config.koth_hill = hill_idx as i32;
             let cfg = state.config.clone();
             let _ = self.save_manager.save_config(&cfg);
         }
