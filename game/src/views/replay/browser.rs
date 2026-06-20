@@ -3,7 +3,7 @@ use crate::components::layout::MainLayout;
 use crate::components::modal::alert_prompt;
 use crate::components::page_nav::cycle_index;
 use crate::files::FileStore;
-use crate::gfx::theme::{BG_DARK, BG_PURPLE, FONT_BODY, FONT_GOLD};
+use crate::gfx::theme::{BG_DARK, FONT_BODY, FONT_GOLD};
 use crate::jump::replay::ReplayTrace;
 use crate::route::RouteTarget;
 use crate::screen::{GameCx, GameScreen};
@@ -133,7 +133,6 @@ impl GameScreen for ReplayBrowserView {
 fn paint_delete_confirm(cx: &mut PaintCx<'_>, filename: &str) {
     alert_prompt(
         cx,
-        BG_PURPLE,
         format!("Delete {filename}.SJR?"),
         "Are You Sure? (Y/N):",
         true,

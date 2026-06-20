@@ -1,6 +1,5 @@
 use crate::competition::active::ActiveCompetitionKind;
 use crate::components::modal::alert_prompt;
-use crate::gfx::theme::BG_PURPLE;
 use crate::route::RouteTarget;
 use crate::save::SaveRef;
 use crate::screen::{GameCx, GameScreen};
@@ -176,7 +175,6 @@ fn shell_paint<T: GameScreen>(
     if shell.save_prompt {
         alert_prompt(
             paint,
-            BG_PURPLE,
             cx.layout.langbase.lstr(521),
             cx.layout.langbase.lstr(522),
             shell.blinker.visible(11, 10),

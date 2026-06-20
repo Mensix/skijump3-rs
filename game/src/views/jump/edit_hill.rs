@@ -1,5 +1,5 @@
 use crate::components::modal::alert_prompt;
-use crate::gfx::theme::{BG_PURPLE, BG_RED, BLACK, FONT_BODY, FONT_GOLD, FONT_GRAY};
+use crate::gfx::theme::{BG_PURPLE, BLACK, FONT_BODY, FONT_GOLD, FONT_GRAY};
 use crate::route::RouteTarget;
 use crate::screen::{GameCx, GameScreen};
 use crate::store::ResourcesRef;
@@ -419,7 +419,6 @@ impl GameScreen for EditHillView {
                 let prompt = self.resources.langbase.lstr(15);
                 alert_prompt(
                     paint,
-                    BG_RED,
                     message,
                     format!("{subtitle}  {prompt}"),
                     self.blinker.visible(11, 10),
@@ -429,7 +428,6 @@ impl GameScreen for EditHillView {
                 let prompt = self.resources.langbase.lstr(346);
                 alert_prompt(
                     paint,
-                    BG_RED,
                     format!("FILE {filename}.TOML ALREADY EXISTS."),
                     format!("{} (Y/N):", prompt),
                     self.blinker.visible(11, 10),

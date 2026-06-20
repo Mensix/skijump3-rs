@@ -1,5 +1,5 @@
 use crate::components::modal::alert_prompt;
-use crate::gfx::theme::{BG_PURPLE, BG_RED, BLACK, FONT_BODY, FONT_GOLD, FONT_GRAY, FONT_TEAL};
+use crate::gfx::theme::{BG_PURPLE, BLACK, FONT_BODY, FONT_GOLD, FONT_GRAY, FONT_TEAL};
 use crate::route::RouteTarget;
 use crate::screen::{GameCx, GameScreen};
 use crate::store::ResourcesRef;
@@ -263,7 +263,6 @@ impl GameScreen for HillMakerView {
         if let HillMakerMode::ConfirmDelete { filename } = &self.mode {
             alert_prompt(
                 paint,
-                BG_RED,
                 format!("DELETE {filename}.TOML?"),
                 "ARE YOU SURE? (Y/N):",
                 true,

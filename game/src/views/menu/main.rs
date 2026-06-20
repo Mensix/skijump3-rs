@@ -1,6 +1,6 @@
 use crate::components::layout::MainLayout;
 use crate::components::modal::alert_prompt;
-use crate::gfx::theme::{BG_RED, FONT_BODY, FONT_GOLD};
+use crate::gfx::theme::{FONT_BODY, FONT_GOLD};
 use crate::route::RouteTarget;
 use crate::screen::{GameCx, GameScreen};
 use engine::oxide::widgets::menu::PixelMenu;
@@ -123,7 +123,7 @@ fn paint_main_menu(cx: &mut PaintCx<'_>, menu: &PixelMenu, layout: &MainLayout) 
 }
 
 fn paint_quit_confirm(cx: &mut PaintCx<'_>, question: &str, prompt: &str, cursor_on: bool) {
-    alert_prompt(cx, BG_RED, question, format!("{prompt} (Y/N):"), cursor_on);
+    alert_prompt(cx, question, format!("{prompt} (Y/N):"), cursor_on);
 }
 
 fn is_yes(c: char, layout: &MainLayout) -> bool {

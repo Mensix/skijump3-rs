@@ -1,7 +1,7 @@
 use crate::components::modal::alert_prompt;
 use crate::gfx::sprites;
 use crate::gfx::theme::{
-    BG_PURPLE, BG_RED, BLACK, FILL_GRAY, FILL_PURPLE, FONT_BODY, FONT_GOLD, FONT_GRAY, FONT_TEAL,
+    BG_PURPLE, BLACK, FILL_GRAY, FILL_PURPLE, FONT_BODY, FONT_GOLD, FONT_GRAY, FONT_TEAL,
 };
 use crate::store::GameState;
 use engine::oxide::PaintCx;
@@ -71,7 +71,6 @@ pub(crate) fn paint_content(view: &SetupView, state: &GameState, cx: &mut PaintC
             };
             alert_prompt(
                 cx,
-                BG_RED,
                 format!("{} {}", label, view.langbase().lstr(192)),
                 view.langbase().lstr(193),
                 view.cursor_blink.visible(11, 10),

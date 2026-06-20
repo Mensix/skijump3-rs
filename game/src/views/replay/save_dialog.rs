@@ -1,7 +1,7 @@
 use crate::components::modal::alert_prompt;
 use crate::components::page_nav::cycle_index;
 use crate::gfx::sprites;
-use crate::gfx::theme::{BG_PURPLE, BG_RED, BLACK, FILL_GRAY, FONT_BODY, FONT_GOLD};
+use crate::gfx::theme::{BG_PURPLE, BLACK, FILL_GRAY, FONT_BODY, FONT_GOLD};
 use crate::jump::replay::ReplayTrace;
 use crate::store::ResourcesRef;
 use engine::oxide::input::{Key, UiEvent};
@@ -281,7 +281,6 @@ impl SaveReplayDialog {
     fn paint_overwrite(&self, cx: &mut PaintCx<'_>, filename: &str) {
         alert_prompt(
             cx,
-            BG_RED,
             format!("{}.SJR {}", filename, self.resources.langbase.lstr(345)),
             format!("{} (Y/N):", self.resources.langbase.lstr(346)),
             self.cursor_blink.visible(11, 10),
