@@ -178,12 +178,12 @@ fn render_configure_keys(
 
     let x = 25;
     let mut y = 0;
-    for temp in 1..=6 {
-        let item = temp - 1;
-        y = (temp as i32) * 10 + 30;
-        cx.right_text((x, y), FONT_GOLD, format!("{temp}."));
-        cx.text((x + 10, y), FONT_BODY, view.langbase().lstr(temp + 330));
-        if temp < 6 {
+    for temp in 0..6 {
+        let item = temp;
+        y = (temp as i32) * 10 + 40;
+        cx.right_text((x, y), FONT_GOLD, format!("{}.", temp + 1));
+        cx.text((x + 10, y), FONT_BODY, view.langbase().lstr(temp + 331));
+        if temp < 5 {
             let key_text = if capture == Some(item) {
                 "".to_string()
             } else {

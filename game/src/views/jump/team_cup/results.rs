@@ -29,7 +29,7 @@ pub(crate) fn render(
             let jumper = tc.current_jumper_slot + 1;
             let header = match results_kind {
                 TeamCupResultsKind::LegResults => {
-                    if tc.current_leg + 1 == 6 {
+                    if tc.current_leg == 5 {
                         // Pascal: lstr(92) = "The Team Cup is over!"
                         resources.langbase.lstr(92).to_string()
                     } else {

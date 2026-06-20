@@ -29,13 +29,13 @@ impl MainMenuView {
         use engine::oxide::widgets::menu::MenuItem as OxideMenuItem;
 
         let items = vec![
+            OxideMenuItem::new(0, ""),
             OxideMenuItem::new(1, ""),
             OxideMenuItem::new(2, ""),
             OxideMenuItem::new(3, ""),
             OxideMenuItem::new(4, ""),
             OxideMenuItem::new(5, ""),
-            OxideMenuItem::new(6, ""),
-            OxideMenuItem::new(0, "").with_y(12),
+            OxideMenuItem::new(6, "").with_y(12),
         ];
         let menu = PixelMenu::new(11, 97, 108, 12, items, FONT_BODY, FONT_BODY)
             .with_labels(false)
@@ -65,7 +65,7 @@ impl GameScreen for MainMenuView {
 
         let mut ecx = engine::oxide::widget::EventCx::default();
         match self.menu.event(&mut ecx, event) {
-            Some(0 | 7) => {
+            Some(6) => {
                 self.confirming_quit = true;
                 let qi = 251 + (cx.state.rng.random_i32(3) as usize).min(2);
                 let pi = 256 + (cx.state.rng.random_i32(3) as usize).min(2);
@@ -74,7 +74,7 @@ impl GameScreen for MainMenuView {
                 nav.consume();
             }
             Some(n) => {
-                if let Some(route) = MENU_ACTIONS.get(n - 1).and_then(|&a| a) {
+                if let Some(route) = MENU_ACTIONS.get(n).and_then(|&a| a) {
                     nav.navigate(route);
                 }
             }

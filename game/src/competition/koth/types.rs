@@ -30,7 +30,7 @@ impl KothParticipant {
     }
 
     pub fn is_alive(&self) -> bool {
-        self.eliminated_in_round == 0
+        self.eliminated_in_round == u8::MAX
     }
 
     pub fn reset_points(&mut self) {

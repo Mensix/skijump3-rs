@@ -176,7 +176,7 @@ pub(super) fn draw_profile(
 
     draw_suit_ski(view, cx, profile.suit_color, profile.ski_color);
 
-    for field in 1..=18 {
+    for field in 0..18 {
         if !edit_phase && field > 7 && field < 10 {
             continue;
         }
@@ -191,7 +191,7 @@ pub(super) fn draw_profile(
         }
     }
 
-    for field in 1..=18 {
+    for field in 0..18 {
         let y = ProfilesView::col_y(field);
         let x = if field > 15 {
             170

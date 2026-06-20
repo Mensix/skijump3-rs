@@ -279,7 +279,7 @@ pub(crate) fn seecomp_options(view: &SetupView, state: &GameState) -> Vec<(usize
     let mut opts = Vec::new();
     for (i, name) in names.iter().enumerate() {
         if name != "Trainee" {
-            opts.push((i + 1, format!("#{} {}", i + 1, name)));
+            opts.push((i, format!("#{} {}", i + 1, name)));
         }
     }
     for &v in &cats {
@@ -397,7 +397,7 @@ fn handle_screen_event(
     match event {
         UiEvent::KeyDown(Key::Up) => {
             let sel = view.menu.selected();
-            let selected = cycle_index(sel, entries + 1, -1);
+            let selected = cycle_index(sel, entries, -1);
             view.menu.set_selected(selected);
             if screen < view.selected_by_screen.len() {
                 view.selected_by_screen[screen].set(selected);
@@ -405,7 +405,7 @@ fn handle_screen_event(
         }
         UiEvent::KeyDown(Key::Down) => {
             let sel = view.menu.selected();
-            let selected = cycle_index(sel, entries + 1, 1);
+            let selected = cycle_index(sel, entries, 1);
             view.menu.set_selected(selected);
             if screen < view.selected_by_screen.len() {
                 view.selected_by_screen[screen].set(selected);
@@ -483,10 +483,10 @@ fn handle_screen_event(
         UiEvent::Text(c) if c.is_ascii_digit() => {
             if let Some(d) = c.to_digit(10) {
                 let n = d as usize;
-                if n >= 1 && n <= entries {
-                    view.menu.set_selected(n - 1);
+                if n < entries {
+                    view.menu.set_selected(n);
                     if screen < view.selected_by_screen.len() {
-                        view.selected_by_screen[screen].set(n - 1);
+                        view.selected_by_screen[screen].set(n);
                     }
                 } else if n == 0 {
                     view.menu.set_selected(entries);
@@ -498,10 +498,10 @@ fn handle_screen_event(
         }
         UiEvent::Text(c) if matches!(c, 'A'..='L' | 'a'..='l') => {
             let n = c.to_ascii_uppercase() as usize - 'A' as usize + 10;
-            if n >= 1 && n <= entries + 1 {
-                view.menu.set_selected(n - 1);
+            if n <= entries {
+                view.menu.set_selected(n);
                 if screen < view.selected_by_screen.len() {
-                    view.selected_by_screen[screen].set(n - 1);
+                    view.selected_by_screen[screen].set(n);
                 }
             }
         }
@@ -517,7 +517,7 @@ fn activate_item(
     item: usize,
 ) -> Option<RouteTarget> {
     match (screen, item) {
-        (0, 0..=2) => view.switch_screen(item + 1),
+        (0, 0..=2) => view.switch_screen(item),
         (0, 3) => view.modal.set(Some(SetupModal::ConfigureKeys {
             selected: 0,
             capture: None,

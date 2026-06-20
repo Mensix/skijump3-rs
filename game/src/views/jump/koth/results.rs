@@ -105,7 +105,7 @@ fn build_entries(c: &KothRuntime) -> (Vec<KothEntry>, usize, bool) {
             };
 
             KothEntry {
-                rank: pos + 1,
+                rank: pos,
                 name: cname.to_string(),
                 points: p.total_points,
                 dist1: d1,
@@ -186,7 +186,7 @@ pub fn render(cx: &mut PaintCx<'_>, resources: &ResourcesRef, state: &GameState)
             };
 
             if entry.rank != last_rank {
-                cx.right_text((COL_RANK, y), col_rank, format!("{}.", entry.rank));
+                cx.right_text((COL_RANK, y), col_rank, format!("{}.", entry.rank + 1));
             }
             last_rank = entry.rank;
 

@@ -155,16 +155,16 @@ impl KothSetupView {
         // --- left panel bottom: pack list (Pascal kothchallenge) ---
         let is_pack_mode = self.mode.get() == KothMode::Packs;
         let mut py = 120i32;
-        for pack in 1..=7u8 {
+        for pack in 0..7u8 {
             let title = koth_pack_title(pack, lang);
             // In pack mode all items are white (Pascal kothchallenge(x,255))
             let color = if is_pack_mode {
                 FONT_BODY
             } else {
                 let selected_pack = if cfg.koth_pack == 0 {
-                    7u8
+                    6u8
                 } else {
-                    cfg.koth_pack as u8
+                    (cfg.koth_pack - 1) as u8
                 };
                 if selected_pack == pack {
                     FONT_BODY
@@ -174,7 +174,7 @@ impl KothSetupView {
             };
             paint.text((10, py), color, title);
             py += 8;
-            if pack == 6 {
+            if pack == 5 {
                 py += 8;
             }
         }
@@ -477,13 +477,13 @@ fn pack_cursor_y(cur: usize) -> i32 {
 
 fn koth_pack_title(pack: u8, lang: &LangBase) -> String {
     match pack {
-        1 => format!("1. {}", lang.lstr(131)),
-        2 => format!("2. {}", lang.lstr(132)),
-        3 => format!("3. {}", lang.lstr(133)),
-        4 => format!("4. {}", lang.lstr(134)),
-        5 => format!("5. {}", lang.lstr(135)),
-        6 => format!("6. {}", lang.lstr(136)),
-        7 => format!("0. {}", lang.lstr(137)),
+        0 => format!("1. {}", lang.lstr(131)),
+        1 => format!("2. {}", lang.lstr(132)),
+        2 => format!("3. {}", lang.lstr(133)),
+        3 => format!("4. {}", lang.lstr(134)),
+        4 => format!("5. {}", lang.lstr(135)),
+        5 => format!("6. {}", lang.lstr(136)),
+        6 => format!("0. {}", lang.lstr(137)),
         _ => format!("{pack}. ?"),
     }
 }

@@ -121,9 +121,9 @@ impl CompetitionField {
                 seeded.sort_by_key(|&(seed, _)| seed);
                 let count = seeded.len().min(50);
                 let mut list = Vec::with_capacity(count);
-                for pair in (1..=count / 2).rev() {
-                    list.push(seeded[count - pair].1);
-                    list.push(seeded[pair - 1].1);
+                for pair in (0..count / 2).rev() {
+                    list.push(seeded[count - 1 - pair].1);
+                    list.push(seeded[pair].1);
                 }
                 list
             }

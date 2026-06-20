@@ -361,7 +361,7 @@ where
             return false;
         }
         match visible_computers {
-            1..=234 => participant.ai_id + 1 == visible_computers as usize,
+            1..=234 => participant.ai_id == visible_computers as usize,
             235 => runtime.start_order_pos_for_context(context) < 1,
             236 => runtime.start_order_pos_for_context(context) < 3,
             237 => runtime.start_order_pos_for_context(context) < 5,

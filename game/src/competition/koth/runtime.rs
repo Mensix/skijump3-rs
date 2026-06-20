@@ -71,7 +71,7 @@ impl KothRuntime {
 
         // eliminate last place (worst scorer, at end of descending list)
         if let Some(&(idx, _)) = sorted.last() {
-            self.participants[idx].eliminated_in_round = self.current_elimination_round + 1;
+            self.participants[idx].eliminated_in_round = self.current_elimination_round;
         }
     }
 }

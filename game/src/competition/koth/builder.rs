@@ -57,7 +57,7 @@ pub fn build_koth(
         participants.push(KothParticipant {
             competitor,
             total_points: 0.0,
-            eliminated_in_round: 0,
+            eliminated_in_round: u8::MAX,
             jumps: Vec::new(),
         });
     }
@@ -69,7 +69,7 @@ pub fn build_koth(
         participants.push(KothParticipant {
             competitor,
             total_points: 0.0,
-            eliminated_in_round: 0,
+            eliminated_in_round: u8::MAX,
             jumps: Vec::new(),
         });
         human_indices.push(idx);

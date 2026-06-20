@@ -149,9 +149,9 @@ impl SaveReplayDialog {
 
     fn handle_browse_digit(&mut self, c: char) -> SaveAction {
         match c.to_digit(10) {
-            Some(d) if (1..=5).contains(&d) => {
+            Some(d) if (0..=4).contains(&d) => {
                 self.state = SaveDialogState::Browse {
-                    selected: d as usize - 1,
+                    selected: d as usize,
                 };
                 SaveAction::Consumed
             }

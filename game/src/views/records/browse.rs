@@ -155,21 +155,21 @@ impl HallOfFameView {
         );
 
         let records = &state.records;
-        for idx in 1..=6 {
+        for idx in 0..6 {
             yy += 18;
             cx.text(
                 (col[0], yy),
                 FONT_GOLD,
                 format!(
                     "{}. {}",
-                    idx,
-                    lstr(&self.resources.langbase, 130 + idx, "Challenge")
+                    idx + 1,
+                    lstr(&self.resources.langbase, 131 + idx, "Challenge")
                 ),
             );
             yy += 10;
 
             let name = lstr(&self.resources.langbase, 161, "Nobody");
-            let Some(hi) = records.top(idx + 35) else {
+            let Some(hi) = records.top(idx + 36) else {
                 cx.text((col[1], yy), FONT_GRAY, name);
                 continue;
             };

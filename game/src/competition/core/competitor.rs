@@ -90,7 +90,7 @@ pub fn computer_names_without_replacements(
         .iter()
         .enumerate()
         .filter(|(idx, _)| {
-            let replace = idx + 1;
+            let replace = *idx;
             !active_profiles
                 .iter()
                 .any(|(_, profile)| profile.replace == replace)

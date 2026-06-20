@@ -33,14 +33,14 @@ impl JumpMenuView {
         use engine::oxide::widgets::menu::MenuItem as OxideMenuItem;
 
         let items = vec![
+            OxideMenuItem::new(0, ""),
             OxideMenuItem::new(1, ""),
             OxideMenuItem::new(2, ""),
             OxideMenuItem::new(3, ""),
             OxideMenuItem::new(4, ""),
             OxideMenuItem::new(5, ""),
             OxideMenuItem::new(6, ""),
-            OxideMenuItem::new(7, ""),
-            OxideMenuItem::new(0, "").with_y(12),
+            OxideMenuItem::new(7, "").with_y(12),
         ];
         Self {
             menu: PixelMenu::new(11, 97, 108, 12, items, FONT_BODY, FONT_BODY)
@@ -66,10 +66,10 @@ impl GameScreen for JumpMenuView {
         }
 
         match self.menu.event(&mut ecx, event) {
-            Some(1) => nav.navigate(self.start_world_cup(cx.state)),
-            Some(2) => nav.navigate(RouteTarget::CustomCupSetup),
-            Some(3) => nav.navigate(self.start_four_hills(cx.state)),
-            Some(4) => {
+            Some(0) => nav.navigate(self.start_world_cup(cx.state)),
+            Some(1) => nav.navigate(RouteTarget::CustomCupSetup),
+            Some(2) => nav.navigate(self.start_four_hills(cx.state)),
+            Some(3) => {
                 let num_players = cx.state.profiles.active_order.len();
                 if num_players == 4 || num_players == 8 {
                     nav.navigate(self.start_team_cup(cx.state));
@@ -79,10 +79,10 @@ impl GameScreen for JumpMenuView {
                     nav.consume();
                 }
             }
-            Some(7) => nav.navigate(RouteTarget::LoadCup),
-            Some(0) => nav.navigate(RouteTarget::MainMenu),
+            Some(6) => nav.navigate(RouteTarget::LoadCup),
+            Some(7) => nav.navigate(RouteTarget::MainMenu),
             Some(n) => {
-                if let Some(route) = JUMP_MENU_ACTIONS.get(n - 1).and_then(|&a| a) {
+                if let Some(route) = JUMP_MENU_ACTIONS.get(n).and_then(|&a| a) {
                     nav.navigate(route);
                 }
             }

@@ -379,22 +379,22 @@ impl GameScreen for EditHillView {
             "",
         ];
 
-        for temp in 1..=12 {
-            let yy = 10 + ((temp - 1) * 13) as i32;
-            let label = if temp < 12 {
-                format!("{}. {}:", temp, labels[temp - 1])
+        for temp in 0..12 {
+            let yy = 10 + (temp * 13) as i32;
+            let label = if temp < 11 {
+                format!("{}. {}:", temp + 1, labels[temp])
             } else {
-                format!("{}. {}", temp, labels[temp - 1])
+                format!("{}. {}", temp + 1, labels[temp])
             };
 
             paint.text((xx, yy), FONT_BODY, &label);
 
-            if !descriptions[temp - 1].is_empty() {
-                paint.text((xx2 + 40, yy), FONT_GRAY, descriptions[temp - 1]);
+            if !descriptions[temp].is_empty() {
+                paint.text((xx2 + 40, yy), FONT_GRAY, descriptions[temp]);
             }
 
-            if !self.values[temp - 1].is_empty() {
-                paint.text((xx2, yy), FONT_GOLD, &self.values[temp - 1]);
+            if !self.values[temp].is_empty() {
+                paint.text((xx2, yy), FONT_GOLD, &self.values[temp]);
             }
         }
 

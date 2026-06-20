@@ -247,11 +247,11 @@ impl ProfilesView {
         if matches!(self.mode, Mode::List) {
             match event {
                 UiEvent::KeyDown(Key::Up) => {
-                    let total = self.entries(state) + 1;
+                    let total = self.entries(state);
                     self.selected = cycle_index(self.selected, total, -1);
                 }
                 UiEvent::KeyDown(Key::Down) => {
-                    let total = self.entries(state) + 1;
+                    let total = self.entries(state);
                     self.selected = cycle_index(self.selected, total, 1);
                 }
                 UiEvent::KeyDown(Key::Enter) | UiEvent::Text(' ') => {
