@@ -111,8 +111,6 @@ fn paint_panel(
     empty_text: &str,
     nav_hint: &str,
 ) {
-    cx.pattern_fill((145, 50, 174, 149), BG_PURPLE);
-    cx.pattern_fill((128, 70, 17, 129), BG_PURPLE);
     cx.text((170, 51), FONT_GRAY, format!("{}:", title));
     cx.text((150, 185), FONT_GRAY, nav_hint);
 

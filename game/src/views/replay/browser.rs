@@ -148,9 +148,6 @@ fn paint_replay_panel(
 ) {
     let langbase = &resources.langbase;
 
-    // Pascal clearscreen: right panel background with dither + labels
-    cx.pattern_fill((145, 50, 174, 149), BG_PURPLE);
-    cx.pattern_fill((128, 70, 17, 129), BG_PURPLE);
     cx.text((170, 51), FONT_GRAY, format!("{}:", langbase.lstr(25)));
     cx.text((150, 185), FONT_GRAY, langbase.lstr(146));
 

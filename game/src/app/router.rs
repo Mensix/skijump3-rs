@@ -12,7 +12,7 @@ use crate::views::{
 use engine::oxide::{NavAction, PaintCx, ScreenBackground, ScreenEventCx, UiEvent};
 use std::rc::Rc;
 
-const VERSION: &str = "3.12";
+const VERSION: &str = "3.14";
 
 fn make_screen(
     target: &RouteTarget,
