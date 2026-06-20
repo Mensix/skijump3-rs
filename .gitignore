@@ -3,8 +3,6 @@
 node_modules/
 .agents
 skills-lock.json.opencode/
-dist-web/
-/web/pkg
 
 # Pascal artifacts
 TEMP.SJR
@@ -18,4 +16,3 @@ players.toml
 
 # lockfiles – generated per-platform
 Cargo.lock
-package-lock.json

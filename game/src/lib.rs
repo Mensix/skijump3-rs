@@ -15,5 +15,4 @@ pub(crate) mod store;
 pub(crate) mod text;
 pub(crate) mod views;
 
-#[cfg(not(target_arch = "wasm32"))]
 pub use app::run;

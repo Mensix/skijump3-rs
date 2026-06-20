@@ -5,7 +5,6 @@ use engine::oxide::{
 };
 use engine::sprite::BakedSpriteTextures;
 use engine::video::{Renderer, TextureId};
-use std::time::Instant;
 
 pub(super) struct FrameRenderer {
     renderer: OxideRenderer,
@@ -71,7 +70,7 @@ struct FpsCounter {
     frame_count: u64,
     elapsed: f64,
     display: f64,
-    last: Instant,
+    last: std::time::Instant,
 }
 
 impl FpsCounter {
@@ -80,14 +79,14 @@ impl FpsCounter {
             frame_count: 0,
             elapsed: 0.0,
             display: 0.0,
-            last: Instant::now(),
+            last: std::time::Instant::now(),
         }
     }
 
     fn tick(&mut self) -> f64 {
         self.frame_count += 1;
         self.elapsed += self.last.elapsed().as_secs_f64();
-        self.last = Instant::now();
+        self.last = std::time::Instant::now();
 
         if self.elapsed >= 0.5 {
             self.display = self.frame_count as f64 / self.elapsed;

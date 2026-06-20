@@ -204,15 +204,15 @@ pub(crate) fn handle_jump_scene_event(
         return JumpInputResult::Consumed;
     }
 
-    match handle_competition_jump_input(scene, event, consume_other_actions, state) {
-        JumpInputResult::None => {}
-        result => return result,
-    }
-
     if (!acknowledge_only_unrecorded || !ui_state.is_outcome_recorded())
         && acknowledge_finished_jump(scene, ui_state, event, accepts_only_enter_escape)
     {
         return JumpInputResult::Consumed;
+    }
+
+    match handle_competition_jump_input(scene, event, consume_other_actions, state) {
+        JumpInputResult::None => {}
+        result => return result,
     }
 
     JumpInputResult::None
