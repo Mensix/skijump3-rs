@@ -75,9 +75,7 @@ fn adjust_hill_goal(state: &mut GameState, selected: usize, delta: f64, hill_cou
 }
 
 fn save_records(view: &SetupView, state: &GameState) {
-    if let Err(e) = view.save_manager().save_records(&state.records) {
-        eprintln!("Warning: failed to save records: {e}");
-    }
+    view.save_manager().save_records(&state.records);
 }
 
 fn config_key(config: &Config, item: usize) -> i32 {
@@ -123,9 +121,7 @@ fn handle_configure_keys(
                         (0..5).any(|idx| idx != item && config_key(&state.config, idx) == code);
                     if !duplicate {
                         set_config_key(&mut state.config, item, code);
-                        if let Err(e) = view.save_manager().save_config(&state.config) {
-                            eprintln!("Warning: failed to save config: {e}");
-                        }
+                        view.save_manager().save_config(&state.config);
                         view.modal = Some(SetupModal::ConfigureKeys {
                             selected,
                             capture: None,
@@ -177,9 +173,7 @@ fn handle_configure_keys(
                 state.config.key_left = defaults.key_left;
                 state.config.key_telemark = defaults.key_telemark;
                 state.config.key_replay = defaults.key_replay;
-                if let Err(e) = view.save_manager().save_config(&state.config) {
-                    eprintln!("Warning: failed to save config: {e}");
-                }
+view.save_manager().save_config(&state.config);
             }
             6 => view.modal = None,
             _ => {}
@@ -233,9 +227,7 @@ fn handle_name_set_input(
             };
             if idx < ns_len {
                 state.config.name_set_index = idx as i32;
-                if let Err(e) = view.save_manager().save_config(&state.config) {
-                    eprintln!("Warning: failed to save config: {e}");
-                }
+view.save_manager().save_config(&state.config);
                 view.modal = None;
             }
         }
@@ -265,9 +257,7 @@ fn handle_wind_place(
         UiEvent::KeyDown(Key::Enter) | UiEvent::Text(' ') => {
             if pos < winds {
                 state.config.wind_position = pos as i32;
-                if let Err(e) = view.save_manager().save_config(&state.config) {
-                    eprintln!("Warning: failed to save config: {e}");
-                }
+view.save_manager().save_config(&state.config);
             }
             view.modal = None;
         }
@@ -316,9 +306,7 @@ fn handle_see_comps(
         UiEvent::KeyDown(Key::Enter) => {
             let cfg_val = opts[idx].0;
             state.config.visible_computers = cfg_val as i32;
-            if let Err(e) = view.save_manager().save_config(&state.config) {
-                eprintln!("Warning: failed to save config: {e}");
-            }
+            view.save_manager().save_config(&state.config);
             view.modal = None;
         }
         UiEvent::KeyDown(Key::Escape | Key::Delete) => {
@@ -343,9 +331,7 @@ fn handle_confirm_reset(
                     RecordStore::cleared_default()
                 };
                 state.records = records.clone();
-                if let Err(e) = view.save_manager().save_records(&records) {
-                    eprintln!("Warning: failed to save records: {e}");
-                }
+            view.save_manager().save_records(&records);
             }
             view.modal = None;
         }
@@ -373,9 +359,7 @@ fn handle_language_picker(
         }
         UiEvent::KeyDown(Key::Enter) | UiEvent::Text(' ') => {
             state.config.language = sel as i32;
-            if let Err(e) = view.save_manager().save_config(&state.config) {
-                eprintln!("Warning: failed to save config: {e}");
-            }
+            view.save_manager().save_config(&state.config);
             view.resources.langbase.selected.set(sel);
             view.modal = None;
         }
@@ -544,65 +528,45 @@ fn activate_item(
         }
         (1, 1) => {
             state.config.sound_effects = i32::from(state.config.sound_effects == 0);
-            if let Err(e) = view.save_manager().save_config(&state.config) {
-                eprintln!("Warning: failed to save config: {e}");
-            }
+            view.save_manager().save_config(&state.config);
         }
         (1, 2) => {
             state.config.graphics_detail = i32::from(state.config.graphics_detail == 0);
-            if let Err(e) = view.save_manager().save_config(&state.config) {
-                eprintln!("Warning: failed to save config: {e}");
-            }
+            view.save_manager().save_config(&state.config);
         }
         (1, 3) => view.modal = Some(SetupModal::NameSetInput),
         (2, 0) => {
             state.config.training_rounds = (state.config.training_rounds + 1) % 4;
-            if let Err(e) = view.save_manager().save_config(&state.config) {
-                eprintln!("Warning: failed to save config: {e}");
-            }
+            view.save_manager().save_config(&state.config);
         }
         (2, 1) => {
             state.config.extra_statistics = i32::from(state.config.extra_statistics == 0);
-            if let Err(e) = view.save_manager().save_config(&state.config) {
-                eprintln!("Warning: failed to save config: {e}");
-            }
+            view.save_manager().save_config(&state.config);
         }
         (2, 2) => {
             state.config.event_gap = i32::from(state.config.event_gap == 0);
-            if let Err(e) = view.save_manager().save_config(&state.config) {
-                eprintln!("Warning: failed to save config: {e}");
-            }
+            view.save_manager().save_config(&state.config);
         }
         (2, 3) => {
             state.config.wc_gap = i32::from(state.config.wc_gap == 0);
-            if let Err(e) = view.save_manager().save_config(&state.config) {
-                eprintln!("Warning: failed to save config: {e}");
-            }
+            view.save_manager().save_config(&state.config);
         }
         (2, 4) => {
             state.config.compact_results = i32::from(state.config.compact_results == 0);
-            if let Err(e) = view.save_manager().save_config(&state.config) {
-                eprintln!("Warning: failed to save config: {e}");
-            }
+            view.save_manager().save_config(&state.config);
         }
         (2, 5) => {
             state.config.invisible_back = i32::from(state.config.invisible_back == 0);
-            if let Err(e) = view.save_manager().save_config(&state.config) {
-                eprintln!("Warning: failed to save config: {e}");
-            }
+            view.save_manager().save_config(&state.config);
         }
         (2, 6) => {
             state.config.auto_hill_record_replay =
                 i32::from(state.config.auto_hill_record_replay == 0);
-            if let Err(e) = view.save_manager().save_config(&state.config) {
-                eprintln!("Warning: failed to save config: {e}");
-            }
+            view.save_manager().save_config(&state.config);
         }
         (2, 7) => {
             state.config.goals_enabled = i32::from(state.config.goals_enabled == 0);
-            if let Err(e) = view.save_manager().save_config(&state.config) {
-                eprintln!("Warning: failed to save config: {e}");
-            }
+            view.save_manager().save_config(&state.config);
         }
         (2, 8) => {
             let current = state.config.visible_computers;
@@ -619,29 +583,21 @@ fn activate_item(
         }
         (2, 10) => {
             state.config.ko_system = i32::from(state.config.ko_system == 0);
-            if let Err(e) = view.save_manager().save_config(&state.config) {
-                eprintln!("Warning: failed to save config: {e}");
-            }
+            view.save_manager().save_config(&state.config);
         }
         (3, 0) => {
             state.config.computer_hill_records = i32::from(state.config.computer_hill_records == 0);
-            if let Err(e) = view.save_manager().save_config(&state.config) {
-                eprintln!("Warning: failed to save config: {e}");
-            }
+            view.save_manager().save_config(&state.config);
         }
         (3, 1) => {
             state.config.unique_computer_names = i32::from(state.config.unique_computer_names == 0);
-            if let Err(e) = view.save_manager().save_config(&state.config) {
-                eprintln!("Warning: failed to save config: {e}");
-            }
+            view.save_manager().save_config(&state.config);
         }
         (3, 2) => view.modal = Some(SetupModal::ConfirmReset(1)),
         (3, 3) => view.modal = Some(SetupModal::ConfirmReset(0)),
         (3, 4) => {
             state.config = Config::default();
-            if let Err(e) = view.save_manager().save_config(&state.config) {
-                eprintln!("Warning: failed to save config: {e}");
-            }
+            view.save_manager().save_config(&state.config);
         }
         _ => {}
     }

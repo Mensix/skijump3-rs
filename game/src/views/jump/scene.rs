@@ -1,4 +1,3 @@
-use crate::error::AssetError;
 use crate::jump::config::JumpConfig;
 use crate::jump::replay::ReplayTrace;
 use crate::jump::sim;
@@ -12,15 +11,6 @@ use crate::views::jump::input::{JumpInputAction, JumpInputController, JumpKeyBin
 use crate::views::replay::save_dialog::{SaveAction, SaveReplayDialog};
 use engine::oxide::input::UiEvent;
 use engine::oxide::PaintCx;
-
-#[derive(Debug, thiserror::Error)]
-pub enum JumpSceneError {
-    #[error("hill {0} does not exist in catalog")]
-    MissingHill(usize),
-
-    #[error("failed to load terrain for hill {hill_idx}: {msg}")]
-    Terrain { hill_idx: usize, msg: AssetError },
-}
 
 pub struct JumpScene {
     runner: JumpRunner,
@@ -256,23 +246,10 @@ impl JumpScene {
         hill_idx: usize,
         rng: &mut Random,
         wind: &mut Wind,
-    ) -> Result<JumpOutcome, JumpSceneError> {
-        let terrain = self
-            .resources
-            .terrain(hill_idx)
-            .map_err(|msg| JumpSceneError::Terrain { hill_idx, msg })?;
-        let hill = self
-            .resources
-            .hills
-            .hill(hill_idx)
-            .ok_or(JumpSceneError::MissingHill(hill_idx))?;
-        Ok(sim::simulate_computer(
-            &participant,
-            &terrain,
-            hill,
-            rng,
-            wind,
-        ))
+    ) -> JumpOutcome {
+        let terrain = self.resources.terrain(hill_idx);
+        let hill = self.resources.hills.hill(hill_idx).unwrap();
+        sim::simulate_computer(&participant, &terrain, hill, rng, wind)
     }
 
     pub fn render(&mut self, cx: &mut PaintCx<'_>, state: &GameState) {
@@ -309,7 +286,7 @@ impl JumpScene {
         snow: SnowSystem,
     ) -> JumpRunner {
         let hill = resources.hills.hill(hill_idx).cloned();
-        let terrain = resources.terrain(hill_idx).map(|t| (*t).clone());
+        let terrain = resources.terrain(hill_idx).as_ref().clone();
         let record_distance = state.records.hill_record(hill_idx).map_or(0.0, |r| r.len);
         let goal_distance = goal_distance(state, hill_idx);
         let snow_count = snow.count();

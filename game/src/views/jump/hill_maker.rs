@@ -106,18 +106,15 @@ impl HillMakerView {
     }
 
     fn load_custom_hills(resources: &ResourcesRef) -> Vec<CustomHillListEntry> {
-        let Ok(mut names) = resources
+        let mut names = resources
             .files
-            .list_save_subdir_by_ext("custom_hills", "toml")
-        else {
-            return Vec::new();
-        };
+            .list_save_subdir_by_ext("custom_hills", "toml");
         names.sort();
         names
             .into_iter()
             .filter_map(|name| {
                 let path = format!("custom_hills/{name}");
-                let data = resources.files.read(&path).ok()?;
+                let data = resources.files.read(&path);
                 let text = std::str::from_utf8(&data).ok()?;
                 let catalog = toml::from_str::<CustomHillCatalogToml>(text).ok()?;
                 let hillname = catalog.hills.first()?.name.clone();

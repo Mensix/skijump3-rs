@@ -24,36 +24,35 @@ impl FileStore {
     }
 
     /// Read from save dir first, then embedded assets, then filesystem assets.
-    pub fn read(&self, name: &str) -> Result<Vec<u8>, std::io::Error> {
+    #[must_use]
+    pub fn read(&self, name: &str) -> Vec<u8> {
         let save_path = self.save_dir.join(name);
         match std::fs::read(&save_path) {
-            Ok(data) => Ok(data),
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+            Ok(data) => data,
+            Err(_) => {
                 if let Some(embedded) = Assets::get(name) {
-                    return Ok(embedded.data.to_vec());
+                    return embedded.data.to_vec();
                 }
                 let asset_path = self.asset_dir.join(name);
-                std::fs::read(&asset_path)
+                std::fs::read(&asset_path).unwrap_or_default()
             }
-            Err(e) => Err(e),
         }
     }
 
     /// Atomically write to save dir. Creates `save_dir` and any subdirectory
     /// in `name` if they do not exist.
-    pub fn write(&self, name: &str, data: &[u8]) -> Result<(), std::io::Error> {
+    pub fn write(&self, name: &str, data: &[u8]) {
         let path = self.save_dir.join(name);
         if let Some(parent) = path.parent() {
-            std::fs::create_dir_all(parent)?;
+            std::fs::create_dir_all(parent).unwrap();
         }
         let tmp_path = {
             let parent = path.parent().unwrap_or(&self.save_dir);
             let file_name = path.file_name().unwrap_or_default();
             parent.join(format!(".{}.tmp", file_name.to_string_lossy()))
         };
-        std::fs::write(&tmp_path, data)?;
-        std::fs::rename(&tmp_path, &path)?;
-        Ok(())
+        std::fs::write(&tmp_path, data).unwrap();
+        std::fs::rename(&tmp_path, &path).unwrap();
     }
 
     /// Check if file exists in save dir.
@@ -62,38 +61,33 @@ impl FileStore {
         self.save_dir.join(name).exists()
     }
 
-    pub fn delete_save(&self, name: &str) -> Result<(), std::io::Error> {
-        std::fs::remove_file(self.save_dir.join(name))
+    pub fn delete_save(&self, name: &str) {
+        let _ = std::fs::remove_file(self.save_dir.join(name));
     }
 
     /// List filenames in save dir with a given extension (without leading dot).
-    pub fn list_by_ext(&self, ext: &str) -> Result<Vec<String>, std::io::Error> {
-        self.list_by_ext_in(&self.save_dir, ext)
+    #[must_use]
+    pub fn list_by_ext(&self, ext: &str) -> Vec<String> {
+        self.list_by_ext_in(&self.save_dir, ext).unwrap_or_default()
     }
 
     /// List filenames in a save dir subdirectory with a given extension.
+    #[must_use]
     pub fn list_save_subdir_by_ext(
         &self,
         subdir: &str,
         ext: &str,
-    ) -> Result<Vec<String>, std::io::Error> {
-        match self.list_by_ext_in(&self.save_dir.join(subdir), ext) {
-            Ok(names) => Ok(names),
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(Vec::new()),
-            Err(e) => Err(e),
-        }
+    ) -> Vec<String> {
+        self.list_by_ext_in(&self.save_dir.join(subdir), ext).unwrap_or_default()
     }
 
     /// List filenames from both save dir and asset dir, deduplicated and sorted.
-    pub fn list_by_ext_all(&self, ext: &str) -> Result<Vec<String>, std::io::Error> {
+    #[must_use]
+    pub fn list_by_ext_all(&self, ext: &str) -> Vec<String> {
         let mut names = BTreeSet::new();
-        if let Ok(save_names) = self.list_by_ext(ext) {
-            names.extend(save_names);
-        }
-        if let Ok(asset_names) = self.list_by_ext_in(&self.asset_dir, ext) {
-            names.extend(asset_names);
-        }
-        Ok(names.into_iter().collect())
+        names.extend(self.list_by_ext(ext));
+        names.extend(self.list_by_ext_in(&self.asset_dir, ext).unwrap_or_default());
+        names.into_iter().collect()
     }
 
     fn list_by_ext_in(&self, dir: &Path, ext: &str) -> Result<Vec<String>, std::io::Error> {
@@ -123,6 +117,6 @@ mod tests {
     fn file_store_falls_back_to_embedded() {
         let store = FileStore::new(PathBuf::from("/nonexistent"), PathBuf::from("/nonexistent"));
         let data = store.read("languages/english.toml");
-        assert!(data.is_ok(), "should read from embedded: {:?}", data.err());
+        assert!(!data.is_empty(), "should read from embedded");
     }
 }

@@ -21,16 +21,15 @@ pub(super) struct LoadedAssets {
     pub(super) pattern_texture: TextureId,
 }
 
-pub(super) fn load(files: &FileStore, renderer: &mut Renderer) -> Result<LoadedAssets, String> {
-    let content_store = ContentStore::load(files, CONTENT_MANIFEST).map_err(|e| e.to_string())?;
-    let main_background = load_background_texture(files, renderer)?;
+pub(super) fn load(files: &FileStore, renderer: &mut Renderer) -> LoadedAssets {
+    let content_store = ContentStore::load(files, CONTENT_MANIFEST);
+    let main_background = load_background_texture(files, renderer);
 
-    // Load font glyphs from indexed PNGs (indices 0..FONT_GLYPH_COUNT)
     let mut glyphs: Vec<Glyph> = Vec::new();
     for idx in 0..FONT_GLYPH_COUNT {
         let path = format!("{SPRITES_PNG_PREFIX}{idx}.png");
-        let data = files.read(&path).map_err(|e| e.to_string())?;
-        let (indices, _palette, width, height) = decode_indexed_png(&data)?;
+        let data = files.read(&path);
+        let (indices, _palette, width, height) = decode_indexed_png(&data);
         glyphs.push(Glyph {
             pixels: indices.into_boxed_slice(),
             width: width as u16,
@@ -41,15 +40,11 @@ pub(super) fn load(files: &FileStore, renderer: &mut Renderer) -> Result<LoadedA
     }
     let font = Font::from_sprites(&glyphs);
 
-    // Load base sprites from indexed PNGs + centers from PNG tEXt chunks
     let mut base_sprites = Vec::new();
     for idx in 0..=176u16 {
         let path = format!("{SPRITES_PNG_PREFIX}{idx}.png");
-        let data = match files.read(&path) {
-            Ok(d) => d,
-            Err(_) => continue,
-        };
-        let (indices, palette, png_w, png_h) = decode_indexed_png(&data)?;
+        let data = files.read(&path);
+        let (indices, palette, png_w, png_h) = decode_indexed_png(&data);
         let (cx, cy) = sprite_center_from_png(&data).unwrap_or((0, 0));
 
         base_sprites.push(BaseSprite {
@@ -63,34 +58,25 @@ pub(super) fn load(files: &FileStore, renderer: &mut Renderer) -> Result<LoadedA
         });
     }
 
-    // Bake material variants at startup
-    let baked_sprites = BakedSpriteTextures::bake_with_png(
-        renderer,
-        &base_sprites,
-        &materials::prebaked_sprite_materials(),
-    )?;
+    let baked_sprites =
+        BakedSpriteTextures::bake_with_png(renderer, &base_sprites, &materials::prebaked_sprite_materials())
+            .unwrap();
 
-    // Load pattern sprite 62 from indexed PNG
     let pattern_path = format!("{SPRITES_PNG_PREFIX}{PATTERN_SPRITE}.png");
-    let pattern_data = files
-        .read(&pattern_path)
-        .map_err(|_| "Pattern sprite 62 not found".to_string())?;
-    let (pattern_indices, _palette, _pw, _ph) = decode_indexed_png(&pattern_data)?;
-    let pattern_texture = renderer.create_pattern_texture(&pattern_indices, TILE_W, TILE_H)?;
+    let pattern_data = files.read(&pattern_path);
+    let (pattern_indices, _palette, _pw, _ph) = decode_indexed_png(&pattern_data);
+    let pattern_texture = renderer.create_pattern_texture(&pattern_indices, TILE_W, TILE_H).unwrap();
 
-    Ok(LoadedAssets {
+    LoadedAssets {
         content_store,
         font,
         main_background,
         baked_sprites,
         pattern_texture,
-    })
+    }
 }
 
-/// Extract center_x/center_y from a PNG tEXt chunk with keyword "cXcY".
-/// Uses the `png` crate's built-in text chunk parsing.
 fn sprite_center_from_png(data: &[u8]) -> Option<(i8, i8)> {
-    use std::io::Cursor;
     let cursor = Cursor::new(data);
     let decoder = png::Decoder::new(cursor);
     let reader = decoder.read_info().ok()?;
@@ -105,17 +91,13 @@ fn sprite_center_from_png(data: &[u8]) -> Option<(i8, i8)> {
     None
 }
 
-/// Decode a type-3 (indexed) PNG, returning (palette_indices, [Rgba; 256], width, height).
-fn decode_indexed_png(data: &[u8]) -> Result<(Vec<u8>, [Rgba; 256], u32, u32), String> {
+fn decode_indexed_png(data: &[u8]) -> (Vec<u8>, [Rgba; 256], u32, u32) {
     let cursor = Cursor::new(data);
     let decoder = png::Decoder::new(cursor);
-    let mut reader = decoder.read_info().map_err(|e| e.to_string())?;
+    let mut reader = decoder.read_info().unwrap();
     let info = reader.info();
 
-    let palette_rgb = info
-        .palette
-        .as_deref()
-        .ok_or_else(|| "PNG has no PLTE chunk".to_string())?;
+    let palette_rgb = info.palette.as_deref().unwrap();
     let trns = info.trns.as_deref().unwrap_or(&[]);
 
     let mut palette = [Rgba::transparent(); 256];
@@ -133,16 +115,15 @@ fn decode_indexed_png(data: &[u8]) -> Result<(Vec<u8>, [Rgba; 256], u32, u32), S
     let width = info.width;
     let height = info.height;
     let mut buf = vec![0u8; (width * height) as usize];
-    reader.next_frame(&mut buf).map_err(|e| e.to_string())?;
+    reader.next_frame(&mut buf).unwrap();
 
-    Ok((buf, palette, width, height))
+    (buf, palette, width, height)
 }
 
-fn load_background_texture(
-    files: &FileStore,
-    renderer: &mut Renderer,
-) -> Result<TextureId, String> {
-    let png_data = files.read(MAIN_PNG).map_err(|e| e.to_string())?;
-    let img = crate::gfx::png::load_png(&png_data).map_err(|e| e.to_string())?;
-    renderer.create_rgba_texture(&img.pixels, img.width, img.height)
+fn load_background_texture(files: &FileStore, renderer: &mut Renderer) -> TextureId {
+    let png_data = files.read(MAIN_PNG);
+    let img = crate::gfx::png::load_png(&png_data);
+    renderer
+        .create_rgba_texture(&img.pixels, img.width, img.height)
+        .unwrap()
 }

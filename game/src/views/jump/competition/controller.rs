@@ -11,21 +11,15 @@ use crate::jump::{JumpParticipant, JumpPolicy, JumperControl};
 use crate::save::SaveRef;
 use crate::store::{GameState, ResourcesRef};
 use crate::views::jump::competition::flow::{
-    command_or_error, handle_human_jump, handle_jump_scene_event, render_jump_scene_with_overlay,
+    handle_human_jump, handle_jump_scene_event, render_jump_scene_with_overlay,
     CompetitionFlowCommand, JumpInputResult,
 };
 use crate::views::jump::competition::overlay::CompetitionOverlay;
 use crate::views::jump::competition::persistence;
 use crate::views::jump::competition::ui_state::{CompetitionUiState, RenderMode};
-use crate::views::jump::scene::{JumpScene, JumpSceneError};
+use crate::views::jump::scene::JumpScene;
 use engine::oxide::input::UiEvent;
 use engine::oxide::PaintCx;
-
-#[derive(Debug, thiserror::Error)]
-pub(crate) enum CompetitionControllerError {
-    #[error("AI simulation failed: {0}")]
-    JumpScene(#[from] JumpSceneError),
-}
 
 pub(crate) struct CompetitionJumpController<R>
 where
@@ -94,8 +88,7 @@ where
     ) -> Option<CompetitionFlowCommand<R::Context, R::ResultsKind>> {
         self.ensure_scene(state);
         self.scene.as_ref()?;
-        let result = self.drive_competition(state);
-        command_or_error(&mut self.ui_state, result)
+        self.drive_competition(state)
     }
 
     pub(crate) fn record_acknowledged_human_jump(&mut self, state: &mut GameState) -> bool {
@@ -216,8 +209,7 @@ where
         state: &mut GameState,
     ) -> Option<CompetitionFlowCommand<R::Context, R::ResultsKind>> {
         self.scene.as_ref()?;
-        let result = self.advance_results_and_drive(state);
-        command_or_error(&mut self.ui_state, result)
+        self.advance_results_and_drive(state)
     }
 
     pub(crate) fn save_results(&mut self, state: &GameState) {
@@ -257,10 +249,7 @@ where
     fn drive_competition(
         &mut self,
         state: &mut GameState,
-    ) -> Result<
-        Option<CompetitionFlowCommand<R::Context, R::ResultsKind>>,
-        CompetitionControllerError,
-    > {
+    ) -> Option<CompetitionFlowCommand<R::Context, R::ResultsKind>> {
         let visible_computers = state.config.visible_computers;
         let mut pending_side_effects = Vec::new();
         let GameState {
@@ -272,10 +261,10 @@ where
         let command = R::runtime_mut(active_competition).map(|runtime| loop {
             match runtime.decide_next_runtime() {
                 CompetitionDecision::ShowResults(kind) => {
-                    return Ok(Some(CompetitionFlowCommand::ShowResults(kind)));
+                    return Some(CompetitionFlowCommand::ShowResults(kind));
                 }
                 CompetitionDecision::Done => {
-                    return Ok(Some(CompetitionFlowCommand::Done));
+                    return Some(CompetitionFlowCommand::Done);
                 }
                 CompetitionDecision::Jump {
                     participant,
@@ -293,19 +282,19 @@ where
                         )
                     {
                         let current_event = runtime.event_idx();
-                        return Ok(Some(CompetitionFlowCommand::HumanJump {
+                        return Some(CompetitionFlowCommand::HumanJump {
                             participant,
                             hill_idx,
                             is_new_event: self.check_event_change(current_event, is_new_event),
                             context,
-                        }));
+                        });
                     }
 
                     let outcome = self
                         .scene
                         .as_ref()
                         .expect("competition scene initialized")
-                        .simulate_hidden(participant, hill_idx, rng, wind)?;
+                        .simulate_hidden(participant, hill_idx, rng, wind);
                     pending_side_effects.push((
                         PostJumpSideEffects {
                             profile_idx: runtime.profile_idx_for_context(&context),
@@ -319,7 +308,7 @@ where
                     ));
                     runtime.record_jump_runtime(&context, outcome);
                     if runtime.is_complete_runtime() {
-                        return Ok(Some(CompetitionFlowCommand::Done));
+                        return Some(CompetitionFlowCommand::Done);
                     }
                 }
             }
@@ -331,16 +320,13 @@ where
             }
         }
 
-        command.unwrap_or(Ok(None))
+        command.unwrap_or(None)
     }
 
     fn advance_results_and_drive(
         &mut self,
         state: &mut GameState,
-    ) -> Result<
-        Option<CompetitionFlowCommand<R::Context, R::ResultsKind>>,
-        CompetitionControllerError,
-    > {
+    ) -> Option<CompetitionFlowCommand<R::Context, R::ResultsKind>> {
         if let Some(runtime) = R::runtime_mut(&mut state.active_competition) {
             runtime.advance_results_runtime();
         }

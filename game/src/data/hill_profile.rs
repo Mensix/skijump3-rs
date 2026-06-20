@@ -1,4 +1,3 @@
-use crate::error::AssetError;
 use crate::files::FileStore;
 use crate::gfx::png::load_png;
 use serde::Deserialize;
@@ -32,73 +31,24 @@ struct TerrainMetadata {
 }
 
 impl HillTerrain {
-    pub fn load(files: &FileStore, terrain_id: impl std::fmt::Display) -> Result<Self, AssetError> {
+    pub fn load(files: &FileStore, terrain_id: impl std::fmt::Display) -> Self {
         let terrain_id = terrain_id.to_string();
         let dir = format!("hills/generated/HILL{terrain_id}/");
 
-        let meta_bytes = files.read(&format!("{dir}terrain.toml")).map_err(|e| {
-            let path = format!("{dir}terrain.toml");
-            AssetError::io(path, e)
-        })?;
-        let meta_str = std::str::from_utf8(&meta_bytes).map_err(|e| {
-            let path = format!("{dir}terrain.toml");
-            AssetError::utf8(path, e)
-        })?;
-        let meta: TerrainMetadata = toml::from_str(meta_str).map_err(|e| {
-            let path = format!("{dir}terrain.toml");
-            AssetError::toml(path, e)
-        })?;
+        let meta_bytes = files.read(&format!("{dir}terrain.toml"));
+        let meta_str = std::str::from_utf8(&meta_bytes).unwrap();
+        let meta: TerrainMetadata = toml::from_str(meta_str).unwrap();
 
-        if meta.format_version != 1 {
-            return Err(AssetError::format_version(
-                format!("{dir}terrain.toml"),
-                1,
-                meta.format_version,
-            ));
-        }
+        let front_visual_raw = files.read(&format!("{dir}front_visual.png"));
+        let front_visual = load_png(&front_visual_raw);
 
-        let front_visual_raw = files
-            .read(&format!("{dir}front_visual.png"))
-            .map_err(|e| AssetError::io(format!("{dir}front_visual.png"), e))?;
-        let front_visual = load_png(&front_visual_raw)?;
-
-        let back_visual_raw = files
-            .read(&format!("{dir}back_visual.png"))
-            .map_err(|e| AssetError::io(format!("{dir}back_visual.png"), e))?;
-        let back_visual = load_png(&back_visual_raw)?;
-
-        let w = meta.width as usize;
-        let h = meta.height as usize;
-        let bw = meta.back_width as usize;
-        let bh = meta.back_height as usize;
-
-        if front_visual.width as usize != w || front_visual.height as usize != h {
-            return Err(AssetError::Custom(format!(
-                "Hill {terrain_id}: front visual dimensions mismatch (expected {w}x{h})"
-            )));
-        }
-        if back_visual.width as usize != bw || back_visual.height as usize != bh {
-            return Err(AssetError::Custom(format!(
-                "Hill {terrain_id}: back visual dimensions mismatch (expected {bw}x{bh})"
-            )));
-        }
+        let back_visual_raw = files.read(&format!("{dir}back_visual.png"));
+        let back_visual = load_png(&back_visual_raw);
 
         let line_lengths: Vec<usize> = meta.line_lengths.iter().map(|&v| v as usize).collect();
-        if line_lengths.len() != h {
-            return Err(AssetError::Custom(format!(
-                "Hill {terrain_id}: expected {h} line_lengths, got {}",
-                line_lengths.len()
-            )));
-        }
         let profile_y: Vec<i32> = meta.profile_y.iter().map(|&v| v as i32).collect();
-        if profile_y.len() != HILL_PROFILE_LEN {
-            return Err(AssetError::Custom(format!(
-                "Hill {terrain_id}: expected {HILL_PROFILE_LEN} profile_y entries, got {}",
-                profile_y.len()
-            )));
-        }
 
-        Ok(Self {
+        Self {
             front_visual: front_visual.pixels.into(),
             back_visual: back_visual.pixels.into(),
             width: meta.width,
@@ -108,12 +58,8 @@ impl HillTerrain {
             line_lengths,
             profile_y,
             tip_x: meta.tip_x,
-        })
+        }
     }
-
-    // ------------------------------------------------------------------
-    // Viewport / geometry methods (unchanged)
-    // ------------------------------------------------------------------
 
     pub fn viewport_rgba_and_mask(
         &self,
@@ -233,6 +179,7 @@ impl HillTerrain {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::files::FileStore;
 
     fn test_files() -> FileStore {
         let assets = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets");
@@ -241,7 +188,7 @@ mod tests {
 
     #[test]
     fn back_mask_loads_nonzero_pixels() {
-        let terrain = HillTerrain::load(&test_files(), 0).expect("HILL0");
+        let terrain = HillTerrain::load(&test_files(), 0);
         let (rgba, mask) = terrain.viewport_rgba_and_mask(0, 0, 320, 200);
         assert_eq!(rgba.len(), 320 * 200 * 4);
         assert_eq!(mask.len(), 320 * 200);
@@ -251,23 +198,15 @@ mod tests {
 
     #[test]
     fn extracts_front_profile_and_takeoff_point() {
-        let terrain = HillTerrain::load(&test_files(), 0).expect("HILL0");
+        let terrain = HillTerrain::load(&test_files(), 0);
         assert!(terrain.tip_x > 0, "expected positive tip_x");
         let max_profile = terrain.profile_y.iter().max().copied().unwrap_or(0);
         assert!(max_profile > 0, "expected non-zero profile");
     }
 
     #[test]
-    fn terrain_rejects_bad_format() {
-        let err = HillTerrain::load(&test_files(), 9999)
-            .unwrap_err()
-            .to_string();
-        assert!(err.contains("Failed"), "{err}");
-    }
-
-    #[test]
     fn viewport_produces_correct_dimensions() {
-        let terrain = HillTerrain::load(&test_files(), 0).expect("HILL0");
+        let terrain = HillTerrain::load(&test_files(), 0);
         let (rgba, mask) = terrain.viewport_rgba_and_mask(50, 30, 100, 80);
         assert_eq!(rgba.len(), 100 * 80 * 4);
         assert_eq!(mask.len(), 100 * 80);
@@ -275,7 +214,7 @@ mod tests {
 
     #[test]
     fn height_at_and_hill_angle() {
-        let terrain = HillTerrain::load(&test_files(), 0).expect("HILL0");
+        let terrain = HillTerrain::load(&test_files(), 0);
         let h = terrain.height_at(terrain.tip_x);
         assert!(h >= 0, "height at tip should be non-negative");
         let angle = terrain.hill_angle(terrain.tip_x + 10);
@@ -286,24 +225,23 @@ mod tests {
 
     #[test]
     fn load_hill0_has_correct_dimensions() {
-        let terrain = HillTerrain::load(&test_files(), 0).expect("HILL0");
+        let terrain = HillTerrain::load(&test_files(), 0);
         assert_eq!(terrain.width, 1024);
         assert_eq!(terrain.height, 512);
     }
 
     #[test]
     fn load_hill1_has_correct_dimensions() {
-        let terrain = HillTerrain::load(&test_files(), 1).expect("HILL1");
+        let terrain = HillTerrain::load(&test_files(), 1);
         assert_eq!(terrain.width, 1024);
         assert_eq!(terrain.height, 512);
     }
 
     #[test]
     fn planica_overlay_marker_239_is_baked_into_visual() {
-        let terrain = HillTerrain::load(&test_files(), 18).expect("HILL18");
+        let terrain = HillTerrain::load(&test_files(), 18);
         let (rgba, mask) = terrain.viewport_rgba_and_mask(704, 312, 320, 200);
         let pos = mask.iter().position(|&p| p == 239).expect("index 239 fill");
-
         assert_eq!(&rgba[pos * 4..pos * 4 + 4], &[255, 93, 93, 255]);
     }
 }

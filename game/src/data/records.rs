@@ -29,7 +29,7 @@ impl RecordStore {
     #[must_use]
     pub fn bundled_default() -> Self {
         let data = include_bytes!("../../assets/hiscores.toml");
-        Self::from_toml_bytes(data).unwrap_or_default()
+        Self::from_toml_bytes(data)
     }
 
     #[must_use]

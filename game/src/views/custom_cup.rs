@@ -321,11 +321,8 @@ impl CustomCupSetupView {
         match event {
             UiEvent::Text('y' | 'Y') => {
                 if let Some(name) = self.load_entries.get(self.load_index).cloned() {
-                    if let Err(e) = self.resources.files.delete_save(&set_path(&name)) {
-                        self.show_message(&format!("Delete failed: {e}"));
-                    } else {
-                        self.open_load();
-                    }
+                    self.resources.files.delete_save(&set_path(&name));
+                    self.open_load();
                 }
             }
             UiEvent::Text('n' | 'N') | UiEvent::KeyDown(Key::Escape) => {
@@ -358,7 +355,6 @@ impl CustomCupSetupView {
             .resources
             .files
             .list_save_subdir_by_ext(CUSTOM_CUP_DIR, "toml")
-            .unwrap_or_default()
             .into_iter()
             .map(|name| name.trim_end_matches(".toml").to_string())
             .collect();
@@ -377,12 +373,9 @@ impl CustomCupSetupView {
         let Some(name) = self.load_entries.get(self.load_index).cloned() else {
             return;
         };
-        let result = self
-            .resources
-            .files
-            .read(&set_path(&name))
+        let bytes = self.resources.files.read(&set_path(&name));
+        let result = String::from_utf8(bytes)
             .ok()
-            .and_then(|bytes| String::from_utf8(bytes).ok())
             .and_then(|text| toml::from_str::<CustomCupFile>(&text).ok())
             .filter(|file| file.format_version == 1);
         let Some(file) = result else {
@@ -415,10 +408,7 @@ impl CustomCupSetupView {
             self.show_message("Save failed");
             return;
         };
-        if let Err(e) = self.resources.files.write(&set_path(&name), &bytes) {
-            self.show_message(&format!("Save failed: {e}"));
-            return;
-        }
+        self.resources.files.write(&set_path(&name), &bytes);
         self.filename_input = name.clone();
         self.update_last_custom_cup_file(state, name);
         self.show_message("Custom set saved");
@@ -444,9 +434,7 @@ impl CustomCupSetupView {
 
     fn update_last_custom_cup_file(&self, state: &mut GameState, name: String) {
         state.config.last_custom_cup_file = name;
-        if let Err(e) = self.save_manager.save_config(&state.config) {
-            eprintln!("Warning: failed to save config: {e}");
-        }
+        self.save_manager.save_config(&state.config);
     }
 }
 

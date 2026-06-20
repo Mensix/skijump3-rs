@@ -4,7 +4,6 @@ use crate::data::hill::HillCatalog;
 use crate::data::hill_profile::HillTerrain;
 use crate::data::profile::ProfileStore;
 use crate::data::records::RecordStore;
-use crate::error::AssetError;
 use crate::files::FileStore;
 use crate::jump::replay::ReplayTrace;
 use crate::jump::types::DEFAULT_START_GATE;
@@ -49,20 +48,17 @@ impl Resources {
         self.namesets.names_for_config(name_set_index as i32)
     }
 
-    pub(crate) fn terrain(&self, hill_idx: usize) -> Result<Rc<HillTerrain>, AssetError> {
-        let hill = self
-            .hills
-            .hill(hill_idx)
-            .ok_or_else(|| AssetError::Custom(format!("Hill {hill_idx} not found")))?;
+    pub(crate) fn terrain(&self, hill_idx: usize) -> Rc<HillTerrain> {
+        let hill = self.hills.hill(hill_idx).unwrap();
         let terrain_id = &hill.terrain_id;
         let mut cache = self.terrain_cache.borrow_mut();
         if let Some(terrain) = cache.get(terrain_id) {
-            return Ok(terrain.clone());
+            return terrain.clone();
         }
-        let terrain = HillTerrain::load(&self.files, terrain_id)?;
+        let terrain = HillTerrain::load(&self.files, terrain_id);
         let terrain = Rc::new(terrain);
         cache.insert(terrain_id.clone(), terrain.clone());
-        Ok(terrain)
+        terrain
     }
 }
 

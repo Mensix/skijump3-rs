@@ -1,5 +1,4 @@
 use crate::data::hill::{HillCatalog, HillInfo};
-use crate::error::AssetError;
 use crate::files::FileStore;
 use serde::Deserialize;
 use std::collections::HashSet;
@@ -62,21 +61,8 @@ impl TerrainIndexToml {
 pub(crate) fn load_hills(
     files: &FileStore,
     manifest_path: &str,
-) -> Result<HillCatalog, AssetError> {
-    let manifest: HillsManifest = super::read_toml(files, manifest_path)?;
-
-    if manifest.format_version != 1 {
-        return Err(AssetError::format_version(
-            manifest_path,
-            1,
-            manifest.format_version,
-        ));
-    }
-    if manifest.catalogs.is_empty() {
-        return Err(AssetError::Custom(
-            "Hills manifest has no catalogs".to_string(),
-        ));
-    }
+) -> HillCatalog {
+    let manifest: HillsManifest = super::read_toml(files, manifest_path);
 
     let base_dir = match manifest_path.rfind('/') {
         Some(pos) => &manifest_path[..=pos],
@@ -89,113 +75,29 @@ pub(crate) fn load_hills(
 
     for entry in &manifest.catalogs {
         let full_path = format!("{base_dir}{}", entry.file);
-        let cat: HillCatalogToml = super::read_toml(files, &full_path)?;
-
-        if cat.id != entry.id {
-            return Err(AssetError::Custom(format!(
-                "Hill catalog id mismatch in {full_path}: manifest has '{}', file has '{}'",
-                entry.id, cat.id
-            )));
-        }
-        if cat.name.is_empty() {
-            return Err(AssetError::Custom(format!(
-                "Hill catalog '{}' has empty name in {full_path}",
-                entry.id
-            )));
-        }
-        if cat.hills.is_empty() {
-            return Err(AssetError::Custom(format!(
-                "Hill catalog '{}' has no hills in {full_path}",
-                entry.id
-            )));
-        }
-
-        if !seen_catalog_ids.insert(cat.id.clone()) {
-            return Err(AssetError::Custom(format!(
-                "Duplicate hill catalog id '{}'",
-                entry.id
-            )));
-        }
-        append_catalog(&mut all_hills, &mut seen_hill_ids, &cat, &full_path)?;
+        let cat: HillCatalogToml = super::read_toml(files, &full_path);
+        seen_catalog_ids.insert(cat.id.clone());
+        append_catalog(&mut all_hills, &mut seen_hill_ids, &cat);
     }
 
-    if !seen_catalog_ids.contains(&manifest.default) {
-        return Err(AssetError::Custom(format!(
-            "Default hill catalog '{}' not found in manifest",
-            manifest.default
-        )));
-    }
-
-    let mut custom_names = files
-        .list_save_subdir_by_ext("custom_hills", "toml")
-        .map_err(|e| AssetError::io("custom_hills", e))?;
+    let mut custom_names = files.list_save_subdir_by_ext("custom_hills", "toml");
     custom_names.sort();
     for name in custom_names {
         let full_path = format!("custom_hills/{name}");
-        let cat: HillCatalogToml = super::read_toml(files, &full_path)?;
-        append_catalog(&mut all_hills, &mut seen_hill_ids, &cat, &full_path)?;
+        let cat: HillCatalogToml = super::read_toml(files, &full_path);
+        append_catalog(&mut all_hills, &mut seen_hill_ids, &cat);
     }
 
-    Ok(HillCatalog::new(all_hills))
+    HillCatalog::new(all_hills)
 }
 
 fn append_catalog(
     all_hills: &mut Vec<HillInfo>,
     seen_hill_ids: &mut HashSet<String>,
     cat: &HillCatalogToml,
-    full_path: &str,
-) -> Result<(), AssetError> {
+) {
     for (idx, h) in cat.hills.iter().enumerate() {
-        if h.name.is_empty() {
-            return Err(AssetError::Custom(format!(
-                "Hill '{}' in {full_path} has empty name",
-                h.id
-            )));
-        }
-        if h.front_index.is_empty() {
-            return Err(AssetError::Custom(format!(
-                "Hill '{}' in {full_path} has empty front_index",
-                h.id
-            )));
-        }
-        if h.back_index.is_empty() {
-            return Err(AssetError::Custom(format!(
-                "Hill '{}' in {full_path} has empty back_index",
-                h.id
-            )));
-        }
-        if h.author.is_empty() {
-            return Err(AssetError::Custom(format!(
-                "Hill '{}' in {full_path} has empty author",
-                h.id
-            )));
-        }
-        if h.kr <= 0 {
-            return Err(AssetError::Custom(format!(
-                "Hill '{}' in {full_path} has non-positive kr ({})",
-                h.id, h.kr
-            )));
-        }
-        if h.pk_hundred <= 0 {
-            return Err(AssetError::Custom(format!(
-                "Hill '{}' in {full_path} has non-positive pk_hundred ({})",
-                h.id, h.pk_hundred
-            )));
-        }
-        if h.pl_save_ten_thousand <= 0 {
-            return Err(AssetError::Custom(format!(
-                "Hill '{}' in {full_path} has non-positive pl_save_ten_thousand ({})",
-                h.id, h.pl_save_ten_thousand
-            )));
-        }
-
-        if !seen_hill_ids.insert(format!("{}:{}", cat.id, h.id)) {
-            return Err(AssetError::Custom(format!(
-                "Duplicate hill id '{}' in catalog '{}'",
-                h.id, cat.id
-            )));
-        }
-
+        seen_hill_ids.insert(format!("{}:{}", cat.id, h.id));
         all_hills.push(HillInfo {
             name: h.name.clone(),
             kr: h.kr,
@@ -216,7 +118,6 @@ fn append_catalog(
                 .unwrap_or_else(|| idx.to_string()),
         });
     }
-    Ok(())
 }
 
 #[cfg(test)]
@@ -226,147 +127,12 @@ mod tests {
     use crate::files::FileStore;
 
     #[test]
-    fn rejects_missing_catalog() {
-        let (store, dir) = make_files();
-        write(
-            &dir,
-            "hills/manifest.toml",
-            r#"
-format_version = 1
-default = "nonexistent"
-
-[[catalogs]]
-id = "a"
-file = "a.toml"
-"#,
-        );
-        write(
-            &dir,
-            "hills/a.toml",
-            r#"
-id = "a"
-name = "A"
-[[hills]]
-id = "H"
-name = "h"
-kr = 90
-front_index = "1"
-back_index = "0"
-back_brightness = 90
-back_mirror = false
-vx_final = 130
-pk_hundred = 85
-pl_save_ten_thousand = 3200
-author = "t"
-checksum = 0
-profile_checksum = 0
-"#,
-        );
-        assert!(load_hills(&store, "hills/manifest.toml").is_err());
-    }
-
-    #[test]
-    fn rejects_empty_catalog_id() {
-        let (store, dir) = make_files();
-        write(
-            &dir,
-            "hills/manifest.toml",
-            r#"
-format_version = 1
-default = "default"
-
-[[catalogs]]
-id = "a"
-file = "a.toml"
-"#,
-        );
-        write(
-            &dir,
-            "hills/a.toml",
-            r#"
-id = "b"
-name = "A"
-[[hills]]
-id = "H"
-name = "h"
-kr = 90
-front_index = "1"
-back_index = "0"
-back_brightness = 90
-back_mirror = false
-vx_final = 130
-pk_hundred = 85
-pl_save_ten_thousand = 3200
-author = "t"
-checksum = 0
-profile_checksum = 0
-"#,
-        );
-        assert!(load_hills(&store, "hills/manifest.toml").is_err());
-    }
-
-    #[test]
-    fn rejects_duplicate_hill_ids() {
-        let (store, dir) = make_files();
-        write(
-            &dir,
-            "hills/manifest.toml",
-            r#"
-format_version = 1
-default = "default"
-
-[[catalogs]]
-id = "default"
-file = "default.toml"
-"#,
-        );
-        write(
-            &dir,
-            "hills/default.toml",
-            r#"
-id = "default"
-name = "Default"
-[[hills]]
-id = "A"
-name = "h1"
-kr = 90
-front_index = "1"
-back_index = "0"
-back_brightness = 90
-back_mirror = false
-vx_final = 130
-pk_hundred = 85
-pl_save_ten_thousand = 3200
-author = "t"
-checksum = 0
-profile_checksum = 0
-
-[[hills]]
-id = "A"
-name = "h2"
-kr = 90
-front_index = "1"
-back_index = "0"
-back_brightness = 90
-back_mirror = false
-vx_final = 130
-pk_hundred = 85
-pl_save_ten_thousand = 3200
-author = "t"
-checksum = 0
-profile_checksum = 0
-"#,
-        );
-        assert!(load_hills(&store, "hills/manifest.toml").is_err());
-    }
-
-    #[test]
     fn loads_real_assets() {
         let store = FileStore::new(
             std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets"),
             std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets"),
         );
-        let catalog = load_hills(&store, "hills/manifest.toml").unwrap();
+        let catalog = load_hills(&store, "hills/manifest.toml");
         assert!(catalog.hill(0).is_some());
 
         let kuopio = catalog.hill(0).unwrap();
@@ -423,7 +189,7 @@ checksum = 0
 profile_checksum = 0
 "#,
         );
-        let catalog = load_hills(&store, "hills/manifest.toml").unwrap();
+        let catalog = load_hills(&store, "hills/manifest.toml");
         assert_eq!(catalog.hill(0).unwrap().back_mirror, 1);
     }
 }

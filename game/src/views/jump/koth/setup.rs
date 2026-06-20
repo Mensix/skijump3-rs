@@ -46,9 +46,7 @@ impl KothSetupView {
 
     fn update_config(&self, config: &mut Config, f: impl FnOnce(&mut Config)) {
         f(config);
-        if let Err(e) = self.save_manager.save_config(config) {
-            eprintln!("Warning: failed to save config: {e}");
-        }
+        self.save_manager.save_config(config);
     }
 
     fn col1(&self, state: &GameState) -> engine::color::Rgba {

@@ -107,9 +107,7 @@ fn shell_event<T: GameScreen>(
         match event {
             UiEvent::Text(c) if is_yes(c, cx) => {
                 if let Some(active) = cx.state.active_competition.as_ref() {
-                    if let Err(e) = cx.save_manager.save_active_cup(active) {
-                        eprintln!("Warning: failed to save cup state: {e}");
-                    }
+                    cx.save_manager.save_active_cup(active);
                 }
                 nav.back();
             }

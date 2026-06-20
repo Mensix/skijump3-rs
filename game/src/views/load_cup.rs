@@ -43,13 +43,9 @@ impl LoadCupView {
         let Some(filename) = self.selected_entry().map(|entry| entry.filename.clone()) else {
             return;
         };
-        match self.save_manager.load_cup(&filename) {
-            Ok(data) => {
-                cx.state.active_competition = Some(data.active);
-                nav.navigate(RouteTarget::CompetitionJump);
-            }
-            Err(e) => self.error = Some(e.to_string()),
-        }
+        let data = self.save_manager.load_cup(&filename);
+        cx.state.active_competition = Some(data.active);
+        nav.navigate(RouteTarget::CompetitionJump);
     }
 }
 

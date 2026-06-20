@@ -11,10 +11,7 @@ use super::list::{ColorField, Mode, ProfilesView, QuestionAction, TextField, REP
 use super::render::profile_label;
 
 pub(super) fn save_players(view: &ProfilesView, state: &GameState) {
-    let result = view.save_manager.save_players(&state.profiles);
-    if let Err(e) = result {
-        eprintln!("Warning: failed to save players: {e}");
-    }
+    view.save_manager.save_players(&state.profiles);
 }
 
 pub(super) fn handle_list_enter(

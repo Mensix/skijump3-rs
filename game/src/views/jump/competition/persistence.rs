@@ -15,13 +15,9 @@ pub(crate) fn save_profiles_and_records_once(
 }
 
 fn save_profiles(save_manager: &SaveRef, state: &GameState) {
-    if let Err(e) = save_manager.save_players(&state.profiles) {
-        eprintln!("Warning: failed to save players: {e}");
-    }
+    save_manager.save_players(&state.profiles);
 }
 
 fn save_records(save_manager: &SaveRef, state: &GameState) {
-    if let Err(e) = save_manager.save_records(&state.records) {
-        eprintln!("Warning: failed to save records: {e}");
-    }
+    save_manager.save_records(&state.records);
 }

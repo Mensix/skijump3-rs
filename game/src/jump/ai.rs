@@ -127,7 +127,7 @@ mod tests {
     }
 
     fn hill_loader(idx: usize) -> HillTerrain {
-        HillTerrain::load(&test_files(), idx).expect("hill")
+        HillTerrain::load(&test_files(), idx)
     }
 
     fn snapshot(phase: JumpPhase) -> JumpSnapshot {

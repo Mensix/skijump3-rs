@@ -170,9 +170,7 @@ impl SaveReplayDialog {
             .format("%a %d %b %Y, %H:%M")
             .to_string()
             .to_uppercase();
-        if let Err(e) = self.resources.files.write(&filename, &trace.to_sjr_bytes()) {
-            eprintln!("Warning: failed to save replay {filename}: {e}");
-        }
+        self.resources.files.write(&filename, &trace.to_sjr_bytes());
         self.state = SaveDialogState::Inactive;
     }
 

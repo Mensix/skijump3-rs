@@ -57,9 +57,7 @@ impl ReplayBrowserView {
             self.confirm_delete = false;
             return;
         };
-        if let Err(e) = self.resources.files.delete_save(&filename) {
-            eprintln!("Warning: failed to delete replay {filename}: {e}");
-        }
+        self.resources.files.delete_save(&filename);
         self.entries = load_replays(&self.resources.files);
         if self.selected >= self.entries.len() {
             self.selected = self.entries.len().saturating_sub(1);
@@ -200,9 +198,7 @@ fn paint_replay_menu(cx: &mut PaintCx<'_>, layout: &MainLayout) {
 }
 
 fn load_replays(files: &FileStore) -> Vec<ReplayEntry> {
-    let Ok(names) = files.list_by_ext_all("SJR") else {
-        return Vec::new();
-    };
+    let names = files.list_by_ext_all("SJR");
     names
         .into_iter()
         .map(|filename| {
@@ -212,21 +208,17 @@ fn load_replays(files: &FileStore) -> Vec<ReplayEntry> {
                 .unwrap_or(&filename)
                 .to_string();
             let intro = stem.eq_ignore_ascii_case("INTRO");
-            match files
-                .read(&filename)
-                .map_err(|err| err.to_string())
-                .and_then(|bytes| {
-                    ReplayTrace::from_sjr_bytes(&bytes, intro).map_err(|err| format!("{err:?}"))
-                }) {
+            let data = files.read(&filename);
+            match ReplayTrace::from_sjr_bytes(&data, intro) {
                 Ok(trace) => ReplayEntry {
                     filename: stem,
                     trace: Some(trace),
                     error: None,
                 },
-                Err(error) => ReplayEntry {
+                Err(err) => ReplayEntry {
                     filename: stem,
                     trace: None,
-                    error: Some(error),
+                    error: Some(format!("{err:?}")),
                 },
             }
         })

@@ -1,6 +1,5 @@
 use crate::data::hill::HillInfo;
 use crate::data::hill_profile::HillTerrain;
-use crate::error::AssetError;
 use crate::gfx::materials;
 use crate::gfx::sprites;
 use crate::gfx::theme::{
@@ -30,7 +29,7 @@ use std::rc::Rc;
 pub struct ReplayView {
     resources: ResourcesRef,
     session: Option<ReplaySession>,
-    terrain: Result<HillTerrain, AssetError>,
+    terrain: Option<HillTerrain>,
     snow: SnowSystem,
     snow_camera: (i32, i32),
     snow_advance: bool,
@@ -43,10 +42,9 @@ pub struct ReplayView {
 
 impl ReplayView {
     pub fn new(resources: ResourcesRef, trace: Option<ReplayTrace>) -> Self {
-        let terrain: Result<HillTerrain, AssetError> = trace.as_ref().map_or_else(
-            || Err(AssetError::Custom("Replay hill not found".to_string())),
-            |trace| HillTerrain::load(&resources.files, trace.meta.hill_idx),
-        );
+        let terrain = trace.as_ref().map(|trace| {
+            HillTerrain::load(&resources.files, trace.meta.hill_idx)
+        });
         let mut snow = SnowSystem::new();
         if let Some(trace) = &trace {
             snow.set_count(trace.meta.snow_count, &mut Random::default());
@@ -109,7 +107,7 @@ impl ReplayView {
     }
 
     fn paint_content(&mut self, cx: &mut PaintCx<'_>) {
-        let Ok(terrain) = &self.terrain else {
+        let Some(terrain) = &self.terrain else {
             cx.fill((0, 0, 320, 200), BLACK);
             cx.text((20, 80), FONT_BODY, "Replay hill not found");
             cx.text((20, 95), FONT_GRAY, "PRESS ESC");

@@ -1,4 +1,3 @@
-use crate::error::AssetError;
 use crate::files::FileStore;
 use serde::Deserialize;
 
@@ -16,11 +15,7 @@ pub(crate) struct ContentSection {
 }
 
 impl ContentManifest {
-    pub(crate) fn load(files: &FileStore, path: &str) -> Result<Self, AssetError> {
-        let manifest: ContentManifest = super::read_toml(files, path)?;
-        if manifest.format_version != 1 {
-            return Err(AssetError::format_version(path, 1, manifest.format_version));
-        }
-        Ok(manifest)
+    pub(crate) fn load(files: &FileStore, path: &str) -> Self {
+        super::read_toml(files, path)
     }
 }

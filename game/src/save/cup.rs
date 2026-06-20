@@ -1,5 +1,5 @@
 use crate::competition::active::{ActiveCompetition, ActiveCompetitionKind};
-use crate::save::{parse_toml, SaveError};
+use crate::save::parse_toml;
 use serde::{Deserialize, Serialize};
 
 const FORMAT_VERSION: u32 = 1;
@@ -29,25 +29,18 @@ impl CupSaveData {
         Self { saved_at, active }
     }
 
-    pub fn from_toml_bytes(data: &[u8]) -> Result<Self, SaveError> {
-        let file: CupSaveFile = parse_toml(data)?;
-        if file.format_version != FORMAT_VERSION {
-            return Err(SaveError::Serialization(format!(
-                "unsupported cup save format {}",
-                file.format_version
-            )));
-        }
-        Ok(file.data)
+    pub fn from_toml_bytes(data: &[u8]) -> Self {
+        let file: CupSaveFile = parse_toml(data);
+        assert_eq!(file.format_version, FORMAT_VERSION, "unsupported cup save format {}", file.format_version);
+        file.data
     }
 
-    pub fn to_toml_bytes(&self) -> Result<Vec<u8>, SaveError> {
+    pub fn to_toml_bytes(&self) -> Vec<u8> {
         let file = CupSaveFile {
             format_version: FORMAT_VERSION,
             data: self.clone(),
         };
-        let text =
-            toml::to_string_pretty(&file).map_err(|e| SaveError::Serialization(e.to_string()))?;
-        Ok(text.into_bytes())
+        toml::to_string_pretty(&file).unwrap().into_bytes()
     }
 
     pub fn title(&self) -> String {

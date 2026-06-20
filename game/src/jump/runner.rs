@@ -1,7 +1,6 @@
 use crate::data::hill::HillCatalog;
 use crate::data::hill_profile::HillTerrain;
 use crate::data::records::RecordStore;
-use crate::error::AssetError;
 use crate::gfx::theme::{BLACK, FONT_BODY, FONT_GRAY};
 use crate::jump::config::JumpConfig;
 use crate::jump::frame::JumpRenderFrame;
@@ -143,33 +142,28 @@ impl JumpRunner {
     }
 
     fn new_state(config: &JumpConfig) -> Option<JumpState> {
-        match (&config.terrain, config.hill.as_ref()) {
-            (Ok(terrain), Some(hill)) => Some(JumpState::new(
-                terrain,
+        config.hill.as_ref().map(|hill| {
+            JumpState::new(
+                &config.terrain,
                 hill.vx_final as f64,
                 hill.pk(),
                 hill.kr as i32,
                 hill.pl_save(),
                 config.start_gate,
-            )),
-            _ => None,
-        }
+            )
+        })
     }
 
-    fn record_marker(config: &JumpConfig, state: Option<&JumpState>) -> Option<(i32, i32)> {
-        let (Ok(terrain), Some(hill), Some(_)) = (&config.terrain, config.hill.as_ref(), state)
-        else {
-            return None;
-        };
-        find_hill_record_marker(terrain, hill.pk(), config.record_distance)
+    fn record_marker(config: &JumpConfig, _state: Option<&JumpState>) -> Option<(i32, i32)> {
+        config.hill.as_ref().and_then(|hill| {
+            find_hill_record_marker(&config.terrain, hill.pk(), config.record_distance)
+        })
     }
 
-    fn goal_marker(config: &JumpConfig, state: Option<&JumpState>) -> Option<(i32, i32)> {
-        let (Ok(terrain), Some(hill), Some(_)) = (&config.terrain, config.hill.as_ref(), state)
-        else {
-            return None;
-        };
-        find_hill_record_marker(terrain, hill.pk(), config.goal_distance)
+    fn goal_marker(config: &JumpConfig, _state: Option<&JumpState>) -> Option<(i32, i32)> {
+        config.hill.as_ref().and_then(|hill| {
+            find_hill_record_marker(&config.terrain, hill.pk(), config.goal_distance)
+        })
     }
 
     pub(crate) const fn hill_idx(&self) -> usize {
@@ -304,9 +298,6 @@ impl JumpRunner {
         records: &RecordStore,
         wind: &Wind,
     ) {
-        if let Err(err) = &self.config.terrain {
-            return unavailable_render(cx, &err.to_string());
-        }
         if self.state.is_none() {
             return unavailable_render(cx, "jump state not available");
         }
@@ -324,9 +315,7 @@ impl JumpRunner {
         } else {
             wind.position()
         };
-        let mut frame = self
-            .render_frame(self.last_wind)
-            .expect("loaded jump render frame");
+        let mut frame = self.render_frame(self.last_wind);
         frame.hr_shake_position = self.render_runtime.hr_shake_position();
         let camera = self.camera();
         let draws_snow = self.draws_snow();
@@ -356,17 +345,13 @@ impl JumpRunner {
     }
 
     fn snapshot(&self) -> Option<JumpSnapshot> {
-        match (&self.config.terrain, &self.state) {
-            (Ok(terrain), Some(state)) => Some(state.snapshot_with_terrain(terrain)),
-            (_, Some(state)) => Some(state.snapshot()),
-            _ => None,
-        }
+        self.state.as_ref().map(|state| state.snapshot_with_terrain(&self.config.terrain))
     }
 
     fn tick(&mut self, wind: FlightWind, rng: &mut Random) {
-        if let (Ok(terrain), Some(state)) = (&self.config.terrain, &mut self.state) {
+        if let Some(state) = &mut self.state {
             let previous_phase = state.phase;
-            state.tick(terrain, wind, rng, self.config.policy.count_onbar_frames);
+            state.tick(&self.config.terrain, wind, rng, self.config.policy.count_onbar_frames);
             self.replay
                 .on_phase_change(previous_phase, state.phase, state);
         }
@@ -391,8 +376,8 @@ impl JumpRunner {
         if self.phase() == Some(JumpPhase::Result) {
             self.tick(sampled, rng);
         }
-        if let (Ok(terrain), Some(state)) = (&self.config.terrain, &self.state) {
-            self.replay.record_frame(terrain, state, sampled);
+        if let Some(state) = &self.state {
+            self.replay.record_frame(&self.config.terrain, state, sampled);
         }
         sampled
     }
@@ -415,12 +400,9 @@ impl JumpRunner {
         self.state.as_ref().map(|state| (state.sx, state.sy))
     }
 
-    fn render_frame(&self, wind: FlightWind) -> Result<JumpRenderFrame, AssetError> {
-        let (terrain, state) = match (&self.config.terrain, &self.state) {
-            (Ok(terrain), Some(state)) => (terrain, state),
-            (Err(err), _) => return Err(err.clone()),
-            _ => return Err(AssetError::Custom("jump state not available".to_string())),
-        };
+    fn render_frame(&self, wind: FlightWind) -> JumpRenderFrame {
+        let state = self.state.as_ref().expect("jump state not available");
+        let terrain = &self.config.terrain;
         let (viewport, snow_mask) = terrain.viewport_rgba_and_mask_with_back(
             state.sx,
             state.sy,
@@ -430,7 +412,7 @@ impl JumpRunner {
         );
         let (body_x, body_y) = state.body_position();
         let (body_anim, ski_anim) = state.anims(terrain);
-        Ok(JumpRenderFrame {
+        JumpRenderFrame {
             viewport: viewport.into(),
             snow_mask: snow_mask.into(),
             phase: state.phase,
@@ -456,7 +438,7 @@ impl JumpRunner {
                 && state.fall_type == crate::jump::types::FallType::None
                 && state.distance > self.config.record_distance,
             hr_shake_position: None,
-        })
+        }
     }
 }
 

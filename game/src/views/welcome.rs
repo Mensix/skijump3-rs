@@ -59,9 +59,7 @@ impl GameScreen for WelcomeScreenView {
             Some(n) => {
                 self.resources.langbase.selected.set(n - 1);
                 cx.state.config.language = (n - 1) as i32;
-                if let Err(e) = cx.save_manager.save_config(&cx.state.config) {
-                    eprintln!("Warning: failed to save config: {e}");
-                }
+                cx.save_manager.save_config(&cx.state.config);
                 nav.navigate(RouteTarget::MainMenu);
             }
             _ => {}

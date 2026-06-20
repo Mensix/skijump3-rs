@@ -96,7 +96,7 @@ impl EditHillView {
 
     fn load_values(resources: &ResourcesRef, filename: &str) -> Option<[String; 12]> {
         let path = format!("custom_hills/{filename}.toml");
-        let data = resources.files.read(&path).ok()?;
+        let data = resources.files.read(&path);
         let text = std::str::from_utf8(&data).ok()?;
         let catalog = toml::from_str::<CustomHillCatalogToml>(text).ok()?;
         let hill = catalog.hills.first()?;
@@ -190,7 +190,7 @@ impl EditHillView {
                 }
                 let prefix = if field == 3 { "front" } else { "back" };
                 let path = format!("hills/generated/HILL{value}/{prefix}_visual.png");
-                if self.resources.files.read(&path).is_err() {
+                if self.resources.files.read(&path).is_empty() {
                     let label = if field == 3 { "FRONT" } else { "BACK" };
                     let old = self.values[field - 1].clone();
                     self.mode = EditMode::Alert {
@@ -315,7 +315,7 @@ impl GameScreen for EditHillView {
                         return;
                     }
                     let path = format!("custom_hills/{filename}.toml");
-                    if self.resources.files.read(&path).is_ok() {
+                    if !self.resources.files.read(&path).is_empty() {
                         self.mode = EditMode::ConfirmOverwrite {
                             filename: filename.clone(),
                         };

@@ -42,8 +42,8 @@ impl Game {
             main_background,
             baked_sprites,
             pattern_texture,
-        } = assets::load(&files, &mut renderer)?;
-        let app_load = load_app(Rc::clone(&files), font.clone(), content_store)?;
+        } = assets::load(&files, &mut renderer);
+        let app_load = load_app(Rc::clone(&files), font.clone(), content_store);
 
         let start_route = {
             if app_load.state.config.language >= 0

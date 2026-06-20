@@ -16,11 +16,11 @@ pub(super) fn load_app(
     files: Rc<FileStore>,
     font: Font,
     content_store: ContentStore,
-) -> Result<AppLoad, String> {
+) -> AppLoad {
     let langbase = Rc::new(content_store.langbase);
     let config = load_initial_config(&files, &langbase);
     let save_manager = Rc::new(SaveManager::new(files.clone()));
-    let records = load_records(&files)?;
+    let records = load_records(&files);
     let profiles = save_manager.load_players();
     let resources = Rc::new(Resources::new(
         font,
@@ -30,14 +30,14 @@ pub(super) fn load_app(
         files,
     ));
     let state = GameState::new(records, profiles, config);
-    Ok(AppLoad {
+    AppLoad {
         resources,
         save_manager,
         state,
-    })
+    }
 }
 
-fn load_records(files: &FileStore) -> Result<RecordStore, String> {
-    let records_data = files.read("hiscores.toml").map_err(|e| e.to_string())?;
-    RecordStore::from_toml_bytes(&records_data).map_err(|e| e.to_string())
+fn load_records(files: &FileStore) -> RecordStore {
+    let records_data = files.read("hiscores.toml");
+    RecordStore::from_toml_bytes(&records_data)
 }

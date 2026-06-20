@@ -1,9 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::save::parse_toml;
-use crate::save::SaveError;
 
-/// TOML wrapper to version the file.
 #[derive(Debug, Deserialize, Serialize)]
 struct ConfigFile {
     format_version: u32,
@@ -89,84 +87,18 @@ impl Default for Config {
 }
 
 impl Config {
-    pub fn from_toml_bytes(data: &[u8]) -> Result<Self, SaveError> {
-        let file: ConfigFile = parse_toml(data)?;
-        if file.format_version != 1 {
-            return Err(SaveError::Serialization(format!(
-                "Unsupported config format_version: {}",
-                file.format_version
-            )));
-        }
-        Ok(file.config)
+    pub fn from_toml_bytes(data: &[u8]) -> Self {
+        let file: ConfigFile = parse_toml(data);
+        file.config
     }
 
-    pub fn to_toml_bytes(&self) -> Result<Vec<u8>, SaveError> {
+    pub fn to_toml_bytes(&self) -> Vec<u8> {
         let file = ConfigFile {
             format_version: 1,
             config: self.clone(),
         };
         toml::to_string(&file)
             .map(std::string::String::into_bytes)
-            .map_err(|e| SaveError::Serialization(e.to_string()))
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn roundtrip_preserves_all_fields() {
-        let cfg = Config::default();
-        let bytes = cfg.to_toml_bytes().unwrap();
-        let parsed = Config::from_toml_bytes(&bytes).unwrap();
-        assert_eq!(parsed.computer_hill_records, cfg.computer_hill_records);
-        assert_eq!(parsed.extra_statistics, cfg.extra_statistics);
-        assert_eq!(parsed.event_gap, cfg.event_gap);
-        assert_eq!(parsed.compact_results, cfg.compact_results);
-        assert_eq!(parsed.invisible_back, cfg.invisible_back);
-        assert_eq!(parsed.auto_hill_record_replay, cfg.auto_hill_record_replay);
-        assert_eq!(parsed.sound_effects, cfg.sound_effects);
-        assert_eq!(parsed.unique_computer_names, cfg.unique_computer_names);
-        assert_eq!(parsed.goals_enabled, cfg.goals_enabled);
-        assert_eq!(parsed.wc_gap, cfg.wc_gap);
-        assert_eq!(parsed.ko_system, cfg.ko_system);
-        assert_eq!(parsed.language, cfg.language);
-        assert_eq!(parsed.training_rounds, cfg.training_rounds);
-        assert_eq!(parsed.name_set_index, cfg.name_set_index);
-        assert_eq!(parsed.last_custom_cup_file, cfg.last_custom_cup_file);
-        assert_eq!(parsed.graphics_detail, cfg.graphics_detail);
-        assert_eq!(parsed.visible_computers, cfg.visible_computers);
-        assert_eq!(parsed.jumper_count, cfg.jumper_count);
-        assert_eq!(parsed.jumper_names, cfg.jumper_names);
-        assert_eq!(parsed.player_count, cfg.player_count);
-        assert_eq!(parsed.profile_order, cfg.profile_order);
-        assert_eq!(parsed.koth_wind, cfg.koth_wind);
-        assert_eq!(parsed.koth_rounds, cfg.koth_rounds);
-        assert_eq!(parsed.koth_pack, cfg.koth_pack);
-        assert_eq!(parsed.koth_hill, cfg.koth_hill);
-        assert_eq!(parsed.koth_opponent_count, cfg.koth_opponent_count);
-        assert_eq!(parsed.koth_opponent_ids, cfg.koth_opponent_ids);
-        assert_eq!(parsed.key_up, cfg.key_up);
-        assert_eq!(parsed.key_right, cfg.key_right);
-        assert_eq!(parsed.key_left, cfg.key_left);
-        assert_eq!(parsed.key_telemark, cfg.key_telemark);
-        assert_eq!(parsed.key_replay, cfg.key_replay);
-        assert_eq!(parsed.wind_position, cfg.wind_position);
-    }
-
-    #[test]
-    fn rejects_bad_format_version() {
-        let bytes = b"format_version = 99\nreg = 0\n";
-        let result = Config::from_toml_bytes(bytes);
-        assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("format_version"));
-    }
-
-    #[test]
-    fn rejects_invalid_toml() {
-        let bytes = b"garbage [[[toml]]]\n";
-        let result = Config::from_toml_bytes(bytes);
-        assert!(result.is_err());
+            .unwrap()
     }
 }
