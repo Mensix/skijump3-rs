@@ -144,7 +144,7 @@ impl PixelMenu {
         if self.trailing.is_some() && self.selected == self.items.len() {
             0
         } else {
-            self.selected + 1
+            self.items[self.selected].number as usize
         }
     }
 
@@ -210,7 +210,7 @@ impl Widget for PixelMenu {
                     Some(0)
                 } else if index >= 1 && index <= self.items.len() {
                     self.set_selected(index - 1);
-                    Some(index)
+                    Some(self.submit_selected())
                 } else {
                     None
                 }
