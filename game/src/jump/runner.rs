@@ -350,19 +350,16 @@ impl JumpRunner {
     }
 
     fn apply_snow_to_viewport(&mut self, frame: &mut JumpRenderFrame, wind: i32) {
-        if self.snow.count() == 0 {
-            return;
-        }
-        let draw = self.draws_snow();
         if let Some(camera) = self.camera() {
-            let delta_x = self.prev_camera.0 - camera.0;
-            let delta_y = self.prev_camera.1 - camera.1;
+            self.snow.render_to_viewport(
+                &mut frame.viewport,
+                &frame.snow_mask,
+                self.prev_camera,
+                camera,
+                wind,
+                self.draws_snow(),
+            );
             self.prev_camera = camera;
-            let mut viewport = frame.viewport.to_vec();
-            let mask = &frame.snow_mask;
-            self.snow
-                .update(&mut viewport, mask, delta_x, delta_y, wind, draw);
-            frame.viewport = viewport.into();
         }
     }
 

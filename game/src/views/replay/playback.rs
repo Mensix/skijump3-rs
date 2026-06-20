@@ -130,22 +130,20 @@ impl ReplayView {
         let replay_frame = frame.replay_frame;
 
         let (viewport_rgba, viewport_mask) = terrain.viewport_rgba_and_mask(sx, sy, WIDTH, HEIGHT);
-        let mut viewport_rgba = viewport_rgba;
-        if !session.trace().meta.intro && self.snow.count() > 0 {
+        let mut viewport: Rc<[u8]> = viewport_rgba.into();
+        if !session.trace().meta.intro {
             let previous = self.snow_camera;
             self.snow_camera = (sx, sy);
-            let draw = self.snow_advance;
-            self.snow_advance = false;
-            self.snow.update(
-                &mut viewport_rgba,
+            self.snow.render_to_viewport(
+                &mut viewport,
                 &viewport_mask,
-                previous.0 - sx,
-                previous.1 - sy,
+                previous,
+                (sx, sy),
                 i32::from(replay_frame.wind),
-                draw,
+                self.snow_advance,
             );
+            self.snow_advance = false;
         }
-        let viewport: Rc<[u8]> = viewport_rgba.into();
         visuals::push_viewport(cx, &viewport);
 
         visuals::push_hill_record_marker(cx, session.trace().meta.hill_record_marker, sx, sy);

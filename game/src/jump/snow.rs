@@ -1,6 +1,7 @@
 use crate::rng::Random;
 use engine::color::Rgba;
 use engine::consts::{HEIGHT, WIDTH};
+use std::rc::Rc;
 
 const SNOW_MAX: usize = 256;
 const SINE_LENGTH: usize = 512;
@@ -23,7 +24,7 @@ fn snow_index_to_rgba(idx: u8) -> [u8; 4] {
     [rgba.r, rgba.g, rgba.b, rgba.a]
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy, Default)]
 struct Snowflake {
     x: i64,
     y: i64,
@@ -36,14 +37,10 @@ struct Snowflake {
 
 #[derive(Debug, Clone)]
 pub struct SnowSystem {
-    flakes: Vec<Snowflake>,
-    sine: Vec<i64>,
+    flakes: [Snowflake; SNOW_MAX],
+    sine: [i64; SINE_LENGTH + 1],
     count: u16,
     max: usize,
-    base_gravity: u16,
-    gravity_variation: u16,
-    side_movement: u16,
-    sleet: bool,
 }
 
 /// Pascal `LMaara` calculation: random snow count used at event start.
@@ -67,41 +64,36 @@ impl SnowSystem {
     #[must_use]
     pub fn new() -> Self {
         let mut system = Self {
-            flakes: vec![],
-            sine: vec![0; SINE_LENGTH + 1],
+            flakes: [Snowflake::default(); SNOW_MAX],
+            sine: [0; SINE_LENGTH + 1],
             count: 0,
             max: 0,
-            base_gravity: 600,
-            gravity_variation: 300,
-            side_movement: 50,
-            sleet: false,
         };
-        system.compute_sine();
+        system.compute_sine(50);
         system
     }
 
-    fn compute_sine(&mut self) {
+    fn compute_sine(&mut self, side_movement: u16) {
         for i in 0..=SINE_LENGTH {
             let angle = i as f64 * std::f64::consts::PI * 2.0 / SINE_LENGTH as f64;
-            self.sine[i] = (angle.sin() * f64::from(self.side_movement)).round() as i64;
+            self.sine[i] = (angle.sin() * f64::from(side_movement)).round() as i64;
         }
     }
 
     pub fn set_count(&mut self, count: u16, rng: &mut Random) {
-        self.base_gravity = 600;
-        self.gravity_variation = 300;
-        self.side_movement = 50;
-        self.sleet = false;
+        let mut base_gravity = 600;
+        let mut gravity_variation = 300;
+        let side_movement = 50;
+        let mut sleet = false;
         self.count = count;
         self.max = count as usize;
         if count > 1000 {
-            self.sleet = true;
-            self.base_gravity = 875;
-            self.gravity_variation = 100;
-            self.side_movement = 50;
+            sleet = true;
+            base_gravity = 875;
+            gravity_variation = 100;
             self.max = (count - 1000) as usize;
         }
-        self.reset(rng);
+        self.reset(rng, base_gravity, gravity_variation, side_movement, sleet);
     }
 
     pub fn clear_count(&mut self) {
@@ -114,35 +106,34 @@ impl SnowSystem {
         self.count
     }
 
-    fn reset(&mut self, rng: &mut Random) {
-        self.compute_sine();
-        self.flakes = (0..SNOW_MAX)
-            .map(|_| {
-                let x = i64::from(rng.random_i32(WIDTH as i32)) << 10;
-                let y = i64::from(rng.random_i32(HEIGHT as i32)) << 10;
-                let sin_pos = rng.random_i32(SINE_LENGTH as i32) as usize;
-                let gravity = i64::from(rng.random_i32(i32::from(self.gravity_variation)))
-                    + i64::from(self.base_gravity)
-                    - i64::from(self.gravity_variation);
-                let style = rng.random_i32(2) as u16;
-                let style = if self.sleet && style == 1 {
-                    rng.random_i32(2) as u16
-                } else {
-                    style
-                };
-                let c1 = Self::get_color(rng);
-                let c2 = Self::get_color(rng);
-                Snowflake {
-                    x,
-                    y,
-                    gravity,
-                    sin_pos,
-                    c1,
-                    c2,
-                    style,
-                }
-            })
-            .collect();
+    fn reset(
+        &mut self,
+        rng: &mut Random,
+        base_gravity: u16,
+        gravity_variation: u16,
+        side_movement: u16,
+        sleet: bool,
+    ) {
+        self.compute_sine(side_movement);
+        for flake in &mut self.flakes {
+            let style = rng.random_i32(2) as u16;
+            let style = if sleet && style == 1 {
+                rng.random_i32(2) as u16
+            } else {
+                style
+            };
+            *flake = Snowflake {
+                x: i64::from(rng.random_i32(WIDTH as i32)) << 10,
+                y: i64::from(rng.random_i32(HEIGHT as i32)) << 10,
+                gravity: i64::from(rng.random_i32(i32::from(gravity_variation)))
+                    + i64::from(base_gravity)
+                    - i64::from(gravity_variation),
+                sin_pos: rng.random_i32(SINE_LENGTH as i32) as usize,
+                c1: Self::get_color(rng),
+                c2: Self::get_color(rng),
+                style,
+            };
+        }
     }
 
     fn get_color(rng: &mut Random) -> u16 {
@@ -166,7 +157,7 @@ impl SnowSystem {
     ) {
         let max = self.max.min(SNOW_MAX - 1);
         let pixel_count = (WIDTH as usize) * (HEIGHT as usize);
-        for flake in self.flakes.iter_mut().take(max + 1) {
+        for flake in &mut self.flakes[..=max] {
             if draw {
                 flake.x += self.sine[flake.sin_pos] + i64::from(delta_x) * 512 + i64::from(wind);
                 flake.sin_pos = (flake.sin_pos + 1) & (SINE_LENGTH - 1);
@@ -207,6 +198,30 @@ impl SnowSystem {
             }
         }
     }
+
+    pub fn render_to_viewport(
+        &mut self,
+        viewport: &mut Rc<[u8]>,
+        mask: &[u8],
+        previous_camera: (i32, i32),
+        camera: (i32, i32),
+        wind: i32,
+        draw: bool,
+    ) {
+        if self.count() == 0 {
+            return;
+        }
+        let mut pixels = viewport.to_vec();
+        self.update(
+            &mut pixels,
+            mask,
+            previous_camera.0 - camera.0,
+            previous_camera.1 - camera.1,
+            wind,
+            draw,
+        );
+        *viewport = pixels.into();
+    }
 }
 
 impl Default for SnowSystem {
@@ -241,7 +256,7 @@ mod tests {
     #[test]
     fn update_uses_pascal_wrapped_offset_for_offscreen_flakes() {
         let mut snow = SnowSystem::new();
-        snow.flakes = vec![flake_at(0, 205_i64 << 10, 233)];
+        snow.flakes[0] = flake_at(0, 205_i64 << 10, 233);
         snow.max = 0;
 
         let (mut rgba, mask) = make_buffer_and_mask();
@@ -255,10 +270,8 @@ mod tests {
     #[test]
     fn update_respects_pascal_inclusive_max_count() {
         let mut snow = SnowSystem::new();
-        snow.flakes = vec![
-            flake_at(10_i64 << 10, 10_i64 << 10, 233),
-            flake_at(20_i64 << 10, 10_i64 << 10, 234),
-        ];
+        snow.flakes[0] = flake_at(10_i64 << 10, 10_i64 << 10, 233);
+        snow.flakes[1] = flake_at(20_i64 << 10, 10_i64 << 10, 234);
         snow.max = 0;
 
         let (mut rgba, mask) = make_buffer_and_mask();
