@@ -40,7 +40,7 @@ pub fn paint_detail_panel(
     cx.text((LABEL_X, FILENAME_LABEL_Y), FONT_GRAY, "Filename:");
     let fw = cx.string_width(filename) as i32;
     let bx = LABEL_X + 13;
-    let bw = (fw + 14).min(155).max(95);
+    let bw = (fw + 14).clamp(95, 155);
     cx.fill((bx, FILENAME_BOX_Y, bw, FILENAME_BOX_H), FILL_PURPLE);
     cx.fill(
         (bx + 1, FILENAME_BOX_Y + 1, bw - 2, FILENAME_BOX_H - 2),

@@ -114,7 +114,7 @@ impl GameScreen for ReplayBrowserView {
     fn paint(&mut self, cx: &mut GameCx<'_>, paint: &mut PaintCx<'_>) {
         paint.fill((11, 80, 100, 6), BG_DARK);
         paint.text((11, 80), FONT_GOLD, cx.layout.langbase.lstr(17));
-        paint_replay_menu(paint, &cx.layout);
+        paint_replay_menu(paint, cx.layout);
         cx.layout.footer(paint);
         paint_replay_panel(paint, &self.resources, &self.entries, self.selected);
         if self.confirm_delete {

@@ -430,7 +430,7 @@ impl CustomCupSetupView {
         } else {
             20
         };
-        let wc_hill_count = self.all_hill_count.min(20).max(1);
+        let wc_hill_count = self.all_hill_count.clamp(1, 20);
         while self.selected.len() < target && self.selected.len() < MAX_HILLS {
             let idx = state.rng.random_i32(wc_hill_count as i32).max(0) as usize;
             self.selected.push(idx);

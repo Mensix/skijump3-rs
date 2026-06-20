@@ -265,7 +265,7 @@ fn showteams_elements(
 
     let mut x = 5i32;
     let mut y = 24i32;
-    state.active_competition.as_ref().map(|active| {
+    if let Some(active) = state.active_competition.as_ref() {
         let Some(tc) = active.team_cup_runtime() else {
             return;
         };
@@ -294,7 +294,7 @@ fn showteams_elements(
                 y += 35;
             }
         }
-    });
+    }
 
     cx.right_text((305, 6), FONT_BODY, resources.langbase.lstr(15).to_string());
     cx.fill((305 - 1, 6 - 2, 9, 11), BG_TEAM);

@@ -361,7 +361,7 @@ mod tests {
 
     fn simulate_all_jumps(runtime: &mut TeamCupRuntime) {
         for leg in 0..6 {
-            simulate_leg(runtime, f64::from(200 + leg as i32));
+            simulate_leg(runtime, f64::from(200 + leg));
         }
         match runtime.decide_next() {
             CompetitionDecision::Done => {}

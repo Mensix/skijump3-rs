@@ -53,7 +53,7 @@ impl GameScreen for MainMenuView {
     fn event(&mut self, cx: &mut GameCx<'_>, nav: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
         if self.confirming_quit {
             match event {
-                UiEvent::Text(c) if is_yes(c, &cx.layout) => nav.quit(),
+                UiEvent::Text(c) if is_yes(c, cx.layout) => nav.quit(),
                 UiEvent::KeyDown(_) | UiEvent::Text(_) => {
                     self.confirming_quit = false;
                     nav.consume();
@@ -90,7 +90,7 @@ impl GameScreen for MainMenuView {
         cx.layout.jumpers(paint, &cx.state.profiles);
         cx.layout.registration(paint);
         paint.text((11, 80), FONT_GOLD, cx.layout.langbase.lstr(17));
-        paint_main_menu(paint, &self.menu, &cx.layout);
+        paint_main_menu(paint, &self.menu, cx.layout);
         cx.layout.footer(paint);
         if self.confirming_quit {
             paint_quit_confirm(paint, &self.quit_question, &self.quit_prompt);

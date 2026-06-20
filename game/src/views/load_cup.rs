@@ -73,7 +73,7 @@ impl GameScreen for LoadCupView {
     fn paint(&mut self, cx: &mut GameCx<'_>, paint: &mut PaintCx<'_>) {
         paint.fill((11, 80, 100, 6), BG_DARK);
         paint.text((11, 80), FONT_GOLD, cx.layout.langbase.lstr(18));
-        paint_jump_menu(paint, &cx.layout);
+        paint_jump_menu(paint, cx.layout);
         cx.layout.footer(paint);
         paint_detail_panel(
             paint,
