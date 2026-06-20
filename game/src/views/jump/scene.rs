@@ -5,7 +5,7 @@ use crate::jump::sim;
 use crate::jump::snow::{calculate_snow_count, SnowSystem};
 use crate::jump::types::{JumpOutcome, JumpPhase, JumpTelemetry};
 use crate::jump::wind::Wind;
-use crate::jump::{JumpParticipant, JumpPolicy, JumpRunner, JumpRunnerRenderEnv};
+use crate::jump::{JumpParticipant, JumpPolicy, JumpRunner};
 use crate::rng::Random;
 use crate::store::{GameState, ResourcesRef};
 use crate::views::jump::input::{JumpInputAction, JumpInputController, JumpKeyBindings};
@@ -126,11 +126,11 @@ impl JumpScene {
         self.runner.set_team_name(name);
     }
 
-    pub fn set_suppress_info_panel(&self, suppress: bool) {
-        self.runner.suppress_info_panel.set(suppress);
+    pub fn set_suppress_info_panel(&mut self, suppress: bool) {
+        self.runner.set_suppress_info_panel(suppress);
     }
 
-    pub fn set_has_bib(&self, val: bool) {
+    pub fn set_has_bib(&mut self, val: bool) {
         self.runner.set_has_bib(val);
     }
 
@@ -282,13 +282,11 @@ impl JumpScene {
         }
         self.runner.render(
             cx,
-            JumpRunnerRenderEnv {
-                font: &self.resources.font,
-                langbase: &self.resources.langbase,
-                hills: &self.resources.hills,
-                records: &state.records,
-                wind: &state.wind,
-            },
+            &self.resources.font,
+            &self.resources.langbase,
+            &self.resources.hills,
+            &state.records,
+            &state.wind,
         )
     }
 

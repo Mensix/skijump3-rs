@@ -20,6 +20,5 @@ pub(crate) mod wind;
 pub(crate) use ai::ComputerInputProvider;
 pub(crate) use config::JumpParticipant;
 pub(crate) use policy::{JumpPolicy, JumperControl};
-pub(crate) use presentation::JumpPresentationContext;
-pub(crate) use runner::{JumpRunner, JumpRunnerRenderEnv};
+pub(crate) use runner::JumpRunner;
 pub(crate) use types::{JumpInput, JumpPhase};

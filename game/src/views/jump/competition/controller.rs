@@ -79,6 +79,10 @@ where
         self.scene.as_ref()
     }
 
+    pub(crate) fn scene_mut(&mut self) -> Option<&mut JumpScene> {
+        self.scene.as_mut()
+    }
+
     pub(crate) fn render_mode(&self) -> RenderMode {
         self.ui_state.render_mode()
     }

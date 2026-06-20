@@ -6,28 +6,19 @@ use crate::gfx::theme::{BLACK, FONT_BODY, FONT_GRAY};
 use crate::jump::config::JumpConfig;
 use crate::jump::frame::JumpRenderFrame;
 use crate::jump::math;
-use crate::jump::presentation;
-use crate::jump::replay::{ReplayMeta, ReplayRecorder, ReplayTrace};
+use crate::jump::presentation::{self, JumpPresentationContext};
+use crate::jump::replay::{LiveReplayRecorder, ReplayTrace};
 use crate::jump::snow::SnowSystem;
 use crate::jump::state::JumpState;
 use crate::jump::types::{FlightWind, JumpInput, JumpOutcome, JumpPhase, JumpSnapshot};
 use crate::jump::wind::Wind;
 use crate::jump::wind::WindPosition;
-use crate::jump::{ComputerInputProvider, JumpPresentationContext, JumperControl};
+use crate::jump::{ComputerInputProvider, JumperControl};
 use crate::rng::Random;
 use crate::text::lang::LangBase;
 use engine::consts::{HEIGHT, WIDTH};
 use engine::oxide::Font;
 use engine::oxide::PaintCx;
-use std::cell::Cell;
-
-pub(crate) struct JumpRunnerRenderEnv<'a> {
-    pub(crate) font: &'a Font,
-    pub(crate) langbase: &'a LangBase,
-    pub(crate) hills: &'a HillCatalog,
-    pub(crate) records: &'a RecordStore,
-    pub(crate) wind: &'a Wind,
-}
 
 fn find_hill_record_marker(
     terrain: &HillTerrain,
@@ -52,23 +43,79 @@ fn find_hill_record_marker(
 }
 
 #[derive(Debug)]
+struct JumpRenderRuntime {
+    snow: SnowSystem,
+    prev_camera: (i32, i32),
+    hr_shake_position: Option<(i32, i32)>,
+    keymap_shown: bool,
+}
+
+impl JumpRenderRuntime {
+    fn new(snow: SnowSystem, state: Option<&JumpState>) -> Self {
+        Self {
+            snow,
+            prev_camera: state.map_or((0, 0), |state| (state.sx, state.sy)),
+            hr_shake_position: None,
+            keymap_shown: false,
+        }
+    }
+
+    fn clone_snow(&self) -> SnowSystem {
+        self.snow.clone()
+    }
+
+    const fn clear_hr_shake(&mut self) {
+        self.hr_shake_position = None;
+    }
+
+    const fn set_hr_shake(&mut self, position: (i32, i32)) {
+        self.hr_shake_position = Some(position);
+    }
+
+    const fn hr_shake_position(&self) -> Option<(i32, i32)> {
+        self.hr_shake_position
+    }
+
+    fn show_keymap(&mut self, phase: JumpPhase) -> bool {
+        let show = !self.keymap_shown && matches!(phase, JumpPhase::Info | JumpPhase::OnBar);
+        self.keymap_shown |= show;
+        show
+    }
+
+    fn apply_snow(
+        &mut self,
+        frame: &mut JumpRenderFrame,
+        camera: Option<(i32, i32)>,
+        wind: i32,
+        draws_snow: bool,
+    ) {
+        if let Some(camera) = camera {
+            self.snow.render_to_viewport(
+                &mut frame.viewport,
+                &frame.snow_mask,
+                self.prev_camera,
+                camera,
+                wind,
+                draws_snow,
+            );
+            self.prev_camera = camera;
+        }
+    }
+}
+
+#[derive(Debug)]
 pub struct JumpRunner {
     config: JumpConfig,
     state: Option<JumpState>,
-    replay_prev_pos: Option<(i32, i32)>,
-    replay: ReplayRecorder,
-    last_phase: Option<JumpPhase>,
+    replay: LiveReplayRecorder,
     record_marker: Option<(i32, i32)>,
     goal_marker: Option<(i32, i32)>,
-    snow: SnowSystem,
-    prev_camera: (i32, i32),
+    render_runtime: JumpRenderRuntime,
     computer_input: Option<ComputerInputProvider>,
     computer_pre_ai_wind_done: bool,
     last_wind: FlightWind,
-    hr_shake_position: Cell<Option<(i32, i32)>>,
-    pub(crate) suppress_info_panel: Cell<bool>,
-    pub(crate) has_bib: Cell<bool>,
-    keymap_shown: Cell<bool>,
+    suppress_info_panel: bool,
+    has_bib: bool,
 }
 
 impl JumpRunner {
@@ -76,32 +123,22 @@ impl JumpRunner {
         let computer_input = (config.participant.control == JumperControl::Computer)
             .then(|| ComputerInputProvider::new(config.participant.ai_id));
         let state = Self::new_state(&config);
-        let replay_prev_pos = state.as_ref().map(|state| (state.x, state.y));
-        let last_phase = state.as_ref().map(|state| state.phase);
-        let mut replay = ReplayRecorder::default();
-        if let Some(state) = &state {
-            replay.start(Self::replay_meta(state, &config));
-        }
+        let replay = LiveReplayRecorder::new(&config, state.as_ref());
         let record_marker = Self::record_marker(&config, state.as_ref());
         let goal_marker = Self::goal_marker(&config, state.as_ref());
-        let prev_camera = state.as_ref().map_or((0, 0), |state| (state.sx, state.sy));
+        let render_runtime = JumpRenderRuntime::new(snow, state.as_ref());
         Self {
             config,
             state,
-            replay_prev_pos,
             replay,
-            last_phase,
             record_marker,
             goal_marker,
-            snow,
-            prev_camera,
+            render_runtime,
             computer_input,
             computer_pre_ai_wind_done: false,
             last_wind: FlightWind::default(),
-            hr_shake_position: Cell::new(None),
-            suppress_info_panel: Cell::new(false),
-            has_bib: Cell::new(false),
-            keymap_shown: Cell::new(false),
+            suppress_info_panel: false,
+            has_bib: false,
         }
     }
 
@@ -116,36 +153,6 @@ impl JumpRunner {
                 config.start_gate,
             )),
             _ => None,
-        }
-    }
-
-    fn replay_meta(state: &JumpState, config: &JumpConfig) -> ReplayMeta {
-        ReplayMeta {
-            start_x: state.x,
-            start_y: state.y,
-            hill_idx: config.hill_idx,
-            snow_count: config.snow_count,
-            distance: 0,
-            flight_start: 0,
-            flight_stop: 0,
-            hill_record_marker: None,
-            hill_filename: "HILLBASE".to_string(),
-            hill_profile: config
-                .hill
-                .as_ref()
-                .and_then(|hill| i32::try_from(hill.profile_checksum).ok())
-                .unwrap_or_default(),
-            suit_color: config.participant.suit_color,
-            ski_color: config.participant.ski_color,
-            saved_at: String::new(),
-            has_bib: false,
-            author: String::new(),
-            name: config.participant.display_name().to_string(),
-            start_gate_or_competition: 100 - config.start_gate,
-            frame_count: 0,
-            checksum: 0,
-            valid_checksum: true,
-            intro: false,
         }
     }
 
@@ -216,11 +223,11 @@ impl JumpRunner {
     }
 
     pub(crate) fn replay_trace(&self) -> Option<ReplayTrace> {
-        self.replay.finish()
+        self.replay.trace()
     }
 
     pub(crate) fn clone_snow(&self) -> SnowSystem {
-        self.snow.clone()
+        self.render_runtime.clone_snow()
     }
 
     pub(crate) fn reset_state(
@@ -236,11 +243,7 @@ impl JumpRunner {
             self.state = Self::new_state(&self.config);
             self.record_marker = Self::record_marker(&self.config, self.state.as_ref());
             self.goal_marker = Self::goal_marker(&self.config, self.state.as_ref());
-            self.replay_prev_pos = self.state.as_ref().map(|state| (state.x, state.y));
-            self.last_phase = self.state.as_ref().map(|state| state.phase);
-            if let Some(state) = &self.state {
-                self.replay.start(Self::replay_meta(state, &self.config));
-            }
+            self.replay.reset(&self.config, self.state.as_ref());
         }
         self.computer_input = (self.config.participant.control == JumperControl::Computer)
             .then(|| ComputerInputProvider::new(self.config.participant.ai_id));
@@ -255,8 +258,12 @@ impl JumpRunner {
         self.config.team_name = name;
     }
 
-    pub(crate) fn set_has_bib(&self, val: bool) {
-        self.has_bib.set(val);
+    pub(crate) fn set_suppress_info_panel(&mut self, suppress: bool) {
+        self.suppress_info_panel = suppress;
+    }
+
+    pub(crate) fn set_has_bib(&mut self, val: bool) {
+        self.has_bib = val;
     }
 
     /// Advance physics, AI, and wind by one frame. Call once per frame
@@ -274,7 +281,7 @@ impl JumpRunner {
             }
         }
         self.last_wind = self.tick_with_wind(rng, wind);
-        self.hr_shake_position.set(None);
+        self.render_runtime.clear_hr_shake();
         if self.phase() == Some(JumpPhase::Landing)
             && self.config.record_distance > 0.0
             && self
@@ -283,49 +290,55 @@ impl JumpRunner {
                 .is_some_and(|state| state.distance > self.config.record_distance)
             && rng.random_i32(2) == 0
         {
-            self.hr_shake_position
-                .set(Some((308 - 1 + rng.random_i32(3), 32 + rng.random_i32(3))));
+            self.render_runtime
+                .set_hr_shake((308 - 1 + rng.random_i32(3), 32 + rng.random_i32(3)));
         }
     }
 
-    pub(crate) fn render(&mut self, cx: &mut PaintCx<'_>, env: JumpRunnerRenderEnv<'_>) {
-        match &self.config.terrain {
-            Err(err) => unavailable_render(cx, &err.to_string()),
-            Ok(_) if self.state.is_some() => self.render_loaded_session(cx, env),
-            _ => unavailable_render(cx, "jump state not available"),
+    pub(crate) fn render(
+        &mut self,
+        cx: &mut PaintCx<'_>,
+        font: &Font,
+        langbase: &LangBase,
+        hills: &HillCatalog,
+        records: &RecordStore,
+        wind: &Wind,
+    ) {
+        if let Err(err) = &self.config.terrain {
+            return unavailable_render(cx, &err.to_string());
         }
-    }
-
-    fn render_loaded_session(&mut self, cx: &mut PaintCx<'_>, env: JumpRunnerRenderEnv<'_>) {
-        if self.phase().is_none() {
+        if self.state.is_none() {
             return unavailable_render(cx, "jump state not available");
         }
 
-        let hill_name_k = env
-            .hills
+        let hill_name_k = hills
             .hill(self.config.hill_idx)
             .map(|h| format!("{} K{}", h.name, h.kr))
             .unwrap_or_default();
-        let wind_pos = if env.wind.place() > 10 {
+        let wind_pos = if wind.place() > 10 {
             if let Some(ref st) = self.state {
-                env.wind.position_for_jumper(st.x - st.sx, st.y - st.sy)
+                wind.position_for_jumper(st.x - st.sx, st.y - st.sy)
             } else {
-                env.wind.position()
+                wind.position()
             }
         } else {
-            env.wind.position()
+            wind.position()
         };
         let mut frame = self
-            .render_frame(self.last_wind, WIDTH, HEIGHT)
+            .render_frame(self.last_wind)
             .expect("loaded jump render frame");
-        frame.hr_shake_position = self.hr_shake_position.get();
-        self.apply_snow_to_viewport(&mut frame, env.wind.value);
+        frame.hr_shake_position = self.render_runtime.hr_shake_position();
+        let camera = self.camera();
+        let draws_snow = self.draws_snow();
+        self.render_runtime
+            .apply_snow(&mut frame, camera, wind.value, draws_snow);
+        let show_keymap = self.render_runtime.show_keymap(frame.phase);
         let ctx = JumpPresentationContext {
-            font: env.font,
-            langbase: env.langbase,
+            font,
+            langbase,
             jumper_name: self.config.participant.display_name(),
             hill_name_k: &hill_name_k,
-            hill_record: env.records.hill_record(self.config.hill_idx),
+            hill_record: records.hill_record(self.config.hill_idx),
             wind_position: WindPosition {
                 x: wind_pos.x,
                 y: wind_pos.y,
@@ -333,34 +346,13 @@ impl JumpRunner {
             phase_label: &self.config.phase_label,
             team_name: &self.config.team_name,
             allow_gate_adjust: self.config.policy.allow_start_gate_adjust,
-            suppress_info_panel: self.suppress_info_panel.get(),
-            has_bib: self.has_bib.get(),
+            suppress_info_panel: self.suppress_info_panel,
+            has_bib: self.has_bib,
             suit_color: self.config.participant.suit_color as usize,
             ski_color: self.config.participant.ski_color as usize,
-            show_keymap: if !self.keymap_shown.get()
-                && matches!(frame.phase, JumpPhase::Info | JumpPhase::OnBar)
-            {
-                self.keymap_shown.set(true);
-                true
-            } else {
-                false
-            },
+            show_keymap,
         };
         presentation::render(cx, &frame, &ctx);
-    }
-
-    fn apply_snow_to_viewport(&mut self, frame: &mut JumpRenderFrame, wind: i32) {
-        if let Some(camera) = self.camera() {
-            self.snow.render_to_viewport(
-                &mut frame.viewport,
-                &frame.snow_mask,
-                self.prev_camera,
-                camera,
-                wind,
-                self.draws_snow(),
-            );
-            self.prev_camera = camera;
-        }
     }
 
     fn snapshot(&self) -> Option<JumpSnapshot> {
@@ -372,16 +364,11 @@ impl JumpRunner {
     }
 
     fn tick(&mut self, wind: FlightWind, rng: &mut Random) {
-        let phase_change =
-            if let (Ok(terrain), Some(state)) = (&self.config.terrain, &mut self.state) {
-                let previous_phase = state.phase;
-                state.tick(terrain, wind, rng, self.config.policy.count_onbar_frames);
-                Some((previous_phase, state.phase))
-            } else {
-                None
-            };
-        if let Some((previous_phase, current_phase)) = phase_change {
-            self.update_replay_markers(previous_phase, current_phase);
+        if let (Ok(terrain), Some(state)) = (&self.config.terrain, &mut self.state) {
+            let previous_phase = state.phase;
+            state.tick(terrain, wind, rng, self.config.policy.count_onbar_frames);
+            self.replay
+                .on_phase_change(previous_phase, state.phase, state);
         }
     }
 
@@ -404,47 +391,10 @@ impl JumpRunner {
         if self.phase() == Some(JumpPhase::Result) {
             self.tick(sampled, rng);
         }
-        self.record_replay_frame(sampled);
+        if let (Ok(terrain), Some(state)) = (&self.config.terrain, &self.state) {
+            self.replay.record_frame(terrain, state, sampled);
+        }
         sampled
-    }
-
-    fn update_replay_markers(&mut self, previous_phase: JumpPhase, current_phase: JumpPhase) {
-        if previous_phase != JumpPhase::Flight && current_phase == JumpPhase::Flight {
-            self.replay.mark_flight_start();
-        }
-        if previous_phase == JumpPhase::Flight && current_phase == JumpPhase::Landing {
-            self.replay.mark_flight_stop();
-        }
-        if let Some(state) = &self.state {
-            if matches!(
-                current_phase,
-                JumpPhase::Landing | JumpPhase::Result | JumpPhase::Disqualified
-            ) {
-                self.replay.set_distance(math::round(state.distance * 10.0));
-            }
-        }
-        self.last_phase = Some(current_phase);
-    }
-
-    fn record_replay_frame(&mut self, wind: FlightWind) {
-        let (current_pos, body_anim, ski_anim, phase) = {
-            let (terrain, state) = match (&self.config.terrain, &self.state) {
-                (Ok(terrain), Some(state)) => (terrain, state),
-                _ => return,
-            };
-            let (body_anim, ski_anim) = state.anims(terrain);
-            ((state.x, state.y), body_anim, ski_anim, state.phase)
-        };
-
-        if matches!(phase, JumpPhase::Result | JumpPhase::Disqualified) {
-            self.replay.stop();
-            return;
-        }
-
-        let previous = self.replay_prev_pos.unwrap_or(current_pos);
-        self.replay
-            .record_frame(previous, current_pos, body_anim, ski_anim, wind.value);
-        self.replay_prev_pos = Some(current_pos);
     }
 
     fn draws_snow(&self) -> bool {
@@ -465,12 +415,7 @@ impl JumpRunner {
         self.state.as_ref().map(|state| (state.sx, state.sy))
     }
 
-    fn render_frame(
-        &self,
-        wind: FlightWind,
-        width: u32,
-        height: u32,
-    ) -> Result<JumpRenderFrame, AssetError> {
+    fn render_frame(&self, wind: FlightWind) -> Result<JumpRenderFrame, AssetError> {
         let (terrain, state) = match (&self.config.terrain, &self.state) {
             (Ok(terrain), Some(state)) => (terrain, state),
             (Err(err), _) => return Err(err.clone()),
@@ -479,8 +424,8 @@ impl JumpRunner {
         let (viewport, snow_mask) = terrain.viewport_rgba_and_mask_with_back(
             state.sx,
             state.sy,
-            width,
-            height,
+            WIDTH,
+            HEIGHT,
             self.config.draw_back,
         );
         let (body_x, body_y) = state.body_position();

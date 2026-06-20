@@ -1,3 +1,8 @@
+use crate::data::hill_profile::HillTerrain;
+use crate::jump::config::JumpConfig;
+use crate::jump::math;
+use crate::jump::state::JumpState;
+use crate::jump::types::{FlightWind, JumpPhase};
 use crate::text::encoding;
 use std::fmt::Write;
 
@@ -112,6 +117,104 @@ impl ReplayRecorder {
             meta,
             frames: self.frames.clone(),
         })
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub(crate) struct LiveReplayRecorder {
+    recorder: ReplayRecorder,
+    previous_pos: Option<(i32, i32)>,
+}
+
+impl LiveReplayRecorder {
+    #[must_use]
+    pub(crate) fn new(config: &JumpConfig, state: Option<&JumpState>) -> Self {
+        let mut tracker = Self::default();
+        tracker.reset(config, state);
+        tracker
+    }
+
+    pub(crate) fn reset(&mut self, config: &JumpConfig, state: Option<&JumpState>) {
+        self.recorder = ReplayRecorder::default();
+        self.previous_pos = state.map(|state| (state.x, state.y));
+        if let Some(state) = state {
+            self.recorder.start(Self::meta(config, state));
+        }
+    }
+
+    pub(crate) fn on_phase_change(
+        &mut self,
+        previous_phase: JumpPhase,
+        current_phase: JumpPhase,
+        state: &JumpState,
+    ) {
+        if previous_phase != JumpPhase::Flight && current_phase == JumpPhase::Flight {
+            self.recorder.mark_flight_start();
+        }
+        if previous_phase == JumpPhase::Flight && current_phase == JumpPhase::Landing {
+            self.recorder.mark_flight_stop();
+        }
+        if matches!(
+            current_phase,
+            JumpPhase::Landing | JumpPhase::Result | JumpPhase::Disqualified
+        ) {
+            self.recorder
+                .set_distance(math::round(state.distance * 10.0));
+        }
+    }
+
+    pub(crate) fn record_frame(
+        &mut self,
+        terrain: &HillTerrain,
+        state: &JumpState,
+        wind: FlightWind,
+    ) {
+        if matches!(state.phase, JumpPhase::Result | JumpPhase::Disqualified) {
+            self.recorder.stop();
+            return;
+        }
+
+        let current_pos = (state.x, state.y);
+        let previous_pos = self.previous_pos.unwrap_or(current_pos);
+        let (body_anim, ski_anim) = state.anims(terrain);
+        self.recorder
+            .record_frame(previous_pos, current_pos, body_anim, ski_anim, wind.value);
+        self.previous_pos = Some(current_pos);
+    }
+
+    #[must_use]
+    pub(crate) fn trace(&self) -> Option<ReplayTrace> {
+        self.recorder.finish()
+    }
+
+    fn meta(config: &JumpConfig, state: &JumpState) -> ReplayMeta {
+        ReplayMeta {
+            start_x: state.x,
+            start_y: state.y,
+            hill_idx: config.hill_idx,
+            snow_count: config.snow_count,
+            distance: 0,
+            flight_start: 0,
+            flight_stop: 0,
+            hill_record_marker: None,
+            hill_filename: "HILLBASE".to_string(),
+            hill_profile: config
+                .hill
+                .as_ref()
+                .and_then(|hill| i32::try_from(hill.profile_checksum).ok())
+                .unwrap_or_default(),
+            suit_color: config.participant.suit_color,
+            ski_color: config.participant.ski_color,
+            saved_at: String::new(),
+            has_bib: false,
+            author: String::new(),
+            name: config.participant.display_name().to_string(),
+            start_gate_or_competition: 100 - config.start_gate,
+            frame_count: 0,
+            checksum: 0,
+            valid_checksum: true,
+            intro: false,
+        }
     }
 }
 

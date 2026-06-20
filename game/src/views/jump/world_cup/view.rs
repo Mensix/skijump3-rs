@@ -63,7 +63,7 @@ impl WorldCupJumpView {
                     .unwrap_or(false);
                 self.controller
                     .prepare_human_jump(participant, hill_idx, phase_label, None, state);
-                if let Some(scene) = self.controller.scene() {
+                if let Some(scene) = self.controller.scene_mut() {
                     scene.set_has_bib(is_leader);
                 }
             }
