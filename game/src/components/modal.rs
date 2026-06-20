@@ -14,12 +14,14 @@ pub fn alert_prompt(
     bg: Rgba,
     line1: impl AsRef<str>,
     line2: impl AsRef<str>,
-    cursor_x: i32,
     cursor_on: bool,
 ) {
+    let line2 = line2.as_ref();
+    let cursor_x = 80 + cx.string_width(line2) as i32 + 8;
+
     alert_box(cx, ALERT_RECT, bg);
     cx.text((80, 90), FONT_GOLD, line1.as_ref());
-    cx.text((80, 110), FONT_GOLD, line2.as_ref());
+    cx.text((80, 110), FONT_GOLD, line2);
     cx.fill((cursor_x - 2, 108, 9, 11), BG_PURPLE);
     if cursor_on {
         cx.fill((cursor_x, 116, 5, 1), FONT_BODY);

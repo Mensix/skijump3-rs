@@ -63,7 +63,3 @@ impl CupSaveData {
         }
     }
 }
-
-pub fn cup_save_filename(saved_at: &str) -> String {
-    format!("cup_{}.toml", saved_at.replace([':', '-', ' '], "_"))
-}

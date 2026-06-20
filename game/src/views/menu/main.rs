@@ -1,6 +1,6 @@
 use crate::components::layout::MainLayout;
-use crate::components::modal::alert_box;
-use crate::gfx::theme::{BG_DARK, BG_PURPLE, BG_RED, FONT_BODY, FONT_GOLD, FONT_GRAY};
+use crate::components::modal::alert_prompt;
+use crate::gfx::theme::{BG_RED, FONT_BODY, FONT_GOLD};
 use crate::route::RouteTarget;
 use crate::screen::{GameCx, GameScreen};
 use engine::oxide::widgets::menu::PixelMenu;
@@ -92,7 +92,6 @@ impl GameScreen for MainMenuView {
         cx.layout.background(paint);
         cx.layout.jumpers(paint, &cx.state.profiles);
         cx.layout.registration(paint);
-        paint.fill((11, 80, 100, 6), BG_DARK);
         paint.text((11, 80), FONT_GOLD, cx.layout.langbase.lstr(17));
         paint_main_menu(paint, &self.menu, &cx.layout);
         cx.layout.footer(paint);
@@ -124,18 +123,7 @@ fn paint_main_menu(cx: &mut PaintCx<'_>, menu: &PixelMenu, layout: &MainLayout) 
 }
 
 fn paint_quit_confirm(cx: &mut PaintCx<'_>, question: &str, prompt: &str, cursor_on: bool) {
-    let prompt_w = cx.string_width(prompt) as i32;
-    alert_box(cx, (60, 80, 200, 51), BG_RED);
-    cx.text((70, 90), FONT_GOLD, question);
-    cx.text((70, 110), FONT_GOLD, prompt);
-    let yn_x = 70 + prompt_w + 4;
-    cx.text((yn_x, 110), FONT_GRAY, "(Y/N)");
-    let cursor_x = yn_x + 25;
-    let cursor_y = 110;
-    cx.fill((cursor_x - 2, cursor_y - 2, 9, 11), BG_PURPLE);
-    if cursor_on {
-        cx.fill((cursor_x, cursor_y + 6, 5, 1), FONT_GOLD);
-    }
+    alert_prompt(cx, BG_RED, question, format!("{prompt} (Y/N):"), cursor_on);
 }
 
 fn is_yes(c: char, layout: &MainLayout) -> bool {

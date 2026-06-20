@@ -266,7 +266,6 @@ impl GameScreen for HillMakerView {
                 BG_RED,
                 format!("DELETE {filename}.TOML?"),
                 "ARE YOU SURE? (Y/N):",
-                190,
                 true,
             );
         }

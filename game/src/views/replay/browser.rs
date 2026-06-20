@@ -1,8 +1,9 @@
+use crate::components::detail_panel::paint_detail_panel;
 use crate::components::layout::MainLayout;
 use crate::components::modal::alert_prompt;
 use crate::components::page_nav::cycle_index;
 use crate::files::FileStore;
-use crate::gfx::theme::{BG_DARK, BG_PURPLE, FILL_PURPLE, FONT_BODY, FONT_GOLD, FONT_GRAY};
+use crate::gfx::theme::{BG_DARK, BG_PURPLE, FONT_BODY, FONT_GOLD};
 use crate::jump::replay::ReplayTrace;
 use crate::route::RouteTarget;
 use crate::screen::{GameCx, GameScreen};
@@ -135,7 +136,6 @@ fn paint_delete_confirm(cx: &mut PaintCx<'_>, filename: &str) {
         BG_PURPLE,
         format!("Delete {filename}.SJR?"),
         "Are You Sure? (Y/N):",
-        190,
         true,
     );
 }
@@ -147,43 +147,46 @@ fn paint_replay_panel(
     selected: usize,
 ) {
     let langbase = &resources.langbase;
-
-    cx.text((170, 51), FONT_GRAY, format!("{}:", langbase.lstr(25)));
-    cx.text((150, 185), FONT_GRAY, langbase.lstr(146));
-
-    if entries.is_empty() {
-        cx.text((170, 80), FONT_GOLD, langbase.lstr(290));
-        return;
-    }
-
     let entry = &entries[selected];
-    cx.text(
-        (272, 85),
-        FONT_GRAY,
-        format!("{}/{}", selected + 1, entries.len()),
-    );
-    cx.text((150, 71), FONT_GRAY, langbase.lstr(293));
-    cx.text((150, 106), FONT_GRAY, langbase.lstr(291));
-    cx.text((150, 126), FONT_GRAY, langbase.lstr(292));
-    cx.text((150, 146), FONT_GRAY, langbase.lstr(294));
-    cx.fill((163, 78, 95, 21), FILL_PURPLE);
-    cx.fill((164, 79, 93, 19), BG_PURPLE);
-    cx.text((170, 85), FONT_GOLD, &entry.filename);
 
-    if let Some(trace) = &entry.trace {
-        let hill = resources.hills.hill(trace.meta.hill_idx).map_or_else(
-            || "?".to_string(),
-            |hill| format!("{} K{}", hill.name, hill.kr),
-        );
-        cx.text((170, 115), FONT_BODY, &trace.meta.author);
-        cx.text((170, 135), FONT_BODY, &trace.meta.name);
-        cx.text((170, 155), FONT_BODY, hill);
-        cx.text((170, 163), FONT_GRAY, &trace.meta.saved_at);
-    } else if let Some(error) = &entry.error {
-        cx.text((170, 115), FONT_GRAY, "Unknown");
-        cx.text((170, 135), FONT_GRAY, "Not a valid replay.");
-        cx.text((170, 155), FONT_GRAY, error);
-    }
+    let (field_pairs, extra_saved): (Vec<(String, String)>, Option<String>) =
+        if let Some(trace) = &entry.trace {
+            let hill = resources.hills.hill(trace.meta.hill_idx).map_or_else(
+                || "?".to_string(),
+                |hill| format!("{} K{}", hill.name, hill.kr),
+            );
+            let pairs = vec![
+                (langbase.lstr(291).to_string(), trace.meta.author.clone()),
+                (langbase.lstr(292).to_string(), trace.meta.name.clone()),
+                (langbase.lstr(294).to_string(), hill),
+            ];
+            (pairs, Some(trace.meta.saved_at.clone()))
+        } else if let Some(error) = &entry.error {
+            let pairs = vec![
+                (langbase.lstr(291).to_string(), "Unknown".to_string()),
+                (
+                    langbase.lstr(292).to_string(),
+                    "Not a valid replay.".to_string(),
+                ),
+                (langbase.lstr(294).to_string(), error.clone()),
+            ];
+            (pairs, None)
+        } else {
+            (vec![], None)
+        };
+
+    paint_detail_panel(
+        cx,
+        &format!("{}:", langbase.lstr(25)),
+        &entry.filename,
+        &field_pairs,
+        extra_saved.as_deref(),
+        Some((selected + 1, entries.len())),
+        langbase.lstr(146),
+        langbase.lstr(290),
+        entries.is_empty(),
+        None,
+    );
 }
 
 fn paint_replay_menu(cx: &mut PaintCx<'_>, layout: &MainLayout) {

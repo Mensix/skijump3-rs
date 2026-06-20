@@ -166,6 +166,10 @@ impl SaveReplayDialog {
         let mut trace = trace.clone();
         trace.meta.author.clone_from(&self.author);
         trace.meta.name.clone_from(&self.name);
+        trace.meta.saved_at = chrono::Local::now()
+            .format("%a %d %b %Y, %H:%M")
+            .to_string()
+            .to_uppercase();
         if let Err(e) = self.resources.files.write(&filename, &trace.to_sjr_bytes()) {
             eprintln!("Warning: failed to save replay {filename}: {e}");
         }
@@ -280,7 +284,6 @@ impl SaveReplayDialog {
             BG_RED,
             format!("{}.SJR {}", filename, self.resources.langbase.lstr(345)),
             format!("{} (Y/N):", self.resources.langbase.lstr(346)),
-            190,
             self.cursor_blink.visible(11, 10),
         );
     }

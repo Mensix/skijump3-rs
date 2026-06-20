@@ -457,7 +457,7 @@ mod tests {
                 hill_profile: 7,
                 suit_color: 3,
                 ski_color: 4,
-                saved_at: "1.1.2000 00:00".to_string(),
+                saved_at: "SAT 01 JAN 2000, 00:00".to_string(),
                 has_bib: false,
                 author: "TESTER".to_string(),
                 name: "ROUNDTRIP".to_string(),

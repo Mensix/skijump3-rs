@@ -98,7 +98,6 @@ impl GameScreen for JumpMenuView {
         cx.layout.jumpers(paint, &cx.state.profiles);
         cx.layout.registration(paint);
         paint.fill((1, 94, 116, 106), BG_DARK);
-        paint.fill((11, 80, 100, 6), BG_DARK);
         paint.text((11, 80), FONT_GOLD, cx.layout.langbase.lstr(18));
         paint_jump_menu(paint, &self.menu, &cx.layout);
         cx.layout.footer(paint);

@@ -1,6 +1,7 @@
+use crate::components::detail_panel::paint_detail_panel;
 use crate::components::layout::MainLayout;
 use crate::components::page_nav::cycle_index;
-use crate::gfx::theme::{BG_DARK, BG_PURPLE, FILL_PURPLE, FONT_BODY, FONT_GOLD, FONT_GRAY};
+use crate::gfx::theme::{BG_DARK, FONT_BODY, FONT_GOLD};
 use crate::route::RouteTarget;
 use crate::save::cup::CupSaveEntry;
 use crate::save::SaveRef;
@@ -74,14 +75,28 @@ impl GameScreen for LoadCupView {
         paint.text((11, 80), FONT_GOLD, cx.layout.langbase.lstr(18));
         paint_jump_menu(paint, &cx.layout);
         cx.layout.footer(paint);
-        paint_panel(
+        paint_detail_panel(
             paint,
-            &self.entries,
-            self.selected,
-            self.error.as_deref(),
-            cx.layout.langbase.lstr(520),
-            cx.layout.langbase.lstr(523),
+            &format!("{}:", cx.layout.langbase.lstr(520)),
+            self.selected_entry().map_or("", |e| &e.filename),
+            &[
+                (
+                    "Cup:".to_string(),
+                    self.selected_entry().map_or("", |e| &e.title).to_string(),
+                ),
+                (
+                    "Saved:".to_string(),
+                    self.selected_entry()
+                        .map_or("", |e| &e.saved_at)
+                        .to_string(),
+                ),
+            ],
+            None,
+            None,
             cx.layout.langbase.lstr(146),
+            cx.layout.langbase.lstr(523),
+            self.entries.is_empty(),
+            self.error.as_deref(),
         );
     }
 
@@ -99,40 +114,5 @@ fn paint_jump_menu(cx: &mut PaintCx<'_>, layout: &MainLayout) {
             FONT_BODY,
             format!("{} - {}", num, layout.langbase.lstr(*label)),
         );
-    }
-}
-
-fn paint_panel(
-    cx: &mut PaintCx<'_>,
-    entries: &[CupSaveEntry],
-    selected: usize,
-    error: Option<&str>,
-    title: &str,
-    empty_text: &str,
-    nav_hint: &str,
-) {
-    cx.text((170, 51), FONT_GRAY, format!("{}:", title));
-    cx.text((150, 185), FONT_GRAY, nav_hint);
-
-    if entries.is_empty() {
-        cx.text((170, 80), FONT_GOLD, empty_text);
-        return;
-    }
-
-    let entry = &entries[selected];
-    cx.text((150, 71), FONT_GRAY, "Filename:");
-    cx.text((150, 106), FONT_GRAY, "Cup:");
-    cx.text((150, 146), FONT_GRAY, "Saved:");
-    let fw = cx.string_width(&entry.filename) as i32;
-    let bx = 163;
-    let bw = (fw + 14).min(155).max(20);
-    cx.fill((bx, 78, bw, 21), FILL_PURPLE);
-    cx.fill((bx + 1, 79, bw - 2, 19), BG_PURPLE);
-    cx.text((bx + 7, 85), FONT_GOLD, &entry.filename);
-    cx.text((170, 115), FONT_BODY, &entry.title);
-    cx.text((170, 155), FONT_BODY, &entry.saved_at);
-
-    if let Some(error) = error {
-        cx.text((150, 180), FONT_GRAY, error);
     }
 }

@@ -27,7 +27,6 @@ pub struct JumpScene {
     save_dialog: SaveReplayDialog,
     resources: ResourcesRef,
     telemetry: Option<JumpTelemetry>,
-    auto_replay_prompted: bool,
 }
 
 impl JumpScene {
@@ -74,7 +73,6 @@ impl JumpScene {
             save_dialog: SaveReplayDialog::new(resources.clone()),
             telemetry: None,
             resources,
-            auto_replay_prompted: false,
         }
     }
 
@@ -88,7 +86,6 @@ impl JumpScene {
         phase_label: String,
     ) {
         self.telemetry = None;
-        self.auto_replay_prompted = false;
         let existing_snow = self.runner.clone_snow();
         let snow = Self::prepare_snow(state, Some(existing_snow));
         self.runner = Self::build_runner(
@@ -300,25 +297,6 @@ impl JumpScene {
             return;
         }
         self.runner.update(&mut state.rng, &mut state.wind);
-        self.open_auto_hill_record_replay_dialog(state);
-    }
-
-    fn open_auto_hill_record_replay_dialog(&mut self, state: &GameState) {
-        if self.auto_replay_prompted || state.config.auto_hill_record_replay == 0 {
-            return;
-        }
-        let Some(outcome) = self.runner.outcome() else {
-            return;
-        };
-        if outcome.fall_type != crate::jump::types::FallType::None {
-            return;
-        }
-        let hill_idx = self.runner.hill_idx();
-        let record_distance = state.records.hill_record(hill_idx).map_or(0.0, |r| r.len);
-        if record_distance > 0.0 && outcome.distance > record_distance {
-            self.auto_replay_prompted = true;
-            self.open_save_dialog(state);
-        }
     }
 
     #[allow(clippy::too_many_arguments)]

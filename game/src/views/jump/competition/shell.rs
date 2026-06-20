@@ -179,7 +179,6 @@ fn shell_paint<T: GameScreen>(
             BG_PURPLE,
             cx.layout.langbase.lstr(521),
             cx.layout.langbase.lstr(522),
-            247,
             shell.blinker.visible(11, 10),
         );
     }

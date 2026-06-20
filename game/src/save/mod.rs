@@ -13,7 +13,7 @@ use crate::data::records::RecordStore;
 use crate::text::lang::LangBase;
 
 use self::config::Config;
-use self::cup::{cup_save_filename, CupSaveData, CupSaveEntry};
+use self::cup::{CupSaveData, CupSaveEntry};
 use crate::files::FileStore;
 
 pub type SaveRef = Rc<SaveManager>;
@@ -109,8 +109,8 @@ impl SaveManager {
     }
 
     pub fn save_active_cup(&self, active: &ActiveCompetition) -> Result<String, SaveError> {
+        let filename = format!("cup_{}.toml", chrono::Local::now().format("%Y%m%d_%H%M"));
         let saved_at = current_timestamp_string();
-        let filename = cup_save_filename(&saved_at);
         let data = CupSaveData::new(active.clone(), saved_at).to_toml_bytes()?;
         self.save_bytes(&filename, &data)?;
         Ok(filename)
@@ -157,5 +157,8 @@ impl SaveManager {
 }
 
 fn current_timestamp_string() -> String {
-    chrono::Local::now().format("%Y-%m-%d %H:%M").to_string()
+    chrono::Local::now()
+        .format("%a %d %b %Y, %H:%M")
+        .to_string()
+        .to_uppercase()
 }

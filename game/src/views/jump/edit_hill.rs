@@ -422,7 +422,6 @@ impl GameScreen for EditHillView {
                     BG_RED,
                     message,
                     format!("{subtitle}  {prompt}"),
-                    191,
                     self.blinker.visible(11, 10),
                 );
             }
@@ -433,7 +432,6 @@ impl GameScreen for EditHillView {
                     BG_RED,
                     format!("FILE {filename}.TOML ALREADY EXISTS."),
                     format!("{} (Y/N):", prompt),
-                    191,
                     self.blinker.visible(11, 10),
                 );
             }
