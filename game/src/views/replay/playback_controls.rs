@@ -1,5 +1,4 @@
 use crate::jump::replay_player::ReplaySession;
-use std::cell::Cell;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PlaybackMode {
@@ -49,60 +48,60 @@ impl PlaybackSpeed {
 
 #[derive(Debug)]
 pub struct ReplayPlayback {
-    mode: Cell<PlaybackMode>,
-    speed: Cell<PlaybackSpeed>,
-    place_counter: Cell<u32>,
+    mode: PlaybackMode,
+    speed: PlaybackSpeed,
+    place_counter: u32,
 }
 
 impl ReplayPlayback {
     #[must_use]
     pub const fn new() -> Self {
         Self {
-            mode: Cell::new(PlaybackMode::PlayOnceThenPause),
-            speed: Cell::new(PlaybackSpeed::Pct100),
-            place_counter: Cell::new(0),
+            mode: PlaybackMode::PlayOnceThenPause,
+            speed: PlaybackSpeed::Pct100,
+            place_counter: 0,
         }
     }
 
     pub const fn mode(&self) -> PlaybackMode {
-        self.mode.get()
+        self.mode
     }
 
-    pub fn set_mode(&self, mode: PlaybackMode) {
-        self.mode.set(mode);
+    pub fn set_mode(&mut self, mode: PlaybackMode) {
+        self.mode = mode;
     }
 
     pub const fn speed(&self) -> PlaybackSpeed {
-        self.speed.get()
+        self.speed
     }
 
-    pub fn set_speed(&self, speed: PlaybackSpeed) {
-        self.speed.set(speed);
+    pub fn set_speed(&mut self, speed: PlaybackSpeed) {
+        self.speed = speed;
     }
 
-    pub fn advance(&self, session: &mut ReplaySession) -> bool {
-        let mode = self.mode.get();
+    pub fn advance(&mut self, session: &mut ReplaySession) -> bool {
+        let mode = self.mode;
         if mode == PlaybackMode::Pause {
             return false;
         }
 
         if mode == PlaybackMode::PlayOnceThenPause {
-            self.mode.set(PlaybackMode::Pause);
+            self.mode = PlaybackMode::Pause;
             return false;
         }
 
         if mode == PlaybackMode::SpeedChange {
-            self.mode.set(PlaybackMode::PlayOnceThenPause);
+            self.mode = PlaybackMode::PlayOnceThenPause;
             return false;
         }
 
         let frame = session.frame_index();
-        let speed = self.speed.get();
+        let speed = self.speed;
         if matches!(mode, PlaybackMode::Forward | PlaybackMode::Rewind) {
-            let cnt = self.place_counter.get().wrapping_add(1);
-            self.place_counter.set(if cnt > 999 { 0 } else { cnt });
+            let cnt = self.place_counter.wrapping_add(1);
+            self.place_counter = if cnt > 999 { 0 } else { cnt };
         }
-        let place = self.place_counter.get();
+        let place = self.place_counter;
         let advance_by: i32 = match speed {
             PlaybackSpeed::Variable => {
                 let flight_start = session.trace().meta.flight_start;
@@ -146,13 +145,13 @@ impl ReplayPlayback {
         let changed = session.frame_index() != frame;
 
         if mode == PlaybackMode::OneStep {
-            self.mode.set(PlaybackMode::PlayOnceThenPause);
+            self.mode = PlaybackMode::PlayOnceThenPause;
         }
         if (mode == PlaybackMode::Forward
             && session.frame_index() + 1 >= session.trace().frames.len())
             || (mode == PlaybackMode::Rewind && session.frame_index() == 0)
         {
-            self.mode.set(PlaybackMode::PlayOnceThenPause);
+            self.mode = PlaybackMode::PlayOnceThenPause;
         }
 
         changed

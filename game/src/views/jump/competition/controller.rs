@@ -1,4 +1,3 @@
-use std::cell::Cell;
 use std::marker::PhantomData;
 
 use crate::competition::active::ActiveCompetition;
@@ -8,9 +7,7 @@ use crate::competition::runtime::{CompetitionDecision, CompetitionRuntime};
 use crate::competition::team_cup::types::TeamCupRuntime;
 use crate::data::records::HillRecord;
 use crate::jump::types::{FallType, JumpOutcome};
-use crate::jump::wind::Wind;
 use crate::jump::{JumpParticipant, JumpPolicy, JumperControl};
-use crate::rng::Random;
 use crate::save::SaveRef;
 use crate::store::{GameState, ResourcesRef};
 use crate::views::jump::competition::flow::{
@@ -39,8 +36,8 @@ where
     scene: Option<JumpScene>,
     ui_state: CompetitionUiState,
     overlay: CompetitionOverlay,
-    last_event: Cell<usize>,
-    profiles_saved: Cell<bool>,
+    last_event: usize,
+    profiles_saved: bool,
     _runtime: PhantomData<R>,
 }
 
@@ -61,8 +58,8 @@ where
             scene,
             ui_state: CompetitionUiState::new_with_compact(compact),
             overlay,
-            last_event: Cell::new(0),
-            profiles_saved: Cell::new(false),
+            last_event: 0,
+            profiles_saved: false,
             _runtime: PhantomData,
         }
     }
@@ -73,6 +70,10 @@ where
 
     pub(crate) fn ui_state(&self) -> &CompetitionUiState {
         &self.ui_state
+    }
+
+    pub(crate) fn ui_state_mut(&mut self) -> &mut CompetitionUiState {
+        &mut self.ui_state
     }
 
     pub(crate) fn scene(&self) -> Option<&JumpScene> {
@@ -92,8 +93,9 @@ where
         state: &mut GameState,
     ) -> Option<CompetitionFlowCommand<R::Context, R::ResultsKind>> {
         self.ensure_scene(state);
-        let scene = self.scene.as_ref()?;
-        command_or_error(&self.ui_state, self.drive_competition(scene, state))
+        self.scene.as_ref()?;
+        let result = self.drive_competition(state);
+        command_or_error(&mut self.ui_state, result)
     }
 
     pub(crate) fn record_acknowledged_human_jump(&mut self, state: &mut GameState) -> bool {
@@ -167,7 +169,7 @@ where
         };
         handle_jump_scene_event(
             scene,
-            &self.ui_state,
+            &mut self.ui_state,
             event,
             consume_other_actions,
             accepts_only_enter_escape,
@@ -186,7 +188,7 @@ where
     ) {
         handle_human_jump(
             &mut self.scene,
-            &self.ui_state,
+            &mut self.ui_state,
             &self.resources,
             state,
             participant,
@@ -197,15 +199,15 @@ where
         self.ui_state.enter_jump();
     }
 
-    pub(crate) fn enter_results(&self) {
+    pub(crate) fn enter_results(&mut self) {
         self.ui_state.enter_results();
     }
 
-    pub(crate) fn enter_done(&self) {
+    pub(crate) fn enter_done(&mut self) {
         self.ui_state.enter_done();
     }
 
-    pub(crate) fn enter_error(&self, msg: impl Into<String>) {
+    pub(crate) fn enter_error(&mut self, msg: impl Into<String>) {
         self.ui_state.enter_error(msg.into());
     }
 
@@ -213,16 +215,17 @@ where
         &mut self,
         state: &mut GameState,
     ) -> Option<CompetitionFlowCommand<R::Context, R::ResultsKind>> {
-        let scene = self.scene.as_ref()?;
-        command_or_error(&self.ui_state, self.advance_results_and_drive(scene, state))
+        self.scene.as_ref()?;
+        let result = self.advance_results_and_drive(state);
+        command_or_error(&mut self.ui_state, result)
     }
 
-    pub(crate) fn save_results(&self, state: &GameState) {
-        if self.profiles_saved.get() {
+    pub(crate) fn save_results(&mut self, state: &GameState) {
+        if self.profiles_saved {
             return;
         }
         persistence::save_profiles_and_records_once(
-            &self.profiles_saved,
+            &mut self.profiles_saved,
             &self.save_manager,
             state,
         );
@@ -252,8 +255,7 @@ where
 
     #[allow(clippy::type_complexity)]
     fn drive_competition(
-        &self,
-        scene: &JumpScene,
+        &mut self,
         state: &mut GameState,
     ) -> Result<
         Option<CompetitionFlowCommand<R::Context, R::ResultsKind>>,
@@ -299,8 +301,11 @@ where
                         }));
                     }
 
-                    let outcome =
-                        self.simulate_computer(scene, participant, hill_idx, rng, wind)?;
+                    let outcome = self
+                        .scene
+                        .as_ref()
+                        .expect("competition scene initialized")
+                        .simulate_hidden(participant, hill_idx, rng, wind)?;
                     pending_side_effects.push((
                         PostJumpSideEffects {
                             profile_idx: runtime.profile_idx_for_context(&context),
@@ -330,8 +335,7 @@ where
     }
 
     fn advance_results_and_drive(
-        &self,
-        scene: &JumpScene,
+        &mut self,
         state: &mut GameState,
     ) -> Result<
         Option<CompetitionFlowCommand<R::Context, R::ResultsKind>>,
@@ -340,18 +344,7 @@ where
         if let Some(runtime) = R::runtime_mut(&mut state.active_competition) {
             runtime.advance_results_runtime();
         }
-        self.drive_competition(scene, state)
-    }
-
-    fn simulate_computer(
-        &self,
-        scene: &JumpScene,
-        participant: JumpParticipant,
-        hill_idx: usize,
-        rng: &mut Random,
-        wind: &mut Wind,
-    ) -> Result<JumpOutcome, CompetitionControllerError> {
-        Ok(scene.simulate_hidden(participant, hill_idx, rng, wind)?)
+        self.drive_competition(state)
     }
 
     fn should_show_computer_jump(
@@ -375,10 +368,10 @@ where
         }
     }
 
-    fn check_event_change(&self, current_event: usize, _is_new_event: bool) -> bool {
-        let changed = current_event != self.last_event.get();
+    fn check_event_change(&mut self, current_event: usize, _is_new_event: bool) -> bool {
+        let changed = current_event != self.last_event;
         if changed {
-            self.last_event.set(current_event);
+            self.last_event = current_event;
         }
         changed
     }

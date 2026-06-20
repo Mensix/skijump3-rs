@@ -1,15 +1,15 @@
 use crate::save::SaveRef;
 use crate::store::GameState;
-use std::cell::Cell;
 
 pub(crate) fn save_profiles_and_records_once(
-    saved: &Cell<bool>,
+    saved: &mut bool,
     save_manager: &SaveRef,
     state: &GameState,
 ) {
-    if saved.replace(true) {
+    if *saved {
         return;
     }
+    *saved = true;
     save_profiles(save_manager, state);
     save_records(save_manager, state);
 }

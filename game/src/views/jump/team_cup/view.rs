@@ -114,10 +114,10 @@ impl TeamCupJumpView {
                 let msg = if self.controller.render_mode() == RenderMode::Error {
                     self.controller.ui_state().error_message()
                 } else {
-                    String::new()
+                    ""
                 };
                 cx.fill((0, 0, 320, 200), BLACK);
-                cx.text((20, 80), FONT_BODY, &msg);
+                cx.text((20, 80), FONT_BODY, msg);
                 cx.text(
                     (20, 95),
                     FONT_GRAY,

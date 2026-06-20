@@ -15,7 +15,7 @@ pub(crate) fn handle_event(
     state: &mut GameState,
     event: UiEvent,
 ) -> Option<RouteTarget> {
-    match view.modal.get() {
+    match view.modal {
         Some(SetupModal::WindPlace(pos)) => handle_wind_place(view, state, event, pos),
         Some(SetupModal::SeeComps(val)) => handle_see_comps(view, state, event, val),
         Some(SetupModal::ConfirmReset(_)) => handle_confirm_reset(view, state, event),
@@ -38,21 +38,19 @@ fn handle_hill_goals(
     let hill_count = view.resources.hills.len().min(20);
     match event {
         UiEvent::KeyDown(Key::Up) => {
-            view.modal
-                .set(Some(SetupModal::HillGoals(selected.saturating_sub(1))));
+            view.modal = Some(SetupModal::HillGoals(selected.saturating_sub(1)));
         }
         UiEvent::KeyDown(Key::Down) => {
-            view.modal
-                .set(Some(SetupModal::HillGoals((selected + 1).min(hill_count))));
+            view.modal = Some(SetupModal::HillGoals((selected + 1).min(hill_count)));
         }
-        UiEvent::KeyDown(Key::Home) => view.modal.set(Some(SetupModal::HillGoals(0))),
+        UiEvent::KeyDown(Key::Home) => view.modal = Some(SetupModal::HillGoals(0)),
         UiEvent::KeyDown(Key::End | Key::Escape) => {
             save_records(view, state);
-            view.modal.set(None);
+            view.modal = None;
         }
         UiEvent::KeyDown(Key::Enter) if selected >= hill_count => {
             save_records(view, state);
-            view.modal.set(None);
+            view.modal = None;
         }
         UiEvent::KeyDown(Key::Left) | UiEvent::Text('-') => {
             adjust_hill_goal(state, selected, -0.5, hill_count)
@@ -114,10 +112,10 @@ fn handle_configure_keys(
     if let Some(item) = capture {
         match event {
             UiEvent::KeyDown(Key::Escape) => {
-                view.modal.set(Some(SetupModal::ConfigureKeys {
+                view.modal = Some(SetupModal::ConfigureKeys {
                     selected,
                     capture: None,
-                }));
+                });
             }
             _ => {
                 if let Some(code) = JumpKeyBindings::code_for(event) {
@@ -128,10 +126,10 @@ fn handle_configure_keys(
                         if let Err(e) = view.save_manager().save_config(&state.config) {
                             eprintln!("Warning: failed to save config: {e}");
                         }
-                        view.modal.set(Some(SetupModal::ConfigureKeys {
+                        view.modal = Some(SetupModal::ConfigureKeys {
                             selected,
                             capture: None,
-                        }));
+                        });
                     }
                 }
             }
@@ -141,31 +139,37 @@ fn handle_configure_keys(
 
     match event {
         UiEvent::KeyDown(Key::Up | Key::Left) => {
-            view.modal.set(Some(SetupModal::ConfigureKeys {
+            view.modal = Some(SetupModal::ConfigureKeys {
                 selected: cycle_index(selected, 7, -1),
                 capture: None,
-            }));
+            });
         }
         UiEvent::KeyDown(Key::Down | Key::Right) => {
-            view.modal.set(Some(SetupModal::ConfigureKeys {
+            view.modal = Some(SetupModal::ConfigureKeys {
                 selected: cycle_index(selected, 7, 1),
                 capture: None,
-            }));
+            });
         }
-        UiEvent::KeyDown(Key::Home) => view.modal.set(Some(SetupModal::ConfigureKeys {
-            selected: 0,
-            capture: None,
-        })),
-        UiEvent::KeyDown(Key::End) => view.modal.set(Some(SetupModal::ConfigureKeys {
-            selected: 6,
-            capture: None,
-        })),
-        UiEvent::KeyDown(Key::Escape | Key::Tab) => view.modal.set(None),
+        UiEvent::KeyDown(Key::Home) => {
+            view.modal = Some(SetupModal::ConfigureKeys {
+                selected: 0,
+                capture: None,
+            })
+        }
+        UiEvent::KeyDown(Key::End) => {
+            view.modal = Some(SetupModal::ConfigureKeys {
+                selected: 6,
+                capture: None,
+            })
+        }
+        UiEvent::KeyDown(Key::Escape | Key::Tab) => view.modal = None,
         UiEvent::KeyDown(Key::Enter) | UiEvent::Text(' ') => match selected {
-            0..=4 => view.modal.set(Some(SetupModal::ConfigureKeys {
-                selected,
-                capture: Some(selected),
-            })),
+            0..=4 => {
+                view.modal = Some(SetupModal::ConfigureKeys {
+                    selected,
+                    capture: Some(selected),
+                })
+            }
             5 => {
                 let defaults = Config::default();
                 state.config.key_up = defaults.key_up;
@@ -177,24 +181,30 @@ fn handle_configure_keys(
                     eprintln!("Warning: failed to save config: {e}");
                 }
             }
-            6 => view.modal.set(None),
+            6 => view.modal = None,
             _ => {}
         },
         UiEvent::Text(c) if c.is_ascii_digit() => {
             if let Some(d) = c.to_digit(10) {
                 match d as usize {
-                    1..=5 => view.modal.set(Some(SetupModal::ConfigureKeys {
-                        selected: d as usize - 1,
-                        capture: None,
-                    })),
-                    6 => view.modal.set(Some(SetupModal::ConfigureKeys {
-                        selected: 5,
-                        capture: None,
-                    })),
-                    0 => view.modal.set(Some(SetupModal::ConfigureKeys {
-                        selected: 6,
-                        capture: None,
-                    })),
+                    1..=5 => {
+                        view.modal = Some(SetupModal::ConfigureKeys {
+                            selected: d as usize - 1,
+                            capture: None,
+                        })
+                    }
+                    6 => {
+                        view.modal = Some(SetupModal::ConfigureKeys {
+                            selected: 5,
+                            capture: None,
+                        })
+                    }
+                    0 => {
+                        view.modal = Some(SetupModal::ConfigureKeys {
+                            selected: 6,
+                            capture: None,
+                        })
+                    }
                     _ => {}
                 }
             }
@@ -226,10 +236,10 @@ fn handle_name_set_input(
                 if let Err(e) = view.save_manager().save_config(&state.config) {
                     eprintln!("Warning: failed to save config: {e}");
                 }
-                view.modal.set(None);
+                view.modal = None;
             }
         }
-        UiEvent::KeyDown(Key::Escape) => view.modal.set(None),
+        UiEvent::KeyDown(Key::Escape) => view.modal = None,
         _ => {}
     }
     None
@@ -246,11 +256,11 @@ fn handle_wind_place(
     match event {
         UiEvent::KeyDown(Key::Up | Key::Left) => {
             let new_pos = if pos == 0 { items - 1 } else { pos - 1 };
-            view.modal.set(Some(SetupModal::WindPlace(new_pos)));
+            view.modal = Some(SetupModal::WindPlace(new_pos));
         }
         UiEvent::KeyDown(Key::Down | Key::Right) => {
             let new_pos = if pos >= items - 1 { 0 } else { pos + 1 };
-            view.modal.set(Some(SetupModal::WindPlace(new_pos)));
+            view.modal = Some(SetupModal::WindPlace(new_pos));
         }
         UiEvent::KeyDown(Key::Enter) | UiEvent::Text(' ') => {
             if pos < winds {
@@ -259,10 +269,10 @@ fn handle_wind_place(
                     eprintln!("Warning: failed to save config: {e}");
                 }
             }
-            view.modal.set(None);
+            view.modal = None;
         }
         UiEvent::KeyDown(Key::Escape) => {
-            view.modal.set(None);
+            view.modal = None;
         }
         _ => {}
     }
@@ -297,11 +307,11 @@ fn handle_see_comps(
     match event {
         UiEvent::KeyDown(Key::Up | Key::Left) => {
             let new_idx = if idx == 0 { opts.len() - 1 } else { idx - 1 };
-            view.modal.set(Some(SetupModal::SeeComps(new_idx)));
+            view.modal = Some(SetupModal::SeeComps(new_idx));
         }
         UiEvent::KeyDown(Key::Down | Key::Right) => {
             let new_idx = if idx >= opts.len() - 1 { 0 } else { idx + 1 };
-            view.modal.set(Some(SetupModal::SeeComps(new_idx)));
+            view.modal = Some(SetupModal::SeeComps(new_idx));
         }
         UiEvent::KeyDown(Key::Enter) => {
             let cfg_val = opts[idx].0;
@@ -309,10 +319,10 @@ fn handle_see_comps(
             if let Err(e) = view.save_manager().save_config(&state.config) {
                 eprintln!("Warning: failed to save config: {e}");
             }
-            view.modal.set(None);
+            view.modal = None;
         }
         UiEvent::KeyDown(Key::Escape | Key::Delete) => {
-            view.modal.set(None);
+            view.modal = None;
         }
         _ => {}
     }
@@ -326,7 +336,7 @@ fn handle_confirm_reset(
 ) -> Option<RouteTarget> {
     match event {
         UiEvent::Text(c) if c == 'y' || c == 'Y' => {
-            if let Some(SetupModal::ConfirmReset(kind)) = view.modal.get() {
+            if let Some(SetupModal::ConfirmReset(kind)) = view.modal {
                 let records = if kind == 1 {
                     RecordStore::bundled_default()
                 } else {
@@ -337,9 +347,9 @@ fn handle_confirm_reset(
                     eprintln!("Warning: failed to save records: {e}");
                 }
             }
-            view.modal.set(None);
+            view.modal = None;
         }
-        UiEvent::KeyDown(_) | UiEvent::Text(_) => view.modal.set(None),
+        UiEvent::KeyDown(_) | UiEvent::Text(_) => view.modal = None,
         _ => {}
     }
     None
@@ -355,11 +365,11 @@ fn handle_language_picker(
     match event {
         UiEvent::KeyDown(Key::Up | Key::Left) => {
             let new_sel = cycle_index(sel, langs.len(), -1);
-            view.modal.set(Some(SetupModal::LanguagePicker(new_sel)));
+            view.modal = Some(SetupModal::LanguagePicker(new_sel));
         }
         UiEvent::KeyDown(Key::Down | Key::Right) => {
             let new_sel = cycle_index(sel, langs.len(), 1);
-            view.modal.set(Some(SetupModal::LanguagePicker(new_sel)));
+            view.modal = Some(SetupModal::LanguagePicker(new_sel));
         }
         UiEvent::KeyDown(Key::Enter) | UiEvent::Text(' ') => {
             state.config.language = sel as i32;
@@ -367,18 +377,18 @@ fn handle_language_picker(
                 eprintln!("Warning: failed to save config: {e}");
             }
             view.resources.langbase.selected.set(sel);
-            view.modal.set(None);
+            view.modal = None;
         }
         UiEvent::Text(c) if c.is_ascii_digit() => {
             if let Some(d) = c.to_digit(10) {
                 let idx = d as usize;
                 if idx >= 1 && idx <= langs.len() {
-                    view.modal.set(Some(SetupModal::LanguagePicker(idx - 1)));
+                    view.modal = Some(SetupModal::LanguagePicker(idx - 1));
                 }
             }
         }
         UiEvent::KeyDown(Key::Escape) => {
-            view.modal.set(None);
+            view.modal = None;
         }
         _ => {}
     }
@@ -390,7 +400,7 @@ fn handle_screen_event(
     state: &mut GameState,
     event: UiEvent,
 ) -> Option<RouteTarget> {
-    let screen = view.screen.get();
+    let screen = view.screen;
     let entries = view.menu.item_count();
 
     match event {
@@ -399,7 +409,7 @@ fn handle_screen_event(
             let selected = cycle_index(sel, entries, -1);
             view.menu.set_selected(selected);
             if screen < view.selected_by_screen.len() {
-                view.selected_by_screen[screen].set(selected);
+                view.selected_by_screen[screen] = selected;
             }
         }
         UiEvent::KeyDown(Key::Down) => {
@@ -407,7 +417,7 @@ fn handle_screen_event(
             let selected = cycle_index(sel, entries, 1);
             view.menu.set_selected(selected);
             if screen < view.selected_by_screen.len() {
-                view.selected_by_screen[screen].set(selected);
+                view.selected_by_screen[screen] = selected;
             }
         }
         UiEvent::KeyDown(Key::Escape) => {
@@ -419,13 +429,13 @@ fn handle_screen_event(
         UiEvent::KeyDown(Key::Home) => {
             view.menu.set_selected(0);
             if screen < view.selected_by_screen.len() {
-                view.selected_by_screen[screen].set(0);
+                view.selected_by_screen[screen] = 0;
             }
         }
         UiEvent::KeyDown(Key::End) => {
             view.menu.set_selected(entries);
             if screen < view.selected_by_screen.len() {
-                view.selected_by_screen[screen].set(entries);
+                view.selected_by_screen[screen] = entries;
             }
         }
         UiEvent::KeyDown(Key::Tab) => {
@@ -445,7 +455,7 @@ fn handle_screen_event(
                 let selected = n - 1;
                 view.menu.set_selected(selected);
                 if screen < view.selected_by_screen.len() {
-                    view.selected_by_screen[screen].set(selected);
+                    view.selected_by_screen[screen] = selected;
                 }
                 if let Some(route) = activate_item(view, state, screen, selected) {
                     return Some(route);
@@ -455,14 +465,14 @@ fn handle_screen_event(
         UiEvent::KeyDown(Key::Enter) | UiEvent::Text(' ') => {
             let sel = view.menu.selected();
             if screen == 0 && sel == 3 {
-                view.modal.set(Some(SetupModal::ConfigureKeys {
+                view.modal = Some(SetupModal::ConfigureKeys {
                     selected: 0,
                     capture: None,
-                }));
+                });
                 return None;
             }
             if screen == 0 && sel == 4 {
-                view.modal.set(Some(SetupModal::HillGoals(0)));
+                view.modal = Some(SetupModal::HillGoals(0));
                 return None;
             }
             if screen == 0 && sel == 5 {
@@ -485,12 +495,12 @@ fn handle_screen_event(
                 if n < entries {
                     view.menu.set_selected(n);
                     if screen < view.selected_by_screen.len() {
-                        view.selected_by_screen[screen].set(n);
+                        view.selected_by_screen[screen] = n;
                     }
                 } else if n == 0 {
                     view.menu.set_selected(entries);
                     if screen < view.selected_by_screen.len() {
-                        view.selected_by_screen[screen].set(entries);
+                        view.selected_by_screen[screen] = entries;
                     }
                 }
             }
@@ -500,7 +510,7 @@ fn handle_screen_event(
             if n <= entries {
                 view.menu.set_selected(n);
                 if screen < view.selected_by_screen.len() {
-                    view.selected_by_screen[screen].set(n);
+                    view.selected_by_screen[screen] = n;
                 }
             }
         }
@@ -517,18 +527,20 @@ fn activate_item(
 ) -> Option<RouteTarget> {
     match (screen, item) {
         (0, 0..=2) => view.switch_screen(item),
-        (0, 3) => view.modal.set(Some(SetupModal::ConfigureKeys {
-            selected: 0,
-            capture: None,
-        })),
-        (0, 4) => view.modal.set(Some(SetupModal::HillGoals(0))),
+        (0, 3) => {
+            view.modal = Some(SetupModal::ConfigureKeys {
+                selected: 0,
+                capture: None,
+            })
+        }
+        (0, 4) => view.modal = Some(SetupModal::HillGoals(0)),
         (0, 5) => return Some(RouteTarget::HillMakerSetup),
         (1, 0) => {
             let current = state.config.language;
             let idx = if current >= 0 { current as usize } else { 0 };
             let langs = &view.langbase().languages;
             let idx = idx.min(langs.len().saturating_sub(1));
-            view.modal.set(Some(SetupModal::LanguagePicker(idx)));
+            view.modal = Some(SetupModal::LanguagePicker(idx));
         }
         (1, 1) => {
             state.config.sound_effects = i32::from(state.config.sound_effects == 0);
@@ -542,7 +554,7 @@ fn activate_item(
                 eprintln!("Warning: failed to save config: {e}");
             }
         }
-        (1, 3) => view.modal.set(Some(SetupModal::NameSetInput)),
+        (1, 3) => view.modal = Some(SetupModal::NameSetInput),
         (2, 0) => {
             state.config.training_rounds = (state.config.training_rounds + 1) % 4;
             if let Err(e) = view.save_manager().save_config(&state.config) {
@@ -599,11 +611,11 @@ fn activate_item(
                 .iter()
                 .position(|(v, _)| *v == current as usize)
                 .unwrap_or(0);
-            view.modal.set(Some(SetupModal::SeeComps(idx)));
+            view.modal = Some(SetupModal::SeeComps(idx));
         }
         (2, 9) => {
             let pos = state.config.wind_position;
-            view.modal.set(Some(SetupModal::WindPlace(pos as usize)));
+            view.modal = Some(SetupModal::WindPlace(pos as usize));
         }
         (2, 10) => {
             state.config.ko_system = i32::from(state.config.ko_system == 0);
@@ -623,8 +635,8 @@ fn activate_item(
                 eprintln!("Warning: failed to save config: {e}");
             }
         }
-        (3, 2) => view.modal.set(Some(SetupModal::ConfirmReset(1))),
-        (3, 3) => view.modal.set(Some(SetupModal::ConfirmReset(0))),
+        (3, 2) => view.modal = Some(SetupModal::ConfirmReset(1)),
+        (3, 3) => view.modal = Some(SetupModal::ConfirmReset(0)),
         (3, 4) => {
             state.config = Config::default();
             if let Err(e) = view.save_manager().save_config(&state.config) {

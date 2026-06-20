@@ -1,3 +1,4 @@
+use super::state::SetupModal;
 use crate::gfx::theme::FONT_BODY;
 use crate::route::RouteTarget;
 use crate::save::SaveRef;
@@ -6,17 +7,14 @@ use crate::store::ResourcesRef;
 use crate::text::lang::LangBase;
 use engine::oxide::widgets::menu::{MenuItem as OxideMenuItem, PixelMenu};
 use engine::oxide::{Blinker, PaintCx, ScreenEventCx, UiEvent};
-use std::cell::Cell;
-
-use super::state::SetupModal;
 
 pub struct SetupView {
     pub(crate) resources: ResourcesRef,
     pub(crate) save_manager: SaveRef,
-    pub(crate) screen: Cell<usize>,
-    pub(crate) selected_by_screen: [Cell<usize>; 4],
+    pub(crate) screen: usize,
+    pub(crate) selected_by_screen: [usize; 4],
     pub(crate) menu: PixelMenu,
-    pub(crate) modal: Cell<Option<SetupModal>>,
+    pub(crate) modal: Option<SetupModal>,
     pub(crate) cursor_blink: Blinker,
 }
 
@@ -26,10 +24,10 @@ impl SetupView {
         Self {
             resources,
             save_manager,
-            screen: Cell::new(0),
-            selected_by_screen: [Cell::new(0), Cell::new(0), Cell::new(0), Cell::new(0)],
+            screen: 0,
+            selected_by_screen: [0, 0, 0, 0],
             menu,
-            modal: Cell::new(None),
+            modal: None,
             cursor_blink: Blinker::new(),
         }
     }
@@ -52,16 +50,16 @@ impl SetupView {
     }
 
     pub(crate) fn switch_screen(&mut self, new_screen: usize) {
-        let old_screen = self.screen.get();
+        let old_screen = self.screen;
         if old_screen < self.selected_by_screen.len() {
-            self.selected_by_screen[old_screen].set(self.menu.selected());
+            self.selected_by_screen[old_screen] = self.menu.selected();
         }
         let selected = self
             .selected_by_screen
             .get(new_screen)
-            .map(Cell::get)
+            .copied()
             .unwrap_or_default();
-        self.screen.set(new_screen);
+        self.screen = new_screen;
         self.menu = Self::make_menu(new_screen, selected);
     }
 

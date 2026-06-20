@@ -27,7 +27,7 @@ pub(crate) enum CompetitionFlowCommand<C, R> {
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn handle_human_jump(
     scene: &mut Option<JumpScene>,
-    ui_state: &CompetitionUiState,
+    ui_state: &mut CompetitionUiState,
     resources: &ResourcesRef,
     state: &mut GameState,
     participant: JumpParticipant,
@@ -66,7 +66,7 @@ pub(crate) fn handle_human_jump(
 
 pub(crate) fn prepare_human_jump_scene(
     scene: &mut JumpScene,
-    ui_state: &CompetitionUiState,
+    ui_state: &mut CompetitionUiState,
     participant: JumpParticipant,
     hill_idx: usize,
     phase_label: String,
@@ -98,7 +98,7 @@ fn needs_human_jump_scene_rebuild(
 }
 
 pub(crate) fn command_or_error<C, R>(
-    ui_state: &CompetitionUiState,
+    ui_state: &mut CompetitionUiState,
     result: Result<Option<CompetitionFlowCommand<C, R>>, impl std::fmt::Display>,
 ) -> Option<CompetitionFlowCommand<C, R>> {
     match result {
@@ -140,7 +140,7 @@ pub(crate) fn render_jump_scene_with_overlay(
 
 pub(crate) fn acknowledge_finished_jump(
     scene: &JumpScene,
-    ui_state: &CompetitionUiState,
+    ui_state: &mut CompetitionUiState,
     event: UiEvent,
     accepts_only_enter_escape: bool,
 ) -> bool {
@@ -193,7 +193,7 @@ pub(crate) fn handle_competition_jump_input(
 
 pub(crate) fn handle_jump_scene_event(
     scene: &mut JumpScene,
-    ui_state: &CompetitionUiState,
+    ui_state: &mut CompetitionUiState,
     event: UiEvent,
     consume_other_actions: bool,
     accepts_only_enter_escape: bool,

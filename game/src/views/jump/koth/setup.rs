@@ -11,7 +11,6 @@ use crate::store::{GameState, ResourcesRef};
 use crate::text::layout::shorten_name;
 use engine::oxide::input::Key;
 use engine::oxide::{PaintCx, ScreenEventCx, UiEvent};
-use std::cell::{Cell, RefCell};
 
 use crate::text::lang::LangBase;
 
@@ -25,12 +24,11 @@ enum KothMode {
 pub struct KothSetupView {
     resources: ResourcesRef,
     save_manager: SaveRef,
-    selected: Cell<usize>,
-    mode: Cell<KothMode>,
-    pack_cursor: Cell<usize>,
-    // stack+preview for custom opponents (like CustomCupSetupView)
-    selected_opponents: RefCell<Vec<usize>>,
-    preview_opponent: Cell<usize>,
+    selected: usize,
+    mode: KothMode,
+    pack_cursor: usize,
+    selected_opponents: Vec<usize>,
+    preview_opponent: usize,
 }
 
 impl KothSetupView {
@@ -38,11 +36,11 @@ impl KothSetupView {
         Self {
             resources,
             save_manager,
-            selected: Cell::new(1),
-            mode: Cell::new(KothMode::Main),
-            pack_cursor: Cell::new(0),
-            selected_opponents: RefCell::new(Vec::new()),
-            preview_opponent: Cell::new(0),
+            selected: 1,
+            mode: KothMode::Main,
+            pack_cursor: 0,
+            selected_opponents: Vec::new(),
+            preview_opponent: 0,
         }
     }
 
@@ -77,7 +75,7 @@ impl KothSetupView {
         let lang = &self.resources.langbase;
         let cfg = &state.config;
 
-        if self.mode.get() == KothMode::Opponents {
+        if self.mode == KothMode::Opponents {
             paint.pattern_fill((170, 0, 150, 200), BG_PURPLE);
             paint.text((180, 2), FONT_BODY, lang.lstr(138));
             paint.text((180, 9), FONT_GRAY, lang.lstr(139));
@@ -153,7 +151,7 @@ impl KothSetupView {
         paint.text((10, 110), FONT_GOLD, lang.lstr(130));
 
         // --- left panel bottom: pack list (Pascal kothchallenge) ---
-        let is_pack_mode = self.mode.get() == KothMode::Packs;
+        let is_pack_mode = self.mode == KothMode::Packs;
         let mut py = 120i32;
         for pack in 0..7u8 {
             let title = koth_pack_title(pack, lang);
@@ -179,9 +177,9 @@ impl KothSetupView {
             }
         }
 
-        match self.mode.get() {
+        match self.mode {
             KothMode::Main => {
-                let sel = self.selected.get();
+                let sel = self.selected;
                 if sel == 0 {
                     paint.stroke((4, 77, 160, 10), FONT_BODY);
                 } else if sel <= 6 {
@@ -190,7 +188,7 @@ impl KothSetupView {
                 }
             }
             KothMode::Packs => {
-                let cur = self.pack_cursor.get();
+                let cur = self.pack_cursor;
                 let pcy = pack_cursor_y(cur);
                 paint.stroke((4, pcy - 3, 160, 10), FONT_BODY);
             }
@@ -198,10 +196,10 @@ impl KothSetupView {
         }
 
         // Draw opponent rows — stack + preview (like CustomCupSetupView)
-        if self.mode.get() == KothMode::Opponents {
+        if self.mode == KothMode::Opponents {
             let names = self.resources.player_names(cfg.name_set_index as usize);
-            let sel = self.selected_opponents.borrow();
-            let prev = self.preview_opponent.get();
+            let sel = &self.selected_opponents;
+            let prev = self.preview_opponent;
             // selected opponents in gold
             for (i, &id) in sel.iter().enumerate() {
                 let name = names.get(id - 1).map(|s| s.as_str()).unwrap_or("?");
@@ -230,7 +228,7 @@ impl KothSetupView {
     }
 
     fn handle_input(&mut self, event: UiEvent, state: &mut GameState) -> Option<RouteTarget> {
-        match self.mode.get() {
+        match self.mode {
             KothMode::Main => self.handle_main(event, state),
             KothMode::Packs => self.handle_packs(event, state),
             KothMode::Opponents => self.handle_opponents(event, state),
@@ -255,21 +253,27 @@ impl KothSetupView {
         match &event {
             UiEvent::KeyDown(Key::Escape) => Some(RouteTarget::MainMenu),
             UiEvent::KeyDown(Key::Up | Key::Left) => {
-                let s = self.selected.get();
-                self.selected.set(if s == 0 { 6 } else { s - 1 });
+                self.selected = if self.selected == 0 {
+                    6
+                } else {
+                    self.selected - 1
+                };
                 None
             }
             UiEvent::KeyDown(Key::Down | Key::Right) => {
-                let s = self.selected.get();
-                self.selected.set(if s >= 6 { 0 } else { s + 1 });
+                self.selected = if self.selected >= 6 {
+                    0
+                } else {
+                    self.selected + 1
+                };
                 None
             }
             UiEvent::KeyDown(Key::Enter) | UiEvent::Text(' ') => {
-                self.activate(self.selected.get(), state)
+                self.activate(self.selected, state)
             }
             UiEvent::Text(ch) if *ch >= '0' && *ch <= '6' => {
                 let n = *ch as usize - '0' as usize;
-                self.selected.set(n);
+                self.selected = n;
                 None
             }
             _ => None,
@@ -279,32 +283,38 @@ impl KothSetupView {
     fn handle_packs(&mut self, event: UiEvent, state: &mut GameState) -> Option<RouteTarget> {
         match &event {
             UiEvent::KeyDown(Key::Escape) => {
-                self.mode.set(KothMode::Main);
+                self.mode = KothMode::Main;
                 None
             }
             UiEvent::KeyDown(Key::Up | Key::Left) => {
-                let c = self.pack_cursor.get();
-                self.pack_cursor.set(if c == 0 { 6 } else { c - 1 });
+                self.pack_cursor = if self.pack_cursor == 0 {
+                    6
+                } else {
+                    self.pack_cursor - 1
+                };
                 None
             }
             UiEvent::KeyDown(Key::Down | Key::Right) => {
-                let c = self.pack_cursor.get();
-                self.pack_cursor.set(if c >= 6 { 0 } else { c + 1 });
+                self.pack_cursor = if self.pack_cursor >= 6 {
+                    0
+                } else {
+                    self.pack_cursor + 1
+                };
                 None
             }
             UiEvent::KeyDown(Key::Enter) | UiEvent::Text(' ') => {
-                let cur = self.pack_cursor.get();
+                let cur = self.pack_cursor;
                 let pack = if cur == 0 { 0 } else { cur as i32 };
                 self.apply_pack(pack, state);
                 None
             }
             UiEvent::Text(ch) if *ch >= '1' && *ch <= '6' => {
                 let n = *ch as usize - '0' as usize;
-                self.pack_cursor.set(n);
+                self.pack_cursor = n;
                 None
             }
             UiEvent::Text('0') => {
-                self.pack_cursor.set(0);
+                self.pack_cursor = 0;
                 None
             }
             _ => None,
@@ -319,24 +329,24 @@ impl KothSetupView {
         match event {
             UiEvent::KeyDown(Key::Escape) => {
                 self.update_config(&mut state.config, |cfg| {
-                    let sel = self.selected_opponents.borrow();
-                    cfg.koth_opponent_ids = sel.iter().map(|&v| v as i32).collect();
-                    cfg.koth_opponent_count = sel.len() as i32;
+                    cfg.koth_opponent_ids =
+                        self.selected_opponents.iter().map(|&v| v as i32).collect();
+                    cfg.koth_opponent_count = self.selected_opponents.len() as i32;
                 });
-                self.mode.set(KothMode::Main);
+                self.mode = KothMode::Main;
                 None
             }
             UiEvent::KeyDown(Key::Down) | UiEvent::KeyDown(Key::Enter) | UiEvent::Text(' ') => {
-                let prev_id = self.preview_opponent.get() + 1;
-                let mut sel = self.selected_opponents.borrow_mut();
-                if sel.len() < 20 && !sel.contains(&prev_id) {
-                    sel.push(prev_id);
+                let prev_id = self.preview_opponent + 1;
+                if self.selected_opponents.len() < 20 && !self.selected_opponents.contains(&prev_id)
+                {
+                    self.selected_opponents.push(prev_id);
                 }
                 // advance preview to first unselected after prev_id
                 let mut next = prev_id % max_idx;
                 for _ in 0..max_idx {
-                    if !sel.contains(&(next + 1)) {
-                        self.preview_opponent.set(next);
+                    if !self.selected_opponents.contains(&(next + 1)) {
+                        self.preview_opponent = next;
                         break;
                     }
                     next = (next + 1) % max_idx;
@@ -344,19 +354,17 @@ impl KothSetupView {
                 None
             }
             UiEvent::KeyDown(Key::Up) | UiEvent::KeyDown(Key::Backspace) => {
-                let popped = self.selected_opponents.borrow_mut().pop();
-                if let Some(id) = popped {
-                    self.preview_opponent.set(id - 1);
+                if let Some(id) = self.selected_opponents.pop() {
+                    self.preview_opponent = id - 1;
                 }
                 None
             }
             UiEvent::KeyDown(Key::Left) => {
-                let prev = self.preview_opponent.get();
-                let sel = self.selected_opponents.borrow();
+                let prev = self.preview_opponent;
                 let mut next = (prev + max_idx - 1) % max_idx;
                 for _ in 0..max_idx {
-                    if !sel.contains(&(next + 1)) {
-                        self.preview_opponent.set(next);
+                    if !self.selected_opponents.contains(&(next + 1)) {
+                        self.preview_opponent = next;
                         break;
                     }
                     next = (next + max_idx - 1) % max_idx;
@@ -364,12 +372,11 @@ impl KothSetupView {
                 None
             }
             UiEvent::KeyDown(Key::Right) => {
-                let prev = self.preview_opponent.get();
-                let sel = self.selected_opponents.borrow();
+                let prev = self.preview_opponent;
                 let mut next = (prev + 1) % max_idx;
                 for _ in 0..max_idx {
-                    if !sel.contains(&(next + 1)) {
-                        self.preview_opponent.set(next);
+                    if !self.selected_opponents.contains(&(next + 1)) {
+                        self.preview_opponent = next;
                         break;
                     }
                     next = (next + 1) % max_idx;
@@ -377,47 +384,44 @@ impl KothSetupView {
                 None
             }
             UiEvent::KeyDown(Key::Home) => {
-                self.preview_opponent.set(0);
+                self.preview_opponent = 0;
                 None
             }
             UiEvent::KeyDown(Key::End) => {
-                self.preview_opponent.set(max_idx - 1);
+                self.preview_opponent = max_idx - 1;
                 None
             }
             UiEvent::KeyDown(Key::PageUp) => {
-                let prev = self.preview_opponent.get();
-                self.preview_opponent.set(prev.saturating_sub(10));
+                self.preview_opponent = self.preview_opponent.saturating_sub(10);
                 None
             }
             UiEvent::KeyDown(Key::PageDown) => {
-                let prev = self.preview_opponent.get();
-                self.preview_opponent.set((prev + 10).min(max_idx - 1));
+                self.preview_opponent = (self.preview_opponent + 10).min(max_idx - 1);
                 None
             }
             _ => None,
         }
     }
 
-    fn apply_pack(&self, pack: i32, state: &mut GameState) {
+    fn apply_pack(&mut self, pack: i32, state: &mut GameState) {
         self.update_config(&mut state.config, |cfg| cfg.koth_pack = pack);
         builder::apply_koth_pack(state, &self.save_manager, pack as u8);
-        self.mode.set(KothMode::Main);
+        self.mode = KothMode::Main;
     }
 
-    fn activate(&self, n: usize, state: &mut GameState) -> Option<RouteTarget> {
+    fn activate(&mut self, n: usize, state: &mut GameState) -> Option<RouteTarget> {
         match n {
             0 => Some(RouteTarget::MainMenu),
             1 => self.start_koth(state),
             2 => {
                 let pack = state.config.koth_pack;
-                self.pack_cursor
-                    .set(if pack == 0 { 0 } else { pack as usize });
-                self.mode.set(KothMode::Packs);
+                self.pack_cursor = if pack == 0 { 0 } else { pack as usize };
+                self.mode = KothMode::Packs;
                 None
             }
             3 => {
                 self.update_config(&mut state.config, |cfg| cfg.koth_pack = 0);
-                *self.selected_opponents.borrow_mut() = if state.config.koth_opponent_count > 0 {
+                self.selected_opponents = if state.config.koth_opponent_count > 0 {
                     state
                         .config
                         .koth_opponent_ids
@@ -427,8 +431,8 @@ impl KothSetupView {
                 } else {
                     Vec::new()
                 };
-                self.preview_opponent.set(0);
-                self.mode.set(KothMode::Opponents);
+                self.preview_opponent = 0;
+                self.mode = KothMode::Opponents;
                 None
             }
             4 => Some(RouteTarget::KothHillPicker),

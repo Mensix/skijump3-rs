@@ -10,18 +10,18 @@ use super::state::{hex_char, key_name, wind_place_name, SetupModal};
 use super::view::SetupView;
 
 pub(crate) fn paint_content(view: &SetupView, state: &GameState, cx: &mut PaintCx<'_>) {
-    if let Some(SetupModal::ConfigureKeys { selected, capture }) = view.modal.get() {
+    if let Some(SetupModal::ConfigureKeys { selected, capture }) = view.modal {
         render_configure_keys(view, state, cx, selected, capture);
         return;
     }
-    if let Some(SetupModal::HillGoals(selected)) = view.modal.get() {
+    if let Some(SetupModal::HillGoals(selected)) = view.modal {
         render_hill_goals(view, state, cx, selected);
         return;
     }
 
     render_screen(view, state, cx);
 
-    match view.modal.get() {
+    match view.modal {
         Some(SetupModal::WindPlace(pos)) => {
             cx.fill((54, 19, 222, 162), FILL_PURPLE);
             cx.fill((55, 20, 220, 160), BG_PURPLE);
@@ -218,7 +218,7 @@ fn render_screen(view: &SetupView, state: &GameState, cx: &mut PaintCx<'_>) {
 
     cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
 
-    let title_id = match view.screen.get() {
+    let title_id = match view.screen {
         0 => 175,
         1 => 176,
         2 => 177,
@@ -227,7 +227,7 @@ fn render_screen(view: &SetupView, state: &GameState, cx: &mut PaintCx<'_>) {
     };
     cx.text((30, 6), FONT_BODY, view.langbase().lstr(title_id));
 
-    let screen = view.screen.get();
+    let screen = view.screen;
     let entries = view.menu.item_count();
 
     for temp in 0..=entries {
@@ -359,7 +359,7 @@ fn render_screen(view: &SetupView, state: &GameState, cx: &mut PaintCx<'_>) {
         setup_item(view, cx, temp, entries, &value_str);
     }
 
-    if view.modal.get().is_none() {
+    if view.modal.is_none() {
         let sel = view.menu.selected();
         if sel <= entries {
             let by = if sel < entries {
@@ -389,7 +389,7 @@ fn setup_item(
     let row_label = format!("{}.", hex_char(index));
     cx.right_text((xx, yy), FONT_GOLD, row_label);
 
-    let label_id = match (view.screen.get(), index) {
+    let label_id = match (view.screen, index) {
         (0, 0) => 195,
         (0, 1) => 196,
         (0, 2) => 197,

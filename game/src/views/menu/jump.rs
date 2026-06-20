@@ -1,5 +1,3 @@
-use std::cell::Cell;
-
 use crate::competition::factory;
 use crate::components::layout::MainLayout;
 use crate::gfx::theme::{BG_DARK, BG_RED, BLACK, FONT_BODY, FONT_GOLD};
@@ -13,7 +11,7 @@ use engine::oxide::{PaintCx, ScreenBackground, ScreenEventCx, UiEvent};
 pub struct JumpMenuView {
     menu: PixelMenu,
     resources: ResourcesRef,
-    show_team_warning: Cell<bool>,
+    show_team_warning: bool,
 }
 
 const JUMP_MENU_ACTIONS: &[Option<RouteTarget>] = &[
@@ -47,7 +45,7 @@ impl JumpMenuView {
                 .with_labels(false)
                 .with_box(false),
             resources,
-            show_team_warning: Cell::new(false),
+            show_team_warning: false,
         }
     }
 }
@@ -56,9 +54,9 @@ impl GameScreen for JumpMenuView {
     fn event(&mut self, cx: &mut GameCx<'_>, nav: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
         let mut ecx = engine::oxide::widget::EventCx::default();
 
-        if self.show_team_warning.get() {
+        if self.show_team_warning {
             if matches!(event, UiEvent::KeyDown(_)) {
-                self.show_team_warning.set(false);
+                self.show_team_warning = false;
                 self.menu.set_show_box(true);
                 nav.consume();
             }
@@ -75,7 +73,7 @@ impl GameScreen for JumpMenuView {
                     nav.navigate(self.start_team_cup(cx.state));
                 } else {
                     self.menu.set_show_box(false);
-                    self.show_team_warning.set(true);
+                    self.show_team_warning = true;
                     nav.consume();
                 }
             }
@@ -101,7 +99,7 @@ impl GameScreen for JumpMenuView {
         paint.text((11, 80), FONT_GOLD, cx.layout.langbase.lstr(18));
         paint_jump_menu(paint, &self.menu, cx.layout);
         cx.layout.footer(paint);
-        if self.show_team_warning.get() {
+        if self.show_team_warning {
             Self::paint_team_warning(paint, cx.layout);
         }
     }

@@ -79,7 +79,7 @@ impl WorldCupJumpView {
         }
     }
 
-    fn select_default_result_screen(&self, state: &GameState) {
+    fn select_default_result_screen(&mut self, state: &GameState) {
         if let Some(phase) = state
             .active_competition
             .as_ref()
@@ -91,7 +91,7 @@ impl WorldCupJumpView {
                 .and_then(|active| active.individual().map(Competition::is_four_hills_event))
                 .unwrap_or(false);
             self.controller
-                .ui_state()
+                .ui_state_mut()
                 .select_default_screen(is_4h, phase);
             let extra_stats_enabled = state.config.extra_statistics != 0;
             let showing_ko_pairs = is_4h
@@ -100,7 +100,7 @@ impl WorldCupJumpView {
                     CompetitionPhase::QualificationResults | CompetitionPhase::Round1Results
                 );
             if extra_stats_enabled && !showing_ko_pairs {
-                self.controller.ui_state().select_stats_screen();
+                self.controller.ui_state_mut().select_stats_screen();
             }
         }
     }
@@ -161,7 +161,7 @@ impl WorldCupJumpView {
             RenderMode::Error => {
                 let msg = self.controller.ui_state().error_message();
                 cx.fill((0, 0, 320, 200), BLACK);
-                cx.text((20, 80), FONT_BODY, &msg);
+                cx.text((20, 80), FONT_BODY, msg);
                 cx.text((20, 95), FONT_GRAY, "Press any key to return");
             }
         }
@@ -245,7 +245,7 @@ impl WorldCupJumpView {
             .unwrap_or(false)
     }
 
-    fn save_competition_results(&self, state: &mut GameState) {
+    fn save_competition_results(&mut self, state: &mut GameState) {
         self.controller.save_results(state);
         // WC-specific profile updates (bestpoints, etc.)
         let (style, participants, event_pts): (_, Vec<_>, Vec<_>) = {
@@ -335,7 +335,7 @@ impl WorldCupJumpView {
                         .and_then(|active| active.individual().map(results::total_pages))
                         .unwrap_or(0),
                 };
-                if self.controller.ui_state().next_page(total) {
+                if self.controller.ui_state_mut().next_page(total) {
                     return None;
                 }
                 // Pascal WaitForKey(0): any key on the last entry exits the list
@@ -343,11 +343,11 @@ impl WorldCupJumpView {
                 None
             }
             UiEvent::Text('c' | 'C') => {
-                self.controller.ui_state().toggle_compact();
+                self.controller.ui_state_mut().toggle_compact();
                 None
             }
             UiEvent::Text('s' | 'S') => {
-                self.controller.ui_state().toggle_stats();
+                self.controller.ui_state_mut().toggle_stats();
                 None
             }
             UiEvent::Text('k' | 'K') => {
@@ -376,12 +376,12 @@ impl WorldCupJumpView {
                                 .map(|c| c.phase() == CompetitionPhase::Round1Results)
                         })
                         .unwrap_or(false);
-                    self.controller.ui_state().toggle_ko_pairs(round1);
+                    self.controller.ui_state_mut().toggle_ko_pairs(round1);
                 }
                 None
             }
             UiEvent::KeyDown(Key::Left) => {
-                self.controller.ui_state().prev_page();
+                self.controller.ui_state_mut().prev_page();
                 None
             }
             UiEvent::KeyDown(Key::Escape | Key::Enter) => {

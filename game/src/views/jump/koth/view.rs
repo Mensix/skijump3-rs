@@ -8,18 +8,17 @@ use crate::views::jump::competition::flow::{CompetitionFlowCommand, JumpInputRes
 use crate::views::jump::competition::ui_state::RenderMode;
 use crate::views::jump::koth::results;
 use engine::oxide::{Key, PaintCx, ScreenEventCx, UiEvent};
-use std::cell::Cell;
 
 pub struct KothJumpView {
     controller: CompetitionJumpController<KothRuntime>,
-    completion_saved: Cell<bool>,
+    completion_saved: bool,
 }
 
 impl KothJumpView {
     pub(crate) fn new(resources: ResourcesRef, save_manager: SaveRef) -> Self {
         Self {
             controller: CompetitionJumpController::new(resources, save_manager, false, None),
-            completion_saved: Cell::new(false),
+            completion_saved: false,
         }
     }
 
@@ -49,15 +48,16 @@ impl KothJumpView {
         }
     }
 
-    fn on_complete(&self, state: &mut GameState) {
+    fn on_complete(&mut self, state: &mut GameState) {
         self.update_koth_completion_records(state);
         self.controller.save_results(state);
     }
 
-    fn update_koth_completion_records(&self, state: &mut GameState) {
-        if self.completion_saved.replace(true) {
+    fn update_koth_completion_records(&mut self, state: &mut GameState) {
+        if self.completion_saved {
             return;
         }
+        self.completion_saved = true;
 
         let pack = state.config.koth_pack;
         if !(1..=6).contains(&pack) {
