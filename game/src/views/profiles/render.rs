@@ -24,7 +24,7 @@ pub(super) fn draw_list(view: &ProfilesView, state: &GameState, cx: &mut PaintCx
     let np = store.num_profiles();
 
     for (i, profile) in store.profiles.iter().enumerate() {
-        let y = ProfilesView::y_for(i + 1);
+        let y = ProfilesView::row_y(i + 1);
         cx.fill((10, y - 1, 21, 8), BG_PURPLE);
         if let Some(order_pos) = store.order_pos(i) {
             cx.text((18, y), FONT_GOLD, format!("{}.", order_pos + 1));
@@ -34,15 +34,15 @@ pub(super) fn draw_list(view: &ProfilesView, state: &GameState, cx: &mut PaintCx
 
     if store.has_slot() {
         cx.text(
-            (40, ProfilesView::y_for(np + 1)),
+            (40, ProfilesView::row_y(np + 1)),
             FONT_GOLD,
             lstr(&view.resources.langbase, 302, "*Create New Jumper*"),
         );
     }
 
-    let back_temp = if store.has_slot() { np + 3 } else { np + 2 };
+    let back_row = if store.has_slot() { np + 3 } else { np + 2 };
     cx.text(
-        (40, ProfilesView::y_for(back_temp)),
+        (40, ProfilesView::row_y(back_row)),
         FONT_BODY,
         lstr(&view.resources.langbase, 33, "Back to Main Menu"),
     );

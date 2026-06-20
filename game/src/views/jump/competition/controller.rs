@@ -402,13 +402,13 @@ fn apply_post_jump_side_effects(
             profile.total_jumps += 1;
             if side_effects.is_real_world_cup && distance_tenths > profile.best_wc_jump {
                 profile.best_wc_jump = distance_tenths;
-                profile.bestwchill = side_effects.hill_idx;
+                profile.best_wc_hill_idx = side_effects.hill_idx;
                 profile.best_wc_hill_display = hill_display_name(resources, side_effects.hill_idx);
             }
             if distance_tenths > profile.best_jump {
                 profile.best_jump = distance_tenths;
                 profile.besthill_idx = side_effects.hill_idx;
-                profile.besthillfile = hill_file_name(resources, side_effects.hill_idx);
+                profile.best_hill_file = hill_file_name(resources, side_effects.hill_idx);
                 profile.best_hill_display = hill_display_name(resources, side_effects.hill_idx);
             }
         }

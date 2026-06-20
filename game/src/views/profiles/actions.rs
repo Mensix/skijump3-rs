@@ -189,8 +189,8 @@ pub(super) fn handle_edit_enter(
             save_players(view, state);
         }
         6 => {
-            state.profiles.profiles[profile].skip_quali =
-                (state.profiles.profiles[profile].skip_quali + 1) % 3;
+            state.profiles.profiles[profile].skip_qualification =
+                (state.profiles.profiles[profile].skip_qualification + 1) % 3;
             save_players(view, state);
         }
         7 => {

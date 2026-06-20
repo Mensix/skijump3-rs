@@ -81,7 +81,7 @@ fn build_participants(
                 ski_color: competitor.ski_color,
                 team: competitor.team,
                 is_computer: competitor.is_computer,
-                skip_quali: p.skip_quali as u8,
+                skip_qualification: p.skip_qualification as u8,
                 wc_points: 0,
                 four_hills_points: 0.0,
                 injury: 0,

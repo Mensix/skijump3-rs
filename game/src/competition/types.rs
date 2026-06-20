@@ -125,7 +125,7 @@ pub struct Participant {
     pub team: Option<usize>,
     pub is_computer: bool,
     /// 0=never skip, 1=skip unless 4H, 2=always skip
-    pub skip_quali: u8,
+    pub skip_qualification: u8,
     /// Index into ProfileStore.profiles for human participants, None for computers.
     pub profile_idx: Option<usize>,
 
@@ -159,7 +159,7 @@ impl Participant {
             ski_color: competitor.ski_color,
             team: competitor.team,
             is_computer: competitor.is_computer,
-            skip_quali: 0,
+            skip_qualification: 0,
             profile_idx: competitor.profile_idx,
             wc_points: 0,
             four_hills_points: 0.0,

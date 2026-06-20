@@ -82,7 +82,7 @@ suit_color = 0
 ski_color = 0
 replace = 0
 coach_style = 1
-skip_quali = 0
+skip_qualification = 0
 total_jumps = 0
 world_cups = 0
 legs_won = 0
@@ -90,12 +90,12 @@ world_cups_won = 0
 best_result = "-"
 best_4h_result = "-"
 best_wc_jump = 0
-bestwchill = 0
+best_wc_hill_idx = 0
 best_jump = 0
 besthill_idx = 0
-besthillfile = ""
-bestpoints = 0
-best4points = 0
+best_hill_file = ""
+best_points = 0
+best_4h_points = 0
 koth_level = 0
 "#
         .as_bytes()
@@ -115,7 +115,7 @@ koth_level = 0
         let mut toml = one_profile_toml();
         for _ in 0..21 {
             toml.extend_from_slice(
-                b"\n[[profiles]]\nname = \"P\"\nreal_name = \"\"\nsuit_color = 0\nski_color = 0\nreplace = 0\ncoach_style = 1\nskip_quali = 0\ntotal_jumps = 0\nworld_cups = 0\nlegs_won = 0\nworld_cups_won = 0\nbest_result = \"-\"\nbest_4h_result = \"-\"\nbest_wc_jump = 0\nbestwchill = 0\nbest_jump = 0\nbesthill_idx = 0\nbesthillfile = \"\"\nbestpoints = 0\nbest4points = 0\nkoth_level = 0\n",
+                b"\n[[profiles]]\nname = \"P\"\nreal_name = \"\"\nsuit_color = 0\nski_color = 0\nreplace = 0\ncoach_style = 1\nskip_qualification = 0\ntotal_jumps = 0\nworld_cups = 0\nlegs_won = 0\nworld_cups_won = 0\nbest_result = \"-\"\nbest_4h_result = \"-\"\nbest_wc_jump = 0\nbest_wc_hill_idx = 0\nbest_jump = 0\nbesthill_idx = 0\nbest_hill_file = \"\"\nbest_points = 0\nbest_4h_points = 0\nkoth_level = 0\n",
             );
         }
         let result = ProfileStore::from_toml_bytes(&toml);
@@ -142,7 +142,7 @@ koth_level = 0
         p.ski_color = 2;
         p.replace = 1;
         p.coach_style = 2;
-        p.skip_quali = 1;
+        p.skip_qualification = 1;
         p.total_jumps = 100;
         p.world_cups = 5;
         p.legs_won = 3;
@@ -150,12 +150,12 @@ koth_level = 0
         p.best_result = "1 (1.)".to_string();
         p.best_4h_result = "3 (-)".to_string();
         p.best_wc_jump = 1200;
-        p.bestwchill = 2;
+        p.best_wc_hill_idx = 2;
         p.best_jump = 1250;
         p.besthill_idx = 3;
-        p.besthillfile = "TESTHILL".to_string();
-        p.bestpoints = 2500;
-        p.best4points = 2400.0;
+        p.best_hill_file = "TESTHILL".to_string();
+        p.best_points = 2500;
+        p.best_4h_points = 2400.0;
         p.koth_level = 5;
 
         let bytes = store.to_toml_bytes().unwrap();
@@ -171,7 +171,7 @@ koth_level = 0
         assert_eq!(pp.ski_color, 2);
         assert_eq!(pp.replace, 1);
         assert_eq!(pp.coach_style, 2);
-        assert_eq!(pp.skip_quali, 1);
+        assert_eq!(pp.skip_qualification, 1);
         assert_eq!(pp.total_jumps, 100);
         assert_eq!(pp.world_cups, 5);
         assert_eq!(pp.legs_won, 3);
@@ -179,12 +179,12 @@ koth_level = 0
         assert_eq!(pp.best_result, "1 (1.)");
         assert_eq!(pp.best_4h_result, "3 (-)");
         assert_eq!(pp.best_wc_jump, 1200);
-        assert_eq!(pp.bestwchill, 2);
+        assert_eq!(pp.best_wc_hill_idx, 2);
         assert_eq!(pp.best_jump, 1250);
         assert_eq!(pp.besthill_idx, 3);
-        assert_eq!(pp.besthillfile, "TESTHILL");
-        assert_eq!(pp.bestpoints, 2500);
-        assert_eq!(pp.best4points, 2400.0);
+        assert_eq!(pp.best_hill_file, "TESTHILL");
+        assert_eq!(pp.best_points, 2500);
+        assert_eq!(pp.best_4h_points, 2400.0);
         assert_eq!(pp.koth_level, 5);
     }
 

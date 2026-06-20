@@ -41,7 +41,7 @@ pub struct SnowSystem {
     count: u16,
     max: usize,
     base_gravity: u16,
-    g_variation: u16,
+    gravity_variation: u16,
     side_movement: u16,
     sleet: bool,
 }
@@ -72,7 +72,7 @@ impl SnowSystem {
             count: 0,
             max: 0,
             base_gravity: 600,
-            g_variation: 300,
+            gravity_variation: 300,
             side_movement: 50,
             sleet: false,
         };
@@ -89,7 +89,7 @@ impl SnowSystem {
 
     pub fn set_count(&mut self, count: u16, rng: &mut Random) {
         self.base_gravity = 600;
-        self.g_variation = 300;
+        self.gravity_variation = 300;
         self.side_movement = 50;
         self.sleet = false;
         self.count = count;
@@ -97,7 +97,7 @@ impl SnowSystem {
         if count > 1000 {
             self.sleet = true;
             self.base_gravity = 875;
-            self.g_variation = 100;
+            self.gravity_variation = 100;
             self.side_movement = 50;
             self.max = (count - 1000) as usize;
         }
@@ -121,9 +121,9 @@ impl SnowSystem {
                 let x = i64::from(rng.random_i32(WIDTH as i32)) << 10;
                 let y = i64::from(rng.random_i32(HEIGHT as i32)) << 10;
                 let sin_pos = rng.random_i32(SINE_LENGTH as i32) as usize;
-                let gravity = i64::from(rng.random_i32(i32::from(self.g_variation)))
+                let gravity = i64::from(rng.random_i32(i32::from(self.gravity_variation)))
                     + i64::from(self.base_gravity)
-                    - i64::from(self.g_variation);
+                    - i64::from(self.gravity_variation);
                 let style = rng.random_i32(2) as u16;
                 let style = if self.sleet && style == 1 {
                     rng.random_i32(2) as u16

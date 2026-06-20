@@ -13,7 +13,7 @@ pub struct Profile {
     pub ski_color: usize,
     pub replace: usize,
     pub coach_style: usize,
-    pub skip_quali: usize,
+    pub skip_qualification: usize,
     pub total_jumps: usize,
     pub world_cups: usize,
     pub legs_won: usize,
@@ -28,7 +28,7 @@ pub struct Profile {
 
     // Pascal default (Pascal bestwchill: byte) — hill index for best WC jump
     // Display name looked up from hill catalog at render time
-    pub bestwchill: usize,
+    pub best_wc_hill_idx: usize,
 
     // Pascal bestjump — overall longest jump distance
     pub best_jump: usize,
@@ -38,11 +38,11 @@ pub struct Profile {
     pub besthill_idx: usize,
 
     // Pascal besthillfile — hill file/landscape name e.g. "HILLBASE"
-    pub besthillfile: String,
+    pub best_hill_file: String,
 
     // Pascal bestpoints / best4points (word) — points for best result and best 4H result
-    pub bestpoints: usize,
-    pub best4points: f64,
+    pub best_points: usize,
+    pub best_4h_points: f64,
 
     // Pascal kothlevel (byte)
     pub koth_level: usize,
@@ -64,7 +64,7 @@ impl Default for Profile {
             ski_color: 0,
             replace: 0,
             coach_style: 1,
-            skip_quali: 0,
+            skip_qualification: 0,
             total_jumps: 0,
             world_cups: 0,
             legs_won: 0,
@@ -72,12 +72,12 @@ impl Default for Profile {
             best_result: "-".to_string(),
             best_4h_result: "-".to_string(),
             best_wc_jump: 0,
-            bestwchill: 0,
+            best_wc_hill_idx: 0,
             best_jump: 0,
             besthill_idx: 0,
-            besthillfile: String::new(),
-            bestpoints: 0,
-            best4points: 0.0,
+            best_hill_file: String::new(),
+            best_points: 0,
+            best_4h_points: 0.0,
             koth_level: 0,
             best_wc_hill_display: String::new(),
             best_hill_display: String::new(),

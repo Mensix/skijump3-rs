@@ -38,8 +38,8 @@ pub fn format_profile_value(
         }
         7 => lstr(
             langbase,
-            231 + profile.skip_quali,
-            match profile.skip_quali {
+            231 + profile.skip_qualification,
+            match profile.skip_qualification {
                 0 => "Never",
                 1 => "If possible",
                 _ => "Always",

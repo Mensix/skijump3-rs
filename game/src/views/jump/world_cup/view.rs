@@ -280,17 +280,17 @@ impl WorldCupJumpView {
                         .filter(|&&sp_pts| sp_pts.unwrap_or(f64::NEG_INFINITY) > my_points)
                         .count();
                     let pts = wc_points_for_rank(event_rank);
-                    if pts >= profile.bestpoints as i32 {
-                        profile.bestpoints = pts as usize;
+                    if pts >= profile.best_points as i32 {
+                        profile.best_points = pts as usize;
                         profile.best_result = format_wc_best_result(pts, event_rank);
                     }
-                    if fh_points > 0.0 && fh_points >= profile.best4points {
-                        profile.best4points = fh_points;
+                    if fh_points > 0.0 && fh_points >= profile.best_4h_points {
+                        profile.best_4h_points = fh_points;
                         profile.best_4h_result = format_four_hills_best_result(fh_points, rank);
                     }
                 }
-                CupStyle::FourHills if fh_points >= profile.best4points => {
-                    profile.best4points = fh_points;
+                CupStyle::FourHills if fh_points >= profile.best_4h_points => {
+                    profile.best_4h_points = fh_points;
                     profile.best_4h_result = format_four_hills_best_result(fh_points, rank);
                 }
                 _ => {}
