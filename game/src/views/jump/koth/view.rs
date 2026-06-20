@@ -114,7 +114,6 @@ impl KothJumpView {
             RenderMode::Done => {
                 results::render(cx, self.controller.resources(), state);
             }
-            RenderMode::Error => {}
         }
     }
 

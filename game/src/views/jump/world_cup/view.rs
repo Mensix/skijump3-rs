@@ -3,7 +3,7 @@ use crate::competition::machine::Competition;
 use crate::competition::runtime::{IndividualJumpContext, IndividualResultsKind};
 use crate::competition::scoring::wc_points_for_rank;
 use crate::competition::types::{CompetitionPhase, CupStyle};
-use crate::gfx::theme::{BLACK, FONT_BODY, FONT_GRAY, FONT_TEAL};
+use crate::gfx::theme::FONT_TEAL;
 use crate::jump::types::JumpPhase;
 use crate::route::RouteTarget;
 use crate::save::SaveRef;
@@ -11,9 +11,9 @@ use crate::screen::{GameCx, GameScreen};
 use crate::store::{GameState, ResourcesRef};
 use crate::text::format::format_decimal;
 use crate::views::jump::competition::controller::CompetitionJumpController;
-use crate::views::jump::competition::flow::{
-    route_error_back, CompetitionFlowCommand, JumpInputResult,
-};
+    use crate::views::jump::competition::flow::{
+        CompetitionFlowCommand, JumpInputResult,
+    };
 use crate::views::jump::competition::results::{
     self as competition_results, CompetitionResultsRequest,
 };
@@ -158,23 +158,10 @@ impl WorldCupJumpView {
             }
             RenderMode::Results => self.results_page(cx, state),
             RenderMode::Done => {}
-            RenderMode::Error => {
-                let msg = self.controller.ui_state().error_message();
-                cx.fill((0, 0, 320, 200), BLACK);
-                cx.text((20, 80), FONT_BODY, msg);
-                cx.text((20, 95), FONT_GRAY, "Press any key to return");
-            }
         }
     }
 
     fn handle_input(&mut self, event: UiEvent, state: &mut GameState) -> Option<RouteTarget> {
-        // Error screen: any key navigates back to main menu
-        if let Some(route) = route_error_back(self.controller.ui_state(), event) {
-            return Some(route);
-        }
-        if self.controller.render_mode() == RenderMode::Error {
-            return None;
-        }
 
         if self.is_result_display_state(state) {
             return self.handle_result_event(event, state);

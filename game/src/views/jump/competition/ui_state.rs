@@ -5,7 +5,6 @@ pub enum RenderMode {
     Jump,
     Results,
     Done,
-    Error,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -24,7 +23,6 @@ pub struct CompetitionUiState {
     result_acknowledged: bool,
     outcome_recorded: bool,
     first_human_onbar: bool,
-    error_message: String,
 }
 
 impl CompetitionUiState {
@@ -41,18 +39,7 @@ impl CompetitionUiState {
             result_acknowledged: false,
             outcome_recorded: false,
             first_human_onbar: true,
-            error_message: String::new(),
         }
-    }
-
-    pub fn enter_error(&mut self, msg: String) {
-        self.render_mode = RenderMode::Error;
-        self.error_message = msg;
-    }
-
-    #[must_use]
-    pub fn error_message(&self) -> &str {
-        &self.error_message
     }
 
     pub fn render_mode(&self) -> RenderMode {

@@ -16,7 +16,6 @@ use std::path::Path;
 struct ReplayEntry {
     filename: String,
     trace: Option<ReplayTrace>,
-    error: Option<String>,
 }
 
 pub struct ReplayBrowserView {
@@ -144,32 +143,18 @@ fn paint_replay_panel(
 ) {
     let langbase = &resources.langbase;
     let entry = &entries[selected];
+    let trace = entry.trace.as_ref().unwrap();
 
-    let (field_pairs, extra_saved): (Vec<(String, String)>, Option<String>) =
-        if let Some(trace) = &entry.trace {
-            let hill = resources.hills.hill(trace.meta.hill_idx).map_or_else(
-                || "?".to_string(),
-                |hill| format!("{} K{}", hill.name, hill.kr),
-            );
-            let pairs = vec![
-                (langbase.lstr(291).to_string(), trace.meta.author.clone()),
-                (langbase.lstr(292).to_string(), trace.meta.name.clone()),
-                (langbase.lstr(294).to_string(), hill),
-            ];
-            (pairs, Some(trace.meta.saved_at.clone()))
-        } else if let Some(error) = &entry.error {
-            let pairs = vec![
-                (langbase.lstr(291).to_string(), "Unknown".to_string()),
-                (
-                    langbase.lstr(292).to_string(),
-                    "Not a valid replay.".to_string(),
-                ),
-                (langbase.lstr(294).to_string(), error.clone()),
-            ];
-            (pairs, None)
-        } else {
-            (vec![], None)
-        };
+    let hill = resources.hills.hill(trace.meta.hill_idx).map_or_else(
+        || "?".to_string(),
+        |hill| format!("{} K{}", hill.name, hill.kr),
+    );
+    let field_pairs = vec![
+        (langbase.lstr(291).to_string(), trace.meta.author.clone()),
+        (langbase.lstr(292).to_string(), trace.meta.name.clone()),
+        (langbase.lstr(294).to_string(), hill),
+    ];
+    let extra_saved = Some(trace.meta.saved_at.clone());
 
     paint_detail_panel(
         cx,
@@ -181,7 +166,6 @@ fn paint_replay_panel(
         langbase.lstr(146),
         langbase.lstr(290),
         entries.is_empty(),
-        None,
     );
 }
 
@@ -209,17 +193,10 @@ fn load_replays(files: &FileStore) -> Vec<ReplayEntry> {
                 .to_string();
             let intro = stem.eq_ignore_ascii_case("INTRO");
             let data = files.read(&filename);
-            match ReplayTrace::from_sjr_bytes(&data, intro) {
-                Ok(trace) => ReplayEntry {
-                    filename: stem,
-                    trace: Some(trace),
-                    error: None,
-                },
-                Err(err) => ReplayEntry {
-                    filename: stem,
-                    trace: None,
-                    error: Some(format!("{err:?}")),
-                },
+            let trace = ReplayTrace::from_sjr_bytes(&data, intro);
+            ReplayEntry {
+                filename: stem,
+                trace: Some(trace),
             }
         })
         .collect()

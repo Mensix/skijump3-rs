@@ -199,10 +199,6 @@ where
         self.ui_state.enter_done();
     }
 
-    pub(crate) fn enter_error(&mut self, msg: impl Into<String>) {
-        self.ui_state.enter_error(msg.into());
-    }
-
     fn advance_results(
         &mut self,
         state: &mut GameState,

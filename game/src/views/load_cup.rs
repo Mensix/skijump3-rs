@@ -13,7 +13,6 @@ pub struct LoadCupView {
     save_manager: SaveRef,
     entries: Vec<CupSaveEntry>,
     selected: usize,
-    error: Option<String>,
 }
 
 impl LoadCupView {
@@ -23,7 +22,6 @@ impl LoadCupView {
             save_manager,
             entries,
             selected: 0,
-            error: None,
         }
     }
 
@@ -92,7 +90,6 @@ impl GameScreen for LoadCupView {
             cx.layout.langbase.lstr(146),
             cx.layout.langbase.lstr(523),
             self.entries.is_empty(),
-            self.error.as_deref(),
         );
     }
 

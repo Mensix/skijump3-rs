@@ -1,14 +1,13 @@
 use super::setup::{SetupAction, TeamCupSetup};
 use crate::competition::team_cup::types::{TeamCupJumpContext, TeamCupResultsKind, TeamCupRuntime};
-use crate::gfx::theme::{BLACK, FONT_BODY, FONT_GRAY};
 use crate::route::RouteTarget;
 use crate::save::SaveRef;
 use crate::screen::{GameCx, GameScreen};
 use crate::store::{GameState, ResourcesRef};
 use crate::views::jump::competition::controller::CompetitionJumpController;
-use crate::views::jump::competition::flow::{
-    route_error_back, CompetitionFlowCommand, JumpInputResult,
-};
+    use crate::views::jump::competition::flow::{
+        CompetitionFlowCommand, JumpInputResult,
+    };
 use crate::views::jump::competition::ui_state::RenderMode;
 use crate::views::jump::team_cup::results as team_cup_results;
 use engine::oxide::Blinker;
@@ -49,8 +48,6 @@ impl TeamCupJumpView {
     fn drive_until_visible(&mut self, state: &mut GameState) {
         if let Some(cmd) = self.controller.drive(state) {
             self.apply_command(cmd, state);
-        } else if self.controller.render_mode() != RenderMode::Error {
-            self.controller.enter_error("No competition running");
         }
     }
 
@@ -110,31 +107,11 @@ impl TeamCupJumpView {
             RenderMode::Results => {
                 team_cup_results::render(cx, self.controller.resources(), state, self.results_kind);
             }
-            RenderMode::Done | RenderMode::Error => {
-                let msg = if self.controller.render_mode() == RenderMode::Error {
-                    self.controller.ui_state().error_message()
-                } else {
-                    ""
-                };
-                cx.fill((0, 0, 320, 200), BLACK);
-                cx.text((20, 80), FONT_BODY, msg);
-                cx.text(
-                    (20, 95),
-                    FONT_GRAY,
-                    self.controller.resources().langbase.lstr(15),
-                );
-            }
+            RenderMode::Done => {}
         }
     }
 
     fn handle_input(&mut self, event: UiEvent, state: &mut GameState) -> Option<RouteTarget> {
-        if let Some(route) = route_error_back(self.controller.ui_state(), event) {
-            return Some(route);
-        }
-        if self.controller.render_mode() == RenderMode::Error {
-            return None;
-        }
-
         if self.phase == ViewPhase::Done {
             return Some(RouteTarget::Back);
         }

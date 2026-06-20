@@ -5,6 +5,7 @@ use crate::jump::state::JumpState;
 use crate::jump::types::{FlightWind, JumpPhase};
 use crate::text::encoding;
 use std::fmt::Write;
+use std::str;
 
 const REPLAY_FRAME_CAPACITY: usize = 1001;
 const REPLAY_CHECK_XOR: i32 = 3_675_433;
@@ -218,67 +219,55 @@ impl LiveReplayRecorder {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ReplayError {
-    MissingLine(&'static str),
-    InvalidNumber { field: &'static str, value: String },
-    MissingReplayData,
-    MissingFrameData { expected: usize, actual: usize },
-}
+
 
 impl ReplayTrace {
-    pub fn from_sjr_bytes(data: &[u8], intro: bool) -> Result<Self, ReplayError> {
+    pub fn from_sjr_bytes(data: &[u8], intro: bool) -> Self {
         let mut parser = ReplayParser::new(data);
-        let start_x = parser.i32_line("start_x")?;
-        let start_y = parser.i32_line("start_y")?;
-        let max_turns = parser.usize_line("max_turns")?;
-        let hill_idx_raw = parser.usize_line("hill_idx")?;
+        let start_x = str::from_utf8(parser.next_line()).unwrap().trim().parse::<i32>().unwrap();
+        let start_y = str::from_utf8(parser.next_line()).unwrap().trim().parse::<i32>().unwrap();
+        let max_turns = str::from_utf8(parser.next_line()).unwrap().trim().parse::<usize>().unwrap();
+        let hill_idx_raw = str::from_utf8(parser.next_line()).unwrap().trim().parse::<usize>().unwrap();
         let hill_idx = hill_idx_raw.saturating_sub(1);
-        let hill_filename = parser.string_line("hill_filename")?;
-        let hill_filename_raw = parser.previous_raw_line();
-        let hill_profile = parser.i32_line("hill_profile")?;
-        let snow_count = parser.u16_line("snow_count")?;
-        let distance = parser.i32_line("distance")?;
-        let flight_start = parser.usize_line("flight_start")?;
-        let flight_stop = parser.usize_line("flight_stop")?;
-        let hr_x = parser.i32_line("hill_record_x")?;
-        let hr_y = parser.i32_line("hill_record_y")?;
-        let suit_color = parser.u8_line("suit_color")?;
-        let ski_color = parser.u8_line("ski_color")?;
-        let author = {
-            parser.line("author")?;
-            encoding::decode(parser.previous_raw_line())
-        };
-        let author_raw = parser.previous_raw_line();
-        let name = {
-            parser.line("name")?;
-            encoding::decode(parser.previous_raw_line())
-        };
-        let saved_at = parser.string_line("saved_at")?;
-        let has_bib = parser.i32_line("has_bib")? != 0;
-        let start_gate_or_competition = parser.i32_line("start_gate_or_competition")?;
-        let checksum = parser.i32_line("checksum")?;
-        let _reserved = parser.string_line("reserved")?;
-        let replay_data = parser.replay_data()?;
-
-        let frames = decode_frames(replay_data, max_turns)?;
+        let hill_filename = str::from_utf8(parser.next_line()).unwrap().to_string();
+        let hill_filename_raw = parser.previous_raw_line().to_vec();
+        let hill_profile = str::from_utf8(parser.next_line()).unwrap().trim().parse::<i32>().unwrap();
+        let snow_count = str::from_utf8(parser.next_line()).unwrap().trim().parse::<u16>().unwrap();
+        let distance = str::from_utf8(parser.next_line()).unwrap().trim().parse::<i32>().unwrap();
+        let flight_start = str::from_utf8(parser.next_line()).unwrap().trim().parse::<usize>().unwrap();
+        let flight_stop = str::from_utf8(parser.next_line()).unwrap().trim().parse::<usize>().unwrap();
+        let hr_x = str::from_utf8(parser.next_line()).unwrap().trim().parse::<i32>().unwrap();
+        let hr_y = str::from_utf8(parser.next_line()).unwrap().trim().parse::<i32>().unwrap();
+        let suit_color = str::from_utf8(parser.next_line()).unwrap().trim().parse::<u8>().unwrap();
+        let ski_color = str::from_utf8(parser.next_line()).unwrap().trim().parse::<u8>().unwrap();
+        let author_raw = parser.next_line().to_vec();
+        let author = encoding::decode(&author_raw);
+        let name_raw = parser.next_line().to_vec();
+        let name = encoding::decode(&name_raw);
+        let saved_at = str::from_utf8(parser.next_line()).unwrap().to_string();
+        let has_bib = str::from_utf8(parser.next_line()).unwrap().trim().parse::<i32>().unwrap() != 0;
+        let start_gate_or_competition = str::from_utf8(parser.next_line()).unwrap().trim().parse::<i32>().unwrap();
+        let checksum = str::from_utf8(parser.next_line()).unwrap().trim().parse::<i32>().unwrap();
+        parser.next_line(); // reserved
+        let replay_data = parser.skip_to_replay_data();
+        let frames = decode_frames(replay_data, max_turns);
         let expected_checksum = replay_checksum(ReplayChecksumInput {
             start_x,
             start_y,
             max_turns,
             hill_idx: hill_idx_raw,
-            hill_filename: hill_filename_raw,
+            hill_filename: &hill_filename_raw,
             hill_profile,
             distance,
             flight_start,
             flight_stop,
             hill_record_x: hr_x,
             hill_record_y: hr_y,
-            author: author_raw,
+            author: &author_raw,
             start_gate_or_competition,
         });
 
-        Ok(Self {
+        Self {
             meta: ReplayMeta {
                 start_x,
                 start_y,
@@ -303,7 +292,7 @@ impl ReplayTrace {
                 intro,
             },
             frames,
-        })
+        }
     }
 
     #[must_use]
@@ -410,16 +399,9 @@ const fn word(value: i32) -> u16 {
     value as u16
 }
 
-fn decode_frames(data: &[u8], max_turns: usize) -> Result<Vec<ReplayFrame>, ReplayError> {
-    let expected = REPLAY_FRAME_CAPACITY * 5;
-    if data.len() < expected {
-        return Err(ReplayError::MissingFrameData {
-            expected,
-            actual: data.len(),
-        });
-    }
+fn decode_frames(data: &[u8], max_turns: usize) -> Vec<ReplayFrame> {
     let count = (max_turns + 1).min(REPLAY_FRAME_CAPACITY);
-    Ok(data
+    data
         .chunks_exact(5)
         .take(count)
         .map(|chunk| ReplayFrame {
@@ -429,7 +411,7 @@ fn decode_frames(data: &[u8], max_turns: usize) -> Result<Vec<ReplayFrame>, Repl
             ski_anim: chunk[3].saturating_sub(1),
             wind: (i32::from(chunk[4]) - 128) as i8,
         })
-        .collect())
+        .collect()
 }
 
 fn encode_frames(out: &mut Vec<u8>, frames: &[ReplayFrame]) {
@@ -472,47 +454,7 @@ impl<'a> ReplayParser<'a> {
         self.previous_raw_line
     }
 
-    fn string_line(&mut self, field: &'static str) -> Result<String, ReplayError> {
-        let line = self.line(field)?;
-        Ok(String::from_utf8_lossy(line).to_string())
-    }
-
-    fn i32_line(&mut self, field: &'static str) -> Result<i32, ReplayError> {
-        let line = self.line(field)?;
-        let value = String::from_utf8_lossy(line).trim().to_string();
-        value
-            .parse::<i32>()
-            .map_err(|_| ReplayError::InvalidNumber { field, value })
-    }
-
-    fn usize_line(&mut self, field: &'static str) -> Result<usize, ReplayError> {
-        let value = self.i32_line(field)?;
-        usize::try_from(value).map_err(|_| ReplayError::InvalidNumber {
-            field,
-            value: value.to_string(),
-        })
-    }
-
-    fn u16_line(&mut self, field: &'static str) -> Result<u16, ReplayError> {
-        let value = self.i32_line(field)?;
-        u16::try_from(value).map_err(|_| ReplayError::InvalidNumber {
-            field,
-            value: value.to_string(),
-        })
-    }
-
-    fn u8_line(&mut self, field: &'static str) -> Result<u8, ReplayError> {
-        let value = self.i32_line(field)?;
-        u8::try_from(value).map_err(|_| ReplayError::InvalidNumber {
-            field,
-            value: value.to_string(),
-        })
-    }
-
-    fn line(&mut self, field: &'static str) -> Result<&'a [u8], ReplayError> {
-        if self.pos >= self.data.len() {
-            return Err(ReplayError::MissingLine(field));
-        }
+    fn next_line(&mut self) -> &'a [u8] {
         let start = self.pos;
         while self.pos < self.data.len() && self.data[self.pos] != b'\n' {
             self.pos += 1;
@@ -525,18 +467,18 @@ impl<'a> ReplayParser<'a> {
             end -= 1;
         }
         self.previous_raw_line = &self.data[start..end];
-        Ok(self.previous_raw_line)
+        self.previous_raw_line
     }
 
-    fn replay_data(&mut self) -> Result<&'a [u8], ReplayError> {
+    fn skip_to_replay_data(&mut self) -> &'a [u8] {
         while self.pos < self.data.len() {
             if self.data[self.pos] == b'*' {
                 self.pos += 1;
-                return Ok(&self.data[self.pos..]);
+                return &self.data[self.pos..];
             }
             self.pos += 1;
         }
-        Err(ReplayError::MissingReplayData)
+        &[]
     }
 }
 
@@ -613,7 +555,7 @@ mod tests {
     #[test]
     fn sjr_roundtrip_preserves_metadata_frames_and_checksum() {
         let bytes = trace().to_sjr_bytes();
-        let parsed = ReplayTrace::from_sjr_bytes(&bytes, false).expect("valid replay");
+        let parsed = ReplayTrace::from_sjr_bytes(&bytes, false);
 
         assert!(parsed.meta.valid_checksum);
         assert_eq!(parsed.meta.start_x, 10);
@@ -639,7 +581,7 @@ mod tests {
         assert_eq!(bytes[data_start + 2], 164);
         assert_eq!(bytes[data_start + 3], 73);
 
-        let parsed = ReplayTrace::from_sjr_bytes(&bytes, false).expect("valid replay");
+        let parsed = ReplayTrace::from_sjr_bytes(&bytes, false);
         assert_eq!(parsed.frames[0].body_anim, Sprite::IdleBody as u8);
         assert_eq!(parsed.frames[0].ski_anim, 72);
     }
@@ -673,7 +615,7 @@ mod tests {
 
         let trace = recorder.finish().expect("trace");
         let bytes = trace.to_sjr_bytes();
-        let parsed = ReplayTrace::from_sjr_bytes(&bytes, false).expect("valid replay");
+        let parsed = ReplayTrace::from_sjr_bytes(&bytes, false);
 
         assert_eq!(trace.meta.frame_count, 1);
         assert_eq!(parsed.frames.len(), 2);

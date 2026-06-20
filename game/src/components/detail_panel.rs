@@ -14,7 +14,6 @@ const FIELD_SPACING: i32 = 20;
 const FIELD_VALUE_OFFSET: i32 = 9;
 const EXTRA_Y: i32 = 163;
 const EMPTY_Y: i32 = 80;
-const ERROR_Y: i32 = 180;
 const NAV_HINT_Y: i32 = 185;
 
 pub fn paint_detail_panel(
@@ -27,7 +26,6 @@ pub fn paint_detail_panel(
     nav_hint: &str,
     empty_text: &str,
     is_empty: bool,
-    error: Option<&str>,
 ) {
     cx.text((VALUE_X, TITLE_Y), FONT_GRAY, title);
     cx.text((LABEL_X, NAV_HINT_Y), FONT_GRAY, nav_hint);
@@ -66,7 +64,5 @@ pub fn paint_detail_panel(
         cx.text((VALUE_X, EXTRA_Y), FONT_GRAY, val);
     }
 
-    if let Some(err) = error {
-        cx.text((LABEL_X, ERROR_Y), FONT_GRAY, err);
-    }
 }
+
