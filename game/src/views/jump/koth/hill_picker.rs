@@ -28,7 +28,8 @@ impl KothHillPickerView {
         let menu = PixelMenu::new(110, 11, 170, 8, items, FONT_BODY, FONT_BODY)
             .with_labels(false)
             .with_box(false)
-            .trailing("", 16);
+            .trailing("", 16)
+            .with_return_index(true);
 
         Self {
             resources,
@@ -67,6 +68,7 @@ impl KothHillPickerView {
             .with_labels(false)
             .with_box(false)
             .trailing("", 16)
+            .with_return_index(true)
     }
 
     fn select_hill(&mut self, state: &mut GameState) {
@@ -91,19 +93,6 @@ impl KothHillPickerView {
     }
 
     fn confirm_event(&mut self, ecx: &mut EventCx, event: UiEvent, state: &mut GameState) -> bool {
-        match event {
-            UiEvent::Text(ch) if ch.is_ascii_digit() && ch != '0' => {
-                let n = ch as usize - '0' as usize;
-                let menu_n = self.menu.item_count();
-                if n <= menu_n {
-                    self.menu.set_selected(n - 1);
-                    self.select_hill(state);
-                    return true;
-                }
-                return false;
-            }
-            _ => {}
-        }
         if let Some(_idx) = self.menu.event(ecx, event) {
             self.select_hill(state);
             true

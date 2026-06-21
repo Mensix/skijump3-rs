@@ -5,7 +5,8 @@ use crate::save::config::Config;
 use crate::store::GameState;
 use crate::views::jump::input::JumpKeyBindings;
 use engine::oxide::input::{Key, UiEvent};
-use engine::oxide::widgets::menu::PixelMenu;
+use engine::oxide::widget::EventCx;
+use engine::oxide::Widget;
 
 use super::state::SetupModal;
 use super::view::SetupView;
@@ -388,119 +389,39 @@ fn handle_screen_event(
     let screen = view.screen;
     let entries = view.menu.item_count();
 
-    match event {
-        UiEvent::KeyDown(Key::Up) => {
-            let sel = view.menu.selected();
-            let selected = cycle_index(sel, entries, -1);
-            view.menu.set_selected(selected);
-            if screen < view.selected_by_screen.len() {
-                view.selected_by_screen[screen] = selected;
-            }
+    // Escape/Tab handled before PixelMenu to avoid ambiguous Some(0) return.
+    if matches!(event, UiEvent::KeyDown(Key::Escape | Key::Tab)) {
+        if screen == 0 {
+            return Some(RouteTarget::MainMenu);
         }
-        UiEvent::KeyDown(Key::Down) => {
-            let sel = view.menu.selected();
-            let selected = cycle_index(sel, entries, 1);
-            view.menu.set_selected(selected);
-            if screen < view.selected_by_screen.len() {
-                view.selected_by_screen[screen] = selected;
-            }
-        }
-        UiEvent::KeyDown(Key::Escape) => {
-            if screen == 0 {
-                return Some(RouteTarget::MainMenu);
-            }
-            view.switch_screen(0);
-        }
-        UiEvent::KeyDown(Key::Home) => {
-            view.menu.set_selected(0);
-            if screen < view.selected_by_screen.len() {
-                view.selected_by_screen[screen] = 0;
-            }
-        }
-        UiEvent::KeyDown(Key::End) => {
-            view.menu.set_selected(entries);
-            if screen < view.selected_by_screen.len() {
-                view.selected_by_screen[screen] = entries;
-            }
-        }
-        UiEvent::KeyDown(Key::Tab) => {
-            if screen == 0 {
-                return Some(RouteTarget::MainMenu);
-            }
-            view.switch_screen(0);
-        }
-        UiEvent::KeyDown(key) if PixelMenu::function_key_index(key).is_some() => {
-            let n = PixelMenu::function_key_index(key).unwrap();
-            if n == 10 || n > entries {
-                if screen == 0 {
-                    return Some(RouteTarget::MainMenu);
-                }
-                view.switch_screen(0);
-            } else {
-                let selected = n - 1;
-                view.menu.set_selected(selected);
-                if screen < view.selected_by_screen.len() {
-                    view.selected_by_screen[screen] = selected;
-                }
-                if let Some(route) = activate_item(view, state, screen, selected) {
-                    return Some(route);
-                }
-            }
-        }
-        UiEvent::KeyDown(Key::Enter) | UiEvent::Text(' ') => {
-            let sel = view.menu.selected();
-            if screen == 0 && sel == 3 {
-                view.modal = Some(SetupModal::ConfigureKeys {
-                    selected: 0,
-                    capture: None,
-                });
-                return None;
-            }
-            if screen == 0 && sel == 4 {
-                view.modal = Some(SetupModal::HillGoals(0));
-                return None;
-            }
-            if screen == 0 && sel == 5 {
-                return Some(RouteTarget::HillMakerSetup);
-            }
-            if sel >= entries {
-                if screen == 0 {
-                    return Some(RouteTarget::MainMenu);
-                }
-                view.switch_screen(0);
-            } else {
-                if let Some(route) = activate_item(view, state, screen, sel) {
-                    return Some(route);
-                }
-            }
-        }
-        UiEvent::Text(c) if c.is_ascii_digit() => {
-            if let Some(d) = c.to_digit(10) {
-                let n = d as usize;
-                if n < entries {
-                    view.menu.set_selected(n);
-                    if screen < view.selected_by_screen.len() {
-                        view.selected_by_screen[screen] = n;
-                    }
-                } else if n == 0 {
-                    view.menu.set_selected(entries);
-                    if screen < view.selected_by_screen.len() {
-                        view.selected_by_screen[screen] = entries;
-                    }
-                }
-            }
-        }
-        UiEvent::Text(c) if matches!(c, 'A'..='L' | 'a'..='l') => {
-            let n = c.to_ascii_uppercase() as usize - 'A' as usize + 10;
-            if n <= entries {
-                view.menu.set_selected(n);
-                if screen < view.selected_by_screen.len() {
-                    view.selected_by_screen[screen] = n;
-                }
-            }
-        }
-        _ => {}
+        view.switch_screen(0);
+        return None;
     }
+
+    let mut ecx = EventCx::default();
+    let msg = view.menu.event(&mut ecx, event);
+
+    // Persist selection after any navigation event.
+    if ecx.is_consumed() {
+        if screen < view.selected_by_screen.len() {
+            view.selected_by_screen[screen] = view.menu.selected();
+        }
+    }
+
+    // For PixelMenu events that cause a submit (Enter, digit, space, function key):
+    // the returned action is the 0-based cursor index (return_index mode).
+    if let Some(action) = msg {
+        if action >= entries {
+            // Trailing item, digit 0, End, F10
+            if screen == 0 {
+                return Some(RouteTarget::MainMenu);
+            }
+            view.switch_screen(0);
+        } else {
+            return activate_item(view, state, screen, action);
+        }
+    }
+
     None
 }
 
@@ -511,7 +432,7 @@ fn activate_item(
     item: usize,
 ) -> Option<RouteTarget> {
     match (screen, item) {
-        (0, 0..=2) => view.switch_screen(item),
+        (0, 0..=2) => view.switch_screen(item + 1),
         (0, 3) => {
             view.modal = Some(SetupModal::ConfigureKeys {
                 selected: 0,

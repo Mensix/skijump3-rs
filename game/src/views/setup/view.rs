@@ -4,7 +4,6 @@ use crate::route::RouteTarget;
 use crate::save::SaveRef;
 use crate::screen::{GameCx, GameScreen};
 use crate::store::ResourcesRef;
-use crate::text::lang::LangBase;
 use engine::oxide::widgets::menu::{MenuItem as OxideMenuItem, PixelMenu};
 use engine::oxide::{Blinker, PaintCx, ScreenEventCx, UiEvent};
 
@@ -44,7 +43,8 @@ impl SetupView {
         let mut m = PixelMenu::new(35, 40, 221, 10, items, FONT_BODY, FONT_BODY)
             .with_labels(false)
             .with_box(false)
-            .trailing("", 0);
+            .trailing("", 0)
+            .with_return_index(true);
         m.set_selected(selected.min(entries));
         m
     }

@@ -3,11 +3,317 @@ use crate::oxide::input::{Key, UiEvent};
 use crate::oxide::paint::PaintCx;
 use crate::oxide::widget::{EventCx, Widget};
 
+/// A single item in a `PixelMenu`.
+///
+/// - `number` is the **action id** returned when this item is submitted.
+///   It has no relation to the visible position number or the 0-based cursor index.
+/// - `label` is the text rendered next to the visible number.
+/// - `y_offset` shifts this item's vertical position relative to its natural row.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MenuItem {
     pub number: u8,
     pub label: String,
     pub y_offset: i32,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{MenuItem, PixelMenu};
+    use crate::color::Rgba;
+    use crate::oxide::input::Key;
+    use crate::oxide::input::UiEvent;
+    use crate::oxide::widget::{EventCx, Widget};
+
+    fn menu_with_trailing() -> PixelMenu {
+        PixelMenu::new(
+            0,
+            0,
+            10,
+            10,
+            vec![MenuItem::new(0, ""), MenuItem::new(1, ""), MenuItem::new(2, "")],
+            Rgba::rgb(255, 255, 255),
+            Rgba::rgb(255, 255, 255),
+        )
+        .trailing("", 0)
+    }
+
+    fn menu_return_index() -> PixelMenu {
+        PixelMenu::new(
+            0,
+            0,
+            10,
+            10,
+            vec![MenuItem::new(0, ""), MenuItem::new(0, ""), MenuItem::new(0, "")],
+            Rgba::rgb(255, 255, 255),
+            Rgba::rgb(255, 255, 255),
+        )
+        .trailing("", 0)
+        .with_return_index(true)
+    }
+
+    #[test]
+    fn digit_one_selects_first_visible_item() {
+        let mut menu = menu_with_trailing();
+        let mut cx = EventCx::default();
+
+        let msg = menu.event(&mut cx, UiEvent::Text('1'));
+
+        assert_eq!(menu.selected(), 0);
+        assert_eq!(msg, Some(0));
+        assert!(cx.is_consumed());
+    }
+
+    #[test]
+    fn digit_zero_selects_trailing_item() {
+        let mut menu = menu_with_trailing();
+        let mut cx = EventCx::default();
+
+        let msg = menu.event(&mut cx, UiEvent::Text('0'));
+
+        assert_eq!(menu.selected(), menu.item_count());
+        assert_eq!(msg, Some(0));
+        assert!(cx.is_consumed());
+    }
+
+    #[test]
+    fn up_from_first_selects_trailing_item() {
+        let mut menu = menu_with_trailing();
+        let mut cx = EventCx::default();
+
+        let msg = menu.event(&mut cx, UiEvent::KeyDown(Key::Up));
+
+        assert_eq!(menu.selected(), menu.item_count());
+        assert_eq!(msg, None);
+        assert!(cx.is_consumed());
+    }
+
+    #[test]
+    fn down_from_trailing_goes_to_first() {
+        let mut menu = menu_with_trailing();
+        menu.set_selected(menu.item_count());
+        let mut cx = EventCx::default();
+
+        let msg = menu.event(&mut cx, UiEvent::KeyDown(Key::Down));
+
+        assert_eq!(menu.selected(), 0);
+        assert_eq!(msg, None);
+        assert!(cx.is_consumed());
+    }
+
+    #[test]
+    fn home_selects_first() {
+        let mut menu = menu_with_trailing();
+        menu.set_selected(menu.item_count());
+        let mut cx = EventCx::default();
+
+        let msg = menu.event(&mut cx, UiEvent::KeyDown(Key::Home));
+
+        assert_eq!(menu.selected(), 0);
+        assert_eq!(msg, None);
+        assert!(cx.is_consumed());
+    }
+
+    #[test]
+    fn end_selects_last_including_trailing() {
+        let mut menu = menu_with_trailing();
+        let mut cx = EventCx::default();
+
+        let msg = menu.event(&mut cx, UiEvent::KeyDown(Key::End));
+
+        assert_eq!(menu.selected(), menu.item_count());
+        assert_eq!(msg, None);
+        assert!(cx.is_consumed());
+    }
+
+    #[test]
+    fn enter_submits_selected_item_number() {
+        let mut menu = menu_with_trailing();
+        menu.set_selected(1);
+        let mut cx = EventCx::default();
+
+        let msg = menu.event(&mut cx, UiEvent::KeyDown(Key::Enter));
+
+        assert_eq!(msg, Some(1));
+        assert!(cx.is_consumed());
+    }
+
+    #[test]
+    fn enter_on_trailing_returns_zero() {
+        let mut menu = menu_with_trailing();
+        menu.set_selected(menu.item_count());
+        let mut cx = EventCx::default();
+
+        let msg = menu.event(&mut cx, UiEvent::KeyDown(Key::Enter));
+
+        assert_eq!(msg, Some(0));
+        assert!(cx.is_consumed());
+    }
+
+    #[test]
+    fn space_submits_like_enter() {
+        let mut menu = menu_with_trailing();
+        menu.set_selected(1);
+        let mut cx = EventCx::default();
+
+        let msg = menu.event(&mut cx, UiEvent::Text(' '));
+
+        assert_eq!(msg, Some(1));
+        assert!(cx.is_consumed());
+    }
+
+    #[test]
+    fn escape_returns_zero() {
+        let mut menu = menu_with_trailing();
+        let mut cx = EventCx::default();
+
+        let msg = menu.event(&mut cx, UiEvent::KeyDown(Key::Escape));
+
+        assert_eq!(msg, Some(0));
+        assert!(cx.is_consumed());
+    }
+
+    #[test]
+    fn return_index_mode_returns_selected_index() {
+        let mut menu = menu_return_index();
+        let mut cx = EventCx::default();
+
+        // Select first item via digit 1
+        let msg = menu.event(&mut cx, UiEvent::Text('1'));
+
+        assert_eq!(menu.selected(), 0);
+        assert_eq!(msg, Some(0));
+        assert!(cx.is_consumed());
+    }
+
+    #[test]
+    fn return_index_enter_second_item() {
+        let mut menu = menu_return_index();
+        menu.set_selected(1);
+        let mut cx = EventCx::default();
+
+        let msg = menu.event(&mut cx, UiEvent::KeyDown(Key::Enter));
+
+        // Returns selected index (1) not item number (0)
+        assert_eq!(msg, Some(1));
+        assert!(cx.is_consumed());
+    }
+
+    #[test]
+    fn return_index_trailing_returns_item_count() {
+        let mut menu = menu_return_index();
+        menu.set_selected(menu.item_count());
+        let mut cx = EventCx::default();
+
+        let msg = menu.event(&mut cx, UiEvent::KeyDown(Key::Enter));
+
+        // Trailing returns its index (= item_count()) not 0
+        assert_eq!(msg, Some(menu.item_count()));
+        assert!(cx.is_consumed());
+    }
+
+    #[test]
+    fn return_index_digit_zero_selects_trailing() {
+        let mut menu = menu_return_index();
+        let mut cx = EventCx::default();
+
+        let msg = menu.event(&mut cx, UiEvent::Text('0'));
+
+        assert_eq!(menu.selected(), menu.item_count());
+        assert_eq!(msg, Some(menu.item_count()));
+        assert!(cx.is_consumed());
+    }
+
+    #[test]
+    fn return_index_f10_selects_trailing_and_returns_item_count() {
+        let mut menu = menu_return_index();
+        let mut cx = EventCx::default();
+
+        let msg = menu.event(&mut cx, UiEvent::KeyDown(Key::F10));
+
+        assert_eq!(menu.selected(), menu.item_count());
+        assert_eq!(msg, Some(menu.item_count()));
+        assert!(cx.is_consumed());
+    }
+
+    #[test]
+    fn f1_selects_first_item() {
+        let mut menu = menu_with_trailing();
+        let mut cx = EventCx::default();
+
+        let msg = menu.event(&mut cx, UiEvent::KeyDown(Key::F1));
+
+        assert_eq!(menu.selected(), 0);
+        assert_eq!(msg, Some(0));
+        assert!(cx.is_consumed());
+    }
+
+    #[test]
+    fn f10_selects_trailing_if_exists() {
+        let mut menu = menu_with_trailing();
+        let mut cx = EventCx::default();
+
+        let msg = menu.event(&mut cx, UiEvent::KeyDown(Key::F10));
+
+        assert_eq!(menu.selected(), menu.item_count());
+        assert_eq!(msg, Some(0));
+        assert!(cx.is_consumed());
+    }
+
+    #[test]
+    fn f10_without_trailing_does_nothing() {
+        let mut menu = PixelMenu::new(
+            0,
+            0,
+            10,
+            10,
+            vec![MenuItem::new(0, ""), MenuItem::new(1, "")],
+            Rgba::rgb(255, 255, 255),
+            Rgba::rgb(255, 255, 255),
+        );
+        let mut cx = EventCx::default();
+
+        let msg = menu.event(&mut cx, UiEvent::KeyDown(Key::F10));
+
+        assert_eq!(msg, None);
+        assert!(!cx.is_consumed());
+    }
+
+    #[test]
+    fn digit_greater_than_item_count_does_nothing() {
+        let mut menu = menu_with_trailing();
+        let mut cx = EventCx::default();
+
+        // Only 3 regular items + trailing = 4 total, pressing '9' does nothing
+        let msg = menu.event(&mut cx, UiEvent::Text('9'));
+
+        assert_eq!(msg, None);
+        assert!(cx.is_consumed());
+    }
+
+    #[test]
+    fn left_arrow_moves_up() {
+        let mut menu = menu_with_trailing();
+        menu.set_selected(2);
+        let mut cx = EventCx::default();
+
+        let msg = menu.event(&mut cx, UiEvent::KeyDown(Key::Left));
+
+        assert_eq!(menu.selected(), 1);
+        assert_eq!(msg, None);
+        assert!(cx.is_consumed());
+    }
+
+    #[test]
+    fn right_arrow_moves_down() {
+        let mut menu = menu_with_trailing();
+        let mut cx = EventCx::default();
+
+        let msg = menu.event(&mut cx, UiEvent::KeyDown(Key::Right));
+
+        assert_eq!(menu.selected(), 1);
+        assert_eq!(msg, None);
+        assert!(cx.is_consumed());
+    }
 }
 
 impl MenuItem {
@@ -27,6 +333,20 @@ impl MenuItem {
     }
 }
 
+/// A keyboard-navigable pixel-style menu.
+///
+/// # Semantics
+/// - **`selected`** (cursor position): always 0-based index into the combined
+///   list of regular items + optional trailing item.
+/// - **`MenuItem.number`**: the **action id** returned on submit.  It is
+///   *independent* of the visual position or the cursor index.
+/// - **`visible number`**: the 1-based label shown on screen (`1.`, `2.`, … `0.`).
+///   Pressing these digits maps to the corresponding 0-based cursor position
+///   and immediately submits.
+/// - **Trailing item** (the "0." row): if present, it occupies the last
+///   cursor position (`selected == item_count()`).  By default it returns
+///   action id `0` on submit.  When `return_index` is true, all items
+///   (including trailing) return the 0-based cursor index.
 #[derive(Debug, Clone)]
 pub struct PixelMenu {
     x: i32,
@@ -40,6 +360,7 @@ pub struct PixelMenu {
     show_labels: bool,
     show_box: bool,
     trailing: Option<(String, i32)>, // (label, gap above)
+    return_index: bool,              // when true, submit returns selected index instead of item.number
 }
 
 impl PixelMenu {
@@ -66,7 +387,37 @@ impl PixelMenu {
             show_labels: true,
             show_box: true,
             trailing: None,
+            return_index: false,
         }
+    }
+
+    /// When `true`, `submit_selected()` returns the 0-based cursor index
+    /// instead of the selected item's `number` field.  The trailing item
+    /// returns `item_count()` (its own index) rather than `0`.
+    #[must_use]
+    pub fn with_return_index(mut self, val: bool) -> Self {
+        self.return_index = val;
+        self
+    }
+
+    /// 0-based cursor index into the combined item list (regular + trailing).
+    #[must_use]
+    pub const fn selected_index(&self) -> usize {
+        self.selected
+    }
+
+    /// The action id that would be returned if the current selection were
+    /// submitted — either `MenuItem.number` or the cursor index depending
+    /// on `return_index`.
+    #[must_use]
+    pub fn selected_action(&self) -> usize {
+        self.submit_selected()
+    }
+
+    /// Whether the cursor is on the trailing "0." item.
+    #[must_use]
+    pub fn is_trailing_selected(&self) -> bool {
+        self.trailing.is_some() && self.selected == self.items.len()
     }
 
     #[must_use]
@@ -141,7 +492,9 @@ impl PixelMenu {
     }
 
     fn submit_selected(&self) -> usize {
-        if self.trailing.is_some() && self.selected == self.items.len() {
+        if self.return_index {
+            self.selected
+        } else if self.trailing.is_some() && self.selected == self.items.len() {
             0
         } else {
             self.items[self.selected].number as usize
@@ -207,7 +560,7 @@ impl Widget for PixelMenu {
                 let index = Self::function_key_index(key).unwrap();
                 if index == 10 && self.trailing.is_some() {
                     self.select_last();
-                    Some(0)
+                    Some(self.submit_selected())
                 } else if index >= 1 && index <= self.items.len() {
                     self.set_selected(index - 1);
                     Some(self.submit_selected())

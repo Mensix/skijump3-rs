@@ -44,7 +44,8 @@ impl TrainingSetupView {
         let mut menu = PixelMenu::new(110, 11, 170, 8, items, FONT_BODY, FONT_BODY)
             .with_labels(false)
             .with_box(false)
-            .trailing("", 16);
+            .trailing("", 16)
+            .with_return_index(true);
         menu.set_selected(selected.saturating_sub(start).min(page_n.saturating_sub(1)));
 
         Self {
@@ -63,6 +64,7 @@ impl TrainingSetupView {
             .with_labels(false)
             .with_box(false)
             .trailing("", 16)
+            .with_return_index(true)
     }
 
     fn confirm(&mut self, state: &mut GameState) -> Option<RouteTarget> {
@@ -139,20 +141,8 @@ impl TrainingSetupView {
         state: &mut GameState,
         event: UiEvent,
     ) -> Option<RouteTarget> {
-        match event {
-            UiEvent::KeyDown(Key::Escape) => {
-                return Some(RouteTarget::Back);
-            }
-            UiEvent::Text(ch) if ch.is_ascii_digit() && ch != '0' => {
-                let n = ch as usize - '0' as usize;
-                let menu_n = self.menu.item_count();
-                if n <= menu_n {
-                    self.menu.set_selected(n - 1);
-                    return self.confirm(state);
-                }
-                return None;
-            }
-            _ => {}
+        if matches!(event, UiEvent::KeyDown(Key::Escape)) {
+            return Some(RouteTarget::Back);
         }
         if let Some(_idx) = self.menu.event(ecx, event) {
             self.confirm(state)
