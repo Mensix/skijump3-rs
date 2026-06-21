@@ -3,7 +3,7 @@ use crate::gfx::theme::{BG_PURPLE, BLACK, FONT_BODY, FONT_GOLD, FONT_GRAY, FONT_
 use crate::route::RouteTarget;
 use crate::screen::{GameCx, GameScreen};
 use crate::store::ResourcesRef;
-use crate::text::layout::lstr;
+
 use engine::oxide::input::Key;
 use engine::oxide::widgets::menu::{MenuItem, PixelMenu};
 use engine::oxide::Widget;
@@ -195,25 +195,25 @@ impl GameScreen for HillMakerView {
         paint.fill((0, 0, 320, 200), BLACK);
         paint.pattern_fill((0, 0, 320, 200), BG_PURPLE);
 
-        paint.text((5, 5), FONT_GOLD, lstr(lb, 270, "SJ3 Hill Maker"));
+        paint.text((5, 5), FONT_GOLD, lb.lstr_or( 270, "SJ3 Hill Maker"));
 
-        paint.text((5, 21), FONT_GRAY, lstr(lb, 271, "(use arrows, DEL,"));
-        paint.text((5, 29), FONT_GRAY, lstr(lb, 272, " ENTER or ESC)"));
+        paint.text((5, 21), FONT_GRAY, lb.lstr_or( 271, "(use arrows, DEL,"));
+        paint.text((5, 29), FONT_GRAY, lb.lstr_or( 272, " ENTER or ESC)"));
 
         let col1 = 100i32;
         let col2 = 160i32;
 
-        paint.text((col1, 5), FONT_TEAL, lstr(lb, 273, "Filename"));
-        paint.text((col2, 5), FONT_TEAL, lstr(lb, 274, "Hillname"));
+        paint.text((col1, 5), FONT_TEAL, lb.lstr_or( 273, "Filename"));
+        paint.text((col2, 5), FONT_TEAL, lb.lstr_or( 274, "Hillname"));
 
         paint.text(
             (5, 45),
             FONT_TEAL,
             format!(
                 "{} {} {} {}",
-                lstr(lb, 157, "Page"),
+                lb.lstr_or( 157, "Page"),
                 self.page_number(),
-                lstr(lb, 8, "of"),
+                lb.lstr_or( 8, "of"),
                 self.page_count()
             ),
         );
@@ -234,14 +234,14 @@ impl GameScreen for HillMakerView {
         paint.text(
             (col1, 13 + row as i32 * 8),
             FONT_GOLD,
-            lstr(lb, 275, "*Add New Hill*"),
+            lb.lstr_or( 275, "*Add New Hill*"),
         );
         row += 1;
         if next.is_some() {
             paint.text(
                 (col1, 13 + row as i32 * 8),
                 FONT_GRAY,
-                lstr(lb, 158, "*Next Page*"),
+                lb.lstr_or( 158, "*Next Page*"),
             );
             row += 1;
         }
@@ -249,19 +249,19 @@ impl GameScreen for HillMakerView {
             paint.text(
                 (col1, 13 + row as i32 * 8),
                 FONT_GRAY,
-                lstr(lb, 159, "*Previous Page*"),
+                lb.lstr_or( 159, "*Previous Page*"),
             );
             row += 1;
         }
         self.menu.paint(paint);
 
         let exit_y = 13 + (row + 2) as i32 * 8;
-        paint.text((col1, exit_y), FONT_BODY, lstr(lb, 276, "-Exit-"));
+        paint.text((col1, exit_y), FONT_BODY, lb.lstr_or( 276, "-Exit-"));
         if let HillMakerMode::ConfirmDelete { filename } = &self.mode {
             alert_prompt(
                 paint,
                 format!("DELETE {filename}.TOML?"),
-                "ARE YOU SURE? (Y/N):",
+                lb.lstr_or( 193, "ARE YOU SURE?"), true,
             );
         }
     }

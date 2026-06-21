@@ -2,12 +2,11 @@ use crate::data::profile::{Profile, NUM_SKIS, NUM_SUITS};
 use crate::gfx::theme::{BG_RED, BLACK, FILL_GRAY, FONT_BODY, FONT_GOLD};
 use crate::route::RouteTarget;
 use crate::store::GameState;
-use crate::text::layout::{lstr, replace_display_name};
-use engine::oxide::widgets::confirm::ConfirmDialog as OxideConfirmDialog;
+use crate::text::layout::replace_display_name;
 use engine::oxide::widgets::selector::NumericSelector;
 use engine::oxide::widgets::text_input::TextInput as OxideTextInput;
 
-use super::list::{ColorField, Mode, ProfilesView, QuestionAction, TextField, REPLACE_MAX};
+use super::list::{ColorField, Mode, ProfilesView, TextField, REPLACE_MAX};
 use super::render::profile_label;
 
 pub(super) fn save_players(view: &ProfilesView, state: &GameState) {
@@ -60,24 +59,7 @@ pub(super) fn handle_list_delete(view: &mut ProfilesView, state: &mut GameState)
         state.profiles.remove_from_order(view.selected);
         save_players(view, state);
     } else {
-        let name = state.profiles.profiles[view.selected].name.clone();
-        view.mode = Mode::Question {
-            action: QuestionAction::DeleteProfile(view.selected),
-            dialog: OxideConfirmDialog::new(
-                (59, 79, 203, 53),
-                BG_RED,
-                BLACK,
-                FONT_GOLD,
-                format!(
-                    "{}: {}",
-                    lstr(&view.resources.langbase, 328, "Delete"),
-                    name
-                ),
-                "Y",
-                "N",
-            )
-            .with_subtitle(lstr(&view.resources.langbase, 193, "Are you sure?")),
-        };
+        view.confirm_delete = Some(view.selected);
     }
 }
 
@@ -191,23 +173,7 @@ pub(super) fn handle_edit_enter(
             save_players(view, state);
         }
         7 => {
-            view.mode = Mode::Question {
-                action: QuestionAction::ResetProfile(profile),
-                dialog: OxideConfirmDialog::new(
-                    (59, 79, 203, 53),
-                    BG_RED,
-                    BLACK,
-                    FONT_GOLD,
-                    lstr(&view.resources.langbase, 329, "Reset jumper?"),
-                    "Y",
-                    "N",
-                )
-                .with_subtitle(lstr(
-                    &view.resources.langbase,
-                    193,
-                    "Are you sure?",
-                )),
-            };
+            view.confirm_reset = Some(profile);
         }
         _ => {}
     }
@@ -294,33 +260,4 @@ pub(super) fn commit_text_input(
             TextField::RealName => 1,
         },
     };
-}
-
-pub(super) fn apply_question(
-    view: &mut ProfilesView,
-    state: &mut GameState,
-    action: QuestionAction,
-) {
-    match action {
-        QuestionAction::DeleteProfile(profile) => {
-            state.profiles.remove_profile(profile);
-            let np = state.profiles.num_profiles();
-            if view.selected >= np {
-                view.selected = np.saturating_sub(1);
-            }
-            view.mode = Mode::List;
-        }
-        QuestionAction::ResetProfile(profile) => {
-            let name = state.profiles.profiles[profile].name.clone();
-            let reset = Profile {
-                name,
-                ..Default::default()
-            };
-            state.profiles.profiles[profile] = reset;
-            view.mode = Mode::Edit {
-                profile,
-                selected: 7,
-            };
-        }
-    }
 }

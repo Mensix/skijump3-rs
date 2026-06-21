@@ -6,8 +6,6 @@ use crate::competition::machine::Competition;
 use crate::competition::types::{CupStyle, Participant, QualificationStatus};
 use crate::data::profile::ProfileStore;
 
-const TOTAL_SLOTS: usize = 75;
-
 /// Build a Competition from game state.
 #[must_use]
 pub fn build_competition(
@@ -47,7 +45,7 @@ pub fn build_custom_competition(
 fn build_hill_order(style: CupStyle, hill_count: usize) -> Vec<usize> {
     match style {
         CupStyle::FourHills => fixed_schedule([8, 9, 10, 11]),
-        _ => sequential_schedule(hill_count, TOTAL_SLOTS),
+        _ => sequential_schedule(hill_count, hill_count),
     }
 }
 
@@ -56,19 +54,21 @@ fn build_participants(
     computer_names: &[String],
     no_same_name: bool,
 ) -> Vec<Participant> {
-    let mut participants = Vec::with_capacity(TOTAL_SLOTS);
     let active_profiles = active_profiles(profiles);
-    let profile_count = active_profiles.len().min(TOTAL_SLOTS);
-    let first_profile_slot = TOTAL_SLOTS - profile_count;
+    let profile_count = active_profiles.len();
+    let total_slots = computer_names.len().max(profile_count);
+    let first_profile_slot = total_slots - profile_count.min(total_slots);
     let computer_names = if no_same_name {
         computer_names_without_replacements(computer_names, &active_profiles)
     } else {
         computer_names.to_vec()
     };
 
-    for i in 0..TOTAL_SLOTS {
+    let mut participants = Vec::with_capacity(total_slots);
+
+    for i in 0..total_slots {
         if i >= first_profile_slot {
-            let list_idx = TOTAL_SLOTS - 1 - i;
+            let list_idx = total_slots - 1 - i;
             let (profile_idx, p) = &active_profiles[list_idx];
             let competitor = Competitor::from_profile(i, *profile_idx, p, None);
             participants.push(Participant {
@@ -96,7 +96,7 @@ fn build_participants(
             });
         } else {
             let name = computer_names
-                .get(i % computer_names.len().max(1))
+                .get(i)
                 .cloned()
                 .unwrap_or_else(|| format!("Computer {}", i + 1));
             let competitor = Competitor::computer(i, i, name, None);
@@ -115,11 +115,11 @@ mod tests {
     use crate::jump::types::FallType;
 
     #[test]
-    fn builds_75_participants() {
+    fn builds_all_participants() {
         let profiles = ProfileStore::new();
         let names = vec!["AAA".into(), "BBB".into()];
         let comp = build_competition(CupStyle::WorldCup, &profiles, &names, 20, 2, false, false);
-        assert_eq!(comp.field.len(), 75);
+        assert_eq!(comp.field.len(), 2);
     }
 
     #[test]
@@ -130,10 +130,8 @@ mod tests {
         assert!(comp.field.get(0).is_computer);
         assert_eq!(comp.field.get(0).name, "AAA");
         assert_eq!(comp.field.get(0).ai_id, 0);
-        assert_eq!(comp.field.get(1).name, "BBB");
-        assert_eq!(comp.field.get(1).ai_id, 1);
-        assert!(!comp.field.get(74).is_computer);
-        assert_eq!(comp.field.get(74).name, "SKI JUMPER");
+        assert!(!comp.field.get(1).is_computer);
+        assert_eq!(comp.field.get(1).name, "SKI JUMPER");
     }
 
     #[test]
@@ -147,9 +145,9 @@ mod tests {
 
         let comp = build_competition(CupStyle::WorldCup, &profiles, &names, 20, 0, false, false);
 
-        assert!(!comp.field.get(74).is_computer);
-        assert_eq!(comp.field.get(74).name, "SKI JUMPER");
-        assert!(comp.field.get(73).is_computer);
+        assert_eq!(comp.field.len(), 1);
+        assert!(!comp.field.get(0).is_computer);
+        assert_eq!(comp.field.get(0).name, "SKI JUMPER");
     }
 
     #[test]
@@ -173,7 +171,7 @@ mod tests {
             build_competition(CupStyle::WorldCup, &profiles, &names, 20, 0, false, false);
 
         comp.advance();
-        assert_eq!(comp.current_jumper(), Some(74));
+        assert_eq!(comp.current_jumper(), Some(1));
 
         let mut last = None;
         while let Some(idx) = comp.current_jumper() {

@@ -7,7 +7,7 @@ use crate::route::RouteTarget;
 use crate::screen::{GameCx, GameScreen};
 use crate::store::{GameState, ResourcesRef};
 use crate::text::format::{format_decimal, ordinal_dot};
-use crate::text::layout::{is_computer_name, lstr, shorten_name};
+use crate::text::layout::{is_computer_name, shorten_name};
 use engine::oxide::input::Key;
 use engine::oxide::{PaintCx, ScreenEventCx, UiEvent};
 
@@ -48,9 +48,9 @@ impl HallOfFameView {
             cx,
             self.page,
             HALL_PAGES,
-            &lstr(&self.resources.langbase, 246, "Back"),
-            &lstr(&self.resources.langbase, 247, "Next"),
-            &lstr(&self.resources.langbase, 248, "End"),
+            &self.resources.langbase.lstr_or( 246, "Back"),
+            &self.resources.langbase.lstr_or( 247, "Next"),
+            &self.resources.langbase.lstr_or( 248, "End"),
         );
     }
 
@@ -59,13 +59,13 @@ impl HallOfFameView {
         let col = [30, 146, 173, 215];
         let (title, entries, start, sortby) = match phase {
             0 => (
-                lstr(&self.resources.langbase, 163, "World Cup"),
+                self.resources.langbase.lstr_or( 163, "World Cup"),
                 20,
                 1,
                 false,
             ),
             1 => (
-                lstr(&self.resources.langbase, 164, "Team Cup"),
+                self.resources.langbase.lstr_or( 164, "Team Cup"),
                 10,
                 21,
                 false,
@@ -73,7 +73,7 @@ impl HallOfFameView {
             _ => {
                 yy = 126;
                 (
-                    lstr(&self.resources.langbase, 165, "Four Hills"),
+                    self.resources.langbase.lstr_or( 165, "Four Hills"),
                     5,
                     31,
                     true,
@@ -87,22 +87,22 @@ impl HallOfFameView {
         cx.text(
             (col[0], yy),
             FONT_GOLD,
-            lstr(&self.resources.langbase, 166, "Name"),
+            self.resources.langbase.lstr_or( 166, "Name"),
         );
         cx.text(
             (col[1], yy),
             FONT_GOLD,
-            lstr(&self.resources.langbase, 167, "Pos"),
+            self.resources.langbase.lstr_or( 167, "Pos"),
         );
         cx.text(
             (col[2], yy),
             FONT_GOLD,
-            lstr(&self.resources.langbase, 168, "Points"),
+            self.resources.langbase.lstr_or( 168, "Points"),
         );
         cx.text(
             (col[3], yy),
             FONT_GOLD,
-            lstr(&self.resources.langbase, 169, "Date"),
+            self.resources.langbase.lstr_or( 169, "Date"),
         );
 
         let records = &state.records;
@@ -151,7 +151,7 @@ impl HallOfFameView {
         cx.text(
             (30, 6),
             FONT_BODY,
-            lstr(&self.resources.langbase, 160, "King of the Hill"),
+            self.resources.langbase.lstr_or( 160, "King of the Hill"),
         );
 
         let records = &state.records;
@@ -163,12 +163,12 @@ impl HallOfFameView {
                 format!(
                     "{}. {}",
                     idx + 1,
-                    lstr(&self.resources.langbase, 131 + idx, "Challenge")
+                    self.resources.langbase.lstr_or( 131 + idx, "Challenge")
                 ),
             );
             yy += 10;
 
-            let name = lstr(&self.resources.langbase, 161, "Nobody");
+            let name = self.resources.langbase.lstr_or( 161, "Nobody");
             let Some(hi) = records.top(idx + 36) else {
                 cx.text((col[1], yy), FONT_GRAY, name);
                 continue;
@@ -229,9 +229,9 @@ impl HillRecordsView {
             cx,
             self.page,
             pages,
-            &lstr(&self.resources.langbase, 246, "Back"),
-            &lstr(&self.resources.langbase, 247, "Next"),
-            &lstr(&self.resources.langbase, 248, "End"),
+            &self.resources.langbase.lstr_or( 246, "Back"),
+            &self.resources.langbase.lstr_or( 247, "Next"),
+            &self.resources.langbase.lstr_or( 248, "End"),
         );
     }
 
@@ -241,31 +241,31 @@ impl HillRecordsView {
         let start = phase * PAGE_SIZE;
         let loop_count = (self.resources.hills.len().saturating_sub(start)).min(PAGE_SIZE);
         let title = if phase == 0 {
-            lstr(&self.resources.langbase, 170, "Hill Records")
+            self.resources.langbase.lstr_or( 170, "Hill Records")
         } else {
-            lstr(&self.resources.langbase, 156, "Extra Hill Records")
+            self.resources.langbase.lstr_or( 156, "Extra Hill Records")
         };
         cx.text((30, 6), FONT_BODY, title);
         cx.text(
             (col[0], 23),
             FONT_BODY,
-            lstr(&self.resources.langbase, 106, "Hill"),
+            self.resources.langbase.lstr_or( 106, "Hill"),
         );
         cx.text(
             (col[1], 23),
             FONT_BODY,
-            lstr(&self.resources.langbase, 171, "Who"),
+            self.resources.langbase.lstr_or( 171, "Who"),
         );
         cx.right_text(
             (col[2], 23),
             FONT_BODY,
-            lstr(&self.resources.langbase, 172, "Length"),
+            self.resources.langbase.lstr_or( 172, "Length"),
         );
         cx.text((col[3], 23), FONT_BODY, "(K)");
         cx.text(
             (col[4], 23),
             FONT_BODY,
-            lstr(&self.resources.langbase, 169, "Date"),
+            self.resources.langbase.lstr_or( 169, "Date"),
         );
 
         let records = &state.records;

@@ -1,4 +1,3 @@
-use crate::text::lang::LangBase;
 use engine::oxide::Font;
 
 const RIGHT_EDGE: i32 = 316;
@@ -54,13 +53,4 @@ pub fn replace_display_name(value: usize, player_names: &[String], font: &Font, 
 #[must_use]
 pub fn is_computer_name(name: &str) -> bool {
     name.ends_with('\u{00FF}')
-}
-
-pub fn lstr(langbase: &LangBase, index: usize, fallback: &str) -> String {
-    let v = langbase.lstr(index);
-    if v == "?" {
-        fallback.to_string()
-    } else {
-        v.to_string()
-    }
 }

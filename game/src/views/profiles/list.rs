@@ -1,3 +1,4 @@
+use crate::components::modal::alert_prompt;
 use crate::components::page_nav::cycle_index;
 use crate::data::profile::Profile;
 use crate::gfx::jumper_colors::{ski_color, suit_color_shade};
@@ -6,17 +7,15 @@ use crate::route::RouteTarget;
 use crate::save::SaveRef;
 use crate::screen::{GameCx, GameScreen};
 use crate::store::{GameState, ResourcesRef};
-use crate::text::layout::{lstr, replace_display_name};
+use crate::text::layout::replace_display_name;
 use engine::oxide::input::Key;
 use engine::oxide::widget::EventCx;
-use engine::oxide::widgets::confirm::{ConfirmDialog as OxideConfirmDialog, ConfirmMessage};
 use engine::oxide::widgets::selector::{NumericSelector, SelectorMessage};
 use engine::oxide::widgets::text_input::{TextInput as OxideTextInput, TextInputMessage};
 use engine::oxide::{PaintCx, ScreenEventCx, UiEvent, Widget};
 
 use super::actions::{
-    apply_question, commit_text_input, handle_edit_enter, handle_list_delete, handle_list_enter,
-    save_players,
+    commit_text_input, handle_edit_enter, handle_list_delete, handle_list_enter, save_players,
 };
 use super::render::{draw_empty_edit, draw_help, draw_list, draw_profile, draw_screen_base};
 
@@ -33,12 +32,6 @@ pub(super) enum TextField {
 pub(super) enum ColorField {
     Suit,
     Ski,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(super) enum QuestionAction {
-    DeleteProfile(usize),
-    ResetProfile(usize),
 }
 
 #[derive(Debug)]
@@ -66,10 +59,6 @@ pub(super) enum Mode {
         profile: usize,
         selector: NumericSelector,
     },
-    Question {
-        action: QuestionAction,
-        dialog: OxideConfirmDialog,
-    },
 }
 
 pub struct ProfilesView {
@@ -77,6 +66,8 @@ pub struct ProfilesView {
     pub(super) save_manager: SaveRef,
     pub(super) selected: usize,
     pub(super) mode: Mode,
+    pub(super) confirm_delete: Option<usize>,
+    pub(super) confirm_reset: Option<usize>,
 }
 
 pub(super) enum Pending {
@@ -87,8 +78,6 @@ pub(super) enum Pending {
     ColorCancel(usize, ColorField),
     ReplaceCommit(usize),
     ReplaceCancel(usize),
-    QuestionYes(QuestionAction),
-    QuestionNo(QuestionAction),
 }
 
 impl ProfilesView {
@@ -98,6 +87,8 @@ impl ProfilesView {
             save_manager,
             selected: 0,
             mode: Mode::List,
+            confirm_delete: None,
+            confirm_reset: None,
         }
     }
 
@@ -158,7 +149,7 @@ impl ProfilesView {
         draw_screen_base(self, cx);
 
         if let Some(profile) = self.active_profile(state) {
-            let edit_phase = !matches!(self.mode, Mode::List | Mode::Question { .. });
+            let edit_phase = !matches!(self.mode, Mode::List);
             draw_profile(self, state, cx, profile, edit_phase);
             if matches!(self.mode, Mode::List) {
                 draw_help(self, state, cx, Some(profile));
@@ -234,16 +225,79 @@ impl ProfilesView {
                     cx.text(
                         (x, 44),
                         FONT_BODY,
-                        lstr(&self.resources.langbase, 9, "None"),
+                        self.resources.langbase.lstr_or( 9, "None"),
                     );
                 }
             }
-            Mode::Question { dialog, .. } => dialog.paint(cx),
             _ => {}
+        }
+
+        if let Some(profile) = self.confirm_delete {
+            let name = &state.profiles.profiles[profile].name;
+            alert_prompt(
+                cx,
+                format!("{} {}", self.resources.langbase.lstr_or( 328, "Delete"), name),
+                self.resources.langbase.lstr_or( 193, "Are you sure?"),
+                true,
+            );
+        } else if self.confirm_reset.is_some() {
+            alert_prompt(
+                cx,
+                self.resources.langbase.lstr_or( 329, "Reset jumper?"),
+                self.resources.langbase.lstr_or( 193, "Are you sure?"),
+                true,
+            );
         }
     }
 
     fn handle_input(&mut self, state: &mut GameState, event: UiEvent) -> Option<RouteTarget> {
+        if self.confirm_delete.is_some() {
+            match event {
+                UiEvent::Text('y' | 'Y') => {
+                    let profile = self.confirm_delete.take().unwrap();
+                    state.profiles.remove_profile(profile);
+                    let np = state.profiles.num_profiles();
+                    if self.selected >= np {
+                        self.selected = np.saturating_sub(1);
+                    }
+                    self.mode = Mode::List;
+                    save_players(self, state);
+                }
+                UiEvent::Text('n' | 'N') | UiEvent::KeyDown(Key::Escape) => {
+                    self.confirm_delete = None;
+                }
+                _ => {}
+            }
+            return None;
+        }
+        if self.confirm_reset.is_some() {
+            match event {
+                UiEvent::Text('y' | 'Y') => {
+                    let profile = self.confirm_reset.take().unwrap();
+                    let name = state.profiles.profiles[profile].name.clone();
+                    let reset = Profile {
+                        name,
+                        ..Default::default()
+                    };
+                    state.profiles.profiles[profile] = reset;
+                    self.mode = Mode::Edit {
+                        profile,
+                        selected: 7,
+                    };
+                    save_players(self, state);
+                }
+                UiEvent::Text('n' | 'N') | UiEvent::KeyDown(Key::Escape) => {
+                    let profile = self.confirm_reset.take().unwrap();
+                    self.mode = Mode::Edit {
+                        profile,
+                        selected: 7,
+                    };
+                }
+                _ => {}
+            }
+            return None;
+        }
+
         if matches!(self.mode, Mode::List) {
             match event {
                 UiEvent::KeyDown(Key::Up) => {
@@ -342,15 +396,6 @@ impl ProfilesView {
                     }
                 }
             }
-            Mode::Question { action, dialog } => {
-                let mut ecx = EventCx::default();
-                if let Some(result) = dialog.event(&mut ecx, event) {
-                    pending = Some(match result {
-                        ConfirmMessage::Yes => Pending::QuestionYes(*action),
-                        ConfirmMessage::No => Pending::QuestionNo(*action),
-                    });
-                }
-            }
             Mode::List => {}
         }
 
@@ -402,19 +447,6 @@ impl ProfilesView {
                     profile,
                     selected: 4,
                 }
-            }
-            Some(Pending::QuestionYes(action)) => {
-                apply_question(self, state, action);
-                save_players(self, state);
-            }
-            Some(Pending::QuestionNo(action)) => {
-                self.mode = match action {
-                    QuestionAction::DeleteProfile(_) => Mode::List,
-                    QuestionAction::ResetProfile(profile) => Mode::Edit {
-                        profile,
-                        selected: 7,
-                    },
-                };
             }
             None => {}
         }

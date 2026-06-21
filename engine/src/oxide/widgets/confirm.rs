@@ -22,6 +22,8 @@ pub struct ConfirmDialog {
     subtitle: Option<String>,
     yes: String,
     no: String,
+    left_pad: i32,
+    top_pad: i32,
 }
 
 impl ConfirmDialog {
@@ -49,12 +51,21 @@ impl ConfirmDialog {
             subtitle: None,
             yes: yes.into(),
             no: no.into(),
+            left_pad: 8,
+            top_pad: 8,
         }
     }
 
     #[must_use]
     pub fn with_subtitle(mut self, subtitle: impl Into<String>) -> Self {
         self.subtitle = Some(subtitle.into());
+        self
+    }
+
+    #[must_use]
+    pub fn with_padding(mut self, left: i32, top: i32) -> Self {
+        self.left_pad = left;
+        self.top_pad = top;
         self
     }
 }
@@ -75,14 +86,15 @@ impl Widget for ConfirmDialog {
     }
 
     fn paint(&self, cx: &mut PaintCx<'_>) {
+        let lp = self.left_pad;
         cx.fill((self.x, self.y, self.w, self.h), self.border);
         cx.pattern_fill((self.x + 1, self.y + 1, self.w - 2, self.h - 2), self.bg);
-        cx.text((self.x + 8, self.y + 8), self.fg, &self.message);
+        cx.text((self.x + lp, self.y + self.top_pad), self.fg, &self.message);
         if let Some(sub) = &self.subtitle {
-            cx.text((self.x + 8, self.y + self.h - 22), self.fg, sub);
+            cx.text((self.x + lp, self.y + self.h - 22), self.fg, sub);
         }
         cx.text(
-            (self.x + 8, self.y + self.h - 14),
+            (self.x + lp, self.y + self.h - 14),
             self.fg,
             format!("{}/{}", self.yes, self.no),
         );

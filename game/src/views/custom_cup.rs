@@ -118,11 +118,19 @@ impl CustomCupSetupView {
             CustomCupMode::Browse => {}
             CustomCupMode::SaveInput => self.paint_save_input(cx),
             CustomCupMode::ConfirmOverwrite => {
-                self.paint_confirm(cx, "FILE ALREADY EXISTS.", "WRITE OVER? (Y/N):")
+                self.paint_confirm(
+                    cx,
+                    &format!("FILE {}", self.resources.langbase.lstr(345)),
+                    &self.resources.langbase.lstr(346),
+                )
             }
             CustomCupMode::Load => self.paint_load(cx),
             CustomCupMode::ConfirmDelete => {
-                self.paint_confirm(cx, "DELETE SELECTED SET?", "ARE YOU SURE? (Y/N):")
+                self.paint_confirm(
+                    cx,
+                    "DELETE SELECTED SET?",
+                    &self.resources.langbase.lstr(193),
+                )
             }
             CustomCupMode::Message => self.paint_message(cx),
         }
@@ -134,8 +142,8 @@ impl CustomCupSetupView {
 
     fn paint_save_input(&self, cx: &mut PaintCx<'_>) {
         self.paint_modal_box(cx, (75, 70, 170, 50));
-        cx.text((85, 75), FONT_BODY, "Save Custom Hill Set");
-        cx.text((85, 85), FONT_GOLD, "Filename");
+        cx.text((85, 75), FONT_BODY, self.resources.langbase.lstr(117));
+        cx.text((85, 85), FONT_GOLD, self.resources.langbase.lstr(273));
         cx.fill((85, 95, 95, 20), BLACK);
         cx.text((95, 102), FONT_BODY, &self.filename_input);
         let cursor_x = 95 + self.resources.font.string_width(&self.filename_input) as i32;
@@ -144,12 +152,12 @@ impl CustomCupSetupView {
 
     fn paint_load(&self, cx: &mut PaintCx<'_>) {
         self.paint_modal_box(cx, (75, 70, 170, 80));
-        cx.text((85, 75), FONT_BODY, "Load Custom Hill Set");
+        cx.text((85, 75), FONT_BODY, self.resources.langbase.lstr(116));
         if self.load_entries.is_empty() {
-            cx.text((95, 102), FONT_GRAY, "No custom sets found");
+            cx.text((95, 102), FONT_GRAY, self.resources.langbase.lstr(356));
             return;
         }
-        cx.text((85, 85), FONT_GOLD, "Filename");
+        cx.text((85, 85), FONT_GOLD, self.resources.langbase.lstr(273));
         cx.fill((85, 95, 95, 20), BLACK);
         cx.text((95, 102), FONT_BODY, &self.load_entries[self.load_index]);
         cx.right_text(
@@ -157,17 +165,17 @@ impl CustomCupSetupView {
             FONT_GOLD,
             format!("{} / {}", self.load_index + 1, self.load_entries.len()),
         );
-        cx.text((85, 130), FONT_GRAY, "Enter load, Del delete, Esc exit");
+        cx.text((85, 130), FONT_GRAY, self.resources.langbase.lstr(119));
     }
 
     fn paint_confirm(&self, cx: &mut PaintCx<'_>, line1: &str, line2: &str) {
-        alert_prompt(cx, line1, line2);
+        alert_prompt(cx, line1, line2, true);
     }
 
     fn paint_message(&self, cx: &mut PaintCx<'_>) {
         self.paint_modal_box(cx, (75, 80, 170, 40));
         cx.text((85, 92), FONT_BODY, &self.message);
-        cx.text((85, 108), FONT_GRAY, "Press a key...");
+        cx.text((85, 108), FONT_GRAY, self.resources.langbase.lstr(15));
     }
 
     fn handle_input(&mut self, state: &mut GameState, event: UiEvent) -> Option<RouteTarget> {
@@ -362,7 +370,8 @@ impl CustomCupSetupView {
             .load_index
             .min(self.load_entries.len().saturating_sub(1));
         self.mode = if self.load_entries.is_empty() {
-            self.message = "No custom sets found".to_string();
+            let msg = self.resources.langbase.lstr(356).to_string();
+            self.message = msg;
             CustomCupMode::Message
         } else {
             CustomCupMode::Load
@@ -411,7 +420,8 @@ impl CustomCupSetupView {
         self.resources.files.write(&set_path(&name), &bytes);
         self.filename_input = name.clone();
         self.update_last_custom_cup_file(state, name);
-        self.show_message("Custom set saved");
+        let message = self.resources.langbase.lstr(352).to_string();
+        self.show_message(&message);
     }
 
     fn randomize_selection(&mut self, state: &mut GameState) {

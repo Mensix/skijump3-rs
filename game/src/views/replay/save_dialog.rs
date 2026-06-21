@@ -280,7 +280,8 @@ impl SaveReplayDialog {
         alert_prompt(
             cx,
             format!("{}.SJR {}", filename, self.resources.langbase.lstr(345)),
-            format!("{} (Y/N):", self.resources.langbase.lstr(346)),
+            self.resources.langbase.lstr(346),
+            true,
         );
     }
 

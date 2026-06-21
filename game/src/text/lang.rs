@@ -26,4 +26,10 @@ impl LangBase {
             "?"
         }
     }
+
+    #[must_use]
+    pub fn lstr_or(&self, index: usize, fallback: &str) -> String {
+        let v = self.lstr(index);
+        if v == "?" { fallback.to_string() } else { v.to_string() }
+    }
 }

@@ -172,6 +172,7 @@ fn shell_paint<T: GameScreen>(
             paint,
             cx.layout.langbase.lstr(521),
             cx.layout.langbase.lstr(522),
+            true,
         );
     }
 }

@@ -119,7 +119,7 @@ fn paint_main_menu(cx: &mut PaintCx<'_>, menu: &PixelMenu, layout: &MainLayout) 
 }
 
 fn paint_quit_confirm(cx: &mut PaintCx<'_>, question: &str, prompt: &str) {
-    alert_prompt(cx, question, format!("{prompt} (Y/N):"));
+    alert_prompt(cx, question, prompt, true);
 }
 
 fn is_yes(c: char, layout: &MainLayout) -> bool {

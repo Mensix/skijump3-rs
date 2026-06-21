@@ -115,9 +115,11 @@ impl GameScreen for ReplayBrowserView {
         cx.layout.footer(paint);
         paint_replay_panel(paint, &self.resources, &self.entries, self.selected);
         if self.confirm_delete {
+            let are_you_sure = cx.layout.langbase.lstr(193);
             paint_delete_confirm(
                 paint,
-                self.selected_entry().map_or("", |entry| &entry.filename),
+                &self.entries[self.selected].filename,
+                are_you_sure,
             );
         }
     }
@@ -127,12 +129,11 @@ impl GameScreen for ReplayBrowserView {
     }
 }
 
-fn paint_delete_confirm(cx: &mut PaintCx<'_>, filename: &str) {
+fn paint_delete_confirm(cx: &mut PaintCx<'_>, filename: &str, message: &str) {
     alert_prompt(
         cx,
         format!("Delete {filename}.SJR?"),
-        "Are You Sure? (Y/N):",
-    );
+        message, true);
 }
 
 fn paint_replay_panel(

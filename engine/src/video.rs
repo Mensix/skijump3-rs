@@ -79,6 +79,14 @@ impl Renderer {
 
         let mut canvas = window.into_canvas();
 
+        let vsync_enabled = unsafe {
+            // SAFETY: canvas.raw() is a valid SDL_Renderer owned by WindowCanvas.
+            sdl3::sys::render::SDL_SetRenderVSync(canvas.raw(), 1)
+        };
+        if !vsync_enabled {
+            return Err(sdl3::get_error().to_string());
+        }
+
         canvas
             .set_logical_size(
                 WIDTH,

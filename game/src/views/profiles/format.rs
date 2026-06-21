@@ -1,6 +1,6 @@
 use crate::data::profile::Profile;
 use crate::text::lang::LangBase;
-use crate::text::layout::{lstr, shorten_name};
+use crate::text::layout::shorten_name;
 use engine::oxide::Font;
 
 pub fn format_profile_value(
@@ -27,17 +27,15 @@ pub fn format_profile_value(
         }
         6 => {
             if profile.coach_style == 0 {
-                lstr(langbase, 9, "None")
+                langbase.lstr_or( 9, "None")
             } else {
-                lstr(
-                    langbase,
+                langbase.lstr_or(
                     361 + profile.coach_style * 40,
                     &format!("Style {}", profile.coach_style),
                 )
             }
         }
-        7 => lstr(
-            langbase,
+        7 => langbase.lstr_or(
             231 + profile.skip_qualification,
             match profile.skip_qualification {
                 0 => "Never",
@@ -69,8 +67,7 @@ pub fn format_profile_value(
             if profile.koth_level == 0 {
                 "-".to_string()
             } else {
-                lstr(
-                    langbase,
+                langbase.lstr_or(
                     130 + profile.koth_level,
                     &format!("Level {}", profile.koth_level),
                 )

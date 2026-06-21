@@ -398,7 +398,7 @@ impl GameScreen for EditHillView {
             }
         }
 
-        paint.text((xx, 179), FONT_GOLD, "0. EXIT and SAVE");
+        paint.text((xx, 179), FONT_GOLD, format!("0. {}", self.resources.langbase.lstr(296)));
 
         if matches!(self.mode, EditMode::Viewing | EditMode::Editing { .. }) {
             self.menu.paint(paint);
@@ -414,14 +414,15 @@ impl GameScreen for EditHillView {
                 ..
             } => {
                 let prompt = self.resources.langbase.lstr(15);
-                alert_prompt(paint, message, format!("{subtitle}  {prompt}"));
+                alert_prompt(paint, message, format!("{subtitle}  {prompt}"), false);
             }
             EditMode::ConfirmOverwrite { filename } => {
                 let prompt = self.resources.langbase.lstr(346);
                 alert_prompt(
                     paint,
                     format!("FILE {filename}.TOML ALREADY EXISTS."),
-                    format!("{} (Y/N):", prompt),
+                    prompt,
+                    true,
                 );
             }
             EditMode::Viewing => {}

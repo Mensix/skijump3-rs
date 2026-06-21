@@ -1,126 +1,115 @@
 id = "original"
-name = "Original names"
-source = "NAMES0.SKI"
-title = "Original names v3.11 - DO NOT EDIT"
+name = "World Cup 2024/25"
+source = "FIS rankings 2025"
+title = "FIS World Cup 2024/25 Top 77"
 
 names = [
-  "Roar Ljøkelsøy",
-  "Sigurd Pettersen",
-  "Janne Ahonen",
-  "Adam Malysz",
-  "Tami Kiuru",
-  "Martin Höllwarth",
-  "Sven Hannawald",
-  "Veli-Matti Lindström",
-  "Bjørn Einar Romøren",
-  "Matti Hautamäki",
-  "Noriaki Kasai",
-  "Michael Uhrmann",
-  "Andreas Widhölzl",
-  "Thomas Morgenstern",
-  "Tommy Ingebrigtsen",
-  "Peter Zonta",
-  "Akseli Kokkonen",
-  "Maximilian Mechler",
-  "Andreas Kofler",
-  "Andreas Goldberger",
-  "Georg Späth",
-  "Rok Benkovic",
-  "Hiroki Yamada",
-  "Anders Bardal",
-  "Martin Schmitt",
-  "Stephan Hocke",
-  "Jussi Hautamäki",
-  "Hideharu Miyahira",
-  "Henning Stensrud",
-  "Andreas Küttel",
-  "Kazuyoshi Funaki",
+  "Domen Prevc",
+  "Ryoyu Kobayashi",
+  "Daniel Tschofenig",
+  "Ren Nikaido",
+  "Anze Lanisek",
+  "Stephan Embacher",
+  "Philipp Raimund",
+  "Jan Hoerl",
+  "Felix Hoffmann",
+  "Stefan Kraft",
+  "Johann Andre Forfang",
+  "Marius Lindvik",
+  "Manuel Fettner",
+  "Naoki Nakamura",
+  "Kristoffer Eriksen Sundal",
+  "Valentin Foubert",
+  "Maximilian Ortner",
+  "Jonas Schuster",
+  "Gregor Deschwanden",
+  "Vladimir Zografski",
+  "Tomofumi Naito",
+  "Antti Aalto",
+  "Kacper Tomasiak",
+  "Niko Kytosaho",
+  "Andreas Wellinger",
+  "Halvor Egner Granerud",
+  "Timi Zajc",
+  "Karl Geiger",
+  "Pius Paschke",
+  "Isak Andreas Langmo",
+  "Kamil Stoch",
+  "Sandro Hauswirth",
+  "Piotr Żyła",
+  "Yukiya Sato",
+  "Jason Colby",
+  "Kevin Bickner",
+  "Artti Aigro",
+  "Benjamin Oestvold",
+  "Maciej Kot",
+  "Rok Oblak",
+  "Tate Frantz",
+  "Ilyja Mizernykh",
+  "Paweł Wąsek",
+  "Dawid Kubacki",
+  "Clemens Aigner",
+  "Hektor Kapustik",
+  "Felix Trunz",
   "Simon Ammann",
-  "Florian Liegl",
-  "Emmanuel Chedal",
-  "Reinhard Schwarzenberger",
-  "Alexander Herr",
-  "Alexei Silaev",
-  "Clint Jones",
-  "Balthasar Schneider",
-  "Marcin Bachleda",
-  "Morten Solem",
-  "Jakub Janda",
-  "Robert Kranjec",
-  "Denis Kornilov",
-  "Jens Salumä",
-  "Lars Bystøl",
-  "Dimitri Vassilev",
-  "Damjan Fras",
-  "Jan Matura",
-  "Primoz Peterka",
-  "Christian Nagiller",
-  "Harri Olli",
-  "Jörg Ritzerfeld",
-  "Olav Magne Dønnem",
-  "Martin Mesik",
-  "Stefan Pieper",
-  "Jan Mazoch",
-  "Chil Gu Kang",
-  "Dimitri Ipatov",
-  "Wojciech Tajner",
-  "Kim-Roar Hansen",
-  "Arttu Lappi",
-  "Tomislaw Tajner",
-  "Yong Jik Choi",
-  "Primoz Pikl",
-  "Radik Zhaparov",
-  "Martin Koch",
-  "Nicolas Dessum",
-  "Jaan Juris",
-  "Johan Eriksson",
-  "Wolfgang Loitzl",
-  "Bine Norcic",
-  "Michael Neumayer",
-  "Chrostoph Kreuzer",
-  "Robert Mateja",
-  "Trainee",
+  "Sakutaro Kobayashi",
+  "Roman Koudelka",
+  "Markus Mueller",
+  "Alex Insam",
+  "Danil Vassilyev",
+  "Giovanni Bresadola",
+  "Eetu Nousiainen",
+  "Yevhen Marusiak",
+  "Robin Pedersen",
+  "Francesco Cecon",
+  "Adrian Thon Gundersrud",
+  "Vilho Palosaari",
+  "Ziga Jancar",
+  "Juri Kesseli",
+  "Luca Roth",
+  "Jarkko Maatta",
+  "Aleksander Zniszczoł",
+  "Ben Bayer",
+  "Zak Mogel",
+  "Yanick Wasser",
+  "Andrew Urlaub",
+  "Junshiro Kobayashi",
+  "Killian Peier",
+  "Klemens Joniak",
+  "Vitaliy Kalinichenko",
+  "Joergen Oliver Stroem",
+  "Mackenzie Boyd-Clowes",
+  "Keiichi Sato",
+  "Soelve Jokerud Strand",
 ]
 
 [[teams]]
-  name = "Germany"
-  members = [21, 18, 12, 7]
-[[teams]]
   name = "Austria"
-  members = [19, 14, 13, 6]
-[[teams]]
-  name = "Finland"
-  members = [10, 8, 5, 3]
+  members = [2, 5, 7, 9]
 [[teams]]
   name = "Japan"
-  members = [31, 28, 23, 11]
+  members = [1, 3, 13, 20]
 [[teams]]
   name = "Norway"
-  members = [15, 9, 2, 1]
+  members = [10, 11, 14, 25]
 [[teams]]
-  name = "Poland"
-  members = [63, 60, 40, 4]
+  name = "Germany"
+  members = [6, 8, 24, 27]
 [[teams]]
   name = "Slovenia"
-  members = [48, 43, 22, 16]
+  members = [0, 4, 26, 39]
 [[teams]]
-  name = "Switzerland/Czech Rep."
-  members = [57, 49, 32, 30]
+  name = "Poland"
+  members = [22, 30, 32, 38]
 [[teams]]
-  name = "Russia"
-  members = [59, 47, 44, 37]
+  name = "Finland"
+  members = [21, 23, 54, 59]
 [[teams]]
-  name = "Finland II"
-  members = [62, 52, 27, 17]
+  name = "Switzerland"
+  members = [18, 31, 46, 47]
 [[teams]]
-  name = "Austria II"
-  members = [39, 35, 33, 20]
-[[teams]]
-  name = "Germany II"
-  members = [53, 36, 26, 25]
-[[teams]]
-  name = "Norway II"
-  members = [46, 41, 29, 24]
+  name = "USA"
+  members = [34, 35, 40, 68]
 [[teams]]
   name = "Rest of the world"
-  members = [58, 55, 38, 34]
+  members = [12, 15, 16, 17]

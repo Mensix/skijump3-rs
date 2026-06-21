@@ -1,7 +1,6 @@
 use crate::gfx::jumper_colors::{ski_color, suit_color_shade};
 use crate::gfx::theme::{BG_PURPLE, BG_RED, BLACK, FONT_BODY, FONT_GOLD, FONT_GRAY};
 use crate::store::GameState;
-use crate::text::layout::lstr;
 use crate::views::profiles::format::format_profile_value;
 use engine::oxide::PaintCx;
 
@@ -15,7 +14,7 @@ pub(super) fn draw_screen_base(view: &ProfilesView, cx: &mut PaintCx<'_>) {
     cx.text(
         (40, 3),
         FONT_GRAY,
-        lstr(&view.resources.langbase, 34, "Jumpers:"),
+        view.resources.langbase.lstr_or( 34, "Jumpers:"),
     );
 }
 
@@ -36,7 +35,7 @@ pub(super) fn draw_list(view: &ProfilesView, state: &GameState, cx: &mut PaintCx
         cx.text(
             (40, ProfilesView::row_y(np + 1)),
             FONT_GOLD,
-            lstr(&view.resources.langbase, 302, "*Create New Jumper*"),
+            view.resources.langbase.lstr_or( 302, "*Create New Jumper*"),
         );
     }
 
@@ -44,7 +43,7 @@ pub(super) fn draw_list(view: &ProfilesView, state: &GameState, cx: &mut PaintCx
     cx.text(
         (40, ProfilesView::row_y(back_row)),
         FONT_BODY,
-        lstr(&view.resources.langbase, 33, "Back to Main Menu"),
+        view.resources.langbase.lstr_or( 33, "Back to Main Menu"),
     );
 
     if matches!(view.mode, Mode::List) {
@@ -76,29 +75,29 @@ pub(super) fn draw_help(
         cx.text(
             (8, 175),
             FONT_GRAY,
-            lstr(&view.resources.langbase, 322, "(Use arrows,"),
+            view.resources.langbase.lstr_or( 322, "(Use arrows,"),
         );
         if in_order {
             cx.text(
                 (11, 183),
                 FONT_GRAY,
-                lstr(&view.resources.langbase, 323, "ENTER edits jumper,"),
+                view.resources.langbase.lstr_or( 323, "ENTER edits jumper,"),
             );
             cx.text(
                 (11, 191),
                 FONT_GRAY,
-                lstr(&view.resources.langbase, 324, "DEL removes from order)"),
+                view.resources.langbase.lstr_or( 324, "DEL removes from order)"),
             );
         } else {
             cx.text(
                 (11, 183),
                 FONT_GRAY,
-                lstr(&view.resources.langbase, 325, "ENTER adds jumper,"),
+                view.resources.langbase.lstr_or( 325, "ENTER adds jumper,"),
             );
             cx.text(
                 (11, 191),
                 FONT_GRAY,
-                lstr(&view.resources.langbase, 326, "DEL deletes jumper)"),
+                view.resources.langbase.lstr_or( 326, "DEL deletes jumper)"),
             );
         }
     }
@@ -127,8 +126,7 @@ pub(super) fn draw_suit_ski(
 }
 
 pub(super) fn profile_label(view: &ProfilesView, field: usize) -> String {
-    lstr(
-        &view.resources.langbase,
+    view.resources.langbase.lstr_or(
         303 + field,
         match field {
             1 => "Name:",
