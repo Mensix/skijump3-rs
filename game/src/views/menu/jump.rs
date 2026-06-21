@@ -92,11 +92,12 @@ impl GameScreen for JumpMenuView {
     }
 
     fn paint(&mut self, cx: &mut GameCx<'_>, paint: &mut PaintCx<'_>) {
+        let lang = &cx.layout.langbase;
         cx.layout.background(paint);
         cx.layout.jumpers(paint, &cx.state.profiles);
         cx.layout.registration(paint);
         paint.fill((1, 94, 116, 106), BG_DARK);
-        paint.text((11, 80), FONT_GOLD, cx.layout.langbase.tr(18));
+        paint.text((11, 80), FONT_GOLD, lang.tr(18));
         paint_jump_menu(paint, &self.menu, cx.layout);
         cx.layout.footer(paint);
         if self.show_team_warning {
@@ -183,15 +184,12 @@ impl JumpMenuView {
 }
 
 fn paint_jump_menu(cx: &mut PaintCx<'_>, menu: &PixelMenu, layout: &MainLayout) {
+    let lang = &layout.langbase;
     let y_offsets = [0, 0, 0, 0, 0, 0, 0, 12];
     for (i, label) in [27, 28, 29, 30, 31, 32, 520, 33].iter().enumerate() {
         let num = if i == 7 { 0 } else { i + 1 };
         let y = 98 + (i as i32) * 12 + y_offsets[i];
-        cx.text(
-            (11, y),
-            FONT_BODY,
-            format!("{} - {}", num, layout.langbase.tr(*label)),
-        );
+        cx.text((11, y), FONT_BODY, format!("{} - {}", num, lang.tr(*label)));
     }
     let selected = menu.selected().min(y_offsets.len().saturating_sub(1));
     let y = 94 + (selected as i32) * 12 + y_offsets[selected];

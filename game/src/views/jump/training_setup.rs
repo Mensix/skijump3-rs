@@ -87,14 +87,15 @@ impl TrainingSetupView {
     }
 
     fn paint_content(&self, cx: &mut PaintCx<'_>) {
+        let lang = &self.resources.langbase;
         cx.fill((0, 0, 320, 200), BLACK);
         cx.pattern_fill((0, 0, 11, 200), FILL_GRAY);
         cx.pattern_fill((12, 0, 296, 200), BG_PURPLE);
         cx.pattern_fill((309, 0, 11, 200), FILL_GRAY);
         cx.sprite(sprites::Sprite::Logo as u16, (30, 8));
-        cx.text((30, 31), FONT_BODY, self.resources.langbase.tr(151));
-        cx.text((30, 41), FONT_BODY, self.resources.langbase.tr(152));
-        cx.text((30, 51), FONT_BODY, self.resources.langbase.tr(153));
+        cx.text((30, 31), FONT_BODY, lang.tr(151));
+        cx.text((30, 41), FONT_BODY, lang.tr(152));
+        cx.text((30, 51), FONT_BODY, lang.tr(153));
 
         let page_n = self.page_items();
         for i in 0..page_n {
@@ -110,12 +111,12 @@ impl TrainingSetupView {
 
         if self.has_more() {
             let y = self.item_row(page_n) as i32 * 8 + 10;
-            cx.text((140, y), FONT_TEAL, self.resources.langbase.tr(156));
+            cx.text((140, y), FONT_TEAL, lang.tr(156));
         }
 
         let y = (self.exit_row() - 1) as i32 * 8 + 10;
         cx.right_text((130, y), FONT_BODY, "0.");
-        cx.text((140, y), FONT_BODY, self.resources.langbase.tr(154));
+        cx.text((140, y), FONT_BODY, lang.tr(154));
 
         // Selection box at the correct screen row.
         // Pascal MakeMenu positions EXIT box at index items+2 (1-based)

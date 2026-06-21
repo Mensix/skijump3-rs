@@ -65,13 +65,14 @@ impl GameScreen for LoadCupView {
     }
 
     fn paint(&mut self, cx: &mut GameCx<'_>, paint: &mut PaintCx<'_>) {
+        let lang = &cx.layout.langbase;
         paint.fill((11, 80, 100, 6), BG_DARK);
-        paint.text((11, 80), FONT_GOLD, cx.layout.langbase.tr(18));
+        paint.text((11, 80), FONT_GOLD, lang.tr(18));
         paint_jump_menu(paint, cx.layout);
         cx.layout.footer(paint);
         paint_detail_panel(
             paint,
-            &format!("{}:", cx.layout.langbase.tr(520)),
+            &format!("{}:", lang.tr(520)),
             self.selected_entry().map_or("", |e| &e.filename),
             &[
                 (
@@ -87,8 +88,8 @@ impl GameScreen for LoadCupView {
             ],
             None,
             None,
-            cx.layout.langbase.tr(146),
-            cx.layout.langbase.tr(523),
+            lang.tr(146),
+            lang.tr(523),
             self.entries.is_empty(),
         );
     }
@@ -99,13 +100,10 @@ impl GameScreen for LoadCupView {
 }
 
 fn paint_jump_menu(cx: &mut PaintCx<'_>, layout: &MainLayout) {
+    let lang = &layout.langbase;
     for (i, label) in [27, 28, 29, 30, 31, 32, 520, 33].iter().enumerate() {
         let num = if i == 7 { 0 } else { i + 1 };
         let y = 98 + (i as i32) * 12 + if i == 7 { 12 } else { 0 };
-        cx.text(
-            (11, y),
-            FONT_BODY,
-            format!("{} - {}", num, layout.langbase.tr(*label)),
-        );
+        cx.text((11, y), FONT_BODY, format!("{} - {}", num, lang.tr(*label)));
     }
 }

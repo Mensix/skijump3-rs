@@ -109,18 +109,15 @@ impl GameScreen for ReplayBrowserView {
     }
 
     fn paint(&mut self, cx: &mut GameCx<'_>, paint: &mut PaintCx<'_>) {
+        let lang = &cx.layout.langbase;
         paint.fill((11, 80, 100, 6), BG_DARK);
-        paint.text((11, 80), FONT_GOLD, cx.layout.langbase.tr(17));
+        paint.text((11, 80), FONT_GOLD, lang.tr(17));
         paint_replay_menu(paint, cx.layout);
         cx.layout.footer(paint);
         paint_replay_panel(paint, &self.resources, &self.entries, self.selected);
         if self.confirm_delete {
-            let are_you_sure = cx.layout.langbase.tr(193);
-            paint_delete_confirm(
-                paint,
-                &self.entries[self.selected].filename,
-                are_you_sure,
-            );
+            let are_you_sure = lang.tr(193);
+            paint_delete_confirm(paint, &self.entries[self.selected].filename, are_you_sure);
         }
     }
 
@@ -130,10 +127,7 @@ impl GameScreen for ReplayBrowserView {
 }
 
 fn paint_delete_confirm(cx: &mut PaintCx<'_>, filename: &str, message: &str) {
-    alert_prompt(
-        cx,
-        format!("Delete {filename}.SJR?"),
-        message, true);
+    alert_prompt(cx, format!("Delete {filename}.SJR?"), message, true);
 }
 
 fn paint_replay_panel(
@@ -142,7 +136,7 @@ fn paint_replay_panel(
     entries: &[ReplayEntry],
     selected: usize,
 ) {
-    let langbase = &resources.langbase;
+    let lang = &resources.langbase;
     let entry = &entries[selected];
     let trace = entry.trace.as_ref().unwrap();
 
@@ -151,34 +145,31 @@ fn paint_replay_panel(
         |hill| format!("{} K{}", hill.name, hill.kr),
     );
     let field_pairs = vec![
-        (langbase.tr(291).to_string(), trace.meta.author.clone()),
-        (langbase.tr(292).to_string(), trace.meta.name.clone()),
-        (langbase.tr(294).to_string(), hill),
+        (lang.tr(291).to_string(), trace.meta.author.clone()),
+        (lang.tr(292).to_string(), trace.meta.name.clone()),
+        (lang.tr(294).to_string(), hill),
     ];
     let extra_saved = Some(trace.meta.saved_at.clone());
 
     paint_detail_panel(
         cx,
-        &format!("{}:", langbase.tr(25)),
+        &format!("{}:", lang.tr(25)),
         &entry.filename,
         &field_pairs,
         extra_saved.as_deref(),
         Some((selected + 1, entries.len())),
-        langbase.tr(146),
-        langbase.tr(290),
+        lang.tr(146),
+        lang.tr(290),
         entries.is_empty(),
     );
 }
 
 fn paint_replay_menu(cx: &mut PaintCx<'_>, layout: &MainLayout) {
+    let lang = &layout.langbase;
     for (i, label) in [20, 21, 22, 23, 24, 25, 26].iter().enumerate() {
         let num = if i == 6 { 0 } else { i + 1 };
         let y = 98 + (i as i32) * 12 + if i == 6 { 12 } else { 0 };
-        cx.text(
-            (11, y),
-            FONT_BODY,
-            format!("{} - {}", num, layout.langbase.tr(*label)),
-        );
+        cx.text((11, y), FONT_BODY, format!("{} - {}", num, lang.tr(*label)));
     }
 }
 

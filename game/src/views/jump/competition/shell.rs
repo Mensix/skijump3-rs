@@ -166,13 +166,9 @@ fn shell_paint<T: GameScreen>(
     cx: &mut GameCx<'_>,
     paint: &mut PaintCx<'_>,
 ) {
+    let lang = &cx.layout.langbase;
     shell.inner.paint(cx, paint);
     if shell.save_prompt {
-        alert_prompt(
-            paint,
-            cx.layout.langbase.tr(521),
-            cx.layout.langbase.tr(522),
-            true,
-        );
+        alert_prompt(paint, lang.tr(521), lang.tr(522), true);
     }
 }

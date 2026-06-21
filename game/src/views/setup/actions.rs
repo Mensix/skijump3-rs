@@ -173,7 +173,7 @@ fn handle_configure_keys(
                 state.config.key_left = defaults.key_left;
                 state.config.key_telemark = defaults.key_telemark;
                 state.config.key_replay = defaults.key_replay;
-view.save_manager().save_config(&state.config);
+                view.save_manager().save_config(&state.config);
             }
             6 => view.modal = None,
             _ => {}
@@ -227,7 +227,7 @@ fn handle_name_set_input(
             };
             if idx < ns_len {
                 state.config.name_set_index = idx as i32;
-view.save_manager().save_config(&state.config);
+                view.save_manager().save_config(&state.config);
                 view.modal = None;
             }
         }
@@ -257,7 +257,7 @@ fn handle_wind_place(
         UiEvent::KeyDown(Key::Enter) | UiEvent::Text(' ') => {
             if pos < winds {
                 state.config.wind_position = pos as i32;
-view.save_manager().save_config(&state.config);
+                view.save_manager().save_config(&state.config);
             }
             view.modal = None;
         }
@@ -270,6 +270,7 @@ view.save_manager().save_config(&state.config);
 }
 
 pub(crate) fn seecomp_options(view: &SetupView, state: &GameState) -> Vec<(usize, String)> {
+    let lang = view.langbase();
     let names = view
         .resources
         .namesets
@@ -282,7 +283,7 @@ pub(crate) fn seecomp_options(view: &SetupView, state: &GameState) -> Vec<(usize
         }
     }
     for &v in &cats {
-        opts.push((v, view.langbase().tr(v).to_string()));
+        opts.push((v, lang.tr(v).to_string()));
     }
     opts
 }
@@ -331,7 +332,7 @@ fn handle_confirm_reset(
                     RecordStore::cleared_default()
                 };
                 state.records = records.clone();
-            view.save_manager().save_records(&records);
+                view.save_manager().save_records(&records);
             }
             view.modal = None;
         }

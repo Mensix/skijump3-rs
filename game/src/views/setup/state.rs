@@ -36,24 +36,24 @@ pub(crate) fn hex_char(index: usize) -> &'static str {
     }
 }
 
-pub(crate) fn wind_place_name(langbase: &LangBase, place: usize) -> String {
+pub(crate) fn wind_place_name(lang: &LangBase, place: usize) -> String {
     match place {
-        0 => langbase.tr(389).to_string(),
-        1 => format!("{}-{}", langbase.tr(392), langbase.tr(393)),
-        2 => format!("{}-{}", langbase.tr(391), langbase.tr(393)),
-        3 => format!("{}-{}", langbase.tr(392), langbase.tr(395)),
-        4 => format!("{}-{}", langbase.tr(392), langbase.tr(394)),
-        5 => format!("{}-{}", langbase.tr(391), langbase.tr(395)),
-        6 => format!("{}-{}", langbase.tr(390), langbase.tr(395)),
-        7 => format!("{}-{}", langbase.tr(390), langbase.tr(394)),
-        8 => format!("{}: {}", langbase.tr(396), langbase.tr(390)),
-        9 => format!("{}: {}", langbase.tr(396), langbase.tr(391)),
-        10 => format!("{}: {}", langbase.tr(396), langbase.tr(392)),
+        0 => lang.tr(389).to_string(),
+        1 => format!("{}-{}", lang.tr(392), lang.tr(393)),
+        2 => format!("{}-{}", lang.tr(391), lang.tr(393)),
+        3 => format!("{}-{}", lang.tr(392), lang.tr(395)),
+        4 => format!("{}-{}", lang.tr(392), lang.tr(394)),
+        5 => format!("{}-{}", lang.tr(391), lang.tr(395)),
+        6 => format!("{}-{}", lang.tr(390), lang.tr(395)),
+        7 => format!("{}-{}", lang.tr(390), lang.tr(394)),
+        8 => format!("{}: {}", lang.tr(396), lang.tr(390)),
+        9 => format!("{}: {}", lang.tr(396), lang.tr(391)),
+        10 => format!("{}: {}", lang.tr(396), lang.tr(392)),
         _ => unreachable!(),
     }
 }
 
-pub(crate) fn key_name(code: i32, langbase: &LangBase) -> String {
+pub(crate) fn key_name(code: i32, lang: &LangBase) -> String {
     if code == 0 {
         return "NULL".to_string();
     }
@@ -62,13 +62,13 @@ pub(crate) fn key_name(code: i32, langbase: &LangBase) -> String {
     match (hi, lo) {
         (0, 59..=67) => format!("F{}", lo - 58),
         (0, 71) => "HOME".to_string(),
-        (0, 72) => langbase.tr(280).to_string(),
+        (0, 72) => lang.tr(280).to_string(),
         (0, 73) => "PAGE UP".to_string(),
-        (0, 75) => langbase.tr(281).to_string(),
+        (0, 75) => lang.tr(281).to_string(),
         (0, 76) => "NP 5".to_string(),
-        (0, 77) => langbase.tr(282).to_string(),
+        (0, 77) => lang.tr(282).to_string(),
         (0, 79) => "END".to_string(),
-        (0, 80) => langbase.tr(283).to_string(),
+        (0, 80) => lang.tr(283).to_string(),
         (0, 81) => "PAGE DOWN".to_string(),
         (0, 82) => "INSERT".to_string(),
         (0, 83) => "DELETE".to_string(),

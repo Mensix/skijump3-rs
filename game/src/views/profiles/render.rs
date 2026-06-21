@@ -7,18 +7,16 @@ use engine::oxide::PaintCx;
 use super::list::{Mode, ProfilesView};
 
 pub(super) fn draw_screen_base(view: &ProfilesView, cx: &mut PaintCx<'_>) {
+    let lang = &view.resources.langbase;
     cx.fill((0, 0, 320, 200), BLACK);
     cx.pattern_fill((0, 0, 159, 200), BG_PURPLE);
     cx.pattern_fill((160, 0, 160, 200), BG_RED);
 
-    cx.text(
-        (40, 3),
-        FONT_GRAY,
-        view.resources.langbase.tr(34),
-    );
+    cx.text((40, 3), FONT_GRAY, lang.tr(34));
 }
 
 pub(super) fn draw_list(view: &ProfilesView, state: &GameState, cx: &mut PaintCx<'_>) {
+    let lang = &view.resources.langbase;
     let store = &state.profiles;
     let np = store.num_profiles();
 
@@ -32,19 +30,11 @@ pub(super) fn draw_list(view: &ProfilesView, state: &GameState, cx: &mut PaintCx
     }
 
     if store.has_slot() {
-        cx.text(
-            (40, ProfilesView::row_y(np + 1)),
-            FONT_GOLD,
-            view.resources.langbase.tr(302),
-        );
+        cx.text((40, ProfilesView::row_y(np + 1)), FONT_GOLD, lang.tr(302));
     }
 
     let back_row = if store.has_slot() { np + 3 } else { np + 2 };
-    cx.text(
-        (40, ProfilesView::row_y(back_row)),
-        FONT_BODY,
-        view.resources.langbase.tr(33),
-    );
+    cx.text((40, ProfilesView::row_y(back_row)), FONT_BODY, lang.tr(33));
 
     if matches!(view.mode, Mode::List) {
         let entries = if store.has_slot() { np + 1 } else { np };
@@ -63,6 +53,7 @@ pub(super) fn draw_help(
     cx: &mut PaintCx<'_>,
     profile: Option<usize>,
 ) {
+    let lang = &view.resources.langbase;
     let store = &state.profiles;
     if store.num_profiles() >= 16 {
         return;
@@ -72,33 +63,13 @@ pub(super) fn draw_help(
 
     if let Some(profile) = profile {
         let in_order = store.order_pos(profile).is_some();
-        cx.text(
-            (8, 175),
-            FONT_GRAY,
-            view.resources.langbase.tr(322),
-        );
+        cx.text((8, 175), FONT_GRAY, lang.tr(322));
         if in_order {
-            cx.text(
-                (11, 183),
-                FONT_GRAY,
-                view.resources.langbase.tr(323),
-            );
-            cx.text(
-                (11, 191),
-                FONT_GRAY,
-                view.resources.langbase.tr(324),
-            );
+            cx.text((11, 183), FONT_GRAY, lang.tr(323));
+            cx.text((11, 191), FONT_GRAY, lang.tr(324));
         } else {
-            cx.text(
-                (11, 183),
-                FONT_GRAY,
-                view.resources.langbase.tr(325),
-            );
-            cx.text(
-                (11, 191),
-                FONT_GRAY,
-                view.resources.langbase.tr(326),
-            );
+            cx.text((11, 183), FONT_GRAY, lang.tr(325));
+            cx.text((11, 191), FONT_GRAY, lang.tr(326));
         }
     }
 }

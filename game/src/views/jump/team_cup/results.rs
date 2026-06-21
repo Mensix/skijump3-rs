@@ -11,6 +11,7 @@ pub(crate) fn render(
     state: &GameState,
     results_kind: TeamCupResultsKind,
 ) {
+    let lang = &resources.langbase;
     cx.fill((0, 0, 320, 200), BLACK);
     cx.fill((0, 0, 320, 19), FILL_GRAY);
     cx.pattern_fill((0, 20, 320, 180), BG_TEAM);
@@ -31,21 +32,21 @@ pub(crate) fn render(
                 TeamCupResultsKind::LegResults => {
                     if tc.current_leg == 5 {
                         // Pascal: tr(92) = "The Team Cup is over!"
-                        resources.langbase.tr(92).to_string()
+                        lang.tr(92).to_string()
                     } else {
                         format!(
                             "{} {} {} 6 - R {} - {} {}",
-                            resources.langbase.tr(81),
+                            lang.tr(81),
                             leg,
-                            resources.langbase.tr(8),
+                            lang.tr(8),
                             round,
-                            resources.langbase.tr(88),
+                            lang.tr(88),
                             jumper,
                         )
                     }
                 }
                 TeamCupResultsKind::Standings => {
-                    let text = resources.langbase.tr(91);
+                    let text = lang.tr(91);
                     format!("{} {} 6", text, leg)
                 }
             };
@@ -81,9 +82,5 @@ pub(crate) fn render(
     }
 
     // Pascal WaitForKey: Done-) at bottom right
-    cx.right_text(
-        (319, 13),
-        FONT_GRAY,
-        format!("{}-)", resources.langbase.tr(248)),
-    );
+    cx.right_text((319, 13), FONT_GRAY, format!("{}-)", lang.tr(248)));
 }

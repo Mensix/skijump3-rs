@@ -51,6 +51,7 @@ impl MainMenuView {
 
 impl GameScreen for MainMenuView {
     fn event(&mut self, cx: &mut GameCx<'_>, nav: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
+        let lang = &cx.layout.langbase;
         if self.confirming_quit {
             match event {
                 UiEvent::Text(c) if is_yes(c, cx.layout) => nav.quit(),
@@ -69,8 +70,8 @@ impl GameScreen for MainMenuView {
                 self.confirming_quit = true;
                 let qi = 251 + (cx.state.rng.random_i32(3) as usize).min(2);
                 let pi = 256 + (cx.state.rng.random_i32(3) as usize).min(2);
-                self.quit_question = cx.layout.langbase.tr(qi).to_string();
-                self.quit_prompt = cx.layout.langbase.tr(pi).to_string();
+                self.quit_question = lang.tr(qi).to_string();
+                self.quit_prompt = lang.tr(pi).to_string();
                 nav.consume();
             }
             Some(n) => {
@@ -86,10 +87,11 @@ impl GameScreen for MainMenuView {
     }
 
     fn paint(&mut self, cx: &mut GameCx<'_>, paint: &mut PaintCx<'_>) {
+        let lang = &cx.layout.langbase;
         cx.layout.background(paint);
         cx.layout.jumpers(paint, &cx.state.profiles);
         cx.layout.registration(paint);
-        paint.text((11, 80), FONT_GOLD, cx.layout.langbase.tr(17));
+        paint.text((11, 80), FONT_GOLD, lang.tr(17));
         paint_main_menu(paint, &self.menu, cx.layout);
         cx.layout.footer(paint);
         if self.confirming_quit {
@@ -103,15 +105,12 @@ impl GameScreen for MainMenuView {
 }
 
 fn paint_main_menu(cx: &mut PaintCx<'_>, menu: &PixelMenu, layout: &MainLayout) {
+    let lang = &layout.langbase;
     let y_offsets = [0, 0, 0, 0, 0, 0, 12];
     for (i, label) in [20, 21, 22, 23, 24, 25, 26].iter().enumerate() {
         let num = if i == 6 { 0 } else { i + 1 };
         let y = 98 + (i as i32) * 12 + y_offsets[i];
-        cx.text(
-            (11, y),
-            FONT_BODY,
-            format!("{} - {}", num, layout.langbase.tr(*label)),
-        );
+        cx.text((11, y), FONT_BODY, format!("{} - {}", num, lang.tr(*label)));
     }
     let selected = menu.selected().min(y_offsets.len().saturating_sub(1));
     let y = 94 + (selected as i32) * 12 + y_offsets[selected];

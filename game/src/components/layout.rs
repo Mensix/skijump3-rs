@@ -17,7 +17,8 @@ impl MainLayout {
     }
 
     pub fn background(&self, cx: &mut PaintCx<'_>) {
-        cx.text((170, 51), FONT_BODY, self.langbase.tr(34));
+        let lang = &self.langbase;
+        cx.text((170, 51), FONT_BODY, lang.tr(34));
     }
 
     pub fn jumpers(&self, cx: &mut PaintCx<'_>, profiles: &ProfileStore) {
@@ -33,11 +34,12 @@ impl MainLayout {
     }
 
     pub fn registration(&self, cx: &mut PaintCx<'_>) {
+        let lang = &self.langbase;
         cx.fill((128, 155, 185, 1), FILL_DARK);
         cx.text(
             (132, 163),
             FONT_BODY,
-            format!("{} {}", self.langbase.tr(35), self.langbase.tr(36)),
+            format!("{} {}", lang.tr(35), lang.tr(36)),
         );
         cx.fill((132, 175, 177, 22), FILL_PURPLE);
         cx.text((140, 177), FONT_GOLD, "EVERYONE - THANKS FOR THE SUPPORT!");

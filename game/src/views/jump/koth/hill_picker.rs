@@ -133,14 +133,15 @@ impl GameScreen for KothHillPickerView {
     }
 
     fn paint(&mut self, _cx: &mut GameCx<'_>, paint: &mut PaintCx<'_>) {
+        let lang = &self.resources.langbase;
         paint.fill((0, 0, 320, 200), BLACK);
         paint.pattern_fill((0, 0, 11, 200), FILL_GRAY);
         paint.pattern_fill((12, 0, 296, 200), BG_PURPLE);
         paint.pattern_fill((309, 0, 11, 200), FILL_GRAY);
         paint.sprite(sprites::Sprite::Logo as u16, (30, 8));
-        paint.text((30, 31), FONT_BODY, self.resources.langbase.tr(151));
-        paint.text((30, 41), FONT_BODY, self.resources.langbase.tr(152));
-        paint.text((30, 51), FONT_BODY, self.resources.langbase.tr(153));
+        paint.text((30, 31), FONT_BODY, lang.tr(151));
+        paint.text((30, 41), FONT_BODY, lang.tr(152));
+        paint.text((30, 51), FONT_BODY, lang.tr(153));
 
         let page_n = self.page_items();
         for i in 0..page_n {
@@ -156,13 +157,13 @@ impl GameScreen for KothHillPickerView {
 
         if self.has_more() {
             let y = self.item_row(page_n) as i32 * 8 + 10;
-            paint.text((140, y), FONT_TEAL, self.resources.langbase.tr(156));
+            paint.text((140, y), FONT_TEAL, lang.tr(156));
         }
 
         // "0. RANDOM WC HILL" at bottom
         let y = (self.exit_row() - 1) as i32 * 8 + 10;
         paint.right_text((130, y), FONT_BODY, "0.");
-        paint.text((140, y), FONT_BODY, self.resources.langbase.tr(155));
+        paint.text((140, y), FONT_BODY, lang.tr(155));
 
         // Selection box
         let bx = 104;

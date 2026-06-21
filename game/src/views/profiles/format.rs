@@ -8,7 +8,7 @@ pub fn format_profile_value(
     field: usize,
     font: &Font,
     player_names: &[String],
-    langbase: &LangBase,
+    lang: &LangBase,
 ) -> String {
     match field {
         1 => profile.name.clone(),
@@ -25,16 +25,14 @@ pub fn format_profile_value(
                 format!("#{}", profile.replace)
             }
         }
-            6 => {
+        6 => {
             if profile.coach_style == 0 {
-                langbase.tr(9).to_string()
+                lang.tr(9).to_string()
             } else {
-                langbase.tr(361 + profile.coach_style * 40).to_string()
+                lang.tr(361 + profile.coach_style * 40).to_string()
             }
         }
-        7 => {
-            langbase.tr(231 + profile.skip_qualification).to_string()
-        }
+        7 => lang.tr(231 + profile.skip_qualification).to_string(),
         10 => profile.total_jumps.to_string(),
         11 => profile.world_cups.to_string(),
         12 => profile.legs_won.to_string(),
@@ -59,7 +57,7 @@ pub fn format_profile_value(
             if profile.koth_level == 0 {
                 "-".to_string()
             } else {
-                langbase.tr(130 + profile.koth_level).to_string()
+                lang.tr(130 + profile.koth_level).to_string()
             }
         }
         _ => String::new(),

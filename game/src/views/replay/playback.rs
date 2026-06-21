@@ -42,9 +42,9 @@ pub struct ReplayView {
 
 impl ReplayView {
     pub fn new(resources: ResourcesRef, trace: Option<ReplayTrace>) -> Self {
-        let terrain = trace.as_ref().map(|trace| {
-            HillTerrain::load(&resources.files, trace.meta.hill_idx)
-        });
+        let terrain = trace
+            .as_ref()
+            .map(|trace| HillTerrain::load(&resources.files, trace.meta.hill_idx));
         let mut snow = SnowSystem::new();
         if let Some(trace) = &trace {
             snow.set_count(trace.meta.snow_count, &mut Random::default());
@@ -107,6 +107,7 @@ impl ReplayView {
     }
 
     fn paint_content(&mut self, cx: &mut PaintCx<'_>) {
+        let lang = &self.resources.langbase;
         let Some(terrain) = &self.terrain else {
             cx.fill((0, 0, 320, 200), BLACK);
             cx.text((20, 80), FONT_BODY, "Replay hill not found");
@@ -187,7 +188,7 @@ impl ReplayView {
                 FONT_TEAL,
                 format!(
                     "{} {}",
-                    self.resources.langbase.tr(340),
+                    lang.tr(340),
                     replay_time(
                         session.frame_index(),
                         session.trace().meta.flight_start,
@@ -200,7 +201,7 @@ impl ReplayView {
                 FONT_TEAL,
                 format!(
                     "{} {}",
-                    self.resources.langbase.tr(341),
+                    lang.tr(341),
                     replay_distance(
                         session,
                         self.resources
@@ -215,7 +216,7 @@ impl ReplayView {
                 FONT_TEAL,
                 format!(
                     "{} {}",
-                    self.resources.langbase.tr(342),
+                    lang.tr(342),
                     replay_speed_text(self.playback.speed(), &self.resources.langbase)
                 ),
             );
@@ -366,17 +367,17 @@ fn replay_distance(session: &ReplaySession, hill_pk: f64) -> String {
     format_distance(raw)
 }
 
-fn replay_gate_text(langbase: &LangBase, gate: i32) -> Option<String> {
+fn replay_gate_text(lang: &LangBase, gate: i32) -> Option<String> {
     match gate {
-        1..=5 => Some(langbase.tr((26 + gate) as usize).to_string()),
-        11.. => Some(format!("{} {}", langbase.tr(58), 100 - gate)),
+        1..=5 => Some(lang.tr((26 + gate) as usize).to_string()),
+        11.. => Some(format!("{} {}", lang.tr(58), 100 - gate)),
         _ => None,
     }
 }
 
-fn replay_speed_text(speed: PlaybackSpeed, langbase: &LangBase) -> String {
+fn replay_speed_text(speed: PlaybackSpeed, lang: &LangBase) -> String {
     match speed {
-        PlaybackSpeed::Variable => langbase.tr(343).to_string(),
+        PlaybackSpeed::Variable => lang.tr(343).to_string(),
         PlaybackSpeed::Pct25 => "50%".to_string(),
         PlaybackSpeed::Pct50 => "75%".to_string(),
         PlaybackSpeed::Pct100 => "100%".to_string(),
@@ -385,22 +386,14 @@ fn replay_speed_text(speed: PlaybackSpeed, langbase: &LangBase) -> String {
     }
 }
 
-fn intro_box_elements(cx: &mut PaintCx<'_>, langbase: &LangBase, phase: u8, cursor_visible: bool) {
+fn intro_box_elements(cx: &mut PaintCx<'_>, lang: &LangBase, phase: u8, cursor_visible: bool) {
     let ix = 30;
     let iy = if phase <= 3 { 140 } else { 30 };
     cx.fill((ix - 7, iy - 7, 269, 40), FILL_PURPLE);
     cx.fill((ix - 6, iy - 6, 267, 38), BG_PURPLE);
-    cx.text((ix, iy), FONT_GOLD, langbase.tr(360 + phase as usize * 2));
-    cx.text(
-        (ix, iy + 10),
-        FONT_GOLD,
-        langbase.tr(361 + phase as usize * 2),
-    );
-    cx.right_text(
-        (ix + 246, iy + 21),
-        FONT_BODY,
-        langbase.tr(15).to_string(),
-    );
+    cx.text((ix, iy), FONT_GOLD, lang.tr(360 + phase as usize * 2));
+    cx.text((ix, iy + 10), FONT_GOLD, lang.tr(361 + phase as usize * 2));
+    cx.right_text((ix + 246, iy + 21), FONT_BODY, lang.tr(15).to_string());
     cx.fill((ix + 246 + 1 - 2 + 1, iy + 21 - 2, 9, 11), BG_PURPLE);
     if cursor_visible {
         cx.fill((ix + 246 + 1, iy + 21 + 6, 5, 1), FONT_BODY);

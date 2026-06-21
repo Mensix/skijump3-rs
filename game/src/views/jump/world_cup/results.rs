@@ -336,11 +336,7 @@ pub fn render_header(cx: &mut PaintCx<'_>, competition: &Competition, resources:
             if competition.style() == CupStyle::FourHills {
                 lang.tr(85).to_string()
             } else {
-                format!(
-                    "{} {}",
-                    lang.tr(90),
-                    cup_style_str(competition.style(), 27)
-                )
+                format!("{} {}", lang.tr(90), cup_style_str(competition.style(), 27))
             }
         }
         _ => String::new(),
@@ -425,15 +421,16 @@ fn render_results_entry(
 }
 
 pub fn render_results_page(cx: &mut PaintCx<'_>, page: &ResultsPage, resources: &ResourcesRef) {
+    let lang = &resources.langbase;
     let bg = list_background(page.phase, page.style);
     cx.fill((0, 0, 320, 200), BLACK);
     cx.pattern_fill((0, 0, 320, 19), FILL_GRAY);
     cx.pattern_fill((0, 20, 320, 180), bg);
     cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
 
-    let prev = resources.langbase.tr(246);
-    let next = resources.langbase.tr(247);
-    let end = resources.langbase.tr(248);
+    let prev = lang.tr(246);
+    let next = lang.tr(247);
+    let end = lang.tr(248);
     if page.page > 0 {
         cx.right_text((319, 5), FONT_GRAY, format!("(-{prev}"));
     }
@@ -445,7 +442,7 @@ pub fn render_results_page(cx: &mut PaintCx<'_>, page: &ResultsPage, resources: 
     cx.right_text((319, 13), FONT_GRAY, format!("{hint_text}-)"));
 
     if page.total_pages == 1 && page.items.len() <= 20 {
-        cx.text((30, 190), FONT_TEAL, resources.langbase.tr(86));
+        cx.text((30, 190), FONT_TEAL, lang.tr(86));
     }
 
     let is_wc = page.phase == CompetitionPhase::FourHillsStandings
@@ -524,6 +521,7 @@ pub fn render_stats_page(
     resources: &ResourcesRef,
     page: usize,
 ) {
+    let lang = &resources.langbase;
     let mut humans: Vec<_> = competition
         .overall_standings()
         .into_iter()
@@ -553,17 +551,17 @@ pub fn render_stats_page(
     cx.pattern_fill((0, 20, 320, 180), bg);
     cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
 
-    cx.text((30, 6), FONT_BODY, resources.langbase.tr(89));
+    cx.text((30, 6), FONT_BODY, lang.tr(89));
     cx.text(
-        (36 + resources.langbase.tr(89).len() as i32 * 6, 6),
+        (36 + lang.tr(89).len() as i32 * 6, 6),
         FONT_BODY,
         player.display_name(),
     );
-    cx.text((16, 23), FONT_TEAL, resources.langbase.tr(106));
-    cx.right_text((70, 23), FONT_TEAL, resources.langbase.tr(108));
-    cx.right_text((90, 23), FONT_TEAL, resources.langbase.tr(109));
-    cx.right_text((110, 23), FONT_TEAL, resources.langbase.tr(98));
-    cx.right_text((140, 23), FONT_TEAL, resources.langbase.tr(97));
+    cx.text((16, 23), FONT_TEAL, lang.tr(106));
+    cx.right_text((70, 23), FONT_TEAL, lang.tr(108));
+    cx.right_text((90, 23), FONT_TEAL, lang.tr(109));
+    cx.right_text((110, 23), FONT_TEAL, lang.tr(98));
+    cx.right_text((140, 23), FONT_TEAL, lang.tr(97));
     cx.right_text((170, 23), FONT_TEAL, "R 1");
     cx.right_text((268, 23), FONT_TEAL, "R 2");
 
@@ -607,9 +605,9 @@ pub fn render_stats_page(
         );
     }
 
-    let prev = resources.langbase.tr(246);
-    let next = resources.langbase.tr(247);
-    let end = resources.langbase.tr(248);
+    let prev = lang.tr(246);
+    let next = lang.tr(247);
+    let end = lang.tr(248);
     if idx > 0 {
         cx.right_text((319, 5), FONT_GRAY, format!("(-{prev}"));
     }

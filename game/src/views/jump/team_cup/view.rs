@@ -5,9 +5,7 @@ use crate::save::SaveRef;
 use crate::screen::{GameCx, GameScreen};
 use crate::store::{GameState, ResourcesRef};
 use crate::views::jump::competition::controller::CompetitionJumpController;
-    use crate::views::jump::competition::flow::{
-        CompetitionFlowCommand, JumpInputResult,
-    };
+use crate::views::jump::competition::flow::{CompetitionFlowCommand, JumpInputResult};
 use crate::views::jump::competition::ui_state::RenderMode;
 use crate::views::jump::team_cup::results as team_cup_results;
 use engine::oxide::Blinker;
@@ -56,6 +54,7 @@ impl TeamCupJumpView {
         command: CompetitionFlowCommand<TeamCupJumpContext, TeamCupResultsKind>,
         state: &mut GameState,
     ) {
+        let lang = &self.controller.resources().langbase;
         match command {
             CompetitionFlowCommand::HumanJump {
                 participant,
@@ -67,9 +66,9 @@ impl TeamCupJumpView {
                     state.setup_jump_event();
                 }
                 let phase_label = if context.round_idx == 0 {
-                    self.controller.resources().langbase.tr(54).to_string()
+                    lang.tr(54).to_string()
                 } else {
-                    self.controller.resources().langbase.tr(55).to_string()
+                    lang.tr(55).to_string()
                 };
                 self.controller.prepare_human_jump(
                     participant,

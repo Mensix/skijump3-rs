@@ -190,6 +190,7 @@ impl SaveReplayDialog {
     }
 
     fn paint_form(&self, cx: &mut PaintCx<'_>, show_box: bool) {
+        let lang = &self.resources.langbase;
         let selected_idx = match self.state {
             SaveDialogState::Browse { selected } => selected,
             SaveDialogState::EditField { ref field, .. } => field.idx(),
@@ -204,12 +205,7 @@ impl SaveReplayDialog {
         cx.text(
             (30, 6),
             FONT_BODY,
-            format!(
-                "{}: {}µ at {}",
-                self.resources.langbase.tr(25),
-                self.distance,
-                self.hill_name
-            ),
+            format!("{}: {}µ at {}", lang.tr(25), self.distance, self.hill_name),
         );
 
         for i in 0..5 {
@@ -217,9 +213,9 @@ impl SaveReplayDialog {
             let final_yy = if i == 4 { yy + 16 } else { yy };
             let label_color = if i < 4 { FONT_BODY } else { FONT_GOLD };
             let label = match i {
-                0..=2 => format!("{}. {}", i + 1, self.resources.langbase.tr(291 + i)),
-                3 => format!("4. {}", self.resources.langbase.tr(295)),
-                4 => format!("5. {}", self.resources.langbase.tr(296)),
+                0..=2 => format!("{}. {}", i + 1, lang.tr(291 + i)),
+                3 => format!("4. {}", lang.tr(295)),
+                4 => format!("5. {}", lang.tr(296)),
                 _ => String::new(),
             };
             cx.text((18, final_yy), label_color, label);
@@ -277,10 +273,11 @@ impl SaveReplayDialog {
     }
 
     fn paint_overwrite(&self, cx: &mut PaintCx<'_>, filename: &str) {
+        let lang = &self.resources.langbase;
         alert_prompt(
             cx,
-            format!("{}.SJR {}", filename, self.resources.langbase.tr(345)),
-            self.resources.langbase.tr(346),
+            format!("{}.SJR {}", filename, lang.tr(345)),
+            lang.tr(346),
             true,
         );
     }

@@ -146,6 +146,7 @@ impl ProfilesView {
     }
 
     fn paint_content(&self, state: &GameState, cx: &mut PaintCx<'_>) {
+        let lang = &self.resources.langbase;
         draw_screen_base(self, cx);
 
         if let Some(profile) = self.active_profile(state) {
@@ -222,11 +223,7 @@ impl ProfilesView {
                         cx.text((x, 44), FONT_BODY, format!("#{value}"));
                     }
                 } else {
-                    cx.text(
-                        (x, 44),
-                        FONT_BODY,
-                        self.resources.langbase.tr(9),
-                    );
+                    cx.text((x, 44), FONT_BODY, lang.tr(9));
                 }
             }
             _ => {}
@@ -234,19 +231,9 @@ impl ProfilesView {
 
         if let Some(profile) = self.confirm_delete {
             let name = &state.profiles.profiles[profile].name;
-            alert_prompt(
-                cx,
-                format!("{} {}", self.resources.langbase.tr(328), name),
-                self.resources.langbase.tr(193),
-                true,
-            );
+            alert_prompt(cx, format!("{} {}", lang.tr(328), name), lang.tr(193), true);
         } else if self.confirm_reset.is_some() {
-            alert_prompt(
-                cx,
-                self.resources.langbase.tr(329),
-                self.resources.langbase.tr(193),
-                true,
-            );
+            alert_prompt(cx, lang.tr(329), lang.tr(193), true);
         }
     }
 

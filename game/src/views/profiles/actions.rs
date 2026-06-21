@@ -69,6 +69,7 @@ pub(super) fn handle_edit_enter(
     profile: usize,
     selected: usize,
 ) {
+    let lang = &view.resources.langbase;
     match selected {
         0 => start_text_input(view, state, profile, TextField::Name),
         1 => start_text_input(view, state, profile, TextField::RealName),
@@ -161,7 +162,7 @@ pub(super) fn handle_edit_enter(
             let p = &mut state.profiles.profiles[profile];
             p.coach_style += 1;
             let style = p.coach_style;
-            let check = view.resources.langbase.tr(361 + style * 40);
+            let check = lang.tr(361 + style * 40);
             if check == "?" {
                 state.profiles.profiles[profile].coach_style = 0;
             }

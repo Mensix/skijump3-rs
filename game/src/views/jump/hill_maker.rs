@@ -190,30 +190,30 @@ impl GameScreen for HillMakerView {
     }
 
     fn paint(&mut self, _cx: &mut GameCx<'_>, paint: &mut PaintCx<'_>) {
-        let lb = &*self.resources.langbase;
+        let lang = &*self.resources.langbase;
 
         paint.fill((0, 0, 320, 200), BLACK);
         paint.pattern_fill((0, 0, 320, 200), BG_PURPLE);
 
-        paint.text((5, 5), FONT_GOLD, lb.tr(270));
+        paint.text((5, 5), FONT_GOLD, lang.tr(270));
 
-        paint.text((5, 21), FONT_GRAY, lb.tr(271));
-        paint.text((5, 29), FONT_GRAY, lb.tr(272));
+        paint.text((5, 21), FONT_GRAY, lang.tr(271));
+        paint.text((5, 29), FONT_GRAY, lang.tr(272));
 
         let col1 = 100i32;
         let col2 = 160i32;
 
-        paint.text((col1, 5), FONT_TEAL, lb.tr(273));
-        paint.text((col2, 5), FONT_TEAL, lb.tr(274));
+        paint.text((col1, 5), FONT_TEAL, lang.tr(273));
+        paint.text((col2, 5), FONT_TEAL, lang.tr(274));
 
         paint.text(
             (5, 45),
             FONT_TEAL,
             format!(
                 "{} {} {} {}",
-                lb.tr(157),
+                lang.tr(157),
                 self.page_number(),
-                lb.tr(8),
+                lang.tr(8),
                 self.page_count()
             ),
         );
@@ -231,37 +231,26 @@ impl GameScreen for HillMakerView {
             paint.text((col2, y), FONT_GOLD, &hill.hillname);
         }
         let mut row = visible;
-        paint.text(
-            (col1, 13 + row as i32 * 8),
-            FONT_GOLD,
-            lb.tr(275),
-        );
+        paint.text((col1, 13 + row as i32 * 8), FONT_GOLD, lang.tr(275));
         row += 1;
         if next.is_some() {
-            paint.text(
-                (col1, 13 + row as i32 * 8),
-                FONT_GRAY,
-                lb.tr(158),
-            );
+            paint.text((col1, 13 + row as i32 * 8), FONT_GRAY, lang.tr(158));
             row += 1;
         }
         if prev.is_some() {
-            paint.text(
-                (col1, 13 + row as i32 * 8),
-                FONT_GRAY,
-                lb.tr(159),
-            );
+            paint.text((col1, 13 + row as i32 * 8), FONT_GRAY, lang.tr(159));
             row += 1;
         }
         self.menu.paint(paint);
 
         let exit_y = 13 + (row + 2) as i32 * 8;
-        paint.text((col1, exit_y), FONT_BODY, lb.tr(276));
+        paint.text((col1, exit_y), FONT_BODY, lang.tr(276));
         if let HillMakerMode::ConfirmDelete { filename } = &self.mode {
             alert_prompt(
                 paint,
                 format!("DELETE {filename}.TOML?"),
-                lb.tr(193), true,
+                lang.tr(193),
+                true,
             );
         }
     }

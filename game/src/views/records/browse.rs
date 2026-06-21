@@ -26,6 +26,7 @@ impl HallOfFameView {
     }
 
     fn paint_content(&self, state: &GameState, cx: &mut PaintCx<'_>) {
+        let lang = &self.resources.langbase;
         if self.page >= 2 {
             paint_screen(cx, 1, BG_GREEN);
         } else {
@@ -48,62 +49,32 @@ impl HallOfFameView {
             cx,
             self.page,
             HALL_PAGES,
-            &self.resources.langbase.tr(246),
-            &self.resources.langbase.tr(247),
-            &self.resources.langbase.tr(248),
+            &lang.tr(246),
+            &lang.tr(247),
+            &lang.tr(248),
         );
     }
 
     fn paint_list(&self, state: &GameState, cx: &mut PaintCx<'_>, phase: usize) {
+        let lang = &self.resources.langbase;
         let mut yy = 6;
         let col = [30, 146, 173, 215];
         let (title, entries, start, sortby) = match phase {
-            0 => (
-                self.resources.langbase.tr(163),
-                20,
-                1,
-                false,
-            ),
-            1 => (
-                self.resources.langbase.tr(164),
-                10,
-                21,
-                false,
-            ),
+            0 => (lang.tr(163), 20, 1, false),
+            1 => (lang.tr(164), 10, 21, false),
             _ => {
                 yy = 126;
-                (
-                    self.resources.langbase.tr(165),
-                    5,
-                    31,
-                    true,
-                )
+                (lang.tr(165), 5, 31, true)
             }
         };
 
         cx.text((30, yy), FONT_BODY, title);
         yy += 17;
 
-        cx.text(
-            (col[0], yy),
-            FONT_GOLD,
-            self.resources.langbase.tr(166),
-        );
-        cx.text(
-            (col[1], yy),
-            FONT_GOLD,
-            self.resources.langbase.tr(167),
-        );
-        cx.text(
-            (col[2], yy),
-            FONT_GOLD,
-            self.resources.langbase.tr(168),
-        );
-        cx.text(
-            (col[3], yy),
-            FONT_GOLD,
-            self.resources.langbase.tr(169),
-        );
+        cx.text((col[0], yy), FONT_GOLD, lang.tr(166));
+        cx.text((col[1], yy), FONT_GOLD, lang.tr(167));
+        cx.text((col[2], yy), FONT_GOLD, lang.tr(168));
+        cx.text((col[3], yy), FONT_GOLD, lang.tr(169));
 
         let records = &state.records;
         for idx in start..start + entries {
@@ -146,13 +117,10 @@ impl HallOfFameView {
     }
 
     fn paint_koth_records(&self, state: &GameState, cx: &mut PaintCx<'_>) {
+        let lang = &self.resources.langbase;
         let col = [30, 55, 175, 290];
         let mut yy = 12;
-        cx.text(
-            (30, 6),
-            FONT_BODY,
-            self.resources.langbase.tr(160),
-        );
+        cx.text((30, 6), FONT_BODY, lang.tr(160));
 
         let records = &state.records;
         for idx in 0..6 {
@@ -160,15 +128,11 @@ impl HallOfFameView {
             cx.text(
                 (col[0], yy),
                 FONT_GOLD,
-                format!(
-                    "{}. {}",
-                    idx + 1,
-                    self.resources.langbase.tr(131 + idx)
-                ),
+                format!("{}. {}", idx + 1, lang.tr(131 + idx)),
             );
             yy += 10;
 
-            let name = self.resources.langbase.tr(161);
+            let name = lang.tr(161);
             let Some(hi) = records.top(idx + 36) else {
                 cx.text((col[1], yy), FONT_GRAY, name);
                 continue;
@@ -222,6 +186,7 @@ impl HillRecordsView {
     }
 
     fn paint_content(&self, state: &GameState, cx: &mut PaintCx<'_>) {
+        let lang = &self.resources.langbase;
         let pages = self.pages();
         paint_screen(cx, 1, BG_PURPLE);
         self.paint_hill_records(state, cx);
@@ -229,44 +194,29 @@ impl HillRecordsView {
             cx,
             self.page,
             pages,
-            &self.resources.langbase.tr(246),
-            &self.resources.langbase.tr(247),
-            &self.resources.langbase.tr(248),
+            &lang.tr(246),
+            &lang.tr(247),
+            &lang.tr(248),
         );
     }
 
     fn paint_hill_records(&self, state: &GameState, cx: &mut PaintCx<'_>) {
+        let lang = &self.resources.langbase;
         let col = [3, 71, 183, 200, 216];
         let phase = self.page;
         let start = phase * PAGE_SIZE;
         let loop_count = (self.resources.hills.len().saturating_sub(start)).min(PAGE_SIZE);
         let title = if phase == 0 {
-            self.resources.langbase.tr(170)
+            lang.tr(170)
         } else {
-            self.resources.langbase.tr(156)
+            lang.tr(156)
         };
         cx.text((30, 6), FONT_BODY, title);
-        cx.text(
-            (col[0], 23),
-            FONT_BODY,
-            self.resources.langbase.tr(106),
-        );
-        cx.text(
-            (col[1], 23),
-            FONT_BODY,
-            self.resources.langbase.tr(171),
-        );
-        cx.right_text(
-            (col[2], 23),
-            FONT_BODY,
-            self.resources.langbase.tr(172),
-        );
+        cx.text((col[0], 23), FONT_BODY, lang.tr(106));
+        cx.text((col[1], 23), FONT_BODY, lang.tr(171));
+        cx.right_text((col[2], 23), FONT_BODY, lang.tr(172));
         cx.text((col[3], 23), FONT_BODY, "(K)");
-        cx.text(
-            (col[4], 23),
-            FONT_BODY,
-            self.resources.langbase.tr(169),
-        );
+        cx.text((col[4], 23), FONT_BODY, lang.tr(169));
 
         let records = &state.records;
         let mut ahi_sum = 0.0;

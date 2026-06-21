@@ -122,18 +122,15 @@ fn build_entries(c: &KothRuntime) -> (Vec<KothEntry>, usize, bool) {
 
 /// Render the KOTH results list (Pascal kothlista).
 pub fn render(cx: &mut PaintCx<'_>, resources: &ResourcesRef, state: &GameState) {
+    let lang = &resources.langbase;
     state.active_competition.as_ref().and_then(|active| {
         let c = active.koth_runtime()?;
         let (entries, remaining, _is_final) = build_entries(c);
 
         let title = if remaining <= 1 {
-            format!("{}!", resources.langbase.tr(31))
+            format!("{}!", lang.tr(31))
         } else {
-            format!(
-                "{} {}",
-                resources.langbase.tr(31),
-                resources.langbase.tr(95)
-            )
+            format!("{} {}", lang.tr(31), lang.tr(95))
         };
 
         let kp = KothPage {
@@ -148,11 +145,7 @@ pub fn render(cx: &mut PaintCx<'_>, resources: &ResourcesRef, state: &GameState)
         cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
 
         // Pascal-style: just "Done" hint (no prev/next pagination for KOTH)
-        cx.right_text(
-            (319, 13),
-            FONT_GRAY,
-            format!("{}-)", resources.langbase.tr(248)),
-        );
+        cx.right_text((319, 13), FONT_GRAY, format!("{}-)", lang.tr(248)));
 
         // Title
         cx.text((30, 6), FONT_BODY, &kp.title);
@@ -214,11 +207,7 @@ pub fn render(cx: &mut PaintCx<'_>, resources: &ResourcesRef, state: &GameState)
             }
 
             if entry.is_king {
-                cx.text(
-                    (COL_EXTRA, y),
-                    col_rank,
-                    resources.langbase.tr(143).to_string(),
-                );
+                cx.text((COL_EXTRA, y), col_rank, lang.tr(143).to_string());
             }
 
             y += ROW_STEP;

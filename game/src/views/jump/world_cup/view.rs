@@ -11,9 +11,7 @@ use crate::screen::{GameCx, GameScreen};
 use crate::store::{GameState, ResourcesRef};
 use crate::text::format::format_decimal;
 use crate::views::jump::competition::controller::CompetitionJumpController;
-    use crate::views::jump::competition::flow::{
-        CompetitionFlowCommand, JumpInputResult,
-    };
+use crate::views::jump::competition::flow::{CompetitionFlowCommand, JumpInputResult};
 use crate::views::jump::competition::results::{
     self as competition_results, CompetitionResultsRequest,
 };
@@ -162,7 +160,6 @@ impl WorldCupJumpView {
     }
 
     fn handle_input(&mut self, event: UiEvent, state: &mut GameState) -> Option<RouteTarget> {
-
         if self.is_result_display_state(state) {
             return self.handle_result_event(event, state);
         }
@@ -394,12 +391,13 @@ impl WorldCupJumpView {
 }
 
 fn phase_label(resources: &ResourcesRef, phase: CompetitionPhase) -> String {
+    let lang = &resources.langbase;
     match phase {
-        CompetitionPhase::Training(n) => format!("{} {}", resources.langbase.tr(52), n),
-        CompetitionPhase::Qualification => resources.langbase.tr(53).to_string(),
-        CompetitionPhase::Round1 => resources.langbase.tr(54).to_string(),
-        CompetitionPhase::Round2 => resources.langbase.tr(55).to_string(),
-        _ => resources.langbase.tr(51).to_string(),
+        CompetitionPhase::Training(n) => format!("{} {}", lang.tr(52), n),
+        CompetitionPhase::Qualification => lang.tr(53).to_string(),
+        CompetitionPhase::Round1 => lang.tr(54).to_string(),
+        CompetitionPhase::Round2 => lang.tr(55).to_string(),
+        _ => lang.tr(51).to_string(),
     }
 }
 

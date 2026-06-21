@@ -428,6 +428,7 @@ impl CompetitionOverlay {
         participant: &Participant,
         round2_with_r1: bool,
     ) {
+        let lang = &self.resources.langbase;
         let (phase, rank, quali_wc) = state
             .active_competition
             .as_ref()
@@ -450,11 +451,11 @@ impl CompetitionOverlay {
             .unwrap_or((CompetitionPhase::Qualification, 0, false));
 
         let phase_label = match phase {
-            CompetitionPhase::Training(n) => format!("{} {}", self.resources.langbase.tr(52), n),
-            CompetitionPhase::Qualification => self.resources.langbase.tr(53).to_string(),
-            CompetitionPhase::Round1 => self.resources.langbase.tr(54).to_string(),
-            CompetitionPhase::Round2 => self.resources.langbase.tr(55).to_string(),
-            _ => self.resources.langbase.tr(51).to_string(),
+            CompetitionPhase::Training(n) => format!("{} {}", lang.tr(52), n),
+            CompetitionPhase::Qualification => lang.tr(53).to_string(),
+            CompetitionPhase::Round1 => lang.tr(54).to_string(),
+            CompetitionPhase::Round2 => lang.tr(55).to_string(),
+            _ => lang.tr(51).to_string(),
         };
 
         let name = if quali_wc {
@@ -531,6 +532,7 @@ impl CompetitionOverlay {
 
     /// Pascal drawtop5info: hill name + top 5 event points with gap behind leader
     fn top5_event_elements(&self, cx: &mut PaintCx<'_>, data: &OverlayData, state: &GameState) {
+        let lang = &self.resources.langbase;
         hud::push_info_panel_frame(cx);
         let hill_name_k = self
             .resources
@@ -557,7 +559,7 @@ impl CompetitionOverlay {
                 let current_pts = pel.points.unwrap_or(0.0);
                 let temp = leader_pts - current_pts;
                 if temp > 0.0 {
-                    let label = self.resources.langbase.tr(62);
+                    let label = lang.tr(62);
                     cx.right_text(
                         (308, 62),
                         FONT_GOLD,
@@ -616,12 +618,9 @@ impl CompetitionOverlay {
 
     /// Pascal drawwcinfo: top 5 WC / season standings with raw points.
     fn wc_standings_elements(&self, cx: &mut PaintCx<'_>, data: &OverlayData, state: &GameState) {
+        let lang = &self.resources.langbase;
         hud::push_info_panel_frame(cx);
-        cx.right_text(
-            (308, 9),
-            FONT_GOLD,
-            self.resources.langbase.tr(70).to_string(),
-        );
+        cx.right_text((308, 9), FONT_GOLD, lang.tr(70).to_string());
         for (i, entry) in data.wc_standings_top5.iter().enumerate() {
             let s = format!("{}  {}", entry.name, entry.points);
             cx.right_text((308, 20 + i as i32 * 7), FONT_GOLD, s);
@@ -633,11 +632,7 @@ impl CompetitionOverlay {
             ) {
                 let diff = leader.points - current.wc_points;
                 if diff > 0 {
-                    cx.right_text(
-                        (308, 62),
-                        FONT_GOLD,
-                        format!("{}: {diff}", self.resources.langbase.tr(62)),
-                    );
+                    cx.right_text((308, 62), FONT_GOLD, format!("{}: {diff}", lang.tr(62)));
                 }
             }
         }
