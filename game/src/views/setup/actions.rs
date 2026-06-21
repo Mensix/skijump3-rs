@@ -270,7 +270,7 @@ fn handle_wind_place(
 }
 
 pub(crate) fn seecomp_options(view: &SetupView, state: &GameState) -> Vec<(usize, String)> {
-    let lang = view.langbase();
+    let lang = &view.resources.langbase;
     let names = view
         .resources
         .namesets
@@ -348,7 +348,7 @@ fn handle_language_picker(
     event: UiEvent,
     sel: usize,
 ) -> Option<RouteTarget> {
-    let lang_count = view.langbase().language_count();
+    let lang_count = view.resources.langbase.language_count();
     match event {
         UiEvent::KeyDown(Key::Up | Key::Left) => {
             let new_sel = cycle_index(sel, lang_count, -1);
@@ -359,8 +359,8 @@ fn handle_language_picker(
             view.modal = Some(SetupModal::LanguagePicker(new_sel));
         }
         UiEvent::KeyDown(Key::Enter) | UiEvent::Text(' ') => {
-            view.langbase().select(sel);
-            state.config.language = view.langbase().saved_language();
+            view.resources.langbase.select(sel);
+            state.config.language = view.resources.langbase.saved_language();
             view.save_manager().save_config(&state.config);
             view.modal = None;
         }
@@ -521,7 +521,7 @@ fn activate_item(
         (0, 4) => view.modal = Some(SetupModal::HillGoals(0)),
         (0, 5) => return Some(RouteTarget::HillMakerSetup),
         (1, 0) => {
-            let idx = view.langbase().selected();
+            let idx = view.resources.langbase.selected();
             view.modal = Some(SetupModal::LanguagePicker(idx));
         }
         (1, 1) => {

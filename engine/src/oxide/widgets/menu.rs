@@ -221,19 +221,27 @@ impl Widget for PixelMenu {
                 let total = self.total_items();
                 if d >= 1 && d <= total {
                     self.set_selected(d - 1);
+                    cx.consume();
+                    Some(self.submit_selected())
                 } else if d == 0 {
                     self.set_selected(total.saturating_sub(1));
+                    cx.consume();
+                    Some(self.submit_selected())
+                } else {
+                    cx.consume();
+                    None
                 }
-                cx.consume();
-                None
             }
             UiEvent::Text(c) if matches!(c, 'A'..='L' | 'a'..='l') => {
                 let index = c.to_ascii_uppercase() as usize - 'A' as usize + 10;
                 if index >= 1 && index <= self.total_items() {
                     self.set_selected(index - 1);
+                    cx.consume();
+                    Some(self.submit_selected())
+                } else {
+                    cx.consume();
+                    None
                 }
-                cx.consume();
-                None
             }
             UiEvent::KeyDown(Key::Escape) => Some(0),
             _ => None,

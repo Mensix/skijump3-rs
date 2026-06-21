@@ -63,10 +63,6 @@ impl SetupView {
         self.menu = Self::make_menu(new_screen, selected);
     }
 
-    pub(crate) fn langbase(&self) -> &LangBase {
-        &self.resources.langbase
-    }
-
     pub(crate) fn save_manager(&self) -> &SaveRef {
         &self.save_manager
     }

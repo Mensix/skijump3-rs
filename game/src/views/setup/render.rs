@@ -10,7 +10,7 @@ use super::state::{hex_char, key_name, wind_place_name, SetupModal};
 use super::view::SetupView;
 
 pub(crate) fn paint_content(view: &SetupView, state: &GameState, cx: &mut PaintCx<'_>) {
-    let lang = view.langbase();
+    let lang = &view.resources.langbase;
     if let Some(SetupModal::ConfigureKeys { selected, capture }) = view.modal {
         render_configure_keys(view, state, cx, selected, capture);
         return;
@@ -31,7 +31,7 @@ pub(crate) fn paint_content(view: &SetupView, state: &GameState, cx: &mut PaintC
             let winds = 10;
             for apu in 0..=winds {
                 let yy = ((apu + 1) as i32) * 10 + 34;
-                let name = wind_place_name(view.langbase(), apu);
+                let name = wind_place_name(&view.resources.langbase, apu);
                 cx.right_text((85, yy), FONT_GOLD, format!("{}.", apu + 1));
                 cx.text((90, yy), FONT_BODY, name);
             }
@@ -77,7 +77,7 @@ pub(crate) fn paint_content(view: &SetupView, state: &GameState, cx: &mut PaintC
             cx.fill((74, 41, 172, 145), FILL_PURPLE);
             cx.fill((75, 42, 170, 143), BG_PURPLE);
             cx.text((100, 50), FONT_BODY, "PLEASE CHOOSE A LANGUAGE:");
-            for (i, lang) in view.langbase().languages().iter().enumerate() {
+            for (i, lang) in view.resources.langbase.languages().iter().enumerate() {
                 let yy = ((i + 1) as i32) * 8 + 55;
                 cx.center_text((155, yy), FONT_GOLD, &lang.name);
             }
@@ -100,7 +100,7 @@ pub(crate) fn paint_content(view: &SetupView, state: &GameState, cx: &mut PaintC
 }
 
 fn render_hill_goals(view: &SetupView, state: &GameState, cx: &mut PaintCx<'_>, selected: usize) {
-    let lang = view.langbase();
+    let lang = &view.resources.langbase;
     cx.fill((0, 0, 320, 200), BLACK);
     cx.pattern_fill((0, 0, 320, 19), FILL_GRAY);
     cx.pattern_fill((0, 20, 320, 180), BG_PURPLE);
@@ -160,7 +160,7 @@ fn render_configure_keys(
     selected: usize,
     capture: Option<usize>,
 ) {
-    let lang = view.langbase();
+    let lang = &view.resources.langbase;
     cx.fill((0, 0, 320, 200), BLACK);
     cx.pattern_fill((0, 0, 320, 19), FILL_GRAY);
     cx.pattern_fill((0, 20, 320, 180), BG_PURPLE);
@@ -186,7 +186,7 @@ fn render_configure_keys(
             let key_text = if capture == Some(item) {
                 "".to_string()
             } else {
-                key_name(keys[item], view.langbase())
+                key_name(keys[item], &view.resources.langbase)
             };
             if capture == Some(item) {
                 cx.fill((180, y - 2, 140, 10), FILL_GRAY);
@@ -215,7 +215,7 @@ fn render_configure_keys(
 }
 
 fn render_screen(view: &SetupView, state: &GameState, cx: &mut PaintCx<'_>) {
-    let lang = view.langbase();
+    let lang = &view.resources.langbase;
     cx.fill((0, 0, 320, 200), BLACK);
     cx.pattern_fill((0, 0, 320, 19), FILL_GRAY);
     cx.pattern_fill((0, 20, 320, 180), BG_PURPLE);
@@ -238,7 +238,7 @@ fn render_screen(view: &SetupView, state: &GameState, cx: &mut PaintCx<'_>) {
         let value_str = if temp > 0 {
             match (screen, temp - 1) {
                 (1, 0) => {
-                    let info = view.langbase().languages();
+                    let info = view.resources.langbase.languages();
                     let idx = state.config.language;
                     if idx >= 0 && (idx as usize) < info.len() {
                         info[idx as usize].name.clone()
@@ -331,7 +331,7 @@ fn render_screen(view: &SetupView, state: &GameState, cx: &mut PaintCx<'_>) {
                         format!("#{}", state.config.visible_computers)
                     }
                 }
-                (2, 9) => wind_place_name(view.langbase(), state.config.wind_position as usize),
+                (2, 9) => wind_place_name(&view.resources.langbase, state.config.wind_position as usize),
                 (2, 10) => {
                     if state.config.ko_system != 0 {
                         lang.tr(182).to_string()
@@ -381,7 +381,7 @@ fn setup_item(
     entries: usize,
     value_str: &str,
 ) {
-    let lang = view.langbase();
+    let lang = &view.resources.langbase;
     let xx = 25;
     let yy = if index == 0 {
         (entries as i32) * 10 + 50
