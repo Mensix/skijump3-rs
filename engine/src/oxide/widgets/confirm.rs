@@ -27,8 +27,8 @@ pub struct ConfirmDialog {
 }
 
 impl ConfirmDialog {
-    #[allow(clippy::too_many_arguments)]
-    #[must_use]
+    
+
     pub fn new(
         rect: (i32, i32, i32, i32),
         bg: Rgba,
@@ -56,13 +56,11 @@ impl ConfirmDialog {
         }
     }
 
-    #[must_use]
     pub fn with_subtitle(mut self, subtitle: impl Into<String>) -> Self {
         self.subtitle = Some(subtitle.into());
         self
     }
 
-    #[must_use]
     pub fn with_padding(mut self, left: i32, top: i32) -> Self {
         self.left_pad = left;
         self.top_pad = top;

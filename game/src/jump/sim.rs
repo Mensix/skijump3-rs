@@ -7,11 +7,6 @@ use crate::jump::types::{FlightWind, JumpOutcome, JumpPhase};
 use crate::jump::wind::Wind;
 use crate::rng::Random;
 
-/// Simulate a full computer jump to completion without building a
-/// `JumpRunner`, `JumpSession`, `SnowSystem`, or `ReplayRecorder`.
-///
-/// Performs Pascal-faithful wind pre-advance (1× Hae + 100× Siirra),
-/// then drives AI inputs and physics ticks until outcome is available.
 pub(crate) fn simulate_computer(
     participant: &JumpParticipant,
     terrain: &HillTerrain,
@@ -29,7 +24,7 @@ pub(crate) fn simulate_computer(
     );
     let mut input = ComputerInputProvider::new(participant.ai_id);
 
-    // Pascal: Tuuli.Hae + 100× Tuuli.Siirra before first wind sample
+    
     wind.advance_without_sampling(rng);
     input.prepare_for_jump(rng);
     state.prepare_silent_computer_jump(terrain);

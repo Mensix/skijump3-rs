@@ -2,8 +2,6 @@ use crate::bitmap::RgbaBitmap;
 use crate::color::Rgba;
 use crate::consts::{FONT_GLYPH_COUNT, HEIGHT, SHADOW_PIXEL, WIDTH};
 
-/// A single font glyph: raw palette indices (1 byte per pixel), row-major.
-/// Index 0 = transparent, SHADOW_PIXEL = shadow, everything else = text color.
 #[derive(Debug, Clone)]
 pub struct Glyph {
     pub pixels: Box<[u8]>,
@@ -28,14 +26,12 @@ struct GlyphPos {
 }
 
 impl Font {
-    #[must_use]
     pub fn new() -> Self {
         Self {
             glyphs: (0..FONT_GLYPH_COUNT).map(|_| None).collect(),
         }
     }
 
-    #[must_use]
     pub fn from_sprites(sprites: &[Glyph]) -> Self {
         let mut font = Self::new();
         for (i, sprite) in sprites.iter().enumerate() {
@@ -46,7 +42,6 @@ impl Font {
         font
     }
 
-    #[must_use]
     pub fn string_width(&self, text: &str) -> u32 {
         let mut w = 0u32;
         for ch in text.chars() {
@@ -65,12 +60,8 @@ impl Font {
         w
     }
 
-    /// Render text into a minimal indexed bitmap suitable for GPU upload.
-    /// Returns `None` when there are no drawable glyphs.
-    /// Render text directly to RGBA pixels into `out`.
-    /// Returns an `RgbaBitmap` or `None` when no visible glyphs exist.
-    /// `color` is the text colour; `shadow` replaces `SHADOW_PIXEL`.
-    #[must_use]
+
+
     pub fn render_string_rgba(
         &self,
         text: &str,
@@ -80,7 +71,7 @@ impl Font {
         shadow: Rgba,
         out: &mut Vec<u8>,
     ) -> Option<RgbaBitmap> {
-        // First pass: compute bounding box of all glyphs
+        
         let mut min_x = i32::MAX;
         let mut min_y = i32::MAX;
         let mut max_x = i32::MIN;
@@ -125,7 +116,7 @@ impl Font {
             return None;
         }
 
-        // Clip bounding box to screen
+        
         let bitmap_x = min_x.max(0);
         let bitmap_y = min_y.max(0);
         let bitmap_w = (max_x.min(WIDTH as i32) - bitmap_x).max(0) as u32;
@@ -143,18 +134,18 @@ impl Font {
         let bitmap_w_i32 = bitmap_w as i32;
         let bitmap_h_i32 = bitmap_h as i32;
 
-        // Write shadow colour bytes once
+        
         let sr = shadow.r;
         let sg = shadow.g;
         let sb = shadow.b;
         let sa = shadow.a;
-        // Write text colour bytes once
+        
         let tr = color.r;
         let tg = color.g;
         let tb = color.b;
         let ta = color.a;
 
-        // Second pass: render each glyph into the RGBA output
+        
         for gp in &positions {
             if let Some(ref g) = self.glyphs[gp.idx] {
                 let start_x = gp.screen_px - i32::from(gp.center_x);
@@ -171,7 +162,7 @@ impl Font {
                         }
                         let sx = start_x + xx;
                         let sy = start_y + yy;
-                        // Clip to bitmap
+                        
                         if sx < bitmap_x
                             || sy < bitmap_y
                             || sx >= bitmap_x + bitmap_w_i32

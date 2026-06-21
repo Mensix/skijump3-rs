@@ -23,8 +23,8 @@ pub struct NumericSelector {
 }
 
 impl NumericSelector {
-    #[allow(clippy::too_many_arguments)]
-    #[must_use]
+    
+
     pub fn new(
         x: i32,
         y: i32,
@@ -48,7 +48,6 @@ impl NumericSelector {
         }
     }
 
-    #[must_use]
     pub const fn value(&self) -> usize {
         self.value
     }

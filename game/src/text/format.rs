@@ -3,7 +3,7 @@ use std::fmt::Write;
 #[must_use]
 pub fn tenths_to_decimal(value: i32) -> f64 {
     let result = f64::from(value) / 10.0;
-    // Round to 1 decimal to avoid float representation artifacts
+    
     (result * 10.0).round() / 10.0
 }
 
@@ -12,8 +12,6 @@ pub fn format_decimal(value: f64) -> String {
     format!("{value:.1}")
 }
 
-/// Format an integer representing tenths as a decimal string.
-/// `1195` → `"119.5"`, `0` → `"0.0"`, `-5` → `"-0.5"`.
 #[must_use]
 pub fn format_tenths(value: i32) -> String {
     if value == 0 {
@@ -28,7 +26,6 @@ pub fn format_tenths(value: i32) -> String {
     buf
 }
 
-/// `"5."`, `"12."`, etc.
 #[must_use]
 pub fn ordinal_dot(n: usize) -> String {
     format!("{n}.")

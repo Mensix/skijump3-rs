@@ -17,7 +17,6 @@ use crate::files::FileStore;
 
 pub type SaveRef = Rc<SaveManager>;
 
-/// Deserialize a TOML save file from raw bytes.
 pub(crate) fn parse_toml<T>(data: &[u8]) -> T
 where
     T: serde::de::DeserializeOwned,
@@ -95,7 +94,6 @@ impl SaveManager {
         entries
     }
 
-    /// Load profiles from players.toml (save then asset fallback).
     pub fn load_players(&self) -> ProfileStore {
         *self.profiles_loaded.borrow_mut() = true;
         let data = self.files.read("players.toml");

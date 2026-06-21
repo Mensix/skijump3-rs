@@ -17,7 +17,6 @@ pub struct ReplaySession {
 }
 
 impl ReplaySession {
-    #[must_use]
     pub fn new(trace: ReplayTrace) -> Self {
         let mut x = trace.meta.start_x;
         let mut y = trace.meta.start_y;
@@ -36,22 +35,18 @@ impl ReplaySession {
         }
     }
 
-    #[must_use]
     pub const fn frame_index(&self) -> usize {
         self.frame
     }
 
-    #[must_use]
     pub fn position(&self) -> Option<(i32, i32)> {
         self.absolute_positions.get(self.frame).copied()
     }
 
-    #[must_use]
     pub fn position_at(&self, frame: usize) -> Option<(i32, i32)> {
         self.absolute_positions.get(frame).copied()
     }
 
-    #[must_use]
     pub fn current_frame(&self) -> Option<ReplayFrame> {
         self.trace.frames.get(self.frame).copied()
     }
@@ -81,7 +76,6 @@ impl ReplaySession {
         })
     }
 
-    #[must_use]
     pub const fn trace(&self) -> &ReplayTrace {
         &self.trace
     }

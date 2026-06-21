@@ -6,7 +6,6 @@ pub struct Blinker {
 }
 
 impl Blinker {
-    #[must_use]
     pub fn new() -> Self {
         Self {
             counter: Cell::new(0),
@@ -17,10 +16,7 @@ impl Blinker {
         self.counter.set(0);
     }
 
-    /// Advance the frame counter and return whether the cursor should be visible.
-    ///
-    /// Returns `true` for `on` frames, then `false` for `off` frames.
-    /// Example: `visible(11, 10)` → 11 frames on, 10 frames off.
+    
     pub fn visible(&self, on: u32, off: u32) -> bool {
         let c = self.counter.get();
         self.counter.set(c + 1);

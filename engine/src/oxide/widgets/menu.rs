@@ -3,12 +3,7 @@ use crate::oxide::input::{Key, UiEvent};
 use crate::oxide::paint::PaintCx;
 use crate::oxide::widget::{EventCx, Widget};
 
-/// A single item in a `PixelMenu`.
-///
-/// - `number` is the **action id** returned when this item is submitted.
-///   It has no relation to the visible position number or the 0-based cursor index.
-/// - `label` is the text rendered next to the visible number.
-/// - `y_offset` shifts this item's vertical position relative to its natural row.
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MenuItem {
     pub number: u8,
@@ -30,7 +25,11 @@ mod tests {
             0,
             10,
             10,
-            vec![MenuItem::new(0, ""), MenuItem::new(1, ""), MenuItem::new(2, "")],
+            vec![
+                MenuItem::new(0, ""),
+                MenuItem::new(1, ""),
+                MenuItem::new(2, ""),
+            ],
             Rgba::rgb(255, 255, 255),
             Rgba::rgb(255, 255, 255),
         )
@@ -43,7 +42,11 @@ mod tests {
             0,
             10,
             10,
-            vec![MenuItem::new(0, ""), MenuItem::new(0, ""), MenuItem::new(0, "")],
+            vec![
+                MenuItem::new(0, ""),
+                MenuItem::new(0, ""),
+                MenuItem::new(0, ""),
+            ],
             Rgba::rgb(255, 255, 255),
             Rgba::rgb(255, 255, 255),
         )
@@ -177,7 +180,7 @@ mod tests {
         let mut menu = menu_return_index();
         let mut cx = EventCx::default();
 
-        // Select first item via digit 1
+        
         let msg = menu.event(&mut cx, UiEvent::Text('1'));
 
         assert_eq!(menu.selected(), 0);
@@ -193,7 +196,7 @@ mod tests {
 
         let msg = menu.event(&mut cx, UiEvent::KeyDown(Key::Enter));
 
-        // Returns selected index (1) not item number (0)
+        
         assert_eq!(msg, Some(1));
         assert!(cx.is_consumed());
     }
@@ -206,7 +209,7 @@ mod tests {
 
         let msg = menu.event(&mut cx, UiEvent::KeyDown(Key::Enter));
 
-        // Trailing returns its index (= item_count()) not 0
+        
         assert_eq!(msg, Some(menu.item_count()));
         assert!(cx.is_consumed());
     }
@@ -283,7 +286,7 @@ mod tests {
         let mut menu = menu_with_trailing();
         let mut cx = EventCx::default();
 
-        // Only 3 regular items + trailing = 4 total, pressing '9' does nothing
+        
         let msg = menu.event(&mut cx, UiEvent::Text('9'));
 
         assert_eq!(msg, None);
@@ -317,7 +320,6 @@ mod tests {
 }
 
 impl MenuItem {
-    #[must_use]
     pub fn new(number: u8, label: impl Into<String>) -> Self {
         Self {
             number,
@@ -326,27 +328,12 @@ impl MenuItem {
         }
     }
 
-    #[must_use]
     pub fn with_y(mut self, y_offset: i32) -> Self {
         self.y_offset = y_offset;
         self
     }
 }
 
-/// A keyboard-navigable pixel-style menu.
-///
-/// # Semantics
-/// - **`selected`** (cursor position): always 0-based index into the combined
-///   list of regular items + optional trailing item.
-/// - **`MenuItem.number`**: the **action id** returned on submit.  It is
-///   *independent* of the visual position or the cursor index.
-/// - **`visible number`**: the 1-based label shown on screen (`1.`, `2.`, … `0.`).
-///   Pressing these digits maps to the corresponding 0-based cursor position
-///   and immediately submits.
-/// - **Trailing item** (the "0." row): if present, it occupies the last
-///   cursor position (`selected == item_count()`).  By default it returns
-///   action id `0` on submit.  When `return_index` is true, all items
-///   (including trailing) return the 0-based cursor index.
 #[derive(Debug, Clone)]
 pub struct PixelMenu {
     x: i32,
@@ -359,13 +346,13 @@ pub struct PixelMenu {
     box_color: Rgba,
     show_labels: bool,
     show_box: bool,
-    trailing: Option<(String, i32)>, // (label, gap above)
-    return_index: bool,              // when true, submit returns selected index instead of item.number
+    trailing: Option<(String, i32)>, 
+    return_index: bool, 
 }
 
 impl PixelMenu {
-    #[allow(clippy::too_many_arguments)]
-    #[must_use]
+    
+
     pub fn new(
         x: i32,
         y: i32,
@@ -391,36 +378,25 @@ impl PixelMenu {
         }
     }
 
-    /// When `true`, `submit_selected()` returns the 0-based cursor index
-    /// instead of the selected item's `number` field.  The trailing item
-    /// returns `item_count()` (its own index) rather than `0`.
-    #[must_use]
+
     pub fn with_return_index(mut self, val: bool) -> Self {
         self.return_index = val;
         self
     }
 
-    /// 0-based cursor index into the combined item list (regular + trailing).
-    #[must_use]
+
     pub const fn selected_index(&self) -> usize {
         self.selected
     }
 
-    /// The action id that would be returned if the current selection were
-    /// submitted — either `MenuItem.number` or the cursor index depending
-    /// on `return_index`.
-    #[must_use]
     pub fn selected_action(&self) -> usize {
         self.submit_selected()
     }
 
-    /// Whether the cursor is on the trailing "0." item.
-    #[must_use]
     pub fn is_trailing_selected(&self) -> bool {
         self.trailing.is_some() && self.selected == self.items.len()
     }
 
-    #[must_use]
     pub const fn selected(&self) -> usize {
         self.selected
     }
@@ -433,36 +409,28 @@ impl PixelMenu {
         self.show_box = show;
     }
 
-    #[must_use]
     pub const fn item_count(&self) -> usize {
         self.items.len()
     }
 
-    #[must_use]
     pub const fn has_trailing(&self) -> bool {
         self.trailing.is_some()
     }
 
-    #[must_use]
     pub fn total_items(&self) -> usize {
         self.items.len() + usize::from(self.trailing.is_some())
     }
 
-    #[must_use]
     pub fn with_labels(mut self, show_labels: bool) -> Self {
         self.show_labels = show_labels;
         self
     }
 
-    #[must_use]
     pub const fn with_box(mut self, show_box: bool) -> Self {
         self.show_box = show_box;
         self
     }
 
-    /// Add a trailing "0." item rendered below the regular items with a gap.
-    /// The label is shown as "0. {label}" and is always drawn regardless of `show_labels`.
-    #[must_use]
     pub fn trailing(mut self, label: impl Into<String>, gap: i32) -> Self {
         self.trailing = Some((label.into(), gap));
         self.set_selected(self.selected);
@@ -517,14 +485,12 @@ impl PixelMenu {
         }
     }
 
-    /// Y-offset for a trailing item below regular items.
     fn trailing_y_offset(&self) -> i32 {
         self.trailing
             .as_ref()
             .map_or(0, |(_, gap)| self.items.len() as i32 * self.item_h + *gap)
     }
 
-    /// Return the y position (before -3 stroke offset) for the given selection index.
     pub fn item_y(&self, sel: usize) -> i32 {
         if self.trailing.is_some() && sel == self.items.len() {
             self.y + self.trailing_y_offset()
@@ -624,7 +590,7 @@ impl Widget for PixelMenu {
             }
         }
 
-        // Always render the trailing "0." item, even without show_labels.
+        
         if let Some((label, _gap)) = &self.trailing {
             let y = self.y + 1 + self.trailing_y_offset();
             cx.text((self.x, y), self.font_color, format!("0. {label}"));

@@ -1,4 +1,3 @@
-/// A bitmap of pre-computed RGBA pixels.
 #[derive(Debug, Clone)]
 pub struct RgbaBitmap {
     pub pixels: Vec<u8>,

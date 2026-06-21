@@ -6,7 +6,6 @@ use crate::competition::machine::Competition;
 use crate::competition::types::{CupStyle, Participant, QualificationStatus};
 use crate::data::profile::ProfileStore;
 
-/// Build a Competition from game state.
 #[must_use]
 pub fn build_competition(
     style: CupStyle,
@@ -25,7 +24,6 @@ pub fn build_competition(
     c
 }
 
-/// Build a Competition with a custom hill order (for Custom Cup).
 #[must_use]
 pub fn build_custom_competition(
     profiles: &ProfileStore,

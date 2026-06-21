@@ -31,7 +31,11 @@ impl CupSaveData {
 
     pub fn from_toml_bytes(data: &[u8]) -> Self {
         let file: CupSaveFile = parse_toml(data);
-        assert_eq!(file.format_version, FORMAT_VERSION, "unsupported cup save format {}", file.format_version);
+        assert_eq!(
+            file.format_version, FORMAT_VERSION,
+            "unsupported cup save format {}",
+            file.format_version
+        );
         file.data
     }
 

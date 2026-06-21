@@ -245,7 +245,7 @@ fn handle_wind_place(
     pos: usize,
 ) -> Option<RouteTarget> {
     let winds = 10;
-    let items = winds + 1; // 11 places + 0. exit
+    let items = winds + 1; 
     match event {
         UiEvent::KeyDown(Key::Up | Key::Left) => {
             let new_pos = if pos == 0 { items - 1 } else { pos - 1 };
@@ -389,7 +389,7 @@ fn handle_screen_event(
     let screen = view.screen;
     let entries = view.menu.item_count();
 
-    // Escape/Tab handled before PixelMenu to avoid ambiguous Some(0) return.
+    
     if matches!(event, UiEvent::KeyDown(Key::Escape | Key::Tab)) {
         if screen == 0 {
             return Some(RouteTarget::MainMenu);
@@ -401,18 +401,18 @@ fn handle_screen_event(
     let mut ecx = EventCx::default();
     let msg = view.menu.event(&mut ecx, event);
 
-    // Persist selection after any navigation event.
+    
     if ecx.is_consumed() {
         if screen < view.selected_by_screen.len() {
             view.selected_by_screen[screen] = view.menu.selected();
         }
     }
 
-    // For PixelMenu events that cause a submit (Enter, digit, space, function key):
-    // the returned action is the 0-based cursor index (return_index mode).
+    
+    
     if let Some(action) = msg {
         if action >= entries {
-            // Trailing item, digit 0, End, F10
+            
             if screen == 0 {
                 return Some(RouteTarget::MainMenu);
             }

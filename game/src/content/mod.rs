@@ -9,7 +9,6 @@ use crate::data::hill::HillCatalog;
 use crate::files::FileStore;
 use crate::text::lang::LangBase;
 
-/// Read a TOML file and deserialize.
 pub(crate) fn read_toml<T>(files: &FileStore, path: &str) -> T
 where
     T: serde::de::DeserializeOwned,

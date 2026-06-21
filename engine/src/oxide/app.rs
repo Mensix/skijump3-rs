@@ -42,7 +42,6 @@ impl<R> ScreenEventCx<R> {
         self.consume();
     }
 
-    #[must_use]
     pub const fn is_consumed(&self) -> bool {
         self.consumed
     }

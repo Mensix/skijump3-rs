@@ -1,7 +1,3 @@
-/// Pure-data text-editing model with char-index cursor.
-///
-/// Tracks cursor as a character offset (not byte offset) for Pascal‑compatible
-/// semantics where one char == one visual position.
 #[derive(Debug, Clone)]
 pub struct TextEditState {
     buffer: String,
@@ -10,7 +6,6 @@ pub struct TextEditState {
 }
 
 impl TextEditState {
-    #[must_use]
     pub fn new(initial: String, max_chars: usize) -> Self {
         let cursor = initial.chars().count();
         Self {
@@ -20,23 +15,19 @@ impl TextEditState {
         }
     }
 
-    #[must_use]
     pub fn buffer(&self) -> &str {
         &self.buffer
     }
 
-    #[must_use]
     pub fn char_count(&self) -> usize {
         self.buffer.chars().count()
     }
 
-    #[must_use]
     pub fn cursor(&self) -> usize {
         self.cursor.min(self.char_count())
     }
 
-    /// Byte index of the cursor position, for slicing the buffer.
-    #[must_use]
+
     pub fn cursor_byte(&self) -> usize {
         self.buffer
             .char_indices()
@@ -44,8 +35,6 @@ impl TextEditState {
             .map_or(self.buffer.len(), |(i, _)| i)
     }
 
-    /// Insert `c` at the cursor position.
-    /// Returns `false` if the char-count limit would be exceeded.
     pub fn insert(&mut self, c: char) -> bool {
         if self.char_count() >= self.max_chars {
             return false;
@@ -56,8 +45,6 @@ impl TextEditState {
         true
     }
 
-    /// Delete the character immediately before the cursor.
-    /// Returns `false` if the cursor is already at position 0.
     pub fn backspace(&mut self) -> bool {
         if self.cursor == 0 {
             return false;

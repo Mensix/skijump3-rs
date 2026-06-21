@@ -55,7 +55,6 @@ impl Default for Random {
 }
 
 impl Random {
-    #[must_use]
     pub fn new(seed: u32) -> Self {
         let mut rng = Self {
             state: [0; MT_N],

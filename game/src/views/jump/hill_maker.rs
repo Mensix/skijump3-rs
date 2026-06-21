@@ -58,7 +58,7 @@ impl HillMakerView {
 
     fn make_menu(total_hills: usize, page_start: usize) -> PixelMenu {
         let visible = Self::visible_count(total_hills, page_start);
-        let mut count = visible + 1; // add new
+        let mut count = visible + 1; 
         if page_start + visible < total_hills {
             count += 1;
         }

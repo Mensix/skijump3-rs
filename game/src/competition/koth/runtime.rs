@@ -4,7 +4,6 @@ use crate::jump::types::JumpOutcome;
 use crate::rng::Random;
 
 impl KothRuntime {
-    #[must_use]
     pub fn new(
         participants: Vec<super::types::KothParticipant>,
         human_indices: Vec<usize>,
@@ -56,11 +55,11 @@ impl KothRuntime {
             return;
         }
 
-        // sort by points descending (best first), Pascal kothjarj
+        
         let mut sorted = alive;
         sorted.sort_by(|(_, a), (_, b)| b.total_cmp(a));
 
-        // Pascal: iterates all adjacent pairs, no stride skip
+        
         let mut i = 0;
         while i + 1 < sorted.len() {
             if (sorted[i].1 - sorted[i + 1].1).abs() < f64::EPSILON && self.rng.random_i32(2) == 0 {
@@ -69,7 +68,7 @@ impl KothRuntime {
             i += 1;
         }
 
-        // eliminate last place (worst scorer, at end of descending list)
+        
         if let Some(&(idx, _)) = sorted.last() {
             self.participants[idx].eliminated_in_round = self.current_elimination_round;
         }
@@ -92,7 +91,7 @@ impl CompetitionRuntime for KothRuntime {
                 }
 
                 KothPhase::Jumping => {
-                    // scan for next alive participant from current position
+                    
                     while self.current_participant_pos < self.participants.len() {
                         let p = &self.participants[self.current_participant_pos];
                         if p.is_alive() {
@@ -115,21 +114,21 @@ impl CompetitionRuntime for KothRuntime {
                         self.current_participant_pos += 1;
                     }
 
-                    // all participants processed for this jump round
+                    
                     if self.current_jump_round == 0 && self.jump_rounds_per_elimination > 1 {
                         self.current_jump_round = 1;
                         self.current_participant_pos = 0;
                         continue;
                     }
 
-                    // both rounds complete: eliminate lowest (Pascal: kothlista eliminates first)
+                    
                     self.eliminate_lowest();
 
                     if self.count_alive() <= 1 {
                         self.phase = KothPhase::Complete;
                     }
 
-                    // show results after elimination (matches Pascal kothlista)
+                    
                     return CompetitionDecision::ShowResults(KothResultsKind::Results);
                 }
 

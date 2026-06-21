@@ -58,14 +58,19 @@ pub(super) fn load(files: &FileStore, renderer: &mut Renderer) -> LoadedAssets {
         });
     }
 
-    let baked_sprites =
-        BakedSpriteTextures::bake_with_png(renderer, &base_sprites, &materials::prebaked_sprite_materials())
-            .unwrap();
+    let baked_sprites = BakedSpriteTextures::bake_with_png(
+        renderer,
+        &base_sprites,
+        &materials::prebaked_sprite_materials(),
+    )
+    .unwrap();
 
     let pattern_path = format!("{SPRITES_PNG_PREFIX}{PATTERN_SPRITE}.png");
     let pattern_data = files.read(&pattern_path);
     let (pattern_indices, _palette, _pw, _ph) = decode_indexed_png(&pattern_data);
-    let pattern_texture = renderer.create_pattern_texture(&pattern_indices, TILE_W, TILE_H).unwrap();
+    let pattern_texture = renderer
+        .create_pattern_texture(&pattern_indices, TILE_W, TILE_H)
+        .unwrap();
 
     LoadedAssets {
         content_store,

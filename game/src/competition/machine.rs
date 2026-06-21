@@ -10,32 +10,19 @@ const QUALIFICATION_SPOTS: usize = 50;
 const ROUND2_SPOTS: usize = 30;
 const PRE_QUALIFIED_COUNT: usize = 10;
 
-/// Pure decision returned by `Competition::decide_next()`.
-/// No mutation, no IO — just describes what the caller should do.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum StepDecision {
-    /// Show a results/standings screen (then caller must `advance`).
     ShowResults,
-    /// Auto-advance through trivial phases (Training, Setup, `EventComplete`).
     AdvancePhase,
-    /// A specific participant must jump.
     Jump {
         idx: usize,
         hill_idx: usize,
         is_human: bool,
     },
-    /// Skip the current jumper (pre-qualified human with skipquali in quali).
     Skip,
 }
 
-/// Drives a single competition event (or a full season).
 ///
-/// Call `advance()` to enter the first phase, then loop:
-/// 1. `current_jumper()` → who's up (None = phase transition needed)
-/// 2. `decide_next()` → wait for UI-visible jump or auto-pilot
-/// 3. `record_jump(points, length)` → store result
-/// 4. `advance()` → move to next jumper or next phase
-/// 5. `is_over()` → season finished?
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Competition {
     pub(crate) field: CompetitionField,
@@ -50,12 +37,10 @@ pub struct Competition {
 
     pub(crate) ko_system: bool,
 
-    /// Pascal mcluett: saved seed-pairing order for KO results display.
     ko_pairings: Vec<usize>,
 }
 
 impl Competition {
-    #[must_use]
     pub fn new(style: CupStyle, participants: Vec<Participant>, hill_order: Vec<usize>) -> Self {
         Self {
             field: CompetitionField::new(participants),
@@ -71,17 +56,14 @@ impl Competition {
         }
     }
 
-    #[must_use]
     pub fn phase(&self) -> CompetitionPhase {
         self.phase
     }
 
-    #[must_use]
     pub fn style(&self) -> CupStyle {
         self.style
     }
 
-    #[must_use]
     pub fn current_hill(&self) -> usize {
         self.hill_order
             .get(self.current_event)
@@ -89,21 +71,17 @@ impl Competition {
             .unwrap_or(0)
     }
 
-    #[must_use]
     pub fn participant(&self, idx: usize) -> &Participant {
         self.field.get(idx)
     }
 
-    #[must_use]
     pub const fn current_start_order_pos(&self) -> usize {
         self.start_pos
     }
 
-    // ── queries ────────────────────────────────────────────────
+    
 
-    /// Pure decision: what should the caller do next?
-    /// No mutation, no store access — just reads current state.
-    #[must_use]
+
     pub fn decide_next(&self) -> StepDecision {
         if self.phase.is_result_phase() {
             return StepDecision::ShowResults;
@@ -120,7 +98,7 @@ impl Competition {
         let hill_idx = self.current_hill();
         let is_human = !self.participant(idx).is_computer;
 
-        // Pascal SJ3.PAS:5367: skip if (skipquali=2) or ((not fourhills) and (skipquali=1))
+        
         if is_human && self.phase == CompetitionPhase::Qualification {
             let p = self.participant(idx);
             if p.qual == QualificationStatus::PreQualified
@@ -138,7 +116,6 @@ impl Competition {
         }
     }
 
-    #[must_use]
     pub fn current_jumper(&self) -> Option<usize> {
         if self.start_pos < self.start_list.len() {
             Some(self.start_list[self.start_pos])
@@ -147,19 +124,16 @@ impl Competition {
         }
     }
 
-    #[must_use]
     pub fn is_over(&self) -> bool {
         self.phase == CompetitionPhase::SeasonComplete
     }
 
-    /// Number of events in the season.
-    #[must_use]
+
     pub const fn total_events(&self) -> usize {
         self.hill_order.len()
     }
 
-    /// Participants in event-points order (for results lists).
-    #[must_use]
+
     pub fn event_standings(&self) -> Vec<&Participant> {
         self.field
             .event_order
@@ -168,8 +142,7 @@ impl Competition {
             .collect()
     }
 
-    /// Participants in season-points order (for WC standings).
-    #[must_use]
+
     pub fn overall_standings(&self) -> Vec<&Participant> {
         self.field
             .master_order
@@ -178,9 +151,7 @@ impl Competition {
             .collect()
     }
 
-    /// Participants in the saved KO seed-pairing order (Pascal luett/mcluett).
-    /// Used for the KO pairs results display after Round 1.
-    #[must_use]
+
     pub fn ko_pairing_standings(&self) -> Vec<&Participant> {
         self.ko_pairings
             .iter()
@@ -188,10 +159,8 @@ impl Competition {
             .collect()
     }
 
-    // ── drive ──────────────────────────────────────────────────
+    
 
-    /// Advance to the next state. Call after recording a jump or
-    /// when entering the machine for the first time.
     pub fn advance(&mut self) {
         match self.phase {
             CompetitionPhase::SeasonComplete => {}
@@ -223,7 +192,7 @@ impl Competition {
             CompetitionPhase::Round1 => {
                 if self.start_pos >= self.start_list.len() {
                     self.field.sort_field(SortBy::EventPoints);
-                    // Pascal: assign KO winners/lucky losers BEFORE showing results
+                    
                     if self.is_ko_event() {
                         self.apply_ko_results();
                     }
@@ -245,7 +214,7 @@ impl Competition {
                 if self.is_four_hills_event() || self.style == CupStyle::CustomCup {
                     self.field.sort_field(SortBy::FourHillsPoints);
                     if self.current_event + 1 >= self.hill_order.len() {
-                        // Last event: sort back to primary standings for final display
+                        
                         if self.style == CupStyle::WorldCup {
                             self.field.sort_field(SortBy::WcPoints);
                         }
@@ -275,8 +244,6 @@ impl Competition {
         }
     }
 
-    /// Apply a complete jump outcome from the jump simulation domain.
-    /// Delegates to `record_jump` with the appropriate competition type.
     pub fn apply_jump_outcome(&mut self, outcome: JumpOutcome) {
         self.record_jump(CompetitionJumpOutcome {
             score: outcome.score,
@@ -285,10 +252,6 @@ impl Competition {
         });
     }
 
-    /// Store a jump result for the current participant and advance
-    /// to the next jumper within the current phase (without phase
-    /// transition — call `advance()` separately for that).
-    /// Domain rule: any fall can injure, matching Pascal kupat > 0.
     pub(crate) fn record_jump(&mut self, outcome: CompetitionJumpOutcome) {
         if outcome.fall_type != FallType::None {
             self.injure_current(3);
@@ -318,8 +281,6 @@ impl Competition {
         self.start_pos += 1;
     }
 
-    /// Advance past the current jumper without recording a jump.
-    /// Used when a pre-qualified human has skipquali enabled.
     pub fn skip_current_jumper(&mut self) {
         self.start_pos += 1;
     }
@@ -337,15 +298,15 @@ impl Competition {
         self.field.get_mut(idx).injury = self.field.get(idx).injury.max(rounds);
     }
 
-    // ── internal ───────────────────────────────────────────────
+    
 
     fn enter_phase(&mut self, phase: CompetitionPhase) {
         self.phase = phase;
         self.start_pos = 0;
         self.start_list = self.field.build_start_list(phase);
 
-        // Only jump phases can be skipped when there is nobody to jump.
-        // Result-list phases must be observable by UI.
+        
+        
         if self.start_list.is_empty() && phase.is_jump_phase() {
             self.advance();
         }
@@ -356,7 +317,7 @@ impl Competition {
         self.field.tick_injuries();
         self.sort_overall_field();
 
-        // Top 10 in overall WC classification skip qualification
+        
         if self.current_event > 0 {
             for idx in 0..self.field.len() {
                 if self.field.get(idx).rank <= PRE_QUALIFIED_COUNT
@@ -376,7 +337,6 @@ impl Competition {
         }
     }
 
-    #[must_use]
     pub fn is_four_hills_event(&self) -> bool {
         self.style == CupStyle::FourHills
             || (self.style == CupStyle::WorldCup && (8..=11).contains(&self.current_hill()))
@@ -411,7 +371,7 @@ impl Competition {
         self.field.sort_field(SortBy::EventPoints);
 
         if self.is_ko_event() {
-            // Save seed-pairing order (Pascal mcluett) for KO results display
+            
             self.ko_pairings = self.field.event_order.iter().take(50).copied().collect();
             for (seed, idx) in self
                 .field
@@ -457,19 +417,17 @@ impl Competition {
         }
     }
 
-    /// Pascal lines 5487-5499: assign KO winners and lucky losers
-    /// Uses saved `ko_pairings` (seed order, Pascal luett/mcluett) for correct pairing.
     fn apply_ko_results(&mut self) {
         let pairings = self.ko_pairings.clone();
-        // Reset all to Eliminated first
+        
         for idx in 0..self.field.len() {
             self.field.get_mut(idx).qual = QualificationStatus::Eliminated;
         }
         let count = pairings.len().min(50);
         let half = count / 2;
-        // Winners: qual=1 in Pascal (same pairing as display)
-        // Pascal: luett[25..1] (RIGHT) vs luett[26..50] (LEFT)
-        // Pascal: RIGHT.points >= LEFT.points → RIGHT wins
+        
+        
+        
         for pair in 0..half.min(25) {
             let left = pairings[half + pair];
             let right = pairings[half - 1 - pair];
@@ -482,10 +440,10 @@ impl Competition {
             };
             self.field.get_mut(winner).qual = QualificationStatus::Qualified;
         }
-        // 5 lucky losers: qual=2 in Pascal
-        // Pascal: jarjestys(2,1,NumPl) — sort by points, then take first 5 with qual=0
-        // We use event_order which is already sorted by Round 1 points
-        // (sort_field was called at the start of the Round1 → Round1Results transition)
+        
+        
+        
+        
         let order = self.field.event_order.clone();
         let mut lucky = 0usize;
         for idx in &order {
@@ -505,12 +463,12 @@ impl Competition {
 
     fn cut_to_round2(&mut self) {
         self.field.sort_field(SortBy::EventPoints);
-        // Freeze Round 1 rank before Round 2 AI jumps re-sort event_order
+        
         for idx in 0..self.field.len() {
             self.field.get_mut(idx).round1_rank = self.field.get(idx).rank;
         }
         if self.is_ko_event() {
-            // Qual already assigned by apply_ko_results — nothing more to do here
+            
             return;
         }
         for idx in 0..self.field.len() {
@@ -550,8 +508,8 @@ impl Competition {
                 }
             }
             CupStyle::TeamCup => {
-                // Team points awarded per-leg via team_points_for_rank
-                // in the team cup flow (not per-jumper WC points).
+                
+                
             }
         }
     }
@@ -606,12 +564,12 @@ mod tests {
         run_all_jumps(&mut m);
         assert!(m.is_over());
 
-        // Winners should have WC points
+        
         let winner = m.field.get(0);
         assert!(winner.wc_points > 0, "winner should have WC points");
         assert_eq!(winner.rank, 1);
 
-        // Everyone should have a valid rank
+        
         for i in 0..m.field.len() {
             assert!(
                 m.field.get(i).rank >= 1 && m.field.get(i).rank <= 50,
@@ -628,7 +586,7 @@ mod tests {
         assert!(m.is_over());
         assert_eq!(m.current_event, 3);
 
-        // After 3 events, season points should be higher than single event
+        
         let total: i32 = (0..m.field.len()).map(|i| m.field.get(i).wc_points).sum();
         assert!(total > 0, "total WC points should be positive");
     }
@@ -637,7 +595,7 @@ mod tests {
     fn pre_qualification_works() {
         let mut m = make_season(2);
 
-        // Event 1: give specific scores
+        
         while m.phase != CompetitionPhase::EventComplete {
             if m.current_jumper().is_none() {
                 m.advance();
@@ -652,7 +610,7 @@ mod tests {
             }
         }
 
-        // Advance to event 2 setup
+        
         m.advance();
         m.advance();
         let pre_qualified = (0..m.field.len())
@@ -815,7 +773,7 @@ mod tests {
     #[test]
     fn skip_for_prequalified_human_in_qualification() {
         let mut participants = make_50_participants();
-        // Turn the last participant (lowest WC rank) into a human with skipquali
+        
         let human_idx = 49;
         participants[human_idx].is_computer = false;
         participants[human_idx].skip_qualification = 1;
@@ -823,8 +781,8 @@ mod tests {
         let mut c = Competition::new(CupStyle::WorldCup, participants, vec![0, 1]);
         c.training_rounds = 0;
 
-        // Run event 1 so setup for event 2 marks PreQualified
-        c.advance(); // Setup -> Qualification
+        
+        c.advance(); 
         while c.current_jumper().is_some() {
             c.record_jump(CompetitionJumpOutcome {
                 score: 150.0,
@@ -832,8 +790,8 @@ mod tests {
                 fall_type: FallType::None,
             });
         }
-        c.advance(); // -> QualificationResults
-        c.advance(); // -> Round1
+        c.advance(); 
+        c.advance(); 
         while c.current_jumper().is_some() {
             c.record_jump(CompetitionJumpOutcome {
                 score: 150.0,
@@ -841,8 +799,8 @@ mod tests {
                 fall_type: FallType::None,
             });
         }
-        c.advance(); // -> Round1Results
-        c.advance(); // -> Round2
+        c.advance(); 
+        c.advance(); 
         while c.current_jumper().is_some() {
             c.record_jump(CompetitionJumpOutcome {
                 score: 150.0,
@@ -850,15 +808,15 @@ mod tests {
                 fall_type: FallType::None,
             });
         }
-        c.advance(); // -> Round2Results
-        c.advance(); // -> WC standings
-        c.advance(); // -> EventComplete
-        c.advance(); // advance to Setup for event 2
-        c.advance(); // Setup -> Qualification for event 2
+        c.advance(); 
+        c.advance(); 
+        c.advance(); 
+        c.advance(); 
+        c.advance(); 
 
         assert_eq!(c.phase, CompetitionPhase::Qualification);
 
-        // Consume AI jumpers until we reach the human
+        
         while let Some(idx) = c.current_jumper() {
             if idx == human_idx {
                 assert_eq!(c.decide_next(), StepDecision::Skip);
@@ -883,12 +841,12 @@ mod tests {
         let mut c = Competition::new(CupStyle::WorldCup, participants, vec![0, 1]);
         c.training_rounds = 0;
 
-        c.advance(); // -> Qualification
+        c.advance(); 
         while let Some(idx) = c.current_jumper() {
             if idx == human_idx {
                 break;
             }
-            // All AI jumpers (some may be PreQualified from previous season) get Jump
+            
             assert!(
                 matches!(c.decide_next(), StepDecision::Jump { .. }),
                 "AI should get Jump, got {:?}",
@@ -905,14 +863,14 @@ mod tests {
     #[test]
     fn round1_rank_is_frozen_before_round2() {
         let mut participants = make_50_participants();
-        // Give participants varied scores so we can verify ranks
+        
         for (i, p) in participants.iter_mut().enumerate() {
-            p.points = Some(f64::from(1000 - i as i32 * 10)); // 1000, 990, 980, ...
+            p.points = Some(f64::from(1000 - i as i32 * 10)); 
         }
         let mut c = Competition::new(CupStyle::WorldCup, participants, vec![0]);
         c.training_rounds = 0;
 
-        c.advance(); // -> Qualification
+        c.advance(); 
         while c.current_jumper().is_some() {
             c.record_jump(CompetitionJumpOutcome {
                 score: 0.0,
@@ -920,8 +878,8 @@ mod tests {
                 fall_type: FallType::None,
             });
         }
-        c.advance(); // -> QualificationResults
-        c.advance(); // -> Round1
+        c.advance(); 
+        c.advance(); 
         while c.current_jumper().is_some() {
             c.record_jump(CompetitionJumpOutcome {
                 score: 0.0,
@@ -929,10 +887,10 @@ mod tests {
                 fall_type: FallType::None,
             });
         }
-        c.advance(); // -> Round1Results (event_order sorted, rank set)
-        c.advance(); // -> Round2 (cut_to_round2 freezes round1_rank)
+        c.advance(); 
+        c.advance(); 
 
-        // Round1 rank should be set for all participants, not just those in Round 2
+        
         for i in 0..c.field.len() {
             assert!(
                 c.field.get(i).round1_rank > 0,
@@ -940,7 +898,7 @@ mod tests {
                 c.field.get(i).round1_rank
             );
         }
-        // Top-ranked participant should have round1_rank = 1
+        
         let first_in_event = c.field.event_order[0];
         assert_eq!(c.field.get(first_in_event).round1_rank, 1);
     }
@@ -983,7 +941,7 @@ mod tests {
         let human_idx = 5;
         participants[human_idx].is_computer = false;
         participants[human_idx].skip_qualification = 1;
-        // NOT prequalified — should get Jump, not Skip
+        
         participants[human_idx].qual = QualificationStatus::NotQualified;
 
         let mut c = Competition::new(CupStyle::WorldCup, participants, vec![0]);
@@ -1000,7 +958,7 @@ mod tests {
         let mut participants = make_50_participants();
         let human_idx = 5;
         participants[human_idx].is_computer = false;
-        participants[human_idx].skip_qualification = 0; // no skip
+        participants[human_idx].skip_qualification = 0; 
         participants[human_idx].qual = QualificationStatus::PreQualified;
 
         let mut c = Competition::new(CupStyle::WorldCup, participants, vec![0]);

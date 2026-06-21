@@ -81,7 +81,7 @@ impl KothSetupView {
             paint.text((180, 24), FONT_TEAL, lang.tr(141));
             paint.right_text((310, 24), FONT_TEAL, lang.tr(142));
         } else {
-            // --- right panel: "Computer Jumpers:" (white, Pascal 240) ---
+            
             paint.text((180, 10), FONT_BODY, lang.tr(120));
             if cfg.koth_opponent_count > 0 {
                 for i in 0..cfg.koth_opponent_count.min(20) as usize {
@@ -100,18 +100,14 @@ impl KothSetupView {
             }
         }
 
-        // --- left panel: menu background (Pascal MakeMenu bgcolor=245) ---
+        
         paint.pattern_fill((4, 7, 160, 63), FILL_GRAY);
 
-        // --- left panel: menu items ---
+        
         paint.text((10, 10), FONT_BODY, format!("1 - {}", lang.tr(121)));
         paint.text((10, 20), FONT_BODY, format!("2 - {}", lang.tr(122)));
         paint.text((10, 30), FONT_BODY, format!("3 - {}", lang.tr(123)));
-        paint.text(
-            (10, 40),
-            self.col1(state),
-            format!("4 - {}", lang.tr(124)),
-        );
+        paint.text((10, 40), self.col1(state), format!("4 - {}", lang.tr(124)));
         let hill_name = if cfg.koth_hill < 0 {
             lang.tr(155)
         } else {
@@ -122,22 +118,14 @@ impl KothSetupView {
                 .unwrap_or("?")
         };
         paint.text((80, 40), self.col2(state), hill_name);
-        paint.text(
-            (10, 50),
-            self.col1(state),
-            format!("5 - {}", lang.tr(125)),
-        );
+        paint.text((10, 50), self.col1(state), format!("5 - {}", lang.tr(125)));
         let wind_str = if cfg.koth_wind != 0 {
             lang.tr(6)
         } else {
             lang.tr(7)
         };
         paint.text((80, 50), self.col2(state), wind_str);
-        paint.text(
-            (10, 60),
-            self.col1(state),
-            format!("6 - {}", lang.tr(126)),
-        );
+        paint.text((10, 60), self.col1(state), format!("6 - {}", lang.tr(126)));
         paint.text(
             (80, 60),
             self.col2(state),
@@ -145,15 +133,15 @@ impl KothSetupView {
         );
         paint.text((10, 80), FONT_BODY, format!("0 - {}", lang.tr(127)));
 
-        // --- left panel bottom: K.O.T.H Challenge Level (gold, Pascal 246) ---
+        
         paint.text((10, 110), FONT_GOLD, lang.tr(130));
 
-        // --- left panel bottom: pack list (Pascal kothchallenge) ---
+        
         let is_pack_mode = self.mode == KothMode::Packs;
         let mut py = 120i32;
         for pack in 0..7u8 {
             let title = koth_pack_title(pack, lang);
-            // In pack mode all items are white (Pascal kothchallenge(x,255))
+            
             let color = if is_pack_mode {
                 FONT_BODY
             } else {
@@ -193,12 +181,12 @@ impl KothSetupView {
             _ => {}
         }
 
-        // Draw opponent rows — stack + preview (like CustomCupSetupView)
+        
         if self.mode == KothMode::Opponents {
             let names = self.resources.player_names(cfg.name_set_index as usize);
             let sel = &self.selected_opponents;
             let prev = self.preview_opponent;
-            // selected opponents in gold
+            
             for (i, &id) in sel.iter().enumerate() {
                 let name = names.get(id - 1).map(|s| s.as_str()).unwrap_or("?");
                 let y = (i as i32 + 1) * 8 + 25;
@@ -210,7 +198,7 @@ impl KothSetupView {
                 );
                 paint.right_text((310, y), FONT_GOLD, format!("#{}", id));
             }
-            // preview slot at bottom (white)
+            
             if sel.len() < 20 {
                 let y = (sel.len() as i32 + 1) * 8 + 25;
                 let name = names.get(prev).map(|s| s.as_str()).unwrap_or("?");
@@ -340,7 +328,7 @@ impl KothSetupView {
                 {
                     self.selected_opponents.push(prev_id);
                 }
-                // advance preview to first unselected after prev_id
+                
                 let mut next = prev_id % max_idx;
                 for _ in 0..max_idx {
                     if !self.selected_opponents.contains(&(next + 1)) {

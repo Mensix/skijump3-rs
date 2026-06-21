@@ -149,12 +149,12 @@ impl GameScreen for KothHillPickerView {
             paint.text((140, y), FONT_TEAL, lang.tr(156));
         }
 
-        // "0. RANDOM WC HILL" at bottom
+        
         let y = (self.exit_row() - 1) as i32 * 8 + 10;
         paint.right_text((130, y), FONT_BODY, "0.");
         paint.text((140, y), FONT_BODY, lang.tr(155));
 
-        // Selection box
+        
         let bx = 104;
         let sel = self.menu.selected();
         let sel_row = if sel == self.menu.item_count() {

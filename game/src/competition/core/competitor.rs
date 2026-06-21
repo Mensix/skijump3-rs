@@ -17,7 +17,6 @@ pub struct Competitor {
 }
 
 impl Competitor {
-    #[must_use]
     pub fn computer(id: usize, ai_id: usize, name: String, team: Option<usize>) -> Self {
         Self {
             id,
@@ -32,7 +31,6 @@ impl Competitor {
         }
     }
 
-    #[must_use]
     pub fn from_profile(
         id: usize,
         profile_idx: usize,
@@ -52,7 +50,6 @@ impl Competitor {
         }
     }
 
-    #[must_use]
     pub fn to_jump_participant(&self) -> JumpParticipant {
         JumpParticipant {
             id: self.id,

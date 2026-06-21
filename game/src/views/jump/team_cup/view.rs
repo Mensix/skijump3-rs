@@ -127,7 +127,7 @@ impl TeamCupJumpView {
             return None;
         }
 
-        // Let the shared input controller process events first
+        
         if self.phase == ViewPhase::Jumping {
             match self
                 .controller
@@ -168,8 +168,8 @@ impl GameScreen for TeamCupJumpView {
 
         self.controller.record_acknowledged_human_jump(cx.state);
 
-        // Drive competition only after human jump outcome is recorded,
-        // not every frame during the jump (avoids recreating the scene).
+        
+        
         if self.controller.ui_state().is_outcome_recorded()
             && self.controller.render_mode() != RenderMode::Results
         {

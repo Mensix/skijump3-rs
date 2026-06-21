@@ -12,11 +12,7 @@ pub(super) struct AppLoad {
     pub(super) state: GameState,
 }
 
-pub(super) fn load_app(
-    files: Rc<FileStore>,
-    font: Font,
-    content_store: ContentStore,
-) -> AppLoad {
+pub(super) fn load_app(files: Rc<FileStore>, font: Font, content_store: ContentStore) -> AppLoad {
     let langbase = Rc::new(content_store.langbase);
     let config = load_initial_config(&files, &langbase);
     let save_manager = Rc::new(SaveManager::new(files.clone()));

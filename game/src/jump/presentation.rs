@@ -77,7 +77,7 @@ pub fn render(cx: &mut PaintCx<'_>, frame: &JumpRenderFrame, ctx: &JumpPresentat
     visuals::push_hill_record_marker(cx, frame.hill_record_marker, frame.sx, frame.sy);
     visuals::push_goal_marker(cx, frame.goal_marker, frame.sx, frame.sy);
 
-    // Pascal: jumper not drawn during Info phase (only hill + info panel)
+    
     if frame.phase != JumpPhase::Info {
         visuals::push_jumper_sprites(
             cx,
@@ -147,7 +147,6 @@ fn info_elements(cx: &mut PaintCx<'_>, frame: &JumpRenderFrame, ctx: &JumpPresen
     jumper_info_box_elements(cx, frame, ctx);
 }
 
-/// Draw the right-side InfoPanel sprite and its default content.
 fn info_panel_elements(
     cx: &mut PaintCx<'_>,
     _frame: &JumpRenderFrame,
@@ -195,7 +194,7 @@ fn result_elements(
     }
 
     if frame.is_hill_record {
-        // Pascal 2649-2651: "HR!" + distance in gold
+        
         cx.text((260, 33), FONT_GOLD, "HR!");
         cx.right_text((308, 33), FONT_GOLD, format!("{:.1}m", frame.distance));
     } else {
@@ -217,15 +216,15 @@ fn landing_elements(
 ) {
     panel_header(cx, ctx.jumper_name, FONT_TEAL);
 
-    // Pascal 2529: distance always at (temp2,33) where temp2=308
+    
     panel_distance(cx, frame.distance);
 
     if frame.is_hill_record {
-        // Pascal 2533: flash "HR!" — 15 frames on, 15 frames off
+        
         if frame.frame_counter % 30 < 15 {
             cx.text((260, 33), FONT_GOLD, "HR!");
         }
-        // Pascal 2536: if random(2)=0 then ewritefont(temp2-1+random(3),32+random(3),...)
+        
         if let Some((x, y)) = frame.hr_shake_position {
             cx.right_text((x, y), FONT_TEAL, format!("{:.1}m", frame.distance));
         }

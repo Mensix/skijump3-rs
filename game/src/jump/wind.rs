@@ -94,19 +94,15 @@ impl Wind {
         };
     }
 
-    #[must_use]
     pub const fn position(&self) -> WindPosition {
         self.position
     }
 
-    #[must_use]
     pub const fn place(&self) -> u8 {
         self.place
     }
 
-    /// For `place` 11-13 the wind meter follows the jumper instead of
-    /// sitting at a fixed screen position. Offsets match TUULI.PAS `Tuo`.
-    #[must_use]
+
     pub fn position_for_jumper(&self, jumper_screen_x: i32, jumper_screen_y: i32) -> WindPosition {
         let mut x = jumper_screen_x;
         let mut y = jumper_screen_y;

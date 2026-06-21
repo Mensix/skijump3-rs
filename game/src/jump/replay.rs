@@ -110,7 +110,6 @@ impl ReplayRecorder {
         }
     }
 
-    #[must_use]
     pub fn finish(&self) -> Option<ReplayTrace> {
         let mut meta = self.meta.clone()?;
         meta.frame_count = self.frames.len().saturating_sub(1);
@@ -128,7 +127,6 @@ pub(crate) struct LiveReplayRecorder {
 }
 
 impl LiveReplayRecorder {
-    #[must_use]
     pub(crate) fn new(config: &JumpConfig, state: Option<&JumpState>) -> Self {
         let mut tracker = Self::default();
         tracker.reset(config, state);
@@ -183,7 +181,6 @@ impl LiveReplayRecorder {
         self.previous_pos = Some(current_pos);
     }
 
-    #[must_use]
     pub(crate) fn trace(&self) -> Option<ReplayTrace> {
         self.recorder.finish()
     }
@@ -219,36 +216,99 @@ impl LiveReplayRecorder {
     }
 }
 
-
-
 impl ReplayTrace {
     pub fn from_sjr_bytes(data: &[u8], intro: bool) -> Self {
         let mut parser = ReplayParser::new(data);
-        let start_x = str::from_utf8(parser.next_line()).unwrap().trim().parse::<i32>().unwrap();
-        let start_y = str::from_utf8(parser.next_line()).unwrap().trim().parse::<i32>().unwrap();
-        let max_turns = str::from_utf8(parser.next_line()).unwrap().trim().parse::<usize>().unwrap();
-        let hill_idx_raw = str::from_utf8(parser.next_line()).unwrap().trim().parse::<usize>().unwrap();
+        let start_x = str::from_utf8(parser.next_line())
+            .unwrap()
+            .trim()
+            .parse::<i32>()
+            .unwrap();
+        let start_y = str::from_utf8(parser.next_line())
+            .unwrap()
+            .trim()
+            .parse::<i32>()
+            .unwrap();
+        let max_turns = str::from_utf8(parser.next_line())
+            .unwrap()
+            .trim()
+            .parse::<usize>()
+            .unwrap();
+        let hill_idx_raw = str::from_utf8(parser.next_line())
+            .unwrap()
+            .trim()
+            .parse::<usize>()
+            .unwrap();
         let hill_idx = hill_idx_raw.saturating_sub(1);
         let hill_filename = str::from_utf8(parser.next_line()).unwrap().to_string();
         let hill_filename_raw = parser.previous_raw_line().to_vec();
-        let hill_profile = str::from_utf8(parser.next_line()).unwrap().trim().parse::<i32>().unwrap();
-        let snow_count = str::from_utf8(parser.next_line()).unwrap().trim().parse::<u16>().unwrap();
-        let distance = str::from_utf8(parser.next_line()).unwrap().trim().parse::<i32>().unwrap();
-        let flight_start = str::from_utf8(parser.next_line()).unwrap().trim().parse::<usize>().unwrap();
-        let flight_stop = str::from_utf8(parser.next_line()).unwrap().trim().parse::<usize>().unwrap();
-        let hr_x = str::from_utf8(parser.next_line()).unwrap().trim().parse::<i32>().unwrap();
-        let hr_y = str::from_utf8(parser.next_line()).unwrap().trim().parse::<i32>().unwrap();
-        let suit_color = str::from_utf8(parser.next_line()).unwrap().trim().parse::<u8>().unwrap();
-        let ski_color = str::from_utf8(parser.next_line()).unwrap().trim().parse::<u8>().unwrap();
+        let hill_profile = str::from_utf8(parser.next_line())
+            .unwrap()
+            .trim()
+            .parse::<i32>()
+            .unwrap();
+        let snow_count = str::from_utf8(parser.next_line())
+            .unwrap()
+            .trim()
+            .parse::<u16>()
+            .unwrap();
+        let distance = str::from_utf8(parser.next_line())
+            .unwrap()
+            .trim()
+            .parse::<i32>()
+            .unwrap();
+        let flight_start = str::from_utf8(parser.next_line())
+            .unwrap()
+            .trim()
+            .parse::<usize>()
+            .unwrap();
+        let flight_stop = str::from_utf8(parser.next_line())
+            .unwrap()
+            .trim()
+            .parse::<usize>()
+            .unwrap();
+        let hr_x = str::from_utf8(parser.next_line())
+            .unwrap()
+            .trim()
+            .parse::<i32>()
+            .unwrap();
+        let hr_y = str::from_utf8(parser.next_line())
+            .unwrap()
+            .trim()
+            .parse::<i32>()
+            .unwrap();
+        let suit_color = str::from_utf8(parser.next_line())
+            .unwrap()
+            .trim()
+            .parse::<u8>()
+            .unwrap();
+        let ski_color = str::from_utf8(parser.next_line())
+            .unwrap()
+            .trim()
+            .parse::<u8>()
+            .unwrap();
         let author_raw = parser.next_line().to_vec();
         let author = encoding::decode(&author_raw);
         let name_raw = parser.next_line().to_vec();
         let name = encoding::decode(&name_raw);
         let saved_at = str::from_utf8(parser.next_line()).unwrap().to_string();
-        let has_bib = str::from_utf8(parser.next_line()).unwrap().trim().parse::<i32>().unwrap() != 0;
-        let start_gate_or_competition = str::from_utf8(parser.next_line()).unwrap().trim().parse::<i32>().unwrap();
-        let checksum = str::from_utf8(parser.next_line()).unwrap().trim().parse::<i32>().unwrap();
-        parser.next_line(); // reserved
+        let has_bib = str::from_utf8(parser.next_line())
+            .unwrap()
+            .trim()
+            .parse::<i32>()
+            .unwrap()
+            != 0;
+        let start_gate_or_competition = str::from_utf8(parser.next_line())
+            .unwrap()
+            .trim()
+            .parse::<i32>()
+            .unwrap();
+        let checksum = str::from_utf8(parser.next_line())
+            .unwrap()
+            .trim()
+            .parse::<i32>()
+            .unwrap();
+        parser.next_line(); 
         let replay_data = parser.skip_to_replay_data();
         let frames = decode_frames(replay_data, max_turns);
         let expected_checksum = replay_checksum(ReplayChecksumInput {
@@ -295,7 +355,6 @@ impl ReplayTrace {
         }
     }
 
-    #[must_use]
     pub fn to_sjr_bytes(&self) -> Vec<u8> {
         let max_turns = self.meta.frame_count.min(REPLAY_FRAME_CAPACITY - 1);
         let hill_record = self.meta.hill_record_marker.unwrap_or((0, 0));
@@ -401,8 +460,7 @@ const fn word(value: i32) -> u16 {
 
 fn decode_frames(data: &[u8], max_turns: usize) -> Vec<ReplayFrame> {
     let count = (max_turns + 1).min(REPLAY_FRAME_CAPACITY);
-    data
-        .chunks_exact(5)
+    data.chunks_exact(5)
         .take(count)
         .map(|chunk| ReplayFrame {
             dx: (i32::from(chunk[0]) - 128) as i8,

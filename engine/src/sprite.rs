@@ -9,7 +9,6 @@ pub struct PaletteIndex(pub u8);
 impl PaletteIndex {
     pub const TRANSPARENT: Self = Self(0);
 
-    #[must_use]
     pub const fn value(self) -> u8 {
         self.0
     }
@@ -21,24 +20,20 @@ pub struct SpriteMaterialId(u64);
 impl SpriteMaterialId {
     pub const DEFAULT: Self = Self(0);
 
-    #[must_use]
     pub const fn new(id: u64) -> Self {
         Self(id)
     }
 
-    #[must_use]
     pub const fn value(self) -> u64 {
         self.0
     }
 }
 
 impl SpriteMaterial {
-    #[must_use]
     pub fn id(&self) -> SpriteMaterialId {
         self.id
     }
 
-    #[must_use]
     pub fn overrides(&self) -> &[(PaletteIndex, Rgba)] {
         &self.overrides
     }
@@ -65,7 +60,6 @@ impl Hash for SpriteMaterial {
 }
 
 impl SpriteMaterial {
-    #[must_use]
     pub fn new(overrides: &[(u8, Rgba)]) -> Self {
         let mut overrides: Vec<_> = overrides
             .iter()
@@ -79,7 +73,6 @@ impl SpriteMaterial {
         }
     }
 
-    #[must_use]
     pub fn with_id(id: SpriteMaterialId, overrides: &[(u8, Rgba)]) -> Self {
         let mut overrides: Vec<_> = overrides
             .iter()
@@ -98,7 +91,6 @@ impl SpriteMaterial {
         SpriteMaterialId(hasher.finish().max(1))
     }
 
-    #[must_use]
     pub fn color_override(&self, source: PaletteIndex) -> Option<Rgba> {
         for &(from, to) in &self.overrides {
             if from == source {
@@ -108,7 +100,6 @@ impl SpriteMaterial {
         None
     }
 
-    #[must_use]
     pub fn get(&self, source: u8) -> Option<Rgba> {
         self.color_override(PaletteIndex(source))
     }
@@ -136,7 +127,6 @@ pub struct BakedSpriteTextures {
 }
 
 impl BakedSpriteTextures {
-    #[must_use]
     pub fn new() -> Self {
         Self {
             defaults: Vec::new(),
@@ -166,14 +156,12 @@ impl BakedSpriteTextures {
         );
     }
 
-    #[must_use]
     pub fn default_sprite(&self, sprite_idx: u16) -> Option<&BakedSpriteTexture> {
         self.defaults
             .get(sprite_idx as usize)
             .and_then(std::option::Option::as_ref)
     }
 
-    #[must_use]
     pub fn material_sprite(
         &self,
         sprite_idx: u16,
@@ -185,12 +173,7 @@ impl BakedSpriteTextures {
         })
     }
 
-    /// Bake material variants from indexed (type-3) PNG data.
-    ///
-    /// Base sprites carry 1-byte palette indices per pixel + a 256-entry
-    /// RGBA palette. Default textures resolve indices through the palette.
-    /// Material variants replace source palette indices with override
-    /// colours before resolving.
+    
     pub fn bake_with_png(
         renderer: &mut Renderer,
         base_sprites: &[BaseSprite],
@@ -221,7 +204,7 @@ impl BakedSpriteTextures {
             let Some(base) = base_sprites.iter().find(|b| b.sprite_idx == *sprite_idx) else {
                 continue;
             };
-            // Build a resolved palette with overrides applied
+            
             let mut resolved = base.palette;
             for &(source_idx, override_color) in material.overrides() {
                 resolved[source_idx.value() as usize] = override_color;
@@ -251,8 +234,7 @@ impl BakedSpriteTextures {
     }
 }
 
-/// Convert 1-byte palette indices to RGBA using a 256-entry palette.
-/// Index 0 → transparent; all others → palette[index].
+
 fn indices_to_rgba(indices: &[u8], palette: &[Rgba; 256], out: &mut Vec<u8>) {
     out.clear();
     out.reserve(indices.len() * 4);
@@ -265,9 +247,7 @@ fn indices_to_rgba(indices: &[u8], palette: &[Rgba; 256], out: &mut Vec<u8>) {
     }
 }
 
-/// Pre-loaded base sprite data for `BakedSpriteTextures::bake_with_png`.
-/// `indices` holds 1-byte palette indices per pixel (row-major).
-/// `palette` is the 256-entry RGBA palette embedded in the indexed PNG.
+
 #[derive(Debug, Clone)]
 pub struct BaseSprite {
     pub sprite_idx: u16,

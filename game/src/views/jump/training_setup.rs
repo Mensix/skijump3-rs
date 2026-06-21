@@ -120,10 +120,10 @@ impl TrainingSetupView {
         cx.right_text((130, y), FONT_BODY, "0.");
         cx.text((140, y), FONT_BODY, lang.tr(154));
 
-        // Selection box at the correct screen row.
-        // Pascal MakeMenu positions EXIT box at index items+2 (1-based)
-        // which is row items+1 (0-based). Our exit_row = items+2 (0-based),
-        // so subtract 1 for the box to match Pascal.
+        
+        
+        
+        
         let bx = 104;
         let sel = self.menu.selected();
         let sel_row = if self.menu.has_trailing() && sel == self.menu.item_count() {

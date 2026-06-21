@@ -55,10 +55,7 @@ impl TerrainIndexToml {
     }
 }
 
-pub(crate) fn load_hills(
-    files: &FileStore,
-    manifest_path: &str,
-) -> HillCatalog {
+pub(crate) fn load_hills(files: &FileStore, manifest_path: &str) -> HillCatalog {
     let manifest: HillsManifest = super::read_toml(files, manifest_path);
 
     let base_dir = match manifest_path.rfind('/') {
@@ -85,10 +82,7 @@ pub(crate) fn load_hills(
     HillCatalog::new(all_hills)
 }
 
-fn append_catalog(
-    all_hills: &mut Vec<HillInfo>,
-    cat: &HillCatalogToml,
-) {
+fn append_catalog(all_hills: &mut Vec<HillInfo>, cat: &HillCatalogToml) {
     for (idx, h) in cat.hills.iter().enumerate() {
         all_hills.push(HillInfo {
             name: h.name.clone(),

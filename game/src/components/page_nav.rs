@@ -1,5 +1,3 @@
-/// Cycle `current` by `dir` (±1 or any integer) wrapping around `[0, len)`.
-/// Returns `0` when `len == 0`.
 #[must_use]
 pub fn cycle_index(current: usize, len: usize, dir: i32) -> usize {
     if len == 0 {

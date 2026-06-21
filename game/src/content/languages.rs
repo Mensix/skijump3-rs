@@ -24,10 +24,7 @@ struct LanguageToml {
     strings: BTreeMap<String, String>,
 }
 
-pub(crate) fn load_languages(
-    files: &FileStore,
-    manifest_path: &str,
-) -> LangBase {
+pub(crate) fn load_languages(files: &FileStore, manifest_path: &str) -> LangBase {
     let manifest: LanguageManifest = super::read_toml(files, manifest_path);
 
     let base_dir = match manifest_path.rfind('/') {
@@ -59,9 +56,7 @@ pub(crate) fn load_languages(
 
     let fallback_lang = manifest
         .default
-        .and_then(|default_id| {
-            info.iter().position(|li| li.id == default_id)
-        })
+        .and_then(|default_id| info.iter().position(|li| li.id == default_id))
         .unwrap_or(0);
 
     LangBase::new(all_strings, info, fallback_lang)

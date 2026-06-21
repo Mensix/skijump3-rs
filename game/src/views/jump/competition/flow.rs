@@ -21,9 +21,7 @@ pub(crate) enum CompetitionFlowCommand<C, R> {
     Done,
 }
 
-/// Shared helper: rebuild or update the jump scene for a human jump.
-/// Prevents recreating the scene every frame (which would reset the jumper).
-#[allow(clippy::too_many_arguments)]
+
 pub(crate) fn handle_human_jump(
     scene: &mut Option<JumpScene>,
     ui_state: &mut CompetitionUiState,

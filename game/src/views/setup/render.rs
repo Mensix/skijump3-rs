@@ -270,8 +270,7 @@ fn render_screen(view: &SetupView, state: &GameState, cx: &mut PaintCx<'_>) {
                     if state.config.training_rounds == 0 {
                         lang.tr(9).to_string()
                     } else {
-                        lang.tr(state.config.training_rounds as usize)
-                            .to_string()
+                        lang.tr(state.config.training_rounds as usize).to_string()
                     }
                 }
                 (2, 1) => {
@@ -325,13 +324,15 @@ fn render_screen(view: &SetupView, state: &GameState, cx: &mut PaintCx<'_>) {
                 }
                 (2, 8) => {
                     if state.config.visible_computers >= 235 {
-                        lang.tr(state.config.visible_computers as usize)
-                            .to_string()
+                        lang.tr(state.config.visible_computers as usize).to_string()
                     } else {
                         format!("#{}", state.config.visible_computers)
                     }
                 }
-                (2, 9) => wind_place_name(&view.resources.langbase, state.config.wind_position as usize),
+                (2, 9) => wind_place_name(
+                    &view.resources.langbase,
+                    state.config.wind_position as usize,
+                ),
                 (2, 10) => {
                     if state.config.ko_system != 0 {
                         lang.tr(182).to_string()

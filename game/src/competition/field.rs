@@ -2,7 +2,6 @@ use crate::competition::core::ranking::ranked_order;
 use crate::competition::types::{CompetitionPhase, Participant, QualificationStatus};
 use serde::{Deserialize, Serialize};
 
-/// Criterion for sorting the participant list.
 #[allow(clippy::enum_variant_names)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SortBy {
@@ -11,11 +10,7 @@ pub enum SortBy {
     EventPoints,
 }
 
-/// The full competition field: 50 jumpers with ordering arrays.
 ///
-/// Maintains two orderings independently:
-/// - `master_order` — sorted by season points (World Cup / Four Hills)
-/// - `event_order`  — sorted by current event points
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompetitionField {
     participants: Vec<Participant>,
@@ -24,7 +19,6 @@ pub struct CompetitionField {
 }
 
 impl CompetitionField {
-    #[must_use]
     pub fn new(participants: Vec<Participant>) -> Self {
         let count = participants.len();
         let master_order: Vec<usize> = (0..count).collect();
@@ -36,12 +30,10 @@ impl CompetitionField {
         }
     }
 
-    #[must_use]
     pub const fn len(&self) -> usize {
         self.participants.len()
     }
 
-    #[must_use]
     pub fn get(&self, idx: usize) -> &Participant {
         &self.participants[idx]
     }
@@ -62,7 +54,6 @@ impl CompetitionField {
         }
     }
 
-    /// Sort participants by score descending into the appropriate ordering array.
     pub fn sort_field(&mut self, by: SortBy) {
         let ranked = ranked_order(0..self.participants.len(), |i| self.score(by, i));
         let order: Vec<usize> = ranked.iter().map(|r| r.item).collect();
@@ -77,14 +68,8 @@ impl CompetitionField {
         }
     }
 
-    /// Build an ordered start list for the given phase.
     ///
-    /// - **Qualification**: reverse `master_order`, only non-injured,
-    ///   skipping `PreQualified`.
-    /// - **Round 1**: reverse `event_order`, only qualified.
-    /// - **Round 2**: reverse `event_order`, only qualified.
-    /// - **Training**: reverse `master_order`, only non-injured.
-    #[must_use]
+
     pub fn build_start_list(&self, phase: CompetitionPhase) -> Vec<usize> {
         match phase {
             CompetitionPhase::Training(_) => self
@@ -152,14 +137,12 @@ impl CompetitionField {
         }
     }
 
-    /// Reset per-event state for all participants.
     pub fn reset_event(&mut self) {
         for p in &mut self.participants {
             p.reset_event();
         }
     }
 
-    /// Decrement injury counters. Called at the start of each event.
     pub fn tick_injuries(&mut self) {
         for p in &mut self.participants {
             if p.injury > 0 {
@@ -231,7 +214,7 @@ mod tests {
         f.sort_field(SortBy::WcPoints);
 
         let list = f.build_start_list(CompetitionPhase::Qualification);
-        // PreQualified are included; Pascal still runs hyppy for AI pre-qualified.
+        
         assert_eq!(list, vec![4, 3, 2, 1, 0]);
     }
 
@@ -244,8 +227,8 @@ mod tests {
         f.sort_field(SortBy::WcPoints);
 
         let list = f.build_start_list(CompetitionPhase::Round1);
-        // master_order = [0,1,2,3,4] (wc_points sorted), reversed = [4,3,2,1,0]
-        // filter by can_jump: 4(Qualified) and 3(PreQualified) can jump
+        
+        
         assert_eq!(list, vec![4, 3]);
     }
 

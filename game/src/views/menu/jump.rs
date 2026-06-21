@@ -15,18 +15,17 @@ pub struct JumpMenuView {
 }
 
 const JUMP_MENU_ACTIONS: &[Option<RouteTarget>] = &[
-    None,                         // 1 - WorldCup (starts shared competition shell)
-    None,                         // 2 - CustomCup (opens setup)
-    None,                         // 3 - FourHills (starts shared competition shell)
-    None,                         // 4 - TeamCup (starts shared competition shell)
-    Some(RouteTarget::KothSetup), // 5 - King of the Hill
-    Some(RouteTarget::Practice),  // 6 - Practice
-    Some(RouteTarget::LoadCup),   // 7 - Load Cup
-    Some(RouteTarget::MainMenu),  // 0 - Back to Main Menu
+    None,                         
+    None,                         
+    None,                         
+    None,                         
+    Some(RouteTarget::KothSetup), 
+    Some(RouteTarget::Practice),  
+    Some(RouteTarget::LoadCup),   
+    Some(RouteTarget::MainMenu),  
 ];
 
 impl JumpMenuView {
-    #[must_use]
     pub fn new(resources: ResourcesRef) -> Self {
         use engine::oxide::widgets::menu::MenuItem as OxideMenuItem;
 

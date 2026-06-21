@@ -78,10 +78,7 @@ struct NameSetToml {
     teams: Vec<TeamToml>,
 }
 
-pub(crate) fn load_namesets(
-    files: &FileStore,
-    manifest_path: &str,
-) -> NameCatalog {
+pub(crate) fn load_namesets(files: &FileStore, manifest_path: &str) -> NameCatalog {
     let manifest: NameSetManifest = super::read_toml(files, manifest_path);
 
     let base_dir = match manifest_path.rfind('/') {
@@ -93,10 +90,14 @@ pub(crate) fn load_namesets(
     for entry in &manifest.namesets {
         let full_path = format!("{base_dir}{}", entry.file);
         let ns: NameSetToml = super::read_toml(files, &full_path);
-        let teams = ns.teams.iter().map(|t| TeamDef {
-            name: t.name.clone(),
-            members: t.members.clone(),
-        }).collect();
+        let teams = ns
+            .teams
+            .iter()
+            .map(|t| TeamDef {
+                name: t.name.clone(),
+                members: t.members.clone(),
+            })
+            .collect();
         namesets.push(NameSet {
             title: ns.title,
             names: ns.names,

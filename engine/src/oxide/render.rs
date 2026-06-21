@@ -27,7 +27,6 @@ impl Default for OxideRenderer {
 }
 
 impl OxideRenderer {
-    #[must_use]
     pub fn new() -> Self {
         Self {
             draw_renderer: DrawCommandRenderer::new(),

@@ -9,7 +9,6 @@ pub struct Point {
 }
 
 impl Point {
-    #[must_use]
     pub const fn new(x: i32, y: i32) -> Self {
         Self { x, y }
     }
@@ -30,7 +29,6 @@ pub struct Rect {
 }
 
 impl Rect {
-    #[must_use]
     pub const fn new(x: i32, y: i32, w: i32, h: i32) -> Self {
         Self { x, y, w, h }
     }
@@ -102,7 +100,6 @@ pub struct CommandBuffer {
 }
 
 impl CommandBuffer {
-    #[must_use]
     pub const fn new() -> Self {
         Self {
             commands: Vec::new(),
@@ -121,12 +118,10 @@ impl CommandBuffer {
         self.commands.extend(commands);
     }
 
-    #[must_use]
     pub fn commands(&self) -> &[DrawCommand] {
         &self.commands
     }
 
-    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.commands.is_empty()
     }

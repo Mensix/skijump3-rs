@@ -11,7 +11,6 @@ impl EventCx {
         self.consumed = true;
     }
 
-    #[must_use]
     pub const fn is_consumed(&self) -> bool {
         self.consumed
     }

@@ -18,7 +18,12 @@ pub fn alert_box(cx: &mut PaintCx<'_>, rect: (i32, i32, i32, i32), bg: Rgba) {
     cx.pattern_fill(rect, bg);
 }
 
-pub fn alert_prompt(cx: &mut PaintCx<'_>, line1: impl AsRef<str>, line2: impl AsRef<str>, has_yn: bool) {
+pub fn alert_prompt(
+    cx: &mut PaintCx<'_>,
+    line1: impl AsRef<str>,
+    line2: impl AsRef<str>,
+    has_yn: bool,
+) {
     let line2 = line2.as_ref();
 
     alert_box(cx, ALERT_RECT, BG_RED);

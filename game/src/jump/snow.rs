@@ -43,8 +43,6 @@ pub struct SnowSystem {
     max: usize,
 }
 
-/// Pascal `LMaara` calculation: random snow count used at event start.
-/// Called once per event when `first_event=true`.
 pub fn calculate_snow_count(rng: &mut Random) -> u16 {
     let count = rng.random_i32(2) * rng.random_i32(256);
     let count = if count > 0 && count < 40 {
@@ -61,7 +59,6 @@ pub fn calculate_snow_count(rng: &mut Random) -> u16 {
 }
 
 impl SnowSystem {
-    #[must_use]
     pub fn new() -> Self {
         let mut system = Self {
             flakes: [Snowflake::default(); SNOW_MAX],
@@ -101,7 +98,6 @@ impl SnowSystem {
         self.max = 0;
     }
 
-    #[must_use]
     pub const fn count(&self) -> u16 {
         self.count
     }
@@ -142,10 +138,6 @@ impl SnowSystem {
         (low as u16) | ((high as u16) << 8)
     }
 
-    /// Draw snowflakes onto a viewport.
-    ///
-    /// * `rgba_buffer` — the RGBA viewport pixels (`WIDTH * HEIGHT * 4` bytes)
-    /// * `mask` — indexed-pixel mask for position checking (`WIDTH * HEIGHT` bytes)
     pub fn update(
         &mut self,
         rgba_buffer: &mut [u8],

@@ -19,36 +19,36 @@ pub struct Profile {
     pub legs_won: usize,
     pub world_cups_won: usize,
 
-    // Pascal bestresult / best4result — display strings e.g. "2 (-)"
+    
     pub best_result: String,
     pub best_4h_result: String,
 
-    // Pascal bestwcjump — longest WC jump distance
+    
     pub best_wc_jump: usize,
 
-    // Pascal default (Pascal bestwchill: byte) — hill index for best WC jump
-    // Display name looked up from hill catalog at render time
+    
+    
     pub best_wc_hill_idx: usize,
 
-    // Pascal bestjump — overall longest jump distance
+    
     pub best_jump: usize,
 
-    // Pascal default (Pascal besthill: byte) — hill index for overall best jump
-    // Display name looked up from hill catalog at render time
+    
+    
     pub besthill_idx: usize,
 
-    // Pascal besthillfile — hill file/landscape name e.g. "HILLBASE"
+    
     pub best_hill_file: String,
 
-    // Pascal bestpoints / best4points (word) — points for best result and best 4H result
+    
     pub best_points: usize,
     pub best_4h_points: f64,
 
-    // Pascal kothlevel (byte)
+    
     pub koth_level: usize,
 
-    // Display names populated from hill indices for render convenience.
-    // These are NOT persisted to the TOML file.
+    
+    
     #[serde(skip)]
     pub best_wc_hill_display: String,
     #[serde(skip)]
@@ -100,7 +100,6 @@ impl Default for ProfileStore {
 }
 
 impl ProfileStore {
-    #[must_use]
     pub fn new() -> Self {
         Self {
             profiles: vec![Profile::default()],
@@ -108,17 +107,14 @@ impl ProfileStore {
         }
     }
 
-    #[must_use]
     pub const fn num_profiles(&self) -> usize {
         self.profiles.len()
     }
 
-    #[must_use]
     pub const fn has_slot(&self) -> bool {
         self.num_profiles() < MAX_PROFILES
     }
 
-    #[must_use]
     pub fn order_pos(&self, profile_index: usize) -> Option<usize> {
         self.active_order
             .iter()

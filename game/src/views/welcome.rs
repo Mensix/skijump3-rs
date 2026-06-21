@@ -13,7 +13,6 @@ pub struct WelcomeScreenView {
 }
 
 impl WelcomeScreenView {
-    #[must_use]
     pub fn new(resources: ResourcesRef) -> Self {
         let count = resources.langbase.language_count();
         let items: Vec<OxideMenuItem> = (0..count)

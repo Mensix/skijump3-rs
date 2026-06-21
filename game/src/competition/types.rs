@@ -2,9 +2,6 @@ use crate::competition::core::competitor::Competitor;
 use crate::jump::types::FallType;
 use serde::{Deserialize, Serialize};
 
-/// A jump result as recorded into the competition. Carries only the fields
-/// the competition cares about: score, distance, and whether the jumper
-/// crashed (which may cause an injury).
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub(crate) struct CompetitionJumpOutcome {
     pub(crate) score: f64,
@@ -12,7 +9,6 @@ pub(crate) struct CompetitionJumpOutcome {
     pub(crate) fall_type: FallType,
 }
 
-/// Identifies the scoring/ruleset for a competition series.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum CupStyle {
     WorldCup,
@@ -21,7 +17,6 @@ pub enum CupStyle {
     TeamCup,
 }
 
-/// High-level phase of a single competition event.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum CompetitionPhase {
     Setup,
@@ -39,7 +34,6 @@ pub enum CompetitionPhase {
 }
 
 impl CompetitionPhase {
-    #[must_use]
     pub const fn is_jump_phase(self) -> bool {
         matches!(
             self,
@@ -47,7 +41,6 @@ impl CompetitionPhase {
         )
     }
 
-    #[must_use]
     pub const fn is_result_phase(self) -> bool {
         matches!(
             self,
@@ -60,9 +53,7 @@ impl CompetitionPhase {
         )
     }
 
-    /// Phases that auto-advance when the start list is empty
-    /// (no human interaction needed).
-    #[must_use]
+
     pub const fn auto_advances_when_empty(self) -> bool {
         matches!(
             self,
@@ -75,14 +66,12 @@ impl CompetitionPhase {
         )
     }
 
-    /// Phases whose overlay needs live event results (top5, gap-to-leader).
-    #[must_use]
+
     pub const fn needs_event_results(self) -> bool {
         matches!(self, Self::Qualification | Self::Round1 | Self::Round2)
     }
 
-    /// Result phase that corresponds to a numbered round (1 or 2).
-    #[must_use]
+
     pub const fn result_round_number(self) -> Option<usize> {
         match self {
             Self::Round1Results => Some(1),
@@ -92,7 +81,6 @@ impl CompetitionPhase {
     }
 }
 
-/// Whether a jumper made the cut for the current round.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum QualificationStatus {
     NotQualified,
@@ -104,7 +92,6 @@ pub enum QualificationStatus {
 }
 
 impl QualificationStatus {
-    #[must_use]
     pub const fn can_jump(&self) -> bool {
         matches!(
             self,
@@ -113,7 +100,6 @@ impl QualificationStatus {
     }
 }
 
-/// One jumper in the Pascal 75-slot competition roster.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Participant {
     pub id: usize,
@@ -124,21 +110,17 @@ pub struct Participant {
     pub ski_color: u8,
     pub team: Option<usize>,
     pub is_computer: bool,
-    /// 0=never skip, 1=skip unless 4H, 2=always skip
     pub skip_qualification: u8,
-    /// Index into ProfileStore.profiles for human participants, None for computers.
     pub profile_idx: Option<usize>,
 
-    // Season-wide state
+    
     pub wc_points: i32,
     pub four_hills_points: f64,
     pub injury: u8,
 
-    // Per-event state. None = hasn't started (DNS)
+    
     pub points: Option<f64>,
-    /// Current live rank in the event standings (updated by `sort_field` after each jump).
     pub rank: usize,
-    /// Frozen Round 1 rank stored before Round 2 starts (Pascal's `sija` from `luett`).
     pub round1_rank: usize,
     pub qual: QualificationStatus,
     pub round1_len: f64,
@@ -148,7 +130,6 @@ pub struct Participant {
 }
 
 impl Participant {
-    #[must_use]
     pub fn from_competitor(competitor: Competitor) -> Self {
         Self {
             id: competitor.id,
@@ -175,12 +156,10 @@ impl Participant {
         }
     }
 
-    #[must_use]
     pub fn computer(id: usize, ai_id: usize, name: String) -> Self {
         Self::from_competitor(Competitor::computer(id, ai_id, name, None))
     }
 
-    #[must_use]
     pub fn display_name(&self) -> &str {
         if self.real_name.is_empty() {
             &self.name

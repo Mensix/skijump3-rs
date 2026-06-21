@@ -255,7 +255,7 @@ impl GameScreen for EditHillView {
                         nav.back();
                     } else {
                         self.mode = EditMode::Viewing;
-                        self.menu.set_selected(10); // back to FILENAME field
+                        self.menu.set_selected(10); 
                     }
                 }
                 nav.consume();

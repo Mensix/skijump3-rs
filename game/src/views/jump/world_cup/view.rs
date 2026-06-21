@@ -115,8 +115,6 @@ impl WorldCupJumpView {
         )
     }
 
-    /// Pascal: rank calculation — counts participants with points <= jumper's total.
-    /// Shows `($X.)` at (255,45), left of the score at (308,45).
     fn draw_rank(&self, cx: &mut PaintCx<'_>, state: &GameState) {
         let Some(scene) = self.controller.scene() else {
             return;
@@ -164,7 +162,7 @@ impl WorldCupJumpView {
             return self.handle_result_event(event, state);
         }
 
-        // Let the shared input controller process events first (save replay, etc.)
+        
         let is_dq =
             self.controller.scene().and_then(|s| s.phase()) == Some(JumpPhase::Disqualified);
         match self
@@ -184,7 +182,7 @@ impl GameScreen for WorldCupJumpView {
     fn update(&mut self, cx: &mut GameCx<'_>) {
         self.controller.record_acknowledged_human_jump(cx.state);
 
-        // Drive competition and dispatch any resulting command
+        
         if let Some(command) = self.controller.drive(cx.state) {
             self.apply_command(command, cx.state);
         }
@@ -231,7 +229,7 @@ impl WorldCupJumpView {
 
     fn save_competition_results(&mut self, state: &mut GameState) {
         self.controller.save_results(state);
-        // WC-specific profile updates (bestpoints, etc.)
+        
         let (style, participants, event_pts): (_, Vec<_>, Vec<_>) = {
             let active = match state.active_competition.as_ref() {
                 Some(a) => a,
@@ -322,7 +320,7 @@ impl WorldCupJumpView {
                 if self.controller.ui_state_mut().next_page(total) {
                     return None;
                 }
-                // Pascal WaitForKey(0): any key on the last entry exits the list
+                
                 self.dismiss_results_and_advance(state);
                 None
             }

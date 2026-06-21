@@ -14,7 +14,6 @@ use crate::text::lang::LangBase;
 use crate::views::jump::competition::ui_state::CompetitionUiState;
 use engine::oxide::PaintCx;
 
-/// Lightweight snapshot of KOTH data for overlay rendering.
 #[derive(Debug, Clone)]
 pub struct KothOverlayInfo {
     pub alive_count: usize,
@@ -25,9 +24,6 @@ pub struct KothOverlayInfo {
     pub jump_rounds_per_elimination: u8,
 }
 
-/// Lightweight snapshot of competition data for overlay rendering.
-/// Built once per frame to avoid repeated `store.read()` calls.
-/// Supports both WC/4H (via `Competition`) and Team Cup (via `TeamCupRuntime`).
 #[derive(Debug, Clone)]
 pub struct OverlayData {
     pub phase: CompetitionPhase,
@@ -54,7 +50,6 @@ pub struct WcStandingEntry {
 }
 
 impl OverlayData {
-    /// Collect all data the overlay needs from the competition store.
     pub fn collect(state: &GameState) -> Option<Self> {
         let coach_style = active_coach_style(state);
         state
@@ -112,8 +107,8 @@ impl OverlayData {
     fn from_koth(c: &KothRuntime, coach_style: u8) -> Self {
         let alive_count = c.participants.iter().filter(|p| p.is_alive()).count();
         let total_count = c.participants.len();
-        // Pascal jarjesta5 for KOTH: top5[1] = worst alive (lowest points)
-        // Exclude humans (they haven't jumped yet when overlay first appears)
+        
+        
         let last_place = c
             .participants
             .iter()
@@ -184,7 +179,6 @@ fn active_coach_style(state: &GameState) -> u8 {
     pb.profiles.get(idx).map_or(0, |p| p.coach_style as u8)
 }
 
-/// All data needed to render an overlay on top of the jump scene.
 pub struct OverlayContext {
     pub kind: OverlayKind,
     pub participant: Participant,
@@ -205,8 +199,6 @@ pub enum OverlayKind {
     Koth,
 }
 
-/// Renders overlays (keymap, cycling info, jumper info box) on top of the
-/// jump scene during World Cup competition phases. Pure data-in/elements-out.
 pub struct CompetitionOverlay {
     resources: ResourcesRef,
 }
@@ -216,7 +208,6 @@ impl CompetitionOverlay {
         Self { resources }
     }
 
-    /// Determine what overlay to draw, without rendering.
     pub fn context(
         &self,
         scene_phase: Option<JumpPhase>,
@@ -253,7 +244,7 @@ impl CompetitionOverlay {
         if scene_phase == JumpPhase::Disqualified {
             return OverlayKind::None;
         }
-        // Coach corner: show after a human jump result during Info/OnBar
+        
         if let Some(t) = telemetry {
             if t.grade > 0
                 && data.coach_style > 0
@@ -270,7 +261,7 @@ impl CompetitionOverlay {
             }
         }
 
-        // KOTH overlay: cycle between jumpers left and hill record
+        
         if data.koth_info.is_some()
             && matches!(
                 scene_phase,
@@ -295,8 +286,8 @@ impl CompetitionOverlay {
             (CompetitionPhase::Qualification, JumpPhase::Info) if show_keymap => {
                 OverlayKind::Keymap
             }
-            // Explicitly list phases that get cycling info — not needs_event_results()
-            // which would also match Round2 (and CustomCup Round2 must show no overlay).
+            
+            
             (CompetitionPhase::Qualification | CompetitionPhase::Round1, JumpPhase::Info) => {
                 OverlayKind::CyclingWithInfoBox
             }
@@ -304,7 +295,6 @@ impl CompetitionOverlay {
         }
     }
 
-    /// Render all overlay elements for the current state.
     pub fn render(&self, cx: &mut PaintCx<'_>, ctx: &OverlayContext, state: &GameState) {
         match ctx.kind {
             OverlayKind::None => {}
@@ -335,7 +325,6 @@ impl CompetitionOverlay {
         }
     }
 
-    /// Pascal `DoCoachCorner`: coach advice panel at bottom-left after jump.
     fn coach_elements(&self, cx: &mut PaintCx<'_>, ctx: &OverlayContext) {
         let Some(ref t) = ctx.telemetry else { return };
         let style = ctx.data.coach_style;
@@ -363,7 +352,7 @@ impl CompetitionOverlay {
         );
         let mut cstr3 = self.coach_range(lang, base + 28, t.height, &[49, 55, 60, 64, 70, 90, 200]);
 
-        // Pascal: if (grade=1) then cstr[3]:=tr(index+35);
+        
         if t.grade == 1 {
             cstr3 = lang.tr(base + 35).to_string();
         }
@@ -377,17 +366,17 @@ impl CompetitionOverlay {
         let pick_a = if r & 1 == 0 { &cstr0 } else { &cstr1 };
         let pick_b = if r & 2 == 0 { &cstr2 } else { &cstr3 };
 
-        // Pascal: joined with '*' which acts as space + optional line-break hint
+        
         let text = format!("{pick_a}*{pick_b}");
 
-        // Pascal word-wrap (count=30, half=15):
-        //   wstr accumulates chars, * → space in buffer,
-        //   break at space when past 30 chars, or at * when past 15 chars.
+        
+        
+        
         let mut y = 152i32;
         let mut line = String::with_capacity(32);
         for ch in text.chars() {
             line.push(if ch == '*' { ' ' } else { ch });
-            // Pascal: index = line.len() + 1, check index > count → line.len() >= 30
+            
             if (line.len() >= 30 && ch == ' ') || (ch == '*' && line.len() >= 15) {
                 if ch == '*' {
                     line.pop();
@@ -411,7 +400,6 @@ impl CompetitionOverlay {
         }
     }
 
-    /// Look up language string for a value within the given range thresholds.
     fn coach_range(&self, lang: &LangBase, base: usize, val: u8, thresholds: &[u8]) -> String {
         let idx = thresholds
             .iter()
@@ -420,7 +408,6 @@ impl CompetitionOverlay {
         lang.tr(base + idx).to_string()
     }
 
-    /// Pascal `JumperInfoBox` at (3,150).
     fn jumper_info_box(
         &self,
         cx: &mut PaintCx<'_>,
@@ -485,7 +472,6 @@ impl CompetitionOverlay {
         );
     }
 
-    /// Pascal drawinfo: cycling info on the `InfoPanel`.
     fn cycling_info_elements(
         &self,
         cx: &mut PaintCx<'_>,
@@ -530,7 +516,6 @@ impl CompetitionOverlay {
         }
     }
 
-    /// Pascal drawtop5info: hill name + top 5 event points with gap behind leader
     fn top5_event_elements(&self, cx: &mut PaintCx<'_>, data: &OverlayData, state: &GameState) {
         let lang = &self.resources.langbase;
         hud::push_info_panel_frame(cx);
@@ -552,7 +537,7 @@ impl CompetitionOverlay {
             }
         }
 
-        // Gap-to-leader line
+        
         if state.config.event_gap != 0 {
             if let Some(ref pel) = data.current_participant {
                 let leader_pts = data.event_standings_top5.first().map_or(0.0, |e| e.points);
@@ -570,7 +555,6 @@ impl CompetitionOverlay {
         }
     }
 
-    /// Pascal drawhrinfo: hill record name + distance
     fn hill_info_elements(&self, cx: &mut PaintCx<'_>, state: &GameState, hill_idx: usize) {
         let hill_name_k = self
             .resources
@@ -586,7 +570,6 @@ impl CompetitionOverlay {
         );
     }
 
-    /// Pascal drawkothinfo: jumpers left + worst alive with phase label
     fn koth_info_elements(&self, cx: &mut PaintCx<'_>, ctx: &OverlayContext) {
         let lang = &self.resources.langbase;
         let Some(ref ki) = ctx.data.koth_info else {
@@ -595,16 +578,16 @@ impl CompetitionOverlay {
         let total = ki.total_count;
         let left = ki.alive_count;
         hud::push_info_panel_frame(cx);
-        // "Jumpers Left: N of TOTAL" — Pascal tr(67) + tr(8)
+        
         let str1 = format!("{} {} {}", lang.tr(67), left, lang.tr(8));
         cx.right_text((308, 9), FONT_GOLD, format!("{str1} {total}"));
 
-        // Phase label + worst-alive info (Pascal top5[1]=lowest points for KOTH)
+        
         if !ki.last_name.is_empty() {
             let label = if ki.jump_round == 0 && ki.jump_rounds_per_elimination > 1 {
-                lang.tr(69) // "Currently Last:"
+                lang.tr(69) 
             } else {
-                lang.tr(68) // "Need to Beat:"
+                lang.tr(68) 
             };
             cx.right_text((308, 19), FONT_GOLD, label);
             let pts_str = format_decimal(ki.last_points);
@@ -616,7 +599,6 @@ impl CompetitionOverlay {
         }
     }
 
-    /// Pascal drawwcinfo: top 5 WC / season standings with raw points.
     fn wc_standings_elements(&self, cx: &mut PaintCx<'_>, data: &OverlayData, state: &GameState) {
         let lang = &self.resources.langbase;
         hud::push_info_panel_frame(cx);

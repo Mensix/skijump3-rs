@@ -24,8 +24,8 @@ pub struct TextInput {
 }
 
 impl TextInput {
-    #[allow(clippy::too_many_arguments)]
-    #[must_use]
+    
+
     pub fn new(
         x: i32,
         y: i32,
@@ -50,7 +50,6 @@ impl TextInput {
         }
     }
 
-    #[must_use]
     pub fn value(&self) -> &str {
         self.editor.buffer()
     }

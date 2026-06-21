@@ -259,12 +259,12 @@ impl JumpState {
                 self.info_counter += 1;
             }
             JumpPhase::OnBar => {
-                // Pascal: if (not treeni) then inc(counter);
-                // Training mode: frame stays 0 so the start light is always on.
+                
+                
                 if count_onbar_frames {
                     self.frame += 1;
                 }
-                // Pascal: laskuri > 700 → disqualified
+                
                 if count_onbar_frames && self.frame > 700 {
                     self.phase = JumpPhase::Disqualified;
                     self.score = 0;

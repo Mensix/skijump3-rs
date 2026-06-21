@@ -147,7 +147,6 @@ impl HillTerrain {
         (rgba, mask)
     }
 
-    #[must_use]
     pub fn height_at(&self, x: i32) -> i32 {
         if x > 0 {
             self.profile_y.get(x as usize).copied().unwrap_or(0)
@@ -156,7 +155,6 @@ impl HillTerrain {
         }
     }
 
-    #[must_use]
     pub fn hill_angle(&self, x: i32) -> i32 {
         let value = self.height_at(x + 9)
             + self.height_at(x + 8)

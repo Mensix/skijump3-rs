@@ -19,27 +19,22 @@ pub struct Rect {
 }
 
 impl Rect {
-    #[must_use]
     pub const fn new(x: i32, y: i32, w: u32, h: u32) -> Self {
         Self { x, y, w, h }
     }
 
-    #[must_use]
     pub const fn x(&self) -> i32 {
         self.x
     }
 
-    #[must_use]
     pub const fn y(&self) -> i32 {
         self.y
     }
 
-    #[must_use]
     pub const fn width(&self) -> u32 {
         self.w
     }
 
-    #[must_use]
     pub const fn height(&self) -> u32 {
         self.h
     }
@@ -80,7 +75,7 @@ impl Renderer {
         let mut canvas = window.into_canvas();
 
         let vsync_enabled = unsafe {
-            // SAFETY: canvas.raw() is a valid SDL_Renderer owned by WindowCanvas.
+            
             sdl3::sys::render::SDL_SetRenderVSync(canvas.raw(), 1)
         };
         if !vsync_enabled {
@@ -178,7 +173,7 @@ impl Renderer {
         self.last_tick = Instant::now();
     }
 
-    // GPU frame layering API ------------------------------------------------
+    
 
     pub fn begin_frame(&mut self) {
         self.canvas.set_draw_color(Color::RGBA(0, 0, 0, 255));
@@ -189,7 +184,7 @@ impl Renderer {
         let _ = self.canvas.present();
     }
 
-    // RGBA texture helpers --------------------------------------------------
+    
 
     pub fn create_pattern_texture(
         &mut self,
@@ -211,7 +206,7 @@ impl Renderer {
     ) -> Result<(), String> {
         let (tint_r, tint_g, tint_b) = pattern_tint(color);
 
-        // Save old colour tint and set new one
+        
         let (old_r, old_g, old_b) = {
             let Some(t) = self.textures.get_mut(&pattern_id) else {
                 return Err("Pattern texture not found".into());
@@ -221,7 +216,7 @@ impl Renderer {
             old
         };
 
-        // Tile the pattern (immutable borrow for copy)
+        
         let Some(texture) = self.textures.get(&pattern_id) else {
             return Err("Pattern texture not found".into());
         };
@@ -289,7 +284,7 @@ impl Renderer {
         Ok(())
     }
 
-    // RGBA primitives -------------------------------------------------------
+    
 
     pub fn draw_fill_rect(
         &mut self,
@@ -309,10 +304,7 @@ impl Renderer {
         self.canvas.set_draw_color(color.to_sdl());
         self.canvas
             .fill_rect(Some(sdl3::render::FRect::new(
-                x as f32,
-                y as f32,
-                w as f32,
-                h as f32,
+                x as f32, y as f32, w as f32, h as f32,
             )))
             .map_err(|e| e.to_string())?;
         Ok(())
@@ -327,9 +319,7 @@ impl Renderer {
     }
 }
 
-/// Copy a region from an RGBA source buffer to an output RGBA buffer,
-/// clipping to screen bounds.  Returns `(screen_x, screen_y, vis_w, vis_h)`
-/// for the visible portion, or `None` when fully off-screen.
+
 fn rgba_region_to_rgba(
     src_pixels: &[u8],
     src_w: u32,

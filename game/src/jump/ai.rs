@@ -343,14 +343,14 @@ mod tests {
         let mut wind = Wind::default();
         wind.initialize(&mut rng, 0);
 
-        // Pascal: 1x Tuuli.Hae (shift) + 100x Tuuli.Siirra (shift)
-        // before the first physics-relevant wind sample
+        
+        
         wind.advance_without_sampling(&mut rng);
         for _ in 0..100 {
             wind.advance_without_sampling(&mut rng);
         }
 
-        // The angle has moved 101 steps; a fresh sample produces a valid value
+        
         let value = wind.sample(&mut rng);
         assert!(
             (-50..=50).contains(&value),

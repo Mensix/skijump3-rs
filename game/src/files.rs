@@ -6,8 +6,6 @@ use std::path::PathBuf;
 #[folder = "assets/"]
 struct Assets;
 
-/// Centralized file IO with embedded-asset fallback for single-exe builds.
-/// All file paths are relative to roots; callers use filenames like "config.toml".
 #[derive(Debug, Clone)]
 pub struct FileStore {
     asset_dir: PathBuf,
@@ -15,7 +13,6 @@ pub struct FileStore {
 }
 
 impl FileStore {
-    #[must_use]
     pub fn new(asset_dir: PathBuf, save_dir: PathBuf) -> Self {
         Self {
             asset_dir,
@@ -23,8 +20,7 @@ impl FileStore {
         }
     }
 
-    /// Read from save dir first, then embedded assets, then filesystem assets.
-    #[must_use]
+
     pub fn read(&self, name: &str) -> Vec<u8> {
         let save_path = self.save_dir.join(name);
         match std::fs::read(&save_path) {
@@ -39,8 +35,6 @@ impl FileStore {
         }
     }
 
-    /// Atomically write to save dir. Creates `save_dir` and any subdirectory
-    /// in `name` if they do not exist.
     pub fn write(&self, name: &str, data: &[u8]) {
         let path = self.save_dir.join(name);
         if let Some(parent) = path.parent() {
@@ -55,8 +49,7 @@ impl FileStore {
         std::fs::rename(&tmp_path, &path).unwrap();
     }
 
-    /// Check if file exists in save dir.
-    #[must_use]
+
     pub fn exists_save(&self, name: &str) -> bool {
         self.save_dir.join(name).exists()
     }
@@ -65,28 +58,25 @@ impl FileStore {
         let _ = std::fs::remove_file(self.save_dir.join(name));
     }
 
-    /// List filenames in save dir with a given extension (without leading dot).
-    #[must_use]
+
     pub fn list_by_ext(&self, ext: &str) -> Vec<String> {
         self.list_by_ext_in(&self.save_dir, ext).unwrap_or_default()
     }
 
-    /// List filenames in a save dir subdirectory with a given extension.
-    #[must_use]
-    pub fn list_save_subdir_by_ext(
-        &self,
-        subdir: &str,
-        ext: &str,
-    ) -> Vec<String> {
-        self.list_by_ext_in(&self.save_dir.join(subdir), ext).unwrap_or_default()
+
+    pub fn list_save_subdir_by_ext(&self, subdir: &str, ext: &str) -> Vec<String> {
+        self.list_by_ext_in(&self.save_dir.join(subdir), ext)
+            .unwrap_or_default()
     }
 
-    /// List filenames from both save dir and asset dir, deduplicated and sorted.
-    #[must_use]
+
     pub fn list_by_ext_all(&self, ext: &str) -> Vec<String> {
         let mut names = BTreeSet::new();
         names.extend(self.list_by_ext(ext));
-        names.extend(self.list_by_ext_in(&self.asset_dir, ext).unwrap_or_default());
+        names.extend(
+            self.list_by_ext_in(&self.asset_dir, ext)
+                .unwrap_or_default(),
+        );
         names.into_iter().collect()
     }
 

@@ -260,11 +260,9 @@ impl JumpRunner {
         self.has_bib = val;
     }
 
-    /// Advance physics, AI, and wind by one frame. Call once per frame
-    /// before `render()` so the rendering stays pure.
     pub(crate) fn update(&mut self, rng: &mut Random, wind: &mut Wind) {
         if self.computer_input.is_some() && !self.computer_pre_ai_wind_done {
-            // Pascal samples wind once before computer skill/reflex are initialized.
+            
             wind.advance_without_sampling(rng);
             self.computer_pre_ai_wind_done = true;
         }
@@ -345,13 +343,20 @@ impl JumpRunner {
     }
 
     fn snapshot(&self) -> Option<JumpSnapshot> {
-        self.state.as_ref().map(|state| state.snapshot_with_terrain(&self.config.terrain))
+        self.state
+            .as_ref()
+            .map(|state| state.snapshot_with_terrain(&self.config.terrain))
     }
 
     fn tick(&mut self, wind: FlightWind, rng: &mut Random) {
         if let Some(state) = &mut self.state {
             let previous_phase = state.phase;
-            state.tick(&self.config.terrain, wind, rng, self.config.policy.count_onbar_frames);
+            state.tick(
+                &self.config.terrain,
+                wind,
+                rng,
+                self.config.policy.count_onbar_frames,
+            );
             self.replay
                 .on_phase_change(previous_phase, state.phase, state);
         }
@@ -377,7 +382,8 @@ impl JumpRunner {
             self.tick(sampled, rng);
         }
         if let Some(state) = &self.state {
-            self.replay.record_frame(&self.config.terrain, state, sampled);
+            self.replay
+                .record_frame(&self.config.terrain, state, sampled);
         }
         sampled
     }

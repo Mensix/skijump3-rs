@@ -65,7 +65,7 @@ impl TextCache {
         }
     }
 
-    #[allow(clippy::too_many_arguments)]
+    
     fn draw(
         &mut self,
         renderer: &mut Renderer,
@@ -153,7 +153,6 @@ impl Default for DrawCommandRenderer {
 }
 
 impl DrawCommandRenderer {
-    #[must_use]
     pub fn new() -> Self {
         Self {
             text_cache: TextCache::default(),

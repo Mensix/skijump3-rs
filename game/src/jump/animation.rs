@@ -93,7 +93,7 @@ pub const fn landing_body_anim(mut ski_anim: u16, landing_style: LandingStyle) -
 }
 
 fn landing_loop_body_anim(counter: i32, slope_ski_anim: u16, landing_style: LandingStyle) -> u16 {
-    // Pascal: if (counter<7) and (landing>0) then JumperAnim:=113+landing;
+    
     if counter < 7 && !matches!(landing_style, LandingStyle::None) {
         return (Sprite::LandingLoopBase as u16) + landing_style.offset() as u16;
     }

@@ -63,6 +63,4 @@ pub fn paint_detail_panel(
     if let Some(val) = extra_value {
         cx.text((VALUE_X, EXTRA_Y), FONT_GRAY, val);
     }
-
 }
-

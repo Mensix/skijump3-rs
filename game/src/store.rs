@@ -77,8 +77,6 @@ pub struct GameState {
     pub profiles: ProfileStore,
     pub records: RecordStore,
     pub selected_main_menu: usize,
-    /// Transient: filename loaded by EditHillView on construction,
-    /// set by HillMakerView before navigating. Not persistent game state.
     pub nav_edit_hill: Option<String>,
 }
 

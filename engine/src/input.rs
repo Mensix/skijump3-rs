@@ -262,12 +262,10 @@ impl Input {
         events
     }
 
-    #[must_use]
     pub fn is_held(&self, key: sdl3::keyboard::Keycode) -> bool {
         self.keys_held.contains(&key)
     }
 
-    #[must_use]
     pub fn running(&self) -> bool {
         self.running
     }

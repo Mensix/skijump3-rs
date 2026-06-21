@@ -59,8 +59,8 @@ impl CompetitionJumpView {
 
 impl GameScreen for CompetitionJumpView {
     fn update(&mut self, cx: &mut GameCx<'_>) {
-        // On first update, check if we need to create the correct view variant
-        // based on the actual active competition kind in state
+        
+        
         match self {
             Self::Training(view) => view.inner.update(cx),
             Self::Individual(view) => view.inner.update(cx),

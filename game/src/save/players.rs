@@ -3,7 +3,6 @@ use serde::{Deserialize, Serialize};
 use crate::data::profile::{ProfileStore, MAX_ACTIVE_PROFILES, MAX_PROFILES};
 use crate::save::parse_toml;
 
-/// TOML wrapper to version the file — mirrors save/config.rs pattern.
 #[derive(Debug, Deserialize, Serialize)]
 struct ProfilesFile {
     #[serde(flatten)]
@@ -17,10 +16,24 @@ impl ProfileStore {
         let store = &file.store;
 
         assert!(!store.profiles.is_empty(), "players.toml has no profiles");
-        assert!(store.profiles.len() <= MAX_PROFILES, "players.toml has {} profiles (max {MAX_PROFILES})", store.profiles.len());
-        assert!(store.active_order.len() <= MAX_ACTIVE_PROFILES, "players.toml has {} active profiles (max {MAX_ACTIVE_PROFILES})", store.active_order.len());
+        assert!(
+            store.profiles.len() <= MAX_PROFILES,
+            "players.toml has {} profiles (max {MAX_PROFILES})",
+            store.profiles.len()
+        );
+        assert!(
+            store.active_order.len() <= MAX_ACTIVE_PROFILES,
+            "players.toml has {} active profiles (max {MAX_ACTIVE_PROFILES})",
+            store.active_order.len()
+        );
         for (i, &idx) in store.active_order.iter().enumerate() {
-            assert!(idx < store.profiles.len(), "active_order[{i}] = {idx} out of range (profiles: {n})", i = i, idx = idx, n = store.profiles.len());
+            assert!(
+                idx < store.profiles.len(),
+                "active_order[{i}] = {idx} out of range (profiles: {n})",
+                i = i,
+                idx = idx,
+                n = store.profiles.len()
+            );
         }
 
         file.store

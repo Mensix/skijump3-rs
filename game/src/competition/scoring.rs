@@ -1,23 +1,17 @@
 use crate::competition::core::scoring::PointsTable;
 use crate::competition::field::CompetitionField;
 
-/// World Cup points awarded to top 30 finishers (1-indexed: position 1 → 100 pts).
 pub const WC_POINTS: PointsTable<30> = PointsTable::new([
     100, 80, 60, 50, 45, 40, 36, 32, 29, 26, 24, 22, 20, 18, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7,
     6, 5, 4, 3, 2, 1,
 ]);
 
-/// Look up WC points awarded for a given rank (1-indexed).
-/// Rank 1 → 100, rank 30 → 1, out-of-range → 0.
 #[must_use]
 pub fn wc_points_for_rank(rank: usize) -> i32 {
     WC_POINTS.points_for_rank(rank)
 }
 
-/// Add World Cup points to each participant based on their rank in the current event.
 ///
-/// Only ranks 1..=30 receive points. Rank 1 gets 100, rank 2 gets 80, ..., rank 30 gets 1.
-/// Points are added to `participant.wc_points`.
 pub fn award_wc_points(field: &mut CompetitionField) {
     for idx in 0..field.len() {
         let rank = field.get(idx).rank;
@@ -61,7 +55,7 @@ mod tests {
         assert_eq!(field.get(0).wc_points, 100);
         assert_eq!(field.get(1).wc_points, 80);
         assert_eq!(field.get(2).wc_points, 60);
-        assert_eq!(field.get(9).wc_points, 26); // rank 10
+        assert_eq!(field.get(9).wc_points, 26); 
     }
 
     #[test]
@@ -73,9 +67,9 @@ mod tests {
         field.sort_field(SortBy::EventPoints);
         award_wc_points(&mut field);
 
-        assert_eq!(field.get(29).wc_points, 1); // rank 30 → 1 point
-        assert_eq!(field.get(30).wc_points, 0); // rank 31 → 0
-        assert_eq!(field.get(34).wc_points, 0); // rank 35 → 0
+        assert_eq!(field.get(29).wc_points, 1); 
+        assert_eq!(field.get(30).wc_points, 0); 
+        assert_eq!(field.get(34).wc_points, 0); 
     }
 
     #[test]

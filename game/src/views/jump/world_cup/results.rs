@@ -61,9 +61,6 @@ pub struct ResultsPage {
     pub(crate) total_pages: usize,
     pub(crate) items: Vec<ResultsEntry>,
     pub(crate) compact: bool,
-    /// Rank of the last entry on the previous page (0 for page 0).
-    /// Used to correctly place the --- separator at the 30→31 transition
-    /// even when it spans across pages.
     pub(crate) prev_last_rank: usize,
 }
 
@@ -356,7 +353,7 @@ fn round_header(
     format!("{prefix} {event} {of} {total} - {hill} - R {round}")
 }
 
-#[allow(clippy::too_many_arguments)]
+
 fn render_results_entry(
     cx: &mut PaintCx<'_>,
     entry: &ResultsEntry,
@@ -448,7 +445,7 @@ pub fn render_results_page(cx: &mut PaintCx<'_>, page: &ResultsPage, resources: 
     let is_wc = page.phase == CompetitionPhase::FourHillsStandings
         || page.phase == CompetitionPhase::WorldCupStandings
         || page.phase == CompetitionPhase::SeasonComplete;
-    // Pascal: Quali=plus7(phase0), Rounds=plus8(phase1), WC=plus8(phase3)
+    
     let row_step = if is_wc {
         WC_ROW_STEP
     } else if page.phase.result_round_number().is_some() {
@@ -459,7 +456,7 @@ pub fn render_results_page(cx: &mut PaintCx<'_>, page: &ResultsPage, resources: 
 
     let mut last_rank = 0;
     if is_wc {
-        // Two-column layout: y computed from column/row, no separator needed
+        
         for (i, entry) in page.items.iter().enumerate() {
             let col = i32::from(i >= WC_COL_SPLIT);
             let col_off = col * WC_COL2_OFFSET;
@@ -483,9 +480,9 @@ pub fn render_results_page(cx: &mut PaintCx<'_>, page: &ResultsPage, resources: 
                 break;
             }
 
-            // Pascal: - - - separator between rank 30 and 31 in Round 1 results
-            // sija[who]>30 && sija[prev]<=30 — the actual predecessor in the FULL list
-            // For paginated display, check either previous visible item or prev page's last rank
+            
+            
+            
             if !page.compact
                 && page.phase == CompetitionPhase::Round1Results
                 && entry.rank > 30

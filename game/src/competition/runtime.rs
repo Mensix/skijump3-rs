@@ -26,7 +26,6 @@ pub trait CompetitionRuntime {
     fn advance_results_runtime(&mut self);
     fn is_complete_runtime(&self) -> bool;
 
-    /// Context for the current jump (used by session to record outcome).
     fn current_jump_context(&self) -> Self::Context;
 
     fn profile_idx_for_context(&self, context: &Self::Context) -> Option<usize>;
@@ -36,8 +35,6 @@ pub trait CompetitionRuntime {
     fn saves_hill_records(&self, context: &Self::Context) -> bool;
     fn is_real_world_cup_context(&self, context: &Self::Context) -> bool;
 
-    /// Current event/leg index (for new-event detection).
-    /// Returns 0 for single-event competitions.
     fn event_idx(&self) -> usize;
 }
 

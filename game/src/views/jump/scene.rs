@@ -173,7 +173,7 @@ impl JumpScene {
         self.telemetry
     }
 
-    // ── replay save dialog ─────────────────────────────────────
+    
 
     pub fn is_save_dialog_active(&self) -> bool {
         self.save_dialog.is_active()
@@ -274,7 +274,7 @@ impl JumpScene {
         self.runner.update(&mut state.rng, &mut state.wind);
     }
 
-    #[allow(clippy::too_many_arguments)]
+    
     fn build_runner(
         resources: ResourcesRef,
         state: &GameState,

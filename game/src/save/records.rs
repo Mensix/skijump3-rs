@@ -3,7 +3,6 @@ use serde::{Deserialize, Serialize};
 use crate::data::records::RecordStore;
 use crate::save::parse_toml;
 
-/// TOML wrapper — mirrors save/config.rs and save/players.rs pattern.
 #[derive(Debug, Deserialize, Serialize)]
 struct RecordsFile {
     #[serde(flatten)]
@@ -16,9 +15,21 @@ impl RecordStore {
 
         let store = &file.store;
 
-        assert!(store.top.len() <= 41, "hiscores.toml has {} top records (max 41)", store.top.len());
-        assert!(store.hill_records.len() <= 20, "hiscores.toml has {} hill records (max 20)", store.hill_records.len());
-        assert!(store.hill_goals.len() <= 20, "hiscores.toml has {} hill goals (max 20)", store.hill_goals.len());
+        assert!(
+            store.top.len() <= 41,
+            "hiscores.toml has {} top records (max 41)",
+            store.top.len()
+        );
+        assert!(
+            store.hill_records.len() <= 20,
+            "hiscores.toml has {} hill records (max 20)",
+            store.hill_records.len()
+        );
+        assert!(
+            store.hill_goals.len() <= 20,
+            "hiscores.toml has {} hill goals (max 20)",
+            store.hill_goals.len()
+        );
 
         file.store
     }
@@ -38,7 +49,6 @@ mod tests {
     use super::*;
     use std::fmt::Write;
 
-    /// Parses the bundled hiscores.toml to verify it loads correctly.
     fn bundled_store() -> RecordStore {
         let data = include_bytes!("../../assets/hiscores.toml");
         RecordStore::from_toml_bytes(data)
