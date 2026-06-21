@@ -110,12 +110,12 @@ impl GameScreen for ReplayBrowserView {
 
     fn paint(&mut self, cx: &mut GameCx<'_>, paint: &mut PaintCx<'_>) {
         paint.fill((11, 80, 100, 6), BG_DARK);
-        paint.text((11, 80), FONT_GOLD, cx.layout.langbase.lstr(17));
+        paint.text((11, 80), FONT_GOLD, cx.layout.langbase.tr(17));
         paint_replay_menu(paint, cx.layout);
         cx.layout.footer(paint);
         paint_replay_panel(paint, &self.resources, &self.entries, self.selected);
         if self.confirm_delete {
-            let are_you_sure = cx.layout.langbase.lstr(193);
+            let are_you_sure = cx.layout.langbase.tr(193);
             paint_delete_confirm(
                 paint,
                 &self.entries[self.selected].filename,
@@ -151,21 +151,21 @@ fn paint_replay_panel(
         |hill| format!("{} K{}", hill.name, hill.kr),
     );
     let field_pairs = vec![
-        (langbase.lstr(291).to_string(), trace.meta.author.clone()),
-        (langbase.lstr(292).to_string(), trace.meta.name.clone()),
-        (langbase.lstr(294).to_string(), hill),
+        (langbase.tr(291).to_string(), trace.meta.author.clone()),
+        (langbase.tr(292).to_string(), trace.meta.name.clone()),
+        (langbase.tr(294).to_string(), hill),
     ];
     let extra_saved = Some(trace.meta.saved_at.clone());
 
     paint_detail_panel(
         cx,
-        &format!("{}:", langbase.lstr(25)),
+        &format!("{}:", langbase.tr(25)),
         &entry.filename,
         &field_pairs,
         extra_saved.as_deref(),
         Some((selected + 1, entries.len())),
-        langbase.lstr(146),
-        langbase.lstr(290),
+        langbase.tr(146),
+        langbase.tr(290),
         entries.is_empty(),
     );
 }
@@ -177,7 +177,7 @@ fn paint_replay_menu(cx: &mut PaintCx<'_>, layout: &MainLayout) {
         cx.text(
             (11, y),
             FONT_BODY,
-            format!("{} - {}", num, layout.langbase.lstr(*label)),
+            format!("{} - {}", num, layout.langbase.tr(*label)),
         );
     }
 }

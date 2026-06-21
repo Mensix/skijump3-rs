@@ -195,25 +195,25 @@ impl GameScreen for HillMakerView {
         paint.fill((0, 0, 320, 200), BLACK);
         paint.pattern_fill((0, 0, 320, 200), BG_PURPLE);
 
-        paint.text((5, 5), FONT_GOLD, lb.lstr_or( 270, "SJ3 Hill Maker"));
+        paint.text((5, 5), FONT_GOLD, lb.tr(270));
 
-        paint.text((5, 21), FONT_GRAY, lb.lstr_or( 271, "(use arrows, DEL,"));
-        paint.text((5, 29), FONT_GRAY, lb.lstr_or( 272, " ENTER or ESC)"));
+        paint.text((5, 21), FONT_GRAY, lb.tr(271));
+        paint.text((5, 29), FONT_GRAY, lb.tr(272));
 
         let col1 = 100i32;
         let col2 = 160i32;
 
-        paint.text((col1, 5), FONT_TEAL, lb.lstr_or( 273, "Filename"));
-        paint.text((col2, 5), FONT_TEAL, lb.lstr_or( 274, "Hillname"));
+        paint.text((col1, 5), FONT_TEAL, lb.tr(273));
+        paint.text((col2, 5), FONT_TEAL, lb.tr(274));
 
         paint.text(
             (5, 45),
             FONT_TEAL,
             format!(
                 "{} {} {} {}",
-                lb.lstr_or( 157, "Page"),
+                lb.tr(157),
                 self.page_number(),
-                lb.lstr_or( 8, "of"),
+                lb.tr(8),
                 self.page_count()
             ),
         );
@@ -234,14 +234,14 @@ impl GameScreen for HillMakerView {
         paint.text(
             (col1, 13 + row as i32 * 8),
             FONT_GOLD,
-            lb.lstr_or( 275, "*Add New Hill*"),
+            lb.tr(275),
         );
         row += 1;
         if next.is_some() {
             paint.text(
                 (col1, 13 + row as i32 * 8),
                 FONT_GRAY,
-                lb.lstr_or( 158, "*Next Page*"),
+                lb.tr(158),
             );
             row += 1;
         }
@@ -249,19 +249,19 @@ impl GameScreen for HillMakerView {
             paint.text(
                 (col1, 13 + row as i32 * 8),
                 FONT_GRAY,
-                lb.lstr_or( 159, "*Previous Page*"),
+                lb.tr(159),
             );
             row += 1;
         }
         self.menu.paint(paint);
 
         let exit_y = 13 + (row + 2) as i32 * 8;
-        paint.text((col1, exit_y), FONT_BODY, lb.lstr_or( 276, "-Exit-"));
+        paint.text((col1, exit_y), FONT_BODY, lb.tr(276));
         if let HillMakerMode::ConfirmDelete { filename } = &self.mode {
             alert_prompt(
                 paint,
                 format!("DELETE {filename}.TOML?"),
-                lb.lstr_or( 193, "ARE YOU SURE?"), true,
+                lb.tr(193), true,
             );
         }
     }

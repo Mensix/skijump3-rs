@@ -25,7 +25,7 @@ pub(crate) fn paint_content(view: &SetupView, state: &GameState, cx: &mut PaintC
         Some(SetupModal::WindPlace(pos)) => {
             cx.fill((54, 19, 222, 162), FILL_PURPLE);
             cx.fill((55, 20, 220, 160), BG_PURPLE);
-            cx.text((75, 30), FONT_GOLD, view.langbase().lstr(221));
+            cx.text((75, 30), FONT_GOLD, view.langbase().tr(221));
 
             let winds = 10;
             for apu in 0..=winds {
@@ -37,7 +37,7 @@ pub(crate) fn paint_content(view: &SetupView, state: &GameState, cx: &mut PaintC
 
             let yy_exit = (winds * 10 + 34 + 20) as i32;
             cx.right_text((85, yy_exit), FONT_GOLD, "0.");
-            cx.text((90, yy_exit), FONT_BODY, view.langbase().lstr(154));
+            cx.text((90, yy_exit), FONT_BODY, view.langbase().tr(154));
             let stroke_y = if pos < winds {
                 44 - 3 + (pos as i32) * 10
             } else {
@@ -48,8 +48,8 @@ pub(crate) fn paint_content(view: &SetupView, state: &GameState, cx: &mut PaintC
         Some(SetupModal::SeeComps(idx)) => {
             cx.fill((74, 79, 172, 54), FILL_PURPLE);
             cx.fill((75, 80, 170, 52), BG_PURPLE);
-            cx.text((85, 85), FONT_BODY, view.langbase().lstr(220));
-            cx.text((85, 95), FONT_GRAY, view.langbase().lstr(150));
+            cx.text((85, 85), FONT_BODY, view.langbase().tr(220));
+            cx.text((85, 95), FONT_GRAY, view.langbase().tr(150));
             let opts = super::actions::seecomp_options(view, state);
             let (val, display) = opts
                 .get(idx)
@@ -61,25 +61,24 @@ pub(crate) fn paint_content(view: &SetupView, state: &GameState, cx: &mut PaintC
         }
         Some(SetupModal::ConfirmReset(kind)) => {
             let label = if kind == 1 {
-                view.langbase().lstr(190)
+                view.langbase().tr(190)
             } else {
-                view.langbase().lstr(191)
+                view.langbase().tr(191)
             };
             alert_prompt(
                 cx,
-                format!("{} {}", label, view.langbase().lstr(192)),
-                view.langbase().lstr(193),
+                format!("{} {}", label, view.langbase().tr(192)),
+                view.langbase().tr(193),
                 false,
             );
         }
         Some(SetupModal::LanguagePicker(sel)) => {
-            let langs = &view.langbase().languages;
             cx.fill((74, 41, 172, 145), FILL_PURPLE);
             cx.fill((75, 42, 170, 143), BG_PURPLE);
             cx.text((100, 50), FONT_BODY, "PLEASE CHOOSE A LANGUAGE:");
-            for (i, name) in langs.iter().enumerate() {
+            for (i, lang) in view.langbase().languages().iter().enumerate() {
                 let yy = ((i + 1) as i32) * 8 + 55;
-                cx.center_text((155, yy), FONT_GOLD, name);
+                cx.center_text((155, yy), FONT_GOLD, &lang.name);
             }
             cx.stroke(
                 (112 - 6, 64 - 3 + (sel as i32) * 8, 100 + 1, 8 + 1),
@@ -104,10 +103,10 @@ fn render_hill_goals(view: &SetupView, state: &GameState, cx: &mut PaintCx<'_>, 
     cx.pattern_fill((0, 0, 320, 19), FILL_GRAY);
     cx.pattern_fill((0, 20, 320, 180), BG_PURPLE);
     cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
-    cx.text((30, 6), FONT_BODY, view.langbase().lstr(200));
-    cx.text((40, 13), FONT_GRAY, view.langbase().lstr(243));
-    cx.text((24, 23), FONT_GOLD, view.langbase().lstr(106));
-    cx.right_text((200, 23), FONT_GOLD, view.langbase().lstr(242));
+    cx.text((30, 6), FONT_BODY, view.langbase().tr(200));
+    cx.text((40, 13), FONT_GRAY, view.langbase().tr(243));
+    cx.text((24, 23), FONT_GOLD, view.langbase().tr(106));
+    cx.right_text((200, 23), FONT_GOLD, view.langbase().tr(242));
     cx.right_text((250, 23), FONT_GOLD, "K");
     cx.right_text((300, 23), FONT_GOLD, "HR");
     let hill_count = view.resources.hills.len().min(20);
@@ -135,7 +134,7 @@ fn render_hill_goals(view: &SetupView, state: &GameState, cx: &mut PaintCx<'_>, 
     } else {
         FONT_BODY
     };
-    cx.right_text((200, exit_y), exit_color, view.langbase().lstr(154));
+    cx.right_text((200, exit_y), exit_color, view.langbase().tr(154));
     let selected_y = if selected < hill_count {
         (selected as i32 + 1) * 8 + 22
     } else {
@@ -163,7 +162,7 @@ fn render_configure_keys(
     cx.pattern_fill((0, 0, 320, 19), FILL_GRAY);
     cx.pattern_fill((0, 20, 320, 180), BG_PURPLE);
     cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
-    cx.text((30, 6), FONT_BODY, view.langbase().lstr(199));
+    cx.text((30, 6), FONT_BODY, view.langbase().tr(199));
 
     let keys = [
         state.config.key_up,
@@ -179,7 +178,7 @@ fn render_configure_keys(
         let item = temp;
         y = (temp as i32) * 10 + 40;
         cx.right_text((x, y), FONT_GOLD, format!("{}.", temp + 1));
-        cx.text((x + 10, y), FONT_BODY, view.langbase().lstr(temp + 331));
+        cx.text((x + 10, y), FONT_BODY, view.langbase().tr(temp + 331));
         if temp < 5 {
             let key_text = if capture == Some(item) {
                 "".to_string()
@@ -200,7 +199,7 @@ fn render_configure_keys(
 
     y += 20;
     cx.right_text((x, y), FONT_GOLD, "0.");
-    cx.text((x + 10, y), FONT_BODY, view.langbase().lstr(337));
+    cx.text((x + 10, y), FONT_BODY, view.langbase().tr(337));
 
     if capture.is_none() {
         let by = if selected < 6 {
@@ -226,7 +225,7 @@ fn render_screen(view: &SetupView, state: &GameState, cx: &mut PaintCx<'_>) {
         3 => 178,
         _ => return,
     };
-    cx.text((30, 6), FONT_BODY, view.langbase().lstr(title_id));
+    cx.text((30, 6), FONT_BODY, view.langbase().tr(title_id));
 
     let screen = view.screen;
     let entries = view.menu.item_count();
@@ -235,26 +234,26 @@ fn render_screen(view: &SetupView, state: &GameState, cx: &mut PaintCx<'_>) {
         let value_str = if temp > 0 {
             match (screen, temp - 1) {
                 (1, 0) => {
-                    let ln = state.config.language;
-                    let all = &view.langbase().languages;
-                    if ln >= 0 && (ln as usize) < all.len() {
-                        all[ln as usize].clone()
+                    let info = view.langbase().languages();
+                    let idx = state.config.language;
+                    if idx >= 0 && (idx as usize) < info.len() {
+                        info[idx as usize].name.clone()
                     } else {
                         "Undecided".to_string()
                     }
                 }
                 (1, 1) => {
                     if state.config.sound_effects != 0 {
-                        view.langbase().lstr(6).to_string()
+                        view.langbase().tr(6).to_string()
                     } else {
-                        view.langbase().lstr(7).to_string()
+                        view.langbase().tr(7).to_string()
                     }
                 }
                 (1, 2) => {
                     if state.config.graphics_detail == 0 {
-                        view.langbase().lstr(13).to_string()
+                        view.langbase().tr(13).to_string()
                     } else {
-                        view.langbase().lstr(14).to_string()
+                        view.langbase().tr(14).to_string()
                     }
                 }
                 (1, 3) => {
@@ -265,66 +264,66 @@ fn render_screen(view: &SetupView, state: &GameState, cx: &mut PaintCx<'_>) {
                 }
                 (2, 0) => {
                     if state.config.training_rounds == 0 {
-                        view.langbase().lstr(9).to_string()
+                        view.langbase().tr(9).to_string()
                     } else {
                         view.langbase()
-                            .lstr(state.config.training_rounds as usize)
+                            .tr(state.config.training_rounds as usize)
                             .to_string()
                     }
                 }
                 (2, 1) => {
                     if state.config.extra_statistics != 0 {
-                        view.langbase().lstr(180).to_string()
+                        view.langbase().tr(180).to_string()
                     } else {
-                        view.langbase().lstr(185).to_string()
+                        view.langbase().tr(185).to_string()
                     }
                 }
                 (2, 2) => {
                     if state.config.event_gap != 0 {
-                        view.langbase().lstr(181).to_string()
+                        view.langbase().tr(181).to_string()
                     } else {
-                        view.langbase().lstr(186).to_string()
+                        view.langbase().tr(186).to_string()
                     }
                 }
                 (2, 3) => {
                     if state.config.wc_gap != 0 {
-                        view.langbase().lstr(181).to_string()
+                        view.langbase().tr(181).to_string()
                     } else {
-                        view.langbase().lstr(186).to_string()
+                        view.langbase().tr(186).to_string()
                     }
                 }
                 (2, 4) => {
                     if state.config.compact_results != 0 {
-                        view.langbase().lstr(182).to_string()
+                        view.langbase().tr(182).to_string()
                     } else {
-                        view.langbase().lstr(187).to_string()
+                        view.langbase().tr(187).to_string()
                     }
                 }
                 (2, 5) => {
                     if state.config.invisible_back != 0 {
-                        view.langbase().lstr(183).to_string()
+                        view.langbase().tr(183).to_string()
                     } else {
-                        view.langbase().lstr(188).to_string()
+                        view.langbase().tr(188).to_string()
                     }
                 }
                 (2, 6) => {
                     if state.config.auto_hill_record_replay != 0 {
-                        view.langbase().lstr(182).to_string()
+                        view.langbase().tr(182).to_string()
                     } else {
-                        view.langbase().lstr(185).to_string()
+                        view.langbase().tr(185).to_string()
                     }
                 }
                 (2, 7) => {
                     if state.config.goals_enabled != 0 {
-                        view.langbase().lstr(180).to_string()
+                        view.langbase().tr(180).to_string()
                     } else {
-                        view.langbase().lstr(186).to_string()
+                        view.langbase().tr(186).to_string()
                     }
                 }
                 (2, 8) => {
                     if state.config.visible_computers >= 235 {
                         view.langbase()
-                            .lstr(state.config.visible_computers as usize)
+                            .tr(state.config.visible_computers as usize)
                             .to_string()
                     } else {
                         format!("#{}", state.config.visible_computers)
@@ -333,23 +332,23 @@ fn render_screen(view: &SetupView, state: &GameState, cx: &mut PaintCx<'_>) {
                 (2, 9) => wind_place_name(view.langbase(), state.config.wind_position as usize),
                 (2, 10) => {
                     if state.config.ko_system != 0 {
-                        view.langbase().lstr(182).to_string()
+                        view.langbase().tr(182).to_string()
                     } else {
-                        view.langbase().lstr(185).to_string()
+                        view.langbase().tr(185).to_string()
                     }
                 }
                 (3, 0) => {
                     if state.config.computer_hill_records != 0 {
-                        view.langbase().lstr(183).to_string()
+                        view.langbase().tr(183).to_string()
                     } else {
-                        view.langbase().lstr(187).to_string()
+                        view.langbase().tr(187).to_string()
                     }
                 }
                 (3, 1) => {
                     if state.config.unique_computer_names != 0 {
-                        view.langbase().lstr(185).to_string()
+                        view.langbase().tr(185).to_string()
                     } else {
-                        view.langbase().lstr(180).to_string()
+                        view.langbase().tr(180).to_string()
                     }
                 }
                 _ => String::new(),
@@ -424,7 +423,7 @@ fn setup_item(
         _ => return,
     };
 
-    cx.text((35, yy), FONT_BODY, view.langbase().lstr(label_id));
+    cx.text((35, yy), FONT_BODY, view.langbase().tr(label_id));
 
     if !value_str.is_empty() {
         cx.text((255, yy), FONT_GOLD, value_str);

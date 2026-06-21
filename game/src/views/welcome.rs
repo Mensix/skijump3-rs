@@ -9,14 +9,13 @@ use engine::oxide::{PaintCx, ScreenEventCx, UiEvent, Widget};
 
 pub struct WelcomeScreenView {
     menu: PixelMenu,
-    languages: Vec<String>,
     resources: ResourcesRef,
 }
 
 impl WelcomeScreenView {
     #[must_use]
-    pub fn new(resources: ResourcesRef, languages: Vec<String>) -> Self {
-        let count = languages.len();
+    pub fn new(resources: ResourcesRef) -> Self {
+        let count = resources.langbase.language_count();
         let items: Vec<OxideMenuItem> = (0..count)
             .map(|i| OxideMenuItem::new((i + 1) as u8, format!("{}", i)))
             .collect();
@@ -25,7 +24,6 @@ impl WelcomeScreenView {
                 .with_labels(false)
                 .with_box(false),
             resources,
-            languages,
         }
     }
 
@@ -41,9 +39,9 @@ impl WelcomeScreenView {
         cx.right_text((240, 36), FONT_BODY, "VALKOMMEN!");
         cx.text((100, 50), FONT_BODY, "PLEASE CHOOSE A LANGUAGE:");
 
-        for (i, name) in self.languages.iter().enumerate() {
+        for (i, lang) in self.resources.langbase.languages().iter().enumerate() {
             let y = ((i + 1) * 8 + 55) as i32;
-            cx.center_text((155, y), FONT_GOLD, name);
+            cx.center_text((155, y), FONT_GOLD, &lang.name);
         }
 
         let y = 61 + (self.menu.selected() as i32) * 8;
@@ -57,8 +55,8 @@ impl GameScreen for WelcomeScreenView {
         match self.menu.event(&mut ecx, event) {
             Some(0) => nav.navigate(RouteTarget::MainMenu),
             Some(n) => {
-                self.resources.langbase.selected.set(n - 1);
-                cx.state.config.language = (n - 1) as i32;
+                self.resources.langbase.select(n - 1);
+                cx.state.config.language = self.resources.langbase.saved_language();
                 cx.save_manager.save_config(&cx.state.config);
                 nav.navigate(RouteTarget::MainMenu);
             }

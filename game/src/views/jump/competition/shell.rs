@@ -141,7 +141,7 @@ fn is_yes(c: char, cx: &GameCx<'_>) -> bool {
     let localized = cx
         .layout
         .langbase
-        .lstr(6)
+        .tr(6)
         .chars()
         .next()
         .unwrap_or('Y')
@@ -153,7 +153,7 @@ fn is_no(c: char, cx: &GameCx<'_>) -> bool {
     let localized = cx
         .layout
         .langbase
-        .lstr(7)
+        .tr(7)
         .chars()
         .next()
         .unwrap_or('N')
@@ -170,8 +170,8 @@ fn shell_paint<T: GameScreen>(
     if shell.save_prompt {
         alert_prompt(
             paint,
-            cx.layout.langbase.lstr(521),
-            cx.layout.langbase.lstr(522),
+            cx.layout.langbase.tr(521),
+            cx.layout.langbase.tr(522),
             true,
         );
     }

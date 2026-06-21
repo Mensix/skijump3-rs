@@ -282,7 +282,7 @@ pub(crate) fn seecomp_options(view: &SetupView, state: &GameState) -> Vec<(usize
         }
     }
     for &v in &cats {
-        opts.push((v, view.langbase().lstr(v).to_string()));
+        opts.push((v, view.langbase().tr(v).to_string()));
     }
     opts
 }
@@ -347,26 +347,26 @@ fn handle_language_picker(
     event: UiEvent,
     sel: usize,
 ) -> Option<RouteTarget> {
-    let langs = &view.langbase().languages;
+    let lang_count = view.langbase().language_count();
     match event {
         UiEvent::KeyDown(Key::Up | Key::Left) => {
-            let new_sel = cycle_index(sel, langs.len(), -1);
+            let new_sel = cycle_index(sel, lang_count, -1);
             view.modal = Some(SetupModal::LanguagePicker(new_sel));
         }
         UiEvent::KeyDown(Key::Down | Key::Right) => {
-            let new_sel = cycle_index(sel, langs.len(), 1);
+            let new_sel = cycle_index(sel, lang_count, 1);
             view.modal = Some(SetupModal::LanguagePicker(new_sel));
         }
         UiEvent::KeyDown(Key::Enter) | UiEvent::Text(' ') => {
-            state.config.language = sel as i32;
+            view.langbase().select(sel);
+            state.config.language = view.langbase().saved_language();
             view.save_manager().save_config(&state.config);
-            view.resources.langbase.selected.set(sel);
             view.modal = None;
         }
         UiEvent::Text(c) if c.is_ascii_digit() => {
             if let Some(d) = c.to_digit(10) {
                 let idx = d as usize;
-                if idx >= 1 && idx <= langs.len() {
+                if idx >= 1 && idx <= lang_count {
                     view.modal = Some(SetupModal::LanguagePicker(idx - 1));
                 }
             }
@@ -520,10 +520,7 @@ fn activate_item(
         (0, 4) => view.modal = Some(SetupModal::HillGoals(0)),
         (0, 5) => return Some(RouteTarget::HillMakerSetup),
         (1, 0) => {
-            let current = state.config.language;
-            let idx = if current >= 0 { current as usize } else { 0 };
-            let langs = &view.langbase().languages;
-            let idx = idx.min(langs.len().saturating_sub(1));
+            let idx = view.langbase().selected();
             view.modal = Some(SetupModal::LanguagePicker(idx));
         }
         (1, 1) => {

@@ -276,7 +276,7 @@ pub fn render_header(cx: &mut PaintCx<'_>, competition: &Competition, resources:
             CupStyle::FourHills => 2,
             CupStyle::TeamCup => 0,
         };
-        lang.lstr(offset + cup_idx).to_string()
+        lang.tr(offset + cup_idx).to_string()
     };
 
     let phase = competition.phase();
@@ -284,28 +284,28 @@ pub fn render_header(cx: &mut PaintCx<'_>, competition: &Competition, resources:
         _ if phase == CompetitionPhase::QualificationResults => {
             format!(
                 "{} {} {} {} - {}",
-                lang.lstr(82),
+                lang.tr(82),
                 event,
-                lang.lstr(8),
+                lang.tr(8),
                 total,
                 hill_str
             )
         }
         _ if phase == CompetitionPhase::Round1Results => {
-            round_header(lang.lstr(81), event, lang.lstr(8), total, &hill_str, 1)
+            round_header(lang.tr(81), event, lang.tr(8), total, &hill_str, 1)
         }
         _ if phase == CompetitionPhase::Round2Results => {
-            round_header(lang.lstr(81), event, lang.lstr(8), total, &hill_str, 2)
+            round_header(lang.tr(81), event, lang.tr(8), total, &hill_str, 2)
         }
         _ if phase == CompetitionPhase::FourHillsStandings => {
             if competition.style() == CupStyle::FourHills && event >= total {
-                lang.lstr(85).to_string()
+                lang.tr(85).to_string()
             } else if competition.style() == CupStyle::FourHills {
                 format!(
                     "{} {} {} {} - {}",
-                    lang.lstr(84),
+                    lang.tr(84),
                     event,
-                    lang.lstr(8),
+                    lang.tr(8),
                     total,
                     hill_str
                 )
@@ -314,9 +314,9 @@ pub fn render_header(cx: &mut PaintCx<'_>, competition: &Competition, resources:
                 format!(
                     "{} {} {} {} {}",
                     prefix,
-                    lang.lstr(87),
+                    lang.tr(87),
                     event,
-                    lang.lstr(8),
+                    lang.tr(8),
                     total
                 )
             }
@@ -326,19 +326,19 @@ pub fn render_header(cx: &mut PaintCx<'_>, competition: &Competition, resources:
             format!(
                 "{} {} {} {} {}",
                 prefix,
-                lang.lstr(87),
+                lang.tr(87),
                 event,
-                lang.lstr(8),
+                lang.tr(8),
                 total
             )
         }
         _ if phase == CompetitionPhase::SeasonComplete => {
             if competition.style() == CupStyle::FourHills {
-                lang.lstr(85).to_string()
+                lang.tr(85).to_string()
             } else {
                 format!(
                     "{} {}",
-                    lang.lstr(90),
+                    lang.tr(90),
                     cup_style_str(competition.style(), 27)
                 )
             }
@@ -431,9 +431,9 @@ pub fn render_results_page(cx: &mut PaintCx<'_>, page: &ResultsPage, resources: 
     cx.pattern_fill((0, 20, 320, 180), bg);
     cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
 
-    let prev = resources.langbase.lstr(246);
-    let next = resources.langbase.lstr(247);
-    let end = resources.langbase.lstr(248);
+    let prev = resources.langbase.tr(246);
+    let next = resources.langbase.tr(247);
+    let end = resources.langbase.tr(248);
     if page.page > 0 {
         cx.right_text((319, 5), FONT_GRAY, format!("(-{prev}"));
     }
@@ -445,7 +445,7 @@ pub fn render_results_page(cx: &mut PaintCx<'_>, page: &ResultsPage, resources: 
     cx.right_text((319, 13), FONT_GRAY, format!("{hint_text}-)"));
 
     if page.total_pages == 1 && page.items.len() <= 20 {
-        cx.text((30, 190), FONT_TEAL, resources.langbase.lstr(86));
+        cx.text((30, 190), FONT_TEAL, resources.langbase.tr(86));
     }
 
     let is_wc = page.phase == CompetitionPhase::FourHillsStandings
@@ -553,17 +553,17 @@ pub fn render_stats_page(
     cx.pattern_fill((0, 20, 320, 180), bg);
     cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
 
-    cx.text((30, 6), FONT_BODY, resources.langbase.lstr(89));
+    cx.text((30, 6), FONT_BODY, resources.langbase.tr(89));
     cx.text(
-        (36 + resources.langbase.lstr(89).len() as i32 * 6, 6),
+        (36 + resources.langbase.tr(89).len() as i32 * 6, 6),
         FONT_BODY,
         player.display_name(),
     );
-    cx.text((16, 23), FONT_TEAL, resources.langbase.lstr(106));
-    cx.right_text((70, 23), FONT_TEAL, resources.langbase.lstr(108));
-    cx.right_text((90, 23), FONT_TEAL, resources.langbase.lstr(109));
-    cx.right_text((110, 23), FONT_TEAL, resources.langbase.lstr(98));
-    cx.right_text((140, 23), FONT_TEAL, resources.langbase.lstr(97));
+    cx.text((16, 23), FONT_TEAL, resources.langbase.tr(106));
+    cx.right_text((70, 23), FONT_TEAL, resources.langbase.tr(108));
+    cx.right_text((90, 23), FONT_TEAL, resources.langbase.tr(109));
+    cx.right_text((110, 23), FONT_TEAL, resources.langbase.tr(98));
+    cx.right_text((140, 23), FONT_TEAL, resources.langbase.tr(97));
     cx.right_text((170, 23), FONT_TEAL, "R 1");
     cx.right_text((268, 23), FONT_TEAL, "R 2");
 
@@ -607,9 +607,9 @@ pub fn render_stats_page(
         );
     }
 
-    let prev = resources.langbase.lstr(246);
-    let next = resources.langbase.lstr(247);
-    let end = resources.langbase.lstr(248);
+    let prev = resources.langbase.tr(246);
+    let next = resources.langbase.tr(247);
+    let end = resources.langbase.tr(248);
     if idx > 0 {
         cx.right_text((319, 5), FONT_GRAY, format!("(-{prev}"));
     }

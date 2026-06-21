@@ -75,14 +75,14 @@ impl KothSetupView {
 
         if self.mode == KothMode::Opponents {
             paint.pattern_fill((170, 0, 150, 200), BG_PURPLE);
-            paint.text((180, 2), FONT_BODY, lang.lstr(138));
-            paint.text((180, 9), FONT_GRAY, lang.lstr(139));
-            paint.text((180, 16), FONT_GRAY, lang.lstr(140));
-            paint.text((180, 24), FONT_TEAL, lang.lstr(141));
-            paint.right_text((310, 24), FONT_TEAL, lang.lstr(142));
+            paint.text((180, 2), FONT_BODY, lang.tr(138));
+            paint.text((180, 9), FONT_GRAY, lang.tr(139));
+            paint.text((180, 16), FONT_GRAY, lang.tr(140));
+            paint.text((180, 24), FONT_TEAL, lang.tr(141));
+            paint.right_text((310, 24), FONT_TEAL, lang.tr(142));
         } else {
             // --- right panel: "Computer Jumpers:" (white, Pascal 240) ---
-            paint.text((180, 10), FONT_BODY, lang.lstr(120));
+            paint.text((180, 10), FONT_BODY, lang.tr(120));
             if cfg.koth_opponent_count > 0 {
                 for i in 0..cfg.koth_opponent_count.min(20) as usize {
                     let idx = cfg.koth_opponent_ids.get(i).copied().unwrap_or(0) as usize;
@@ -96,7 +96,7 @@ impl KothSetupView {
                     paint.text((180, y), FONT_GOLD, format!("{} #{}", name, idx));
                 }
             } else {
-                paint.text((180, 30), FONT_GOLD, lang.lstr(9));
+                paint.text((180, 30), FONT_GOLD, lang.tr(9));
             }
         }
 
@@ -104,16 +104,16 @@ impl KothSetupView {
         paint.pattern_fill((4, 7, 160, 63), FILL_GRAY);
 
         // --- left panel: menu items ---
-        paint.text((10, 10), FONT_BODY, format!("1 - {}", lang.lstr(121)));
-        paint.text((10, 20), FONT_BODY, format!("2 - {}", lang.lstr(122)));
-        paint.text((10, 30), FONT_BODY, format!("3 - {}", lang.lstr(123)));
+        paint.text((10, 10), FONT_BODY, format!("1 - {}", lang.tr(121)));
+        paint.text((10, 20), FONT_BODY, format!("2 - {}", lang.tr(122)));
+        paint.text((10, 30), FONT_BODY, format!("3 - {}", lang.tr(123)));
         paint.text(
             (10, 40),
             self.col1(state),
-            format!("4 - {}", lang.lstr(124)),
+            format!("4 - {}", lang.tr(124)),
         );
         let hill_name = if cfg.koth_hill < 0 {
-            lang.lstr(155)
+            lang.tr(155)
         } else {
             self.resources
                 .hills
@@ -125,28 +125,28 @@ impl KothSetupView {
         paint.text(
             (10, 50),
             self.col1(state),
-            format!("5 - {}", lang.lstr(125)),
+            format!("5 - {}", lang.tr(125)),
         );
         let wind_str = if cfg.koth_wind != 0 {
-            lang.lstr(6)
+            lang.tr(6)
         } else {
-            lang.lstr(7)
+            lang.tr(7)
         };
         paint.text((80, 50), self.col2(state), wind_str);
         paint.text(
             (10, 60),
             self.col1(state),
-            format!("6 - {}", lang.lstr(126)),
+            format!("6 - {}", lang.tr(126)),
         );
         paint.text(
             (80, 60),
             self.col2(state),
-            lang.lstr(cfg.koth_rounds as usize),
+            lang.tr(cfg.koth_rounds as usize),
         );
-        paint.text((10, 80), FONT_BODY, format!("0 - {}", lang.lstr(127)));
+        paint.text((10, 80), FONT_BODY, format!("0 - {}", lang.tr(127)));
 
         // --- left panel bottom: K.O.T.H Challenge Level (gold, Pascal 246) ---
-        paint.text((10, 110), FONT_GOLD, lang.lstr(130));
+        paint.text((10, 110), FONT_GOLD, lang.tr(130));
 
         // --- left panel bottom: pack list (Pascal kothchallenge) ---
         let is_pack_mode = self.mode == KothMode::Packs;
@@ -479,13 +479,13 @@ fn pack_cursor_y(cur: usize) -> i32 {
 
 fn koth_pack_title(pack: u8, lang: &LangBase) -> String {
     match pack {
-        0 => format!("1. {}", lang.lstr(131)),
-        1 => format!("2. {}", lang.lstr(132)),
-        2 => format!("3. {}", lang.lstr(133)),
-        3 => format!("4. {}", lang.lstr(134)),
-        4 => format!("5. {}", lang.lstr(135)),
-        5 => format!("6. {}", lang.lstr(136)),
-        6 => format!("0. {}", lang.lstr(137)),
+        0 => format!("1. {}", lang.tr(131)),
+        1 => format!("2. {}", lang.tr(132)),
+        2 => format!("3. {}", lang.tr(133)),
+        3 => format!("4. {}", lang.tr(134)),
+        4 => format!("5. {}", lang.tr(135)),
+        5 => format!("6. {}", lang.tr(136)),
+        6 => format!("0. {}", lang.tr(137)),
         _ => format!("{pack}. ?"),
     }
 }

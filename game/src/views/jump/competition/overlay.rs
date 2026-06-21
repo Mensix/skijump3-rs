@@ -346,7 +346,7 @@ impl CompetitionOverlay {
         let lang = &self.resources.langbase;
 
         cx.sprite(Sprite::JumperInfoBox as u16, (3, 150));
-        cx.text((12, 150), FONT_TEAL, lang.lstr(400));
+        cx.text((12, 150), FONT_TEAL, lang.tr(400));
         cx.text((12, 160), FONT_TEAL, "\"");
 
         let cstr0 = self.coach_range(lang, base + 2, t.angle_counter, &[49, 61, 200]);
@@ -363,9 +363,9 @@ impl CompetitionOverlay {
         );
         let mut cstr3 = self.coach_range(lang, base + 28, t.height, &[49, 55, 60, 64, 70, 90, 200]);
 
-        // Pascal: if (grade=1) then cstr[3]:=lstr(index+35);
+        // Pascal: if (grade=1) then cstr[3]:=tr(index+35);
         if t.grade == 1 {
-            cstr3 = lang.lstr(base + 35).to_string();
+            cstr3 = lang.tr(base + 35).to_string();
         }
 
         let cstr0 = if t.grade < 10 { cstr1.clone() } else { cstr0 };
@@ -417,7 +417,7 @@ impl CompetitionOverlay {
             .iter()
             .position(|&t| val <= t)
             .unwrap_or(thresholds.len());
-        lang.lstr(base + idx).to_string()
+        lang.tr(base + idx).to_string()
     }
 
     /// Pascal `JumperInfoBox` at (3,150).
@@ -450,11 +450,11 @@ impl CompetitionOverlay {
             .unwrap_or((CompetitionPhase::Qualification, 0, false));
 
         let phase_label = match phase {
-            CompetitionPhase::Training(n) => format!("{} {}", self.resources.langbase.lstr(52), n),
-            CompetitionPhase::Qualification => self.resources.langbase.lstr(53).to_string(),
-            CompetitionPhase::Round1 => self.resources.langbase.lstr(54).to_string(),
-            CompetitionPhase::Round2 => self.resources.langbase.lstr(55).to_string(),
-            _ => self.resources.langbase.lstr(51).to_string(),
+            CompetitionPhase::Training(n) => format!("{} {}", self.resources.langbase.tr(52), n),
+            CompetitionPhase::Qualification => self.resources.langbase.tr(53).to_string(),
+            CompetitionPhase::Round1 => self.resources.langbase.tr(54).to_string(),
+            CompetitionPhase::Round2 => self.resources.langbase.tr(55).to_string(),
+            _ => self.resources.langbase.tr(51).to_string(),
         };
 
         let name = if quali_wc {
@@ -557,7 +557,7 @@ impl CompetitionOverlay {
                 let current_pts = pel.points.unwrap_or(0.0);
                 let temp = leader_pts - current_pts;
                 if temp > 0.0 {
-                    let label = self.resources.langbase.lstr(62);
+                    let label = self.resources.langbase.tr(62);
                     cx.right_text(
                         (308, 62),
                         FONT_GOLD,
@@ -593,16 +593,16 @@ impl CompetitionOverlay {
         let total = ki.total_count;
         let left = ki.alive_count;
         hud::push_info_panel_frame(cx);
-        // "Jumpers Left: N of TOTAL" — Pascal lstr(67) + lstr(8)
-        let str1 = format!("{} {} {}", lang.lstr(67), left, lang.lstr(8));
+        // "Jumpers Left: N of TOTAL" — Pascal tr(67) + tr(8)
+        let str1 = format!("{} {} {}", lang.tr(67), left, lang.tr(8));
         cx.right_text((308, 9), FONT_GOLD, format!("{str1} {total}"));
 
         // Phase label + worst-alive info (Pascal top5[1]=lowest points for KOTH)
         if !ki.last_name.is_empty() {
             let label = if ki.jump_round == 0 && ki.jump_rounds_per_elimination > 1 {
-                lang.lstr(69) // "Currently Last:"
+                lang.tr(69) // "Currently Last:"
             } else {
-                lang.lstr(68) // "Need to Beat:"
+                lang.tr(68) // "Need to Beat:"
             };
             cx.right_text((308, 19), FONT_GOLD, label);
             let pts_str = format_decimal(ki.last_points);
@@ -620,7 +620,7 @@ impl CompetitionOverlay {
         cx.right_text(
             (308, 9),
             FONT_GOLD,
-            self.resources.langbase.lstr(70).to_string(),
+            self.resources.langbase.tr(70).to_string(),
         );
         for (i, entry) in data.wc_standings_top5.iter().enumerate() {
             let s = format!("{}  {}", entry.name, entry.points);
@@ -636,7 +636,7 @@ impl CompetitionOverlay {
                     cx.right_text(
                         (308, 62),
                         FONT_GOLD,
-                        format!("{}: {diff}", self.resources.langbase.lstr(62)),
+                        format!("{}: {diff}", self.resources.langbase.tr(62)),
                     );
                 }
             }

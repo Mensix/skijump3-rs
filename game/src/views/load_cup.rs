@@ -66,12 +66,12 @@ impl GameScreen for LoadCupView {
 
     fn paint(&mut self, cx: &mut GameCx<'_>, paint: &mut PaintCx<'_>) {
         paint.fill((11, 80, 100, 6), BG_DARK);
-        paint.text((11, 80), FONT_GOLD, cx.layout.langbase.lstr(18));
+        paint.text((11, 80), FONT_GOLD, cx.layout.langbase.tr(18));
         paint_jump_menu(paint, cx.layout);
         cx.layout.footer(paint);
         paint_detail_panel(
             paint,
-            &format!("{}:", cx.layout.langbase.lstr(520)),
+            &format!("{}:", cx.layout.langbase.tr(520)),
             self.selected_entry().map_or("", |e| &e.filename),
             &[
                 (
@@ -87,8 +87,8 @@ impl GameScreen for LoadCupView {
             ],
             None,
             None,
-            cx.layout.langbase.lstr(146),
-            cx.layout.langbase.lstr(523),
+            cx.layout.langbase.tr(146),
+            cx.layout.langbase.tr(523),
             self.entries.is_empty(),
         );
     }
@@ -105,7 +105,7 @@ fn paint_jump_menu(cx: &mut PaintCx<'_>, layout: &MainLayout) {
         cx.text(
             (11, y),
             FONT_BODY,
-            format!("{} - {}", num, layout.langbase.lstr(*label)),
+            format!("{} - {}", num, layout.langbase.tr(*label)),
         );
     }
 }

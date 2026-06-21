@@ -67,9 +67,9 @@ impl TeamCupJumpView {
                     state.setup_jump_event();
                 }
                 let phase_label = if context.round_idx == 0 {
-                    self.controller.resources().langbase.lstr(54).to_string()
+                    self.controller.resources().langbase.tr(54).to_string()
                 } else {
-                    self.controller.resources().langbase.lstr(55).to_string()
+                    self.controller.resources().langbase.tr(55).to_string()
                 };
                 self.controller.prepare_human_jump(
                     participant,

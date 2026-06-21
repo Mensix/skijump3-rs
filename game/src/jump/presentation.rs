@@ -106,7 +106,7 @@ fn gate_info_elements(
     ctx: &JumpPresentationContext<'_>,
 ) {
     if ctx.allow_gate_adjust {
-        let label58 = ctx.langbase.lstr(58);
+        let label58 = ctx.langbase.tr(58);
         let label58_w = ctx.font.string_width(label58) as i32;
         cx.text((64, 19), FONT_BODY, label58);
         cx.text(
@@ -124,7 +124,7 @@ fn jumper_info_box_elements(
     ctx: &JumpPresentationContext<'_>,
 ) {
     let phase_label = if ctx.phase_label.is_empty() {
-        ctx.langbase.lstr(51)
+        ctx.langbase.tr(51)
     } else {
         ctx.phase_label
     };
@@ -204,7 +204,7 @@ fn result_elements(
         FONT_GOLD,
         format!("{:.1}", f64::from(frame.score) / 10.0),
     );
-    cx.right_text((308, 73), FONT_TEAL, ctx.langbase.lstr(298));
+    cx.right_text((308, 73), FONT_TEAL, ctx.langbase.tr(298));
 }
 
 fn landing_elements(
@@ -251,7 +251,7 @@ fn dq_elements(cx: &mut PaintCx<'_>, frame: &JumpRenderFrame, ctx: &JumpPresenta
     cx.text(
         (12, 160),
         FONT_BODY,
-        format!("{} {}", ctx.jumper_name, ctx.langbase.lstr(79)),
+        format!("{} {}", ctx.jumper_name, ctx.langbase.tr(79)),
     );
 }
 

@@ -18,13 +18,13 @@ pub(crate) fn push_info_panel_frame(cx: &mut PaintCx<'_>) {
 
 pub(crate) fn push_keymap(cx: &mut PaintCx<'_>, langbase: &LangBase) {
     push_info_panel_frame(cx);
-    cx.right_text((308, 9), FONT_GOLD, langbase.lstr(330));
+    cx.right_text((308, 9), FONT_GOLD, langbase.tr(330));
     for i in 1..=5 {
         let ii = i as i32;
         cx.right_text(
             (308, 9 + ii * 10),
             FONT_GOLD,
-            format!("{}: {}", langbase.lstr(330 + i), key_name(i)),
+            format!("{}: {}", langbase.tr(330 + i), key_name(i)),
         );
     }
 }
@@ -37,7 +37,7 @@ pub(crate) fn push_hill_record_info(
 ) {
     push_info_panel_frame(cx);
     cx.right_text((308, 9), FONT_GOLD, hill_name_k);
-    cx.right_text((308, 19), FONT_GOLD, langbase.lstr(65));
+    cx.right_text((308, 19), FONT_GOLD, langbase.tr(65));
     if let Some(record) = hill_record {
         if record.len > 0.0 {
             cx.right_text((308, 29), FONT_GOLD, &record.name);
@@ -55,7 +55,7 @@ pub(crate) fn push_jumper_info_box(
     subline: Option<(&str, Rgba)>,
 ) {
     cx.sprite(sprites::Sprite::JumperInfoBox as u16, (3, 150));
-    let label56 = langbase.lstr(56);
+    let label56 = langbase.tr(56);
     let label_w = font.string_width(label56) as i32;
     cx.text((12, 160), FONT_TEAL, phase_label);
     cx.text((12, 172), FONT_TEAL, label56);
@@ -63,5 +63,5 @@ pub(crate) fn push_jumper_info_box(
     if let Some((text, color)) = subline {
         cx.text((14 + label_w, 179), color, text);
     }
-    cx.text((12, 191), FONT_GRAY, langbase.lstr(59));
+    cx.text((12, 191), FONT_GRAY, langbase.tr(59));
 }

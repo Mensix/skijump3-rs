@@ -25,24 +25,16 @@ pub fn format_profile_value(
                 format!("#{}", profile.replace)
             }
         }
-        6 => {
+            6 => {
             if profile.coach_style == 0 {
-                langbase.lstr_or( 9, "None")
+                langbase.tr(9).to_string()
             } else {
-                langbase.lstr_or(
-                    361 + profile.coach_style * 40,
-                    &format!("Style {}", profile.coach_style),
-                )
+                langbase.tr(361 + profile.coach_style * 40).to_string()
             }
         }
-        7 => langbase.lstr_or(
-            231 + profile.skip_qualification,
-            match profile.skip_qualification {
-                0 => "Never",
-                1 => "If possible",
-                _ => "Always",
-            },
-        ),
+        7 => {
+            langbase.tr(231 + profile.skip_qualification).to_string()
+        }
         10 => profile.total_jumps.to_string(),
         11 => profile.world_cups.to_string(),
         12 => profile.legs_won.to_string(),
@@ -67,10 +59,7 @@ pub fn format_profile_value(
             if profile.koth_level == 0 {
                 "-".to_string()
             } else {
-                langbase.lstr_or(
-                    130 + profile.koth_level,
-                    &format!("Level {}", profile.koth_level),
-                )
+                langbase.tr(130 + profile.koth_level).to_string()
             }
         }
         _ => String::new(),

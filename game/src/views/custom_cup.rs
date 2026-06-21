@@ -88,16 +88,16 @@ impl CustomCupSetupView {
 
     fn paint_content(&self, state: &GameState, cx: &mut PaintCx<'_>) {
         let lang = &self.resources.langbase;
-        let help_line = format!("{}, {}, {}", lang.lstr(285), lang.lstr(286), lang.lstr(287));
+        let help_line = format!("{}, {}, {}", lang.tr(285), lang.tr(286), lang.tr(287));
         cx.fill((0, 0, 320, 200), BLACK);
         cx.pattern_fill((0, 0, 11, 200), FILL_GRAY);
         cx.pattern_fill((12, 0, 296, 200), BG_PURPLE);
         cx.pattern_fill((309, 0, 11, 200), FILL_GRAY);
         cx.sprite(sprites::Sprite::Logo as u16, (30, 8));
-        cx.text((68, 8), FONT_BODY, lang.lstr(118));
-        cx.text((78, 16), FONT_GRAY, lang.lstr(119));
+        cx.text((68, 8), FONT_BODY, lang.tr(118));
+        cx.text((78, 16), FONT_GRAY, lang.tr(119));
         cx.text((78, 23), FONT_GRAY, help_line);
-        cx.text((78, 30), FONT_GRAY, lang.lstr(288));
+        cx.text((78, 30), FONT_GRAY, lang.tr(288));
 
         for (i, &hill_idx) in self.selected.iter().enumerate() {
             self.paint_hill(cx, i, hill_idx, false);
@@ -120,8 +120,8 @@ impl CustomCupSetupView {
             CustomCupMode::ConfirmOverwrite => {
                 self.paint_confirm(
                     cx,
-                    &format!("FILE {}", self.resources.langbase.lstr(345)),
-                    &self.resources.langbase.lstr(346),
+                    &format!("FILE {}", self.resources.langbase.tr(345)),
+                    &self.resources.langbase.tr(346),
                 )
             }
             CustomCupMode::Load => self.paint_load(cx),
@@ -129,7 +129,7 @@ impl CustomCupSetupView {
                 self.paint_confirm(
                     cx,
                     "DELETE SELECTED SET?",
-                    &self.resources.langbase.lstr(193),
+                    &self.resources.langbase.tr(193),
                 )
             }
             CustomCupMode::Message => self.paint_message(cx),
@@ -142,8 +142,8 @@ impl CustomCupSetupView {
 
     fn paint_save_input(&self, cx: &mut PaintCx<'_>) {
         self.paint_modal_box(cx, (75, 70, 170, 50));
-        cx.text((85, 75), FONT_BODY, self.resources.langbase.lstr(117));
-        cx.text((85, 85), FONT_GOLD, self.resources.langbase.lstr(273));
+        cx.text((85, 75), FONT_BODY, self.resources.langbase.tr(117));
+        cx.text((85, 85), FONT_GOLD, self.resources.langbase.tr(273));
         cx.fill((85, 95, 95, 20), BLACK);
         cx.text((95, 102), FONT_BODY, &self.filename_input);
         let cursor_x = 95 + self.resources.font.string_width(&self.filename_input) as i32;
@@ -152,12 +152,12 @@ impl CustomCupSetupView {
 
     fn paint_load(&self, cx: &mut PaintCx<'_>) {
         self.paint_modal_box(cx, (75, 70, 170, 80));
-        cx.text((85, 75), FONT_BODY, self.resources.langbase.lstr(116));
+        cx.text((85, 75), FONT_BODY, self.resources.langbase.tr(116));
         if self.load_entries.is_empty() {
-            cx.text((95, 102), FONT_GRAY, self.resources.langbase.lstr(356));
+            cx.text((95, 102), FONT_GRAY, self.resources.langbase.tr(356));
             return;
         }
-        cx.text((85, 85), FONT_GOLD, self.resources.langbase.lstr(273));
+        cx.text((85, 85), FONT_GOLD, self.resources.langbase.tr(273));
         cx.fill((85, 95, 95, 20), BLACK);
         cx.text((95, 102), FONT_BODY, &self.load_entries[self.load_index]);
         cx.right_text(
@@ -165,7 +165,7 @@ impl CustomCupSetupView {
             FONT_GOLD,
             format!("{} / {}", self.load_index + 1, self.load_entries.len()),
         );
-        cx.text((85, 130), FONT_GRAY, self.resources.langbase.lstr(119));
+        cx.text((85, 130), FONT_GRAY, self.resources.langbase.tr(119));
     }
 
     fn paint_confirm(&self, cx: &mut PaintCx<'_>, line1: &str, line2: &str) {
@@ -175,7 +175,7 @@ impl CustomCupSetupView {
     fn paint_message(&self, cx: &mut PaintCx<'_>) {
         self.paint_modal_box(cx, (75, 80, 170, 40));
         cx.text((85, 92), FONT_BODY, &self.message);
-        cx.text((85, 108), FONT_GRAY, self.resources.langbase.lstr(15));
+        cx.text((85, 108), FONT_GRAY, self.resources.langbase.tr(15));
     }
 
     fn handle_input(&mut self, state: &mut GameState, event: UiEvent) -> Option<RouteTarget> {
@@ -370,7 +370,7 @@ impl CustomCupSetupView {
             .load_index
             .min(self.load_entries.len().saturating_sub(1));
         self.mode = if self.load_entries.is_empty() {
-            let msg = self.resources.langbase.lstr(356).to_string();
+            let msg = self.resources.langbase.tr(356).to_string();
             self.message = msg;
             CustomCupMode::Message
         } else {
@@ -420,7 +420,7 @@ impl CustomCupSetupView {
         self.resources.files.write(&set_path(&name), &bytes);
         self.filename_input = name.clone();
         self.update_last_custom_cup_file(state, name);
-        let message = self.resources.langbase.lstr(352).to_string();
+        let message = self.resources.langbase.tr(352).to_string();
         self.show_message(&message);
     }
 

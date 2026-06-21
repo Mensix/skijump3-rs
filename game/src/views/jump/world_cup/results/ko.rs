@@ -26,7 +26,7 @@ pub fn render_ko_pairs(
     cx.pattern_fill((0, 20, 320, 180), BG_PURPLE);
     cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
 
-    cx.text((30, 6), FONT_BODY, resources.langbase.lstr(94));
+    cx.text((30, 6), FONT_BODY, resources.langbase.tr(94));
 
     let standings = if show_results {
         competition.ko_pairing_standings()
@@ -44,7 +44,7 @@ pub fn render_ko_pairs(
         render_ko_side(cx, right, y, false, show_results, resources);
     }
 
-    cx.right_text((305, 6), FONT_BODY, resources.langbase.lstr(15).to_string());
+    cx.right_text((305, 6), FONT_BODY, resources.langbase.tr(15).to_string());
     cx.fill((304, 4, 9, 11), BG_PURPLE);
     if show_cursor {
         cx.fill((306, 12, 5, 1), FONT_BODY);

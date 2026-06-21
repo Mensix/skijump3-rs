@@ -187,7 +187,7 @@ impl ReplayView {
                 FONT_TEAL,
                 format!(
                     "{} {}",
-                    self.resources.langbase.lstr(340),
+                    self.resources.langbase.tr(340),
                     replay_time(
                         session.frame_index(),
                         session.trace().meta.flight_start,
@@ -200,7 +200,7 @@ impl ReplayView {
                 FONT_TEAL,
                 format!(
                     "{} {}",
-                    self.resources.langbase.lstr(341),
+                    self.resources.langbase.tr(341),
                     replay_distance(
                         session,
                         self.resources
@@ -215,7 +215,7 @@ impl ReplayView {
                 FONT_TEAL,
                 format!(
                     "{} {}",
-                    self.resources.langbase.lstr(342),
+                    self.resources.langbase.tr(342),
                     replay_speed_text(self.playback.speed(), &self.resources.langbase)
                 ),
             );
@@ -368,15 +368,15 @@ fn replay_distance(session: &ReplaySession, hill_pk: f64) -> String {
 
 fn replay_gate_text(langbase: &LangBase, gate: i32) -> Option<String> {
     match gate {
-        1..=5 => Some(langbase.lstr((26 + gate) as usize).to_string()),
-        11.. => Some(format!("{} {}", langbase.lstr(58), 100 - gate)),
+        1..=5 => Some(langbase.tr((26 + gate) as usize).to_string()),
+        11.. => Some(format!("{} {}", langbase.tr(58), 100 - gate)),
         _ => None,
     }
 }
 
 fn replay_speed_text(speed: PlaybackSpeed, langbase: &LangBase) -> String {
     match speed {
-        PlaybackSpeed::Variable => langbase.lstr(343).to_string(),
+        PlaybackSpeed::Variable => langbase.tr(343).to_string(),
         PlaybackSpeed::Pct25 => "50%".to_string(),
         PlaybackSpeed::Pct50 => "75%".to_string(),
         PlaybackSpeed::Pct100 => "100%".to_string(),
@@ -390,16 +390,16 @@ fn intro_box_elements(cx: &mut PaintCx<'_>, langbase: &LangBase, phase: u8, curs
     let iy = if phase <= 3 { 140 } else { 30 };
     cx.fill((ix - 7, iy - 7, 269, 40), FILL_PURPLE);
     cx.fill((ix - 6, iy - 6, 267, 38), BG_PURPLE);
-    cx.text((ix, iy), FONT_GOLD, langbase.lstr(360 + phase as usize * 2));
+    cx.text((ix, iy), FONT_GOLD, langbase.tr(360 + phase as usize * 2));
     cx.text(
         (ix, iy + 10),
         FONT_GOLD,
-        langbase.lstr(361 + phase as usize * 2),
+        langbase.tr(361 + phase as usize * 2),
     );
     cx.right_text(
         (ix + 246, iy + 21),
         FONT_BODY,
-        langbase.lstr(15).to_string(),
+        langbase.tr(15).to_string(),
     );
     cx.fill((ix + 246 + 1 - 2 + 1, iy + 21 - 2, 9, 11), BG_PURPLE);
     if cursor_visible {

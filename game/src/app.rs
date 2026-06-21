@@ -46,9 +46,10 @@ impl Game {
         let app_load = load_app(Rc::clone(&files), font.clone(), content_store);
 
         let start_route = {
-            if app_load.state.config.language >= 0
-                && (app_load.state.config.language as usize)
-                    < app_load.resources.langbase.languages.len()
+            if app_load
+                .resources
+                .langbase
+                .is_saved_language_valid(app_load.state.config.language)
             {
                 RouteTarget::MainMenu
             } else {

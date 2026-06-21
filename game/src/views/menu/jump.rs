@@ -96,7 +96,7 @@ impl GameScreen for JumpMenuView {
         cx.layout.jumpers(paint, &cx.state.profiles);
         cx.layout.registration(paint);
         paint.fill((1, 94, 116, 106), BG_DARK);
-        paint.text((11, 80), FONT_GOLD, cx.layout.langbase.lstr(18));
+        paint.text((11, 80), FONT_GOLD, cx.layout.langbase.tr(18));
         paint_jump_menu(paint, &self.menu, cx.layout);
         cx.layout.footer(paint);
         if self.show_team_warning {
@@ -174,11 +174,11 @@ impl JumpMenuView {
         let lang = &layout.langbase;
         cx.fill((59, 59, 203, 83), BLACK);
         cx.pattern_fill((60, 60, 201, 81), BG_RED);
-        cx.text((80, 72), FONT_GOLD, lang.lstr(261));
-        cx.text((80, 82), FONT_GOLD, lang.lstr(262));
-        cx.text((80, 92), FONT_GOLD, lang.lstr(263));
-        cx.text((80, 112), FONT_GOLD, lang.lstr(264));
-        cx.text((80, 122), FONT_GOLD, lang.lstr(265));
+        cx.text((80, 72), FONT_GOLD, lang.tr(261));
+        cx.text((80, 82), FONT_GOLD, lang.tr(262));
+        cx.text((80, 92), FONT_GOLD, lang.tr(263));
+        cx.text((80, 112), FONT_GOLD, lang.tr(264));
+        cx.text((80, 122), FONT_GOLD, lang.tr(265));
     }
 }
 
@@ -190,7 +190,7 @@ fn paint_jump_menu(cx: &mut PaintCx<'_>, menu: &PixelMenu, layout: &MainLayout) 
         cx.text(
             (11, y),
             FONT_BODY,
-            format!("{} - {}", num, layout.langbase.lstr(*label)),
+            format!("{} - {}", num, layout.langbase.tr(*label)),
         );
     }
     let selected = menu.selected().min(y_offsets.len().saturating_sub(1));

@@ -161,7 +161,7 @@ pub(super) fn handle_edit_enter(
             let p = &mut state.profiles.profiles[profile];
             p.coach_style += 1;
             let style = p.coach_style;
-            let check = view.resources.langbase.lstr(361 + style * 40);
+            let check = view.resources.langbase.tr(361 + style * 40);
             if check == "?" {
                 state.profiles.profiles[profile].coach_style = 0;
             }

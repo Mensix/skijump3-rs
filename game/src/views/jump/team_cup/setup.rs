@@ -205,7 +205,7 @@ fn naming_elements(
             cx.text(
                 (xx, 30),
                 FONT_BODY,
-                format!("{} {}:", resources.langbase.lstr(113), n + 1),
+                format!("{} {}:", resources.langbase.tr(113), n + 1),
             );
             cx.fill((xx - 2, 40, 125, 10), BLACK);
             cx.text((xx, 42), FONT_BODY, name_buffer.to_string());
@@ -242,7 +242,7 @@ fn ready_elements(
     cx.right_text(
         (305, 180),
         FONT_BODY,
-        resources.langbase.lstr(15).to_string(),
+        resources.langbase.tr(15).to_string(),
     );
     cx.fill((305 - 1, 180 - 2, 9, 11), BG_TEAM);
     if cursor_visible {
@@ -261,7 +261,7 @@ fn showteams_elements(
     cx.pattern_fill((0, 20, 320, 180), BG_TEAM);
 
     cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
-    cx.text((30, 6), FONT_BODY, resources.langbase.lstr(111).to_string());
+    cx.text((30, 6), FONT_BODY, resources.langbase.tr(111).to_string());
 
     let mut x = 5i32;
     let mut y = 24i32;
@@ -296,7 +296,7 @@ fn showteams_elements(
         }
     }
 
-    cx.right_text((305, 6), FONT_BODY, resources.langbase.lstr(15).to_string());
+    cx.right_text((305, 6), FONT_BODY, resources.langbase.tr(15).to_string());
     cx.fill((305 - 1, 6 - 2, 9, 11), BG_TEAM);
     if cursor_visible {
         cx.fill((305 + 1, 6 + 6, 5, 1), FONT_BODY);
@@ -315,17 +315,17 @@ fn push_named_team(
     cx.text(
         (xx, 30),
         FONT_GRAY,
-        format!("{} {}:", resources.langbase.lstr(114), n + 1),
+        format!("{} {}:", resources.langbase.tr(114), n + 1),
     );
     cx.text((xx, 42), FONT_BODY, team_names[n].clone());
 }
 
 fn push_team_cup_header(cx: &mut PaintCx<'_>, resources: &ResourcesRef, state: &GameState) {
-    cx.text((30, 6), FONT_BODY, resources.langbase.lstr(111).to_string());
+    cx.text((30, 6), FONT_BODY, resources.langbase.tr(111).to_string());
     cx.text(
         (30, 110),
         FONT_BODY,
-        resources.langbase.lstr(112).to_string(),
+        resources.langbase.tr(112).to_string(),
     );
 
     if let Some(schedule) = state

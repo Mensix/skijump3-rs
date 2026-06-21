@@ -22,7 +22,7 @@ const KOTH_BG: Rgba = BG_GREEN;
 
 fn separator_label(lang: &LangBase, round: u8) -> String {
     let idx = 101 + (round as usize % 5);
-    lang.lstr(idx).to_string()
+    lang.tr(idx).to_string()
 }
 
 /// One entry in the KOTH results list.
@@ -127,12 +127,12 @@ pub fn render(cx: &mut PaintCx<'_>, resources: &ResourcesRef, state: &GameState)
         let (entries, remaining, _is_final) = build_entries(c);
 
         let title = if remaining <= 1 {
-            format!("{}!", resources.langbase.lstr(31))
+            format!("{}!", resources.langbase.tr(31))
         } else {
             format!(
                 "{} {}",
-                resources.langbase.lstr(31),
-                resources.langbase.lstr(95)
+                resources.langbase.tr(31),
+                resources.langbase.tr(95)
             )
         };
 
@@ -151,7 +151,7 @@ pub fn render(cx: &mut PaintCx<'_>, resources: &ResourcesRef, state: &GameState)
         cx.right_text(
             (319, 13),
             FONT_GRAY,
-            format!("{}-)", resources.langbase.lstr(248)),
+            format!("{}-)", resources.langbase.tr(248)),
         );
 
         // Title
@@ -217,7 +217,7 @@ pub fn render(cx: &mut PaintCx<'_>, resources: &ResourcesRef, state: &GameState)
                 cx.text(
                     (COL_EXTRA, y),
                     col_rank,
-                    resources.langbase.lstr(143).to_string(),
+                    resources.langbase.tr(143).to_string(),
                 );
             }
 

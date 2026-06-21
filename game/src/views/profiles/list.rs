@@ -225,7 +225,7 @@ impl ProfilesView {
                     cx.text(
                         (x, 44),
                         FONT_BODY,
-                        self.resources.langbase.lstr_or( 9, "None"),
+                        self.resources.langbase.tr(9),
                     );
                 }
             }
@@ -236,15 +236,15 @@ impl ProfilesView {
             let name = &state.profiles.profiles[profile].name;
             alert_prompt(
                 cx,
-                format!("{} {}", self.resources.langbase.lstr_or( 328, "Delete"), name),
-                self.resources.langbase.lstr_or( 193, "Are you sure?"),
+                format!("{} {}", self.resources.langbase.tr(328), name),
+                self.resources.langbase.tr(193),
                 true,
             );
         } else if self.confirm_reset.is_some() {
             alert_prompt(
                 cx,
-                self.resources.langbase.lstr_or( 329, "Reset jumper?"),
-                self.resources.langbase.lstr_or( 193, "Are you sure?"),
+                self.resources.langbase.tr(329),
+                self.resources.langbase.tr(193),
                 true,
             );
         }

@@ -17,7 +17,7 @@ impl MainLayout {
     }
 
     pub fn background(&self, cx: &mut PaintCx<'_>) {
-        cx.text((170, 51), FONT_BODY, self.langbase.lstr(34));
+        cx.text((170, 51), FONT_BODY, self.langbase.tr(34));
     }
 
     pub fn jumpers(&self, cx: &mut PaintCx<'_>, profiles: &ProfileStore) {
@@ -37,7 +37,7 @@ impl MainLayout {
         cx.text(
             (132, 163),
             FONT_BODY,
-            format!("{} {}", self.langbase.lstr(35), self.langbase.lstr(36)),
+            format!("{} {}", self.langbase.tr(35), self.langbase.tr(36)),
         );
         cx.fill((132, 175, 177, 22), FILL_PURPLE);
         cx.text((140, 177), FONT_GOLD, "EVERYONE - THANKS FOR THE SUPPORT!");

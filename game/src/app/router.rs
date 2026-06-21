@@ -67,10 +67,7 @@ fn make_screen(
             let filename = state.nav_edit_hill.clone();
             Box::new(EditHillView::new(resources.clone(), filename))
         }
-        RouteTarget::Welcome => Box::new(WelcomeScreenView::new(
-            resources.clone(),
-            resources.langbase.languages.clone(),
-        )),
+        RouteTarget::Welcome => Box::new(WelcomeScreenView::new(resources.clone())),
         RouteTarget::Quit => Box::new(MainMenuView::new()),
         _ => unreachable!(),
     }

@@ -395,11 +395,11 @@ impl WorldCupJumpView {
 
 fn phase_label(resources: &ResourcesRef, phase: CompetitionPhase) -> String {
     match phase {
-        CompetitionPhase::Training(n) => format!("{} {}", resources.langbase.lstr(52), n),
-        CompetitionPhase::Qualification => resources.langbase.lstr(53).to_string(),
-        CompetitionPhase::Round1 => resources.langbase.lstr(54).to_string(),
-        CompetitionPhase::Round2 => resources.langbase.lstr(55).to_string(),
-        _ => resources.langbase.lstr(51).to_string(),
+        CompetitionPhase::Training(n) => format!("{} {}", resources.langbase.tr(52), n),
+        CompetitionPhase::Qualification => resources.langbase.tr(53).to_string(),
+        CompetitionPhase::Round1 => resources.langbase.tr(54).to_string(),
+        CompetitionPhase::Round2 => resources.langbase.tr(55).to_string(),
+        _ => resources.langbase.tr(51).to_string(),
     }
 }
 

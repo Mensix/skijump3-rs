@@ -69,8 +69,8 @@ impl GameScreen for MainMenuView {
                 self.confirming_quit = true;
                 let qi = 251 + (cx.state.rng.random_i32(3) as usize).min(2);
                 let pi = 256 + (cx.state.rng.random_i32(3) as usize).min(2);
-                self.quit_question = cx.layout.langbase.lstr(qi).to_string();
-                self.quit_prompt = cx.layout.langbase.lstr(pi).to_string();
+                self.quit_question = cx.layout.langbase.tr(qi).to_string();
+                self.quit_prompt = cx.layout.langbase.tr(pi).to_string();
                 nav.consume();
             }
             Some(n) => {
@@ -89,7 +89,7 @@ impl GameScreen for MainMenuView {
         cx.layout.background(paint);
         cx.layout.jumpers(paint, &cx.state.profiles);
         cx.layout.registration(paint);
-        paint.text((11, 80), FONT_GOLD, cx.layout.langbase.lstr(17));
+        paint.text((11, 80), FONT_GOLD, cx.layout.langbase.tr(17));
         paint_main_menu(paint, &self.menu, cx.layout);
         cx.layout.footer(paint);
         if self.confirming_quit {
@@ -110,7 +110,7 @@ fn paint_main_menu(cx: &mut PaintCx<'_>, menu: &PixelMenu, layout: &MainLayout) 
         cx.text(
             (11, y),
             FONT_BODY,
-            format!("{} - {}", num, layout.langbase.lstr(*label)),
+            format!("{} - {}", num, layout.langbase.tr(*label)),
         );
     }
     let selected = menu.selected().min(y_offsets.len().saturating_sub(1));
@@ -125,7 +125,7 @@ fn paint_quit_confirm(cx: &mut PaintCx<'_>, question: &str, prompt: &str) {
 fn is_yes(c: char, layout: &MainLayout) -> bool {
     let localized = layout
         .langbase
-        .lstr(6)
+        .tr(6)
         .chars()
         .next()
         .unwrap_or('Y')

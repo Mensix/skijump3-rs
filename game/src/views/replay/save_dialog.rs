@@ -206,7 +206,7 @@ impl SaveReplayDialog {
             FONT_BODY,
             format!(
                 "{}: {}µ at {}",
-                self.resources.langbase.lstr(25),
+                self.resources.langbase.tr(25),
                 self.distance,
                 self.hill_name
             ),
@@ -217,9 +217,9 @@ impl SaveReplayDialog {
             let final_yy = if i == 4 { yy + 16 } else { yy };
             let label_color = if i < 4 { FONT_BODY } else { FONT_GOLD };
             let label = match i {
-                0..=2 => format!("{}. {}", i + 1, self.resources.langbase.lstr(291 + i)),
-                3 => format!("4. {}", self.resources.langbase.lstr(295)),
-                4 => format!("5. {}", self.resources.langbase.lstr(296)),
+                0..=2 => format!("{}. {}", i + 1, self.resources.langbase.tr(291 + i)),
+                3 => format!("4. {}", self.resources.langbase.tr(295)),
+                4 => format!("5. {}", self.resources.langbase.tr(296)),
                 _ => String::new(),
             };
             cx.text((18, final_yy), label_color, label);
@@ -279,8 +279,8 @@ impl SaveReplayDialog {
     fn paint_overwrite(&self, cx: &mut PaintCx<'_>, filename: &str) {
         alert_prompt(
             cx,
-            format!("{}.SJR {}", filename, self.resources.langbase.lstr(345)),
-            self.resources.langbase.lstr(346),
+            format!("{}.SJR {}", filename, self.resources.langbase.tr(345)),
+            self.resources.langbase.tr(346),
             true,
         );
     }

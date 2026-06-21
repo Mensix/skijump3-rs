@@ -14,7 +14,7 @@ pub(super) fn draw_screen_base(view: &ProfilesView, cx: &mut PaintCx<'_>) {
     cx.text(
         (40, 3),
         FONT_GRAY,
-        view.resources.langbase.lstr_or( 34, "Jumpers:"),
+        view.resources.langbase.tr(34),
     );
 }
 
@@ -35,7 +35,7 @@ pub(super) fn draw_list(view: &ProfilesView, state: &GameState, cx: &mut PaintCx
         cx.text(
             (40, ProfilesView::row_y(np + 1)),
             FONT_GOLD,
-            view.resources.langbase.lstr_or( 302, "*Create New Jumper*"),
+            view.resources.langbase.tr(302),
         );
     }
 
@@ -43,7 +43,7 @@ pub(super) fn draw_list(view: &ProfilesView, state: &GameState, cx: &mut PaintCx
     cx.text(
         (40, ProfilesView::row_y(back_row)),
         FONT_BODY,
-        view.resources.langbase.lstr_or( 33, "Back to Main Menu"),
+        view.resources.langbase.tr(33),
     );
 
     if matches!(view.mode, Mode::List) {
@@ -75,29 +75,29 @@ pub(super) fn draw_help(
         cx.text(
             (8, 175),
             FONT_GRAY,
-            view.resources.langbase.lstr_or( 322, "(Use arrows,"),
+            view.resources.langbase.tr(322),
         );
         if in_order {
             cx.text(
                 (11, 183),
                 FONT_GRAY,
-                view.resources.langbase.lstr_or( 323, "ENTER edits jumper,"),
+                view.resources.langbase.tr(323),
             );
             cx.text(
                 (11, 191),
                 FONT_GRAY,
-                view.resources.langbase.lstr_or( 324, "DEL removes from order)"),
+                view.resources.langbase.tr(324),
             );
         } else {
             cx.text(
                 (11, 183),
                 FONT_GRAY,
-                view.resources.langbase.lstr_or( 325, "ENTER adds jumper,"),
+                view.resources.langbase.tr(325),
             );
             cx.text(
                 (11, 191),
                 FONT_GRAY,
-                view.resources.langbase.lstr_or( 326, "DEL deletes jumper)"),
+                view.resources.langbase.tr(326),
             );
         }
     }
@@ -126,30 +126,11 @@ pub(super) fn draw_suit_ski(
 }
 
 pub(super) fn profile_label(view: &ProfilesView, field: usize) -> String {
-    view.resources.langbase.lstr_or(
-        303 + field,
-        match field {
-            1 => "Name:",
-            2 => "Real name:",
-            3 => "Suit Color:",
-            4 => "Ski Color:",
-            5 => "Replace:",
-            6 => "Coach:",
-            7 => "Skip Quali:",
-            8 => "Reset Jumper",
-            9 => "Exit",
-            10 => "Total Jumps:",
-            11 => "World Cup Completed:",
-            12 => "Legs Won:",
-            13 => "World Cups Won:",
-            14 => "Best:",
-            15 => "Best 4H:",
-            16 => "Longest WC:",
-            17 => "Longest:",
-            18 => "KOTH:",
-            _ => "",
-        },
-    )
+    let lang = &view.resources.langbase;
+    match field {
+        1..=18 => lang.tr(303 + field).to_string(),
+        _ => String::new(),
+    }
 }
 
 pub(super) fn draw_profile(

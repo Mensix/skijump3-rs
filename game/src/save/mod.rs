@@ -36,9 +36,7 @@ pub fn load_initial_config(files: &FileStore, langbase: &Rc<LangBase>) -> Config
     let bytes = files.read("config.toml");
     let config = Config::from_toml_bytes(&bytes);
 
-    if config.language >= 0 && (config.language as usize) < langbase.languages.len() {
-        langbase.selected.set(config.language as usize);
-    }
+    langbase.apply_saved_language(config.language);
     config
 }
 

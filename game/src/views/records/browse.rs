@@ -48,9 +48,9 @@ impl HallOfFameView {
             cx,
             self.page,
             HALL_PAGES,
-            &self.resources.langbase.lstr_or( 246, "Back"),
-            &self.resources.langbase.lstr_or( 247, "Next"),
-            &self.resources.langbase.lstr_or( 248, "End"),
+            &self.resources.langbase.tr(246),
+            &self.resources.langbase.tr(247),
+            &self.resources.langbase.tr(248),
         );
     }
 
@@ -59,13 +59,13 @@ impl HallOfFameView {
         let col = [30, 146, 173, 215];
         let (title, entries, start, sortby) = match phase {
             0 => (
-                self.resources.langbase.lstr_or( 163, "World Cup"),
+                self.resources.langbase.tr(163),
                 20,
                 1,
                 false,
             ),
             1 => (
-                self.resources.langbase.lstr_or( 164, "Team Cup"),
+                self.resources.langbase.tr(164),
                 10,
                 21,
                 false,
@@ -73,7 +73,7 @@ impl HallOfFameView {
             _ => {
                 yy = 126;
                 (
-                    self.resources.langbase.lstr_or( 165, "Four Hills"),
+                    self.resources.langbase.tr(165),
                     5,
                     31,
                     true,
@@ -87,22 +87,22 @@ impl HallOfFameView {
         cx.text(
             (col[0], yy),
             FONT_GOLD,
-            self.resources.langbase.lstr_or( 166, "Name"),
+            self.resources.langbase.tr(166),
         );
         cx.text(
             (col[1], yy),
             FONT_GOLD,
-            self.resources.langbase.lstr_or( 167, "Pos"),
+            self.resources.langbase.tr(167),
         );
         cx.text(
             (col[2], yy),
             FONT_GOLD,
-            self.resources.langbase.lstr_or( 168, "Points"),
+            self.resources.langbase.tr(168),
         );
         cx.text(
             (col[3], yy),
             FONT_GOLD,
-            self.resources.langbase.lstr_or( 169, "Date"),
+            self.resources.langbase.tr(169),
         );
 
         let records = &state.records;
@@ -151,7 +151,7 @@ impl HallOfFameView {
         cx.text(
             (30, 6),
             FONT_BODY,
-            self.resources.langbase.lstr_or( 160, "King of the Hill"),
+            self.resources.langbase.tr(160),
         );
 
         let records = &state.records;
@@ -163,12 +163,12 @@ impl HallOfFameView {
                 format!(
                     "{}. {}",
                     idx + 1,
-                    self.resources.langbase.lstr_or( 131 + idx, "Challenge")
+                    self.resources.langbase.tr(131 + idx)
                 ),
             );
             yy += 10;
 
-            let name = self.resources.langbase.lstr_or( 161, "Nobody");
+            let name = self.resources.langbase.tr(161);
             let Some(hi) = records.top(idx + 36) else {
                 cx.text((col[1], yy), FONT_GRAY, name);
                 continue;
@@ -229,9 +229,9 @@ impl HillRecordsView {
             cx,
             self.page,
             pages,
-            &self.resources.langbase.lstr_or( 246, "Back"),
-            &self.resources.langbase.lstr_or( 247, "Next"),
-            &self.resources.langbase.lstr_or( 248, "End"),
+            &self.resources.langbase.tr(246),
+            &self.resources.langbase.tr(247),
+            &self.resources.langbase.tr(248),
         );
     }
 
@@ -241,31 +241,31 @@ impl HillRecordsView {
         let start = phase * PAGE_SIZE;
         let loop_count = (self.resources.hills.len().saturating_sub(start)).min(PAGE_SIZE);
         let title = if phase == 0 {
-            self.resources.langbase.lstr_or( 170, "Hill Records")
+            self.resources.langbase.tr(170)
         } else {
-            self.resources.langbase.lstr_or( 156, "Extra Hill Records")
+            self.resources.langbase.tr(156)
         };
         cx.text((30, 6), FONT_BODY, title);
         cx.text(
             (col[0], 23),
             FONT_BODY,
-            self.resources.langbase.lstr_or( 106, "Hill"),
+            self.resources.langbase.tr(106),
         );
         cx.text(
             (col[1], 23),
             FONT_BODY,
-            self.resources.langbase.lstr_or( 171, "Who"),
+            self.resources.langbase.tr(171),
         );
         cx.right_text(
             (col[2], 23),
             FONT_BODY,
-            self.resources.langbase.lstr_or( 172, "Length"),
+            self.resources.langbase.tr(172),
         );
         cx.text((col[3], 23), FONT_BODY, "(K)");
         cx.text(
             (col[4], 23),
             FONT_BODY,
-            self.resources.langbase.lstr_or( 169, "Date"),
+            self.resources.langbase.tr(169),
         );
 
         let records = &state.records;

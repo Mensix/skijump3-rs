@@ -30,22 +30,22 @@ pub(crate) fn render(
             let header = match results_kind {
                 TeamCupResultsKind::LegResults => {
                     if tc.current_leg == 5 {
-                        // Pascal: lstr(92) = "The Team Cup is over!"
-                        resources.langbase.lstr(92).to_string()
+                        // Pascal: tr(92) = "The Team Cup is over!"
+                        resources.langbase.tr(92).to_string()
                     } else {
                         format!(
                             "{} {} {} 6 - R {} - {} {}",
-                            resources.langbase.lstr(81),
+                            resources.langbase.tr(81),
                             leg,
-                            resources.langbase.lstr(8),
+                            resources.langbase.tr(8),
                             round,
-                            resources.langbase.lstr(88),
+                            resources.langbase.tr(88),
                             jumper,
                         )
                     }
                 }
                 TeamCupResultsKind::Standings => {
-                    let text = resources.langbase.lstr(91);
+                    let text = resources.langbase.tr(91);
                     format!("{} {} 6", text, leg)
                 }
             };
@@ -84,6 +84,6 @@ pub(crate) fn render(
     cx.right_text(
         (319, 13),
         FONT_GRAY,
-        format!("{}-)", resources.langbase.lstr(248)),
+        format!("{}-)", resources.langbase.tr(248)),
     );
 }
