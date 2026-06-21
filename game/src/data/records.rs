@@ -7,6 +7,8 @@ pub struct Hiscore {
     pub pos: usize,
     pub score: f64,
     pub time: String,
+    #[serde(default)]
+    pub is_computer: bool,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -14,6 +16,8 @@ pub struct HillRecord {
     pub name: String,
     pub len: f64,
     pub time: String,
+    #[serde(default)]
+    pub is_computer: bool,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]

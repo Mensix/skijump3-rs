@@ -50,7 +50,4 @@ pub fn replace_display_name(value: usize, player_names: &[String], font: &Font, 
     shorten_name(name, font, max_w)
 }
 
-#[must_use]
-pub fn is_computer_name(name: &str) -> bool {
-    name.ends_with('\u{00FF}')
-}
+

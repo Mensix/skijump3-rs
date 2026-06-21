@@ -77,6 +77,7 @@ impl KothJumpView {
             record.score += 1.0;
             record.name = winner_name;
             record.time = current_record_time();
+            record.is_computer = false;
         }
 
         if let Some(profile) = state.profiles.profiles.get_mut(winner_profile_idx) {

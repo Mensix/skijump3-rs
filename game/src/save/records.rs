@@ -40,17 +40,8 @@ mod tests {
         let toml_bytes = store.to_toml_bytes();
         let reparsed = RecordStore::from_toml_bytes(&toml_bytes);
 
-        assert_eq!(store.top.len(), reparsed.top.len());
-        assert_eq!(store.hill_records.len(), reparsed.hill_records.len());
-
-        for ((k1, v1), (k2, v2)) in
-            store.hill_records.iter().zip(reparsed.hill_records.iter())
-        {
-            assert_eq!(k1, k2);
-            assert_eq!(v1.name, v2.name);
-            assert_eq!(v1.len, v2.len);
-            assert_eq!(v1.time, v2.time);
-        }
+        assert_eq!(store.top, reparsed.top);
+        assert_eq!(store.hill_records, reparsed.hill_records);
     }
 
     #[test]
@@ -63,5 +54,6 @@ mod tests {
 
         let first = store.top(0);
         assert!(first.is_some());
+        assert!(first.unwrap().is_computer);
     }
 }

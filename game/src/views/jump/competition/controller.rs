@@ -406,6 +406,7 @@ fn apply_post_jump_side_effects(
                         name: side_effects.jumper_name.clone(),
                         len: outcome.distance,
                         time: current_record_time(),
+                        is_computer: side_effects.is_computer,
                     },
                 );
             }

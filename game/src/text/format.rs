@@ -1,6 +1,14 @@
 use std::fmt::Write;
 
 #[must_use]
+pub fn format_time(timestamp: &str) -> String {
+    let secs: u64 = timestamp.parse().unwrap_or(0);
+    chrono::DateTime::from_timestamp(secs as i64, 0)
+        .map(|dt| dt.format("%a %d %b %Y %k:%M").to_string())
+        .unwrap_or_default()
+}
+
+#[must_use]
 pub fn tenths_to_decimal(value: i32) -> f64 {
     let result = f64::from(value) / 10.0;
 

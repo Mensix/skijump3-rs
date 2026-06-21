@@ -6,8 +6,8 @@ use crate::gfx::theme::{
 use crate::route::RouteTarget;
 use crate::screen::{GameCx, GameScreen};
 use crate::store::{GameState, ResourcesRef};
-use crate::text::format::{format_decimal, ordinal_dot};
-use crate::text::layout::{is_computer_name, shorten_name};
+use crate::text::format::{format_decimal, format_time, ordinal_dot};
+use crate::text::layout::shorten_name;
 use engine::oxide::input::Key;
 use engine::oxide::{PaintCx, ScreenEventCx, UiEvent};
 
@@ -95,25 +95,25 @@ impl HallOfFameView {
         col: [i32; 4],
         sortby_points: bool,
     ) {
-        let name_color = if is_computer_name(&hi.name) {
-            FONT_TEAL
-        } else {
-            FONT_BODY
-        };
-        cx.right_text((24, y), FONT_GOLD, ordinal_dot(place));
-        cx.text(
-            (col[0], y),
-            name_color,
-            shorten_name(&hi.name, &self.resources.font, 110),
-        );
-        cx.right_text((col[1] + 14, y), name_color, ordinal_dot(hi.pos));
-        let score = if sortby_points {
-            format_decimal(hi.score)
-        } else {
-            format!("{:.0}", hi.score)
-        };
-        cx.right_text((col[2] + 24, y), name_color, score);
-        cx.text((col[3], y), FONT_GRAY, &hi.time);
+            let name_color = if hi.is_computer {
+                FONT_TEAL
+            } else {
+                FONT_BODY
+            };
+            cx.right_text((24, y), FONT_GOLD, ordinal_dot(place));
+            cx.text(
+                (col[0], y),
+                name_color,
+                shorten_name(&hi.name, &self.resources.font, 110),
+            );
+            cx.right_text((col[1] + 14, y), name_color, ordinal_dot(hi.pos));
+            let score = if sortby_points {
+                format_decimal(hi.score)
+            } else {
+                format!("{:.0}", hi.score)
+            };
+            cx.right_text((col[2] + 24, y), name_color, score);
+            cx.text((col[3], y), FONT_GRAY, &format_time(&hi.time));
     }
 
     fn paint_koth_records(&self, state: &GameState, cx: &mut PaintCx<'_>) {
@@ -138,7 +138,7 @@ impl HallOfFameView {
                 continue;
             };
             if hi.score > 0.0 {
-                cx.text((col[2], yy), FONT_GRAY, &hi.time);
+                cx.text((col[2], yy), FONT_GRAY, &format_time(&hi.time));
                 cx.text((col[3], yy), FONT_BODY, format!("{:.0} X", hi.score));
                 cx.text((col[1], yy), FONT_BODY, &hi.name);
             } else {
@@ -237,7 +237,7 @@ impl HillRecordsView {
                 FONT_GOLD,
                 shorten_name(&hill.name, &self.resources.font, 64),
             );
-            let record_color = if is_computer_name(&record.name) {
+            let record_color = if record.is_computer {
                 FONT_TEAL
             } else {
                 FONT_BODY
@@ -247,14 +247,14 @@ impl HillRecordsView {
                 record_color,
                 shorten_name(&record.name, &self.resources.font, 80),
             );
-            let length_color = if is_computer_name(&record.name) {
+            let length_color = if record.is_computer {
                 FONT_TEAL
             } else {
                 FONT_GOLD
             };
             cx.right_text((col[2], y), length_color, format_decimal(record.len));
             cx.right_text((col[3] + 11, y), length_color, format!("({})", hill.kr));
-            cx.text((col[4], y), FONT_GRAY, record.time);
+            cx.text((col[4], y), FONT_GRAY, &format_time(&record.time));
         }
 
         if phase == 0 {
@@ -270,7 +270,7 @@ impl HillRecordsView {
 }
 
 fn ahi_len(record: &HillRecord, hill_kr: i64) -> f64 {
-    if is_computer_name(&record.name) {
+    if record.is_computer {
         hill_kr as f64
     } else {
         record.len
