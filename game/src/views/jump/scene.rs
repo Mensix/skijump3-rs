@@ -173,8 +173,6 @@ impl JumpScene {
         self.telemetry
     }
 
-    
-
     pub fn is_save_dialog_active(&self) -> bool {
         self.save_dialog.is_active()
     }
@@ -274,7 +272,6 @@ impl JumpScene {
         self.runner.update(&mut state.rng, &mut state.wind);
     }
 
-    
     fn build_runner(
         resources: ResourcesRef,
         state: &GameState,

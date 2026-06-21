@@ -31,12 +31,10 @@ pub fn build_koth(
         None
     };
 
-    
     let hill_idx = packed_hill
         .filter(|&h| h < hill_count)
         .unwrap_or_else(|| rng.random_i32(hill_count as i32).max(0) as usize);
 
-    
     let active = active_profiles(profiles);
     let filtered_names = if no_same_name {
         computer_names_without_replacements(computer_names, &active)
@@ -47,7 +45,6 @@ pub fn build_koth(
     let mut participants: Vec<KothParticipant> = Vec::new();
     let mut human_indices: Vec<usize> = Vec::new();
 
-    
     for (order, &npc_id) in koth_opponent_ids.iter().enumerate() {
         let name = filtered_names
             .get(npc_id % filtered_names.len().max(1))
@@ -62,7 +59,6 @@ pub fn build_koth(
         });
     }
 
-    
     for (profile_idx, p) in &active {
         let idx = participants.len();
         let competitor = Competitor::from_profile(idx, *profile_idx, p, None);
@@ -92,12 +88,12 @@ pub fn apply_koth_pack(state: &mut GameState, save_manager: &SaveRef, pack: u8) 
         4 => (8, (1..=8).map(|i| i * 5 + 1).collect(), 1, 1, 0),
         5 => (7, (1..=7).map(|i| i * 6 + 13).collect(), 0, 2, 0),
         6 => (6, (1..=6).map(|i| i * 7 + 15).collect(), 1, 1, 0),
-        _ => return, 
+        _ => return,
     };
     state.config.koth_opponent_count = count;
     state.config.koth_opponent_ids = pel;
     state.config.koth_wind = wind;
     state.config.koth_rounds = rounds;
     state.config.koth_hill = maki;
-    let _ = save_manager.save_config(&state.config);
+    save_manager.save_config(&state.config);
 }

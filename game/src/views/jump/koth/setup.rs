@@ -81,7 +81,6 @@ impl KothSetupView {
             paint.text((180, 24), FONT_TEAL, lang.tr(141));
             paint.right_text((310, 24), FONT_TEAL, lang.tr(142));
         } else {
-            
             paint.text((180, 10), FONT_BODY, lang.tr(120));
             if cfg.koth_opponent_count > 0 {
                 for i in 0..cfg.koth_opponent_count.min(20) as usize {
@@ -100,10 +99,8 @@ impl KothSetupView {
             }
         }
 
-        
         paint.pattern_fill((4, 7, 160, 63), FILL_GRAY);
 
-        
         paint.text((10, 10), FONT_BODY, format!("1 - {}", lang.tr(121)));
         paint.text((10, 20), FONT_BODY, format!("2 - {}", lang.tr(122)));
         paint.text((10, 30), FONT_BODY, format!("3 - {}", lang.tr(123)));
@@ -133,15 +130,13 @@ impl KothSetupView {
         );
         paint.text((10, 80), FONT_BODY, format!("0 - {}", lang.tr(127)));
 
-        
         paint.text((10, 110), FONT_GOLD, lang.tr(130));
 
-        
         let is_pack_mode = self.mode == KothMode::Packs;
         let mut py = 120i32;
         for pack in 0..7u8 {
             let title = koth_pack_title(pack, lang);
-            
+
             let color = if is_pack_mode {
                 FONT_BODY
             } else {
@@ -181,12 +176,11 @@ impl KothSetupView {
             _ => {}
         }
 
-        
         if self.mode == KothMode::Opponents {
             let names = self.resources.player_names(cfg.name_set_index as usize);
             let sel = &self.selected_opponents;
             let prev = self.preview_opponent;
-            
+
             for (i, &id) in sel.iter().enumerate() {
                 let name = names.get(id - 1).map(|s| s.as_str()).unwrap_or("?");
                 let y = (i as i32 + 1) * 8 + 25;
@@ -198,7 +192,7 @@ impl KothSetupView {
                 );
                 paint.right_text((310, y), FONT_GOLD, format!("#{}", id));
             }
-            
+
             if sel.len() < 20 {
                 let y = (sel.len() as i32 + 1) * 8 + 25;
                 let name = names.get(prev).map(|s| s.as_str()).unwrap_or("?");
@@ -328,7 +322,7 @@ impl KothSetupView {
                 {
                     self.selected_opponents.push(prev_id);
                 }
-                
+
                 let mut next = prev_id % max_idx;
                 for _ in 0..max_idx {
                     if !self.selected_opponents.contains(&(next + 1)) {

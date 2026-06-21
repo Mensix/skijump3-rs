@@ -245,7 +245,7 @@ fn handle_wind_place(
     pos: usize,
 ) -> Option<RouteTarget> {
     let winds = 10;
-    let items = winds + 1; 
+    let items = winds + 1;
     match event {
         UiEvent::KeyDown(Key::Up | Key::Left) => {
             let new_pos = if pos == 0 { items - 1 } else { pos - 1 };
@@ -389,7 +389,6 @@ fn handle_screen_event(
     let screen = view.screen;
     let entries = view.menu.item_count();
 
-    
     if matches!(event, UiEvent::KeyDown(Key::Escape | Key::Tab)) {
         if screen == 0 {
             return Some(RouteTarget::MainMenu);
@@ -401,18 +400,12 @@ fn handle_screen_event(
     let mut ecx = EventCx::default();
     let msg = view.menu.event(&mut ecx, event);
 
-    
-    if ecx.is_consumed() {
-        if screen < view.selected_by_screen.len() {
-            view.selected_by_screen[screen] = view.menu.selected();
-        }
+    if ecx.is_consumed() && screen < view.selected_by_screen.len() {
+        view.selected_by_screen[screen] = view.menu.selected();
     }
 
-    
-    
     if let Some(action) = msg {
         if action >= entries {
-            
             if screen == 0 {
                 return Some(RouteTarget::MainMenu);
             }

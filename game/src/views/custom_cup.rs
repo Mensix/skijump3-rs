@@ -118,11 +118,11 @@ impl CustomCupSetupView {
             CustomCupMode::Browse => {}
             CustomCupMode::SaveInput => self.paint_save_input(cx),
             CustomCupMode::ConfirmOverwrite => {
-                self.paint_confirm(cx, &format!("FILE {}", lang.tr(345)), &lang.tr(346))
+                self.paint_confirm(cx, &format!("FILE {}", lang.tr(345)), lang.tr(346))
             }
             CustomCupMode::Load => self.paint_load(cx),
             CustomCupMode::ConfirmDelete => {
-                self.paint_confirm(cx, "DELETE SELECTED SET?", &lang.tr(193))
+                self.paint_confirm(cx, "DELETE SELECTED SET?", lang.tr(193))
             }
             CustomCupMode::Message => self.paint_message(cx),
         }

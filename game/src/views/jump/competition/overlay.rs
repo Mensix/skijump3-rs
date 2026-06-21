@@ -107,8 +107,7 @@ impl OverlayData {
     fn from_koth(c: &KothRuntime, coach_style: u8) -> Self {
         let alive_count = c.participants.iter().filter(|p| p.is_alive()).count();
         let total_count = c.participants.len();
-        
-        
+
         let last_place = c
             .participants
             .iter()
@@ -244,7 +243,7 @@ impl CompetitionOverlay {
         if scene_phase == JumpPhase::Disqualified {
             return OverlayKind::None;
         }
-        
+
         if let Some(t) = telemetry {
             if t.grade > 0
                 && data.coach_style > 0
@@ -261,7 +260,6 @@ impl CompetitionOverlay {
             }
         }
 
-        
         if data.koth_info.is_some()
             && matches!(
                 scene_phase,
@@ -286,8 +284,7 @@ impl CompetitionOverlay {
             (CompetitionPhase::Qualification, JumpPhase::Info) if show_keymap => {
                 OverlayKind::Keymap
             }
-            
-            
+
             (CompetitionPhase::Qualification | CompetitionPhase::Round1, JumpPhase::Info) => {
                 OverlayKind::CyclingWithInfoBox
             }
@@ -352,7 +349,6 @@ impl CompetitionOverlay {
         );
         let mut cstr3 = self.coach_range(lang, base + 28, t.height, &[49, 55, 60, 64, 70, 90, 200]);
 
-        
         if t.grade == 1 {
             cstr3 = lang.tr(base + 35).to_string();
         }
@@ -366,17 +362,13 @@ impl CompetitionOverlay {
         let pick_a = if r & 1 == 0 { &cstr0 } else { &cstr1 };
         let pick_b = if r & 2 == 0 { &cstr2 } else { &cstr3 };
 
-        
         let text = format!("{pick_a}*{pick_b}");
 
-        
-        
-        
         let mut y = 152i32;
         let mut line = String::with_capacity(32);
         for ch in text.chars() {
             line.push(if ch == '*' { ' ' } else { ch });
-            
+
             if (line.len() >= 30 && ch == ' ') || (ch == '*' && line.len() >= 15) {
                 if ch == '*' {
                     line.pop();
@@ -537,7 +529,6 @@ impl CompetitionOverlay {
             }
         }
 
-        
         if state.config.event_gap != 0 {
             if let Some(ref pel) = data.current_participant {
                 let leader_pts = data.event_standings_top5.first().map_or(0.0, |e| e.points);
@@ -578,16 +569,15 @@ impl CompetitionOverlay {
         let total = ki.total_count;
         let left = ki.alive_count;
         hud::push_info_panel_frame(cx);
-        
+
         let str1 = format!("{} {} {}", lang.tr(67), left, lang.tr(8));
         cx.right_text((308, 9), FONT_GOLD, format!("{str1} {total}"));
 
-        
         if !ki.last_name.is_empty() {
             let label = if ki.jump_round == 0 && ki.jump_rounds_per_elimination > 1 {
-                lang.tr(69) 
+                lang.tr(69)
             } else {
-                lang.tr(68) 
+                lang.tr(68)
             };
             cx.right_text((308, 19), FONT_GOLD, label);
             let pts_str = format_decimal(ki.last_points);

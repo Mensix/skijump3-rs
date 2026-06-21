@@ -3,7 +3,6 @@ use crate::oxide::input::{Key, UiEvent};
 use crate::oxide::paint::PaintCx;
 use crate::oxide::widget::{EventCx, Widget};
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MenuItem {
     pub number: u8,
@@ -180,7 +179,6 @@ mod tests {
         let mut menu = menu_return_index();
         let mut cx = EventCx::default();
 
-        
         let msg = menu.event(&mut cx, UiEvent::Text('1'));
 
         assert_eq!(menu.selected(), 0);
@@ -196,7 +194,6 @@ mod tests {
 
         let msg = menu.event(&mut cx, UiEvent::KeyDown(Key::Enter));
 
-        
         assert_eq!(msg, Some(1));
         assert!(cx.is_consumed());
     }
@@ -209,7 +206,6 @@ mod tests {
 
         let msg = menu.event(&mut cx, UiEvent::KeyDown(Key::Enter));
 
-        
         assert_eq!(msg, Some(menu.item_count()));
         assert!(cx.is_consumed());
     }
@@ -286,7 +282,6 @@ mod tests {
         let mut menu = menu_with_trailing();
         let mut cx = EventCx::default();
 
-        
         let msg = menu.event(&mut cx, UiEvent::Text('9'));
 
         assert_eq!(msg, None);
@@ -346,13 +341,11 @@ pub struct PixelMenu {
     box_color: Rgba,
     show_labels: bool,
     show_box: bool,
-    trailing: Option<(String, i32)>, 
-    return_index: bool, 
+    trailing: Option<(String, i32)>,
+    return_index: bool,
 }
 
 impl PixelMenu {
-    
-
     pub fn new(
         x: i32,
         y: i32,
@@ -378,12 +371,10 @@ impl PixelMenu {
         }
     }
 
-
     pub fn with_return_index(mut self, val: bool) -> Self {
         self.return_index = val;
         self
     }
-
 
     pub const fn selected_index(&self) -> usize {
         self.selected
@@ -590,7 +581,6 @@ impl Widget for PixelMenu {
             }
         }
 
-        
         if let Some((label, _gap)) = &self.trailing {
             let y = self.y + 1 + self.trailing_y_offset();
             cx.text((self.x, y), self.font_color, format!("0. {label}"));

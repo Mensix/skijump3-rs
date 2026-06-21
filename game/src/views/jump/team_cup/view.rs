@@ -127,7 +127,6 @@ impl TeamCupJumpView {
             return None;
         }
 
-        
         if self.phase == ViewPhase::Jumping {
             match self
                 .controller
@@ -168,8 +167,6 @@ impl GameScreen for TeamCupJumpView {
 
         self.controller.record_acknowledged_human_jump(cx.state);
 
-        
-        
         if self.controller.ui_state().is_outcome_recorded()
             && self.controller.render_mode() != RenderMode::Results
         {

@@ -20,7 +20,6 @@ impl FileStore {
         }
     }
 
-
     pub fn read(&self, name: &str) -> Vec<u8> {
         let save_path = self.save_dir.join(name);
         match std::fs::read(&save_path) {
@@ -49,7 +48,6 @@ impl FileStore {
         std::fs::rename(&tmp_path, &path).unwrap();
     }
 
-
     pub fn exists_save(&self, name: &str) -> bool {
         self.save_dir.join(name).exists()
     }
@@ -58,17 +56,14 @@ impl FileStore {
         let _ = std::fs::remove_file(self.save_dir.join(name));
     }
 
-
     pub fn list_by_ext(&self, ext: &str) -> Vec<String> {
         self.list_by_ext_in(&self.save_dir, ext).unwrap_or_default()
     }
-
 
     pub fn list_save_subdir_by_ext(&self, subdir: &str, ext: &str) -> Vec<String> {
         self.list_by_ext_in(&self.save_dir.join(subdir), ext)
             .unwrap_or_default()
     }
-
 
     pub fn list_by_ext_all(&self, ext: &str) -> Vec<String> {
         let mut names = BTreeSet::new();

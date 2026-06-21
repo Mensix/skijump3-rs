@@ -22,7 +22,6 @@ pub enum StepDecision {
     Skip,
 }
 
-///
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Competition {
     pub(crate) field: CompetitionField,
@@ -79,9 +78,6 @@ impl Competition {
         self.start_pos
     }
 
-    
-
-
     pub fn decide_next(&self) -> StepDecision {
         if self.phase.is_result_phase() {
             return StepDecision::ShowResults;
@@ -98,7 +94,6 @@ impl Competition {
         let hill_idx = self.current_hill();
         let is_human = !self.participant(idx).is_computer;
 
-        
         if is_human && self.phase == CompetitionPhase::Qualification {
             let p = self.participant(idx);
             if p.qual == QualificationStatus::PreQualified
@@ -128,11 +123,9 @@ impl Competition {
         self.phase == CompetitionPhase::SeasonComplete
     }
 
-
     pub const fn total_events(&self) -> usize {
         self.hill_order.len()
     }
-
 
     pub fn event_standings(&self) -> Vec<&Participant> {
         self.field
@@ -142,7 +135,6 @@ impl Competition {
             .collect()
     }
 
-
     pub fn overall_standings(&self) -> Vec<&Participant> {
         self.field
             .master_order
@@ -151,15 +143,12 @@ impl Competition {
             .collect()
     }
 
-
     pub fn ko_pairing_standings(&self) -> Vec<&Participant> {
         self.ko_pairings
             .iter()
             .map(|&idx| self.field.get(idx))
             .collect()
     }
-
-    
 
     pub fn advance(&mut self) {
         match self.phase {
@@ -192,7 +181,7 @@ impl Competition {
             CompetitionPhase::Round1 => {
                 if self.start_pos >= self.start_list.len() {
                     self.field.sort_field(SortBy::EventPoints);
-                    
+
                     if self.is_ko_event() {
                         self.apply_ko_results();
                     }
@@ -214,7 +203,6 @@ impl Competition {
                 if self.is_four_hills_event() || self.style == CupStyle::CustomCup {
                     self.field.sort_field(SortBy::FourHillsPoints);
                     if self.current_event + 1 >= self.hill_order.len() {
-                        
                         if self.style == CupStyle::WorldCup {
                             self.field.sort_field(SortBy::WcPoints);
                         }
@@ -298,15 +286,11 @@ impl Competition {
         self.field.get_mut(idx).injury = self.field.get(idx).injury.max(rounds);
     }
 
-    
-
     fn enter_phase(&mut self, phase: CompetitionPhase) {
         self.phase = phase;
         self.start_pos = 0;
         self.start_list = self.field.build_start_list(phase);
 
-        
-        
         if self.start_list.is_empty() && phase.is_jump_phase() {
             self.advance();
         }
@@ -317,7 +301,6 @@ impl Competition {
         self.field.tick_injuries();
         self.sort_overall_field();
 
-        
         if self.current_event > 0 {
             for idx in 0..self.field.len() {
                 if self.field.get(idx).rank <= PRE_QUALIFIED_COUNT
@@ -371,7 +354,6 @@ impl Competition {
         self.field.sort_field(SortBy::EventPoints);
 
         if self.is_ko_event() {
-            
             self.ko_pairings = self.field.event_order.iter().take(50).copied().collect();
             for (seed, idx) in self
                 .field
@@ -419,15 +401,13 @@ impl Competition {
 
     fn apply_ko_results(&mut self) {
         let pairings = self.ko_pairings.clone();
-        
+
         for idx in 0..self.field.len() {
             self.field.get_mut(idx).qual = QualificationStatus::Eliminated;
         }
         let count = pairings.len().min(50);
         let half = count / 2;
-        
-        
-        
+
         for pair in 0..half.min(25) {
             let left = pairings[half + pair];
             let right = pairings[half - 1 - pair];
@@ -440,10 +420,7 @@ impl Competition {
             };
             self.field.get_mut(winner).qual = QualificationStatus::Qualified;
         }
-        
-        
-        
-        
+
         let order = self.field.event_order.clone();
         let mut lucky = 0usize;
         for idx in &order {
@@ -463,12 +440,11 @@ impl Competition {
 
     fn cut_to_round2(&mut self) {
         self.field.sort_field(SortBy::EventPoints);
-        
+
         for idx in 0..self.field.len() {
             self.field.get_mut(idx).round1_rank = self.field.get(idx).rank;
         }
         if self.is_ko_event() {
-            
             return;
         }
         for idx in 0..self.field.len() {
@@ -507,10 +483,7 @@ impl Competition {
                     }
                 }
             }
-            CupStyle::TeamCup => {
-                
-                
-            }
+            CupStyle::TeamCup => {}
         }
     }
 }
@@ -564,12 +537,10 @@ mod tests {
         run_all_jumps(&mut m);
         assert!(m.is_over());
 
-        
         let winner = m.field.get(0);
         assert!(winner.wc_points > 0, "winner should have WC points");
         assert_eq!(winner.rank, 1);
 
-        
         for i in 0..m.field.len() {
             assert!(
                 m.field.get(i).rank >= 1 && m.field.get(i).rank <= 50,
@@ -586,7 +557,6 @@ mod tests {
         assert!(m.is_over());
         assert_eq!(m.current_event, 3);
 
-        
         let total: i32 = (0..m.field.len()).map(|i| m.field.get(i).wc_points).sum();
         assert!(total > 0, "total WC points should be positive");
     }
@@ -595,7 +565,6 @@ mod tests {
     fn pre_qualification_works() {
         let mut m = make_season(2);
 
-        
         while m.phase != CompetitionPhase::EventComplete {
             if m.current_jumper().is_none() {
                 m.advance();
@@ -610,7 +579,6 @@ mod tests {
             }
         }
 
-        
         m.advance();
         m.advance();
         let pre_qualified = (0..m.field.len())
@@ -773,7 +741,7 @@ mod tests {
     #[test]
     fn skip_for_prequalified_human_in_qualification() {
         let mut participants = make_50_participants();
-        
+
         let human_idx = 49;
         participants[human_idx].is_computer = false;
         participants[human_idx].skip_qualification = 1;
@@ -781,8 +749,7 @@ mod tests {
         let mut c = Competition::new(CupStyle::WorldCup, participants, vec![0, 1]);
         c.training_rounds = 0;
 
-        
-        c.advance(); 
+        c.advance();
         while c.current_jumper().is_some() {
             c.record_jump(CompetitionJumpOutcome {
                 score: 150.0,
@@ -790,8 +757,8 @@ mod tests {
                 fall_type: FallType::None,
             });
         }
-        c.advance(); 
-        c.advance(); 
+        c.advance();
+        c.advance();
         while c.current_jumper().is_some() {
             c.record_jump(CompetitionJumpOutcome {
                 score: 150.0,
@@ -799,8 +766,8 @@ mod tests {
                 fall_type: FallType::None,
             });
         }
-        c.advance(); 
-        c.advance(); 
+        c.advance();
+        c.advance();
         while c.current_jumper().is_some() {
             c.record_jump(CompetitionJumpOutcome {
                 score: 150.0,
@@ -808,15 +775,14 @@ mod tests {
                 fall_type: FallType::None,
             });
         }
-        c.advance(); 
-        c.advance(); 
-        c.advance(); 
-        c.advance(); 
-        c.advance(); 
+        c.advance();
+        c.advance();
+        c.advance();
+        c.advance();
+        c.advance();
 
         assert_eq!(c.phase, CompetitionPhase::Qualification);
 
-        
         while let Some(idx) = c.current_jumper() {
             if idx == human_idx {
                 assert_eq!(c.decide_next(), StepDecision::Skip);
@@ -841,12 +807,12 @@ mod tests {
         let mut c = Competition::new(CupStyle::WorldCup, participants, vec![0, 1]);
         c.training_rounds = 0;
 
-        c.advance(); 
+        c.advance();
         while let Some(idx) = c.current_jumper() {
             if idx == human_idx {
                 break;
             }
-            
+
             assert!(
                 matches!(c.decide_next(), StepDecision::Jump { .. }),
                 "AI should get Jump, got {:?}",
@@ -863,14 +829,14 @@ mod tests {
     #[test]
     fn round1_rank_is_frozen_before_round2() {
         let mut participants = make_50_participants();
-        
+
         for (i, p) in participants.iter_mut().enumerate() {
-            p.points = Some(f64::from(1000 - i as i32 * 10)); 
+            p.points = Some(f64::from(1000 - i as i32 * 10));
         }
         let mut c = Competition::new(CupStyle::WorldCup, participants, vec![0]);
         c.training_rounds = 0;
 
-        c.advance(); 
+        c.advance();
         while c.current_jumper().is_some() {
             c.record_jump(CompetitionJumpOutcome {
                 score: 0.0,
@@ -878,8 +844,8 @@ mod tests {
                 fall_type: FallType::None,
             });
         }
-        c.advance(); 
-        c.advance(); 
+        c.advance();
+        c.advance();
         while c.current_jumper().is_some() {
             c.record_jump(CompetitionJumpOutcome {
                 score: 0.0,
@@ -887,10 +853,9 @@ mod tests {
                 fall_type: FallType::None,
             });
         }
-        c.advance(); 
-        c.advance(); 
+        c.advance();
+        c.advance();
 
-        
         for i in 0..c.field.len() {
             assert!(
                 c.field.get(i).round1_rank > 0,
@@ -898,7 +863,7 @@ mod tests {
                 c.field.get(i).round1_rank
             );
         }
-        
+
         let first_in_event = c.field.event_order[0];
         assert_eq!(c.field.get(first_in_event).round1_rank, 1);
     }
@@ -941,7 +906,7 @@ mod tests {
         let human_idx = 5;
         participants[human_idx].is_computer = false;
         participants[human_idx].skip_qualification = 1;
-        
+
         participants[human_idx].qual = QualificationStatus::NotQualified;
 
         let mut c = Competition::new(CupStyle::WorldCup, participants, vec![0]);
@@ -958,7 +923,7 @@ mod tests {
         let mut participants = make_50_participants();
         let human_idx = 5;
         participants[human_idx].is_computer = false;
-        participants[human_idx].skip_qualification = 0; 
+        participants[human_idx].skip_qualification = 0;
         participants[human_idx].qual = QualificationStatus::PreQualified;
 
         let mut c = Competition::new(CupStyle::WorldCup, participants, vec![0]);

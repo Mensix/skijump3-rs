@@ -24,8 +24,6 @@ pub struct TextInput {
 }
 
 impl TextInput {
-    
-
     pub fn new(
         x: i32,
         y: i32,

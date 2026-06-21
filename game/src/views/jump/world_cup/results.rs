@@ -353,7 +353,6 @@ fn round_header(
     format!("{prefix} {event} {of} {total} - {hill} - R {round}")
 }
 
-
 fn render_results_entry(
     cx: &mut PaintCx<'_>,
     entry: &ResultsEntry,
@@ -445,7 +444,7 @@ pub fn render_results_page(cx: &mut PaintCx<'_>, page: &ResultsPage, resources: 
     let is_wc = page.phase == CompetitionPhase::FourHillsStandings
         || page.phase == CompetitionPhase::WorldCupStandings
         || page.phase == CompetitionPhase::SeasonComplete;
-    
+
     let row_step = if is_wc {
         WC_ROW_STEP
     } else if page.phase.result_round_number().is_some() {
@@ -456,7 +455,6 @@ pub fn render_results_page(cx: &mut PaintCx<'_>, page: &ResultsPage, resources: 
 
     let mut last_rank = 0;
     if is_wc {
-        
         for (i, entry) in page.items.iter().enumerate() {
             let col = i32::from(i >= WC_COL_SPLIT);
             let col_off = col * WC_COL2_OFFSET;
@@ -480,9 +478,6 @@ pub fn render_results_page(cx: &mut PaintCx<'_>, page: &ResultsPage, resources: 
                 break;
             }
 
-            
-            
-            
             if !page.compact
                 && page.phase == CompetitionPhase::Round1Results
                 && entry.rank > 30

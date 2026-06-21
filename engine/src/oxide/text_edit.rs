@@ -27,7 +27,6 @@ impl TextEditState {
         self.cursor.min(self.char_count())
     }
 
-
     pub fn cursor_byte(&self) -> usize {
         self.buffer
             .char_indices()

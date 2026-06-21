@@ -24,7 +24,6 @@ pub(crate) fn simulate_computer(
     );
     let mut input = ComputerInputProvider::new(participant.ai_id);
 
-    
     wind.advance_without_sampling(rng);
     input.prepare_for_jump(rng);
     state.prepare_silent_computer_jump(terrain);

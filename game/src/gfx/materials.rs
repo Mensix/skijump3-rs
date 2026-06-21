@@ -10,7 +10,6 @@ use crate::gfx::sprites::Sprite;
 use crate::gfx::theme::THEME;
 use crate::views::replay::PlaybackMode;
 
-
 const BODY_SPRITE_MIN: u16 = 100;
 const BODY_SPRITE_MAX: u16 = 167;
 const SKI_SPRITE_MIN: u16 = 70;
@@ -114,7 +113,6 @@ pub fn replay_speed_material(mode: PlaybackMode) -> SpriteMaterial {
 pub fn prebaked_sprite_materials() -> Vec<(u16, SpriteMaterial)> {
     let mut materials = Vec::new();
 
-    
     for sprite_idx in BODY_SPRITE_MIN..=BODY_SPRITE_MAX {
         for suit_color in 0..8 {
             materials.push((sprite_idx, jumper_body_material(suit_color, false)));
@@ -122,7 +120,6 @@ pub fn prebaked_sprite_materials() -> Vec<(u16, SpriteMaterial)> {
         }
     }
 
-    
     for sprite_idx in SKI_SPRITE_MIN..=SKI_SPRITE_MAX {
         for ski_color in 0..4 {
             materials.push((sprite_idx, jumper_ski_material(ski_color)));

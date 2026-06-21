@@ -65,7 +65,6 @@ impl TextCache {
         }
     }
 
-    
     fn draw(
         &mut self,
         renderer: &mut Renderer,

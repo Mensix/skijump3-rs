@@ -15,14 +15,14 @@ pub struct JumpMenuView {
 }
 
 const JUMP_MENU_ACTIONS: &[Option<RouteTarget>] = &[
-    None,                         
-    None,                         
-    None,                         
-    None,                         
-    Some(RouteTarget::KothSetup), 
-    Some(RouteTarget::Practice),  
-    Some(RouteTarget::LoadCup),   
-    Some(RouteTarget::MainMenu),  
+    None,
+    None,
+    None,
+    None,
+    Some(RouteTarget::KothSetup),
+    Some(RouteTarget::Practice),
+    Some(RouteTarget::LoadCup),
+    Some(RouteTarget::MainMenu),
 ];
 
 impl JumpMenuView {

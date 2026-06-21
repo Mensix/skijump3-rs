@@ -10,5 +10,4 @@ pub mod scoring;
 pub mod team_cup;
 pub mod types;
 
-
 pub use active::ActiveCompetition;

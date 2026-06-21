@@ -28,8 +28,6 @@ impl LangBase {
         }
     }
 
-    
-
     pub fn tr(&self, index: usize) -> &str {
         self.try_tr(index, self.selected.get())
             .or_else(|| self.try_tr(index, self.fallback_lang))
@@ -49,8 +47,6 @@ impl LangBase {
         }
     }
 
-    
-
     pub fn languages(&self) -> &[Language] {
         &self.info
     }
@@ -58,8 +54,6 @@ impl LangBase {
     pub fn language_count(&self) -> usize {
         self.info.len()
     }
-
-    
 
     pub fn selected(&self) -> usize {
         self.selected.get()

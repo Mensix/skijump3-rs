@@ -137,7 +137,6 @@ impl KothJumpView {
             return None;
         }
 
-        
         match self
             .controller
             .handle_jump_scene_event(event, false, false, true, state)
@@ -174,7 +173,6 @@ impl GameScreen for KothJumpView {
     fn update(&mut self, cx: &mut GameCx<'_>) {
         self.controller.record_acknowledged_human_jump(cx.state);
 
-        
         if !matches!(
             self.controller.render_mode(),
             RenderMode::Results | RenderMode::Done

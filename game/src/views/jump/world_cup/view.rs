@@ -162,7 +162,6 @@ impl WorldCupJumpView {
             return self.handle_result_event(event, state);
         }
 
-        
         let is_dq =
             self.controller.scene().and_then(|s| s.phase()) == Some(JumpPhase::Disqualified);
         match self
@@ -182,7 +181,6 @@ impl GameScreen for WorldCupJumpView {
     fn update(&mut self, cx: &mut GameCx<'_>) {
         self.controller.record_acknowledged_human_jump(cx.state);
 
-        
         if let Some(command) = self.controller.drive(cx.state) {
             self.apply_command(command, cx.state);
         }
@@ -229,7 +227,7 @@ impl WorldCupJumpView {
 
     fn save_competition_results(&mut self, state: &mut GameState) {
         self.controller.save_results(state);
-        
+
         let (style, participants, event_pts): (_, Vec<_>, Vec<_>) = {
             let active = match state.active_competition.as_ref() {
                 Some(a) => a,
@@ -320,7 +318,7 @@ impl WorldCupJumpView {
                 if self.controller.ui_state_mut().next_page(total) {
                     return None;
                 }
-                
+
                 self.dismiss_results_and_advance(state);
                 None
             }

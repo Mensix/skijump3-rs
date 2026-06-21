@@ -58,7 +58,7 @@ impl HillMakerView {
 
     fn make_menu(total_hills: usize, page_start: usize) -> PixelMenu {
         let visible = Self::visible_count(total_hills, page_start);
-        let mut count = visible + 1; 
+        let mut count = visible + 1;
         if page_start + visible < total_hills {
             count += 1;
         }
@@ -131,7 +131,7 @@ impl GameScreen for HillMakerView {
             if matches!(event, UiEvent::KeyDown(_) | UiEvent::Text(_)) {
                 if matches!(event, UiEvent::Text('Y' | 'y')) {
                     let path = format!("custom_hills/{filename}.toml");
-                    let _ = self.resources.files.delete_save(&path);
+                    self.resources.files.delete_save(&path);
                     self.custom_hills = Self::load_custom_hills(&self.resources);
                     if self.page_start >= self.custom_hills.len() {
                         self.page_start = self.page_start.saturating_sub(PAGE_SIZE);

@@ -74,10 +74,7 @@ impl Renderer {
 
         let mut canvas = window.into_canvas();
 
-        let vsync_enabled = unsafe {
-            
-            sdl3::sys::render::SDL_SetRenderVSync(canvas.raw(), 1)
-        };
+        let vsync_enabled = unsafe { sdl3::sys::render::SDL_SetRenderVSync(canvas.raw(), 1) };
         if !vsync_enabled {
             return Err(sdl3::get_error().to_string());
         }
@@ -173,8 +170,6 @@ impl Renderer {
         self.last_tick = Instant::now();
     }
 
-    
-
     pub fn begin_frame(&mut self) {
         self.canvas.set_draw_color(Color::RGBA(0, 0, 0, 255));
         self.canvas.clear();
@@ -183,8 +178,6 @@ impl Renderer {
     pub fn end_frame(&mut self) {
         let _ = self.canvas.present();
     }
-
-    
 
     pub fn create_pattern_texture(
         &mut self,
@@ -206,7 +199,6 @@ impl Renderer {
     ) -> Result<(), String> {
         let (tint_r, tint_g, tint_b) = pattern_tint(color);
 
-        
         let (old_r, old_g, old_b) = {
             let Some(t) = self.textures.get_mut(&pattern_id) else {
                 return Err("Pattern texture not found".into());
@@ -216,7 +208,6 @@ impl Renderer {
             old
         };
 
-        
         let Some(texture) = self.textures.get(&pattern_id) else {
             return Err("Pattern texture not found".into());
         };
@@ -284,8 +275,6 @@ impl Renderer {
         Ok(())
     }
 
-    
-
     pub fn draw_fill_rect(
         &mut self,
         x: i32,
@@ -318,7 +307,6 @@ impl Renderer {
         Ok(())
     }
 }
-
 
 fn rgba_region_to_rgba(
     src_pixels: &[u8],

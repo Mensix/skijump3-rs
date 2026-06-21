@@ -21,7 +21,6 @@ pub(crate) enum CompetitionFlowCommand<C, R> {
     Done,
 }
 
-
 pub(crate) fn handle_human_jump(
     scene: &mut Option<JumpScene>,
     ui_state: &mut CompetitionUiState,

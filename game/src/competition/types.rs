@@ -53,7 +53,6 @@ impl CompetitionPhase {
         )
     }
 
-
     pub const fn auto_advances_when_empty(self) -> bool {
         matches!(
             self,
@@ -66,11 +65,9 @@ impl CompetitionPhase {
         )
     }
 
-
     pub const fn needs_event_results(self) -> bool {
         matches!(self, Self::Qualification | Self::Round1 | Self::Round2)
     }
-
 
     pub const fn result_round_number(self) -> Option<usize> {
         match self {
@@ -113,12 +110,10 @@ pub struct Participant {
     pub skip_qualification: u8,
     pub profile_idx: Option<usize>,
 
-    
     pub wc_points: i32,
     pub four_hills_points: f64,
     pub injury: u8,
 
-    
     pub points: Option<f64>,
     pub rank: usize,
     pub round1_rank: usize,

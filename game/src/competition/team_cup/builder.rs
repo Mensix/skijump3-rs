@@ -45,7 +45,6 @@ fn build_teams(
     let mut profile_ptr = 0;
     let mut teams = Vec::with_capacity(NUM_TEAMS);
 
-    
     let ai_count = NUM_TEAMS.saturating_sub(human_team_count);
 
     for ti in 0..NUM_TEAMS {
@@ -53,7 +52,6 @@ fn build_teams(
         let td = teams_def.get(ti).or_else(|| teams_def.last());
 
         let name = if is_human {
-            
             format!("Team {}", ti + 1)
         } else if let Some(t) = td {
             t.name.clone()

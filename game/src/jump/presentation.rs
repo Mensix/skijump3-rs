@@ -77,7 +77,6 @@ pub fn render(cx: &mut PaintCx<'_>, frame: &JumpRenderFrame, ctx: &JumpPresentat
     visuals::push_hill_record_marker(cx, frame.hill_record_marker, frame.sx, frame.sy);
     visuals::push_goal_marker(cx, frame.goal_marker, frame.sx, frame.sy);
 
-    
     if frame.phase != JumpPhase::Info {
         visuals::push_jumper_sprites(
             cx,
@@ -194,7 +193,6 @@ fn result_elements(
     }
 
     if frame.is_hill_record {
-        
         cx.text((260, 33), FONT_GOLD, "HR!");
         cx.right_text((308, 33), FONT_GOLD, format!("{:.1}m", frame.distance));
     } else {
@@ -216,15 +214,13 @@ fn landing_elements(
 ) {
     panel_header(cx, ctx.jumper_name, FONT_TEAL);
 
-    
     panel_distance(cx, frame.distance);
 
     if frame.is_hill_record {
-        
         if frame.frame_counter % 30 < 15 {
             cx.text((260, 33), FONT_GOLD, "HR!");
         }
-        
+
         if let Some((x, y)) = frame.hr_shake_position {
             cx.right_text((x, y), FONT_TEAL, format!("{:.1}m", frame.distance));
         }

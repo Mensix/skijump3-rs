@@ -19,36 +19,24 @@ pub struct Profile {
     pub legs_won: usize,
     pub world_cups_won: usize,
 
-    
     pub best_result: String,
     pub best_4h_result: String,
 
-    
     pub best_wc_jump: usize,
 
-    
-    
     pub best_wc_hill_idx: usize,
 
-    
     pub best_jump: usize,
 
-    
-    
     pub besthill_idx: usize,
 
-    
     pub best_hill_file: String,
 
-    
     pub best_points: usize,
     pub best_4h_points: f64,
 
-    
     pub koth_level: usize,
 
-    
-    
     #[serde(skip)]
     pub best_wc_hill_display: String,
     #[serde(skip)]

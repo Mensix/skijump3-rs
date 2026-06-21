@@ -31,7 +31,6 @@ pub(crate) fn render(
             let header = match results_kind {
                 TeamCupResultsKind::LegResults => {
                     if tc.current_leg == 5 {
-                        
                         lang.tr(92).to_string()
                     } else {
                         format!(
@@ -64,7 +63,6 @@ pub(crate) fn render(
         }
         let is_human = entry.is_human;
 
-        
         if entry.rank != last_rank && entry.rank > 0 {
             let c = if is_human { FONT_GOLD } else { FILL_GOLD };
             cx.right_text((24, y), c, format!("{}.", entry.rank));
@@ -75,12 +73,10 @@ pub(crate) fn render(
         let name = shorten_name(&entry.name, &resources.font, 122);
         cx.text((32, y), nc, name);
 
-        
         cx.right_text((184, y), nc, format_decimal(entry.primary_score));
 
         y += 10;
     }
 
-    
     cx.right_text((319, 13), FONT_GRAY, format!("{}-)", lang.tr(248)));
 }

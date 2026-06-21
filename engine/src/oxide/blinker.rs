@@ -16,7 +16,6 @@ impl Blinker {
         self.counter.set(0);
     }
 
-    
     pub fn visible(&self, on: u32, off: u32) -> bool {
         let c = self.counter.get();
         self.counter.set(c + 1);

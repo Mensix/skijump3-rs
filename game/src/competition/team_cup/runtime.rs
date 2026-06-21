@@ -433,7 +433,7 @@ mod tests {
                 _ => panic!("expected Jump"),
             }
         }
-        
+
         let d = r.decide_next();
         match d {
             CompetitionDecision::Jump { context, .. } => {
@@ -447,7 +447,7 @@ mod tests {
     #[test]
     fn leg_completes_after_120_jumps() {
         let mut r = make_test_runtime();
-        
+
         for _ in 0..120 {
             match r.decide_next() {
                 CompetitionDecision::Jump { .. } => r.record_jump(100.0, 200.0, 15),
@@ -464,7 +464,7 @@ mod tests {
     #[test]
     fn round_transition_after_60_jumps() {
         let mut r = make_test_runtime();
-        
+
         for _ in 0..60 {
             match r.decide_next() {
                 CompetitionDecision::Jump { context, .. } => {
@@ -474,7 +474,7 @@ mod tests {
                 other => panic!("expected Jump, got {other:?}"),
             }
         }
-        
+
         match r.decide_next() {
             CompetitionDecision::Jump { context, .. } => {
                 assert_eq!(context.round_idx, 1);
@@ -544,26 +544,21 @@ mod tests {
                 CompetitionDecision::Jump { context, .. } => {
                     let member_idx = context.member_idx;
                     let round = context.round_idx;
-                    
+
                     let score = 100 + member_idx as i32 * 10 + round as i32 * 5;
                     r.record_jump(100.0, f64::from(score), 15);
                 }
                 other => panic!("expected Jump, got {other:?}"),
             }
         }
-        
-        
-        
-        
-        
-        
+
         assert_eq!(r.teams[0].leg_score, 940.0);
     }
 
     #[test]
     fn top_8_teams_receive_cup_points() {
         let mut r = make_test_runtime();
-        
+
         for _ in 0..120 {
             match r.decide_next() {
                 CompetitionDecision::Jump { context, .. } => {
@@ -573,17 +568,17 @@ mod tests {
                 other => panic!("expected Jump, got {other:?}"),
             }
         }
-        
+
         match r.decide_next() {
             CompetitionDecision::ShowResults(TeamCupResultsKind::LegResults) => {}
             other => panic!("expected ShowLegResults, got {other:?}"),
         }
         r.advance_after_results();
-        assert_eq!(r.teams[14].cup_points, 400); 
-        assert_eq!(r.teams[13].cup_points, 350); 
-        assert_eq!(r.teams[7].cup_points, 50); 
-        assert_eq!(r.teams[6].cup_points, 0); 
-        assert_eq!(r.teams[0].cup_points, 0); 
+        assert_eq!(r.teams[14].cup_points, 400);
+        assert_eq!(r.teams[13].cup_points, 350);
+        assert_eq!(r.teams[7].cup_points, 50);
+        assert_eq!(r.teams[6].cup_points, 0);
+        assert_eq!(r.teams[0].cup_points, 0);
     }
 
     #[test]
@@ -593,7 +588,6 @@ mod tests {
             for _ in 0..120 {
                 match r.decide_next() {
                     CompetitionDecision::Jump { context, .. } => {
-                        
                         r.record_jump(100.0, f64::from(1000 - context.team_idx as i32 * 50), 15);
                     }
                     other => panic!("expected Jump, got {other:?}"),
@@ -621,7 +615,6 @@ mod tests {
         for _ in 0..120 {
             match r.decide_next() {
                 CompetitionDecision::Jump { context, .. } => {
-                    
                     let score = context.team_idx as i32 * 10 + 100;
                     r.record_jump(100.0, f64::from(score), 15);
                 }
@@ -630,18 +623,15 @@ mod tests {
         }
         let standings = r.current_leg_standings();
         assert_eq!(standings.len(), 15);
-        assert_eq!(standings[0].name, "Team14"); 
-        assert_eq!(
-            standings[0].primary_score,
-            f64::from((14 * 10 + 100) * 8) 
-        );
-        assert_eq!(standings[14].name, "Team0"); 
+        assert_eq!(standings[0].name, "Team14");
+        assert_eq!(standings[0].primary_score, f64::from((14 * 10 + 100) * 8));
+        assert_eq!(standings[14].name, "Team0");
     }
 
     #[test]
     fn human_team_jumps_are_flagged() {
         let mut r = make_test_runtime();
-        
+
         for _idx in 0..15 {
             let d = r.decide_next();
             match d {
@@ -683,6 +673,6 @@ mod tests {
             .flat_map(|t| t.members.iter())
             .map(|m| m.jumps.len())
             .sum();
-        assert_eq!(total, 720); 
+        assert_eq!(total, 720);
     }
 }

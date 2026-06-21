@@ -149,7 +149,7 @@ impl EditHillView {
         if let Ok(data) = toml::to_string(&toml) {
             let filename = &self.values[10];
             let path = format!("custom_hills/{filename}.toml");
-            let _ = self.resources.files.write(&path, data.as_bytes());
+            self.resources.files.write(&path, data.as_bytes());
         }
     }
 
@@ -255,7 +255,7 @@ impl GameScreen for EditHillView {
                         nav.back();
                     } else {
                         self.mode = EditMode::Viewing;
-                        self.menu.set_selected(10); 
+                        self.menu.set_selected(10);
                     }
                 }
                 nav.consume();

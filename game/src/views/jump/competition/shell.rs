@@ -59,8 +59,6 @@ impl CompetitionJumpView {
 
 impl GameScreen for CompetitionJumpView {
     fn update(&mut self, cx: &mut GameCx<'_>) {
-        
-        
         match self {
             Self::Training(view) => view.inner.update(cx),
             Self::Individual(view) => view.inner.update(cx),

@@ -10,7 +10,6 @@ pub enum SortBy {
     EventPoints,
 }
 
-///
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompetitionField {
     participants: Vec<Participant>,
@@ -67,8 +66,6 @@ impl CompetitionField {
             self.participants[ranked.item].rank = ranked.rank;
         }
     }
-
-    ///
 
     pub fn build_start_list(&self, phase: CompetitionPhase) -> Vec<usize> {
         match phase {
@@ -214,7 +211,7 @@ mod tests {
         f.sort_field(SortBy::WcPoints);
 
         let list = f.build_start_list(CompetitionPhase::Qualification);
-        
+
         assert_eq!(list, vec![4, 3, 2, 1, 0]);
     }
 
@@ -227,8 +224,7 @@ mod tests {
         f.sort_field(SortBy::WcPoints);
 
         let list = f.build_start_list(CompetitionPhase::Round1);
-        
-        
+
         assert_eq!(list, vec![4, 3]);
     }
 

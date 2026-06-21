@@ -7,7 +7,6 @@ use crate::text::lang::LangBase;
 use engine::color::Rgba;
 use engine::oxide::PaintCx;
 
-
 const COL_RANK: i32 = 24;
 const COL_NAME: i32 = 32;
 const COL_POINTS: i32 = 184;
@@ -18,7 +17,6 @@ const ROW_STEP: i32 = 8;
 const ITEMS_PER_PAGE: usize = 22;
 
 const KOTH_BG: Rgba = BG_GREEN;
-
 
 fn separator_label(lang: &LangBase, round: u8) -> String {
     let idx = 101 + (round as usize % 5);
@@ -43,8 +41,7 @@ pub struct KothPage {
 
 fn build_entries(c: &KothRuntime) -> (Vec<KothEntry>, usize, bool) {
     let mut idx_sorted: Vec<usize> = (0..c.participants.len()).collect();
-    
-    
+
     idx_sorted.sort_by(|&a, &b| {
         let pa = &c.participants[a];
         let pb = &c.participants[b];
@@ -59,7 +56,6 @@ fn build_entries(c: &KothRuntime) -> (Vec<KothEntry>, usize, bool) {
     let remaining = c.participants.iter().filter(|p| p.is_alive()).count();
     let is_final = remaining <= 1;
 
-    
     let last_eliminated_pos = idx_sorted.iter().position(|&idx| {
         let p = &c.participants[idx];
         !p.is_alive() && p.eliminated_in_round == c.current_elimination_round + 1
@@ -134,16 +130,13 @@ pub fn render(cx: &mut PaintCx<'_>, resources: &ResourcesRef, state: &GameState)
             title,
         };
 
-        
         cx.fill((0, 0, 320, 200), BLACK);
         cx.pattern_fill((0, 0, 320, 19), FILL_GRAY);
         cx.pattern_fill((0, 20, 320, 180), KOTH_BG);
         cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
 
-        
         cx.right_text((319, 13), FONT_GRAY, format!("{}-)", lang.tr(248)));
 
-        
         cx.text((30, 6), FONT_BODY, &kp.title);
 
         let mut y = START_Y;
@@ -153,7 +146,6 @@ pub fn render(cx: &mut PaintCx<'_>, resources: &ResourcesRef, state: &GameState)
                 break;
             }
 
-            
             if entry.separator_before {
                 let label = separator_label(&resources.langbase, c.current_elimination_round);
                 y += ROW_STEP / 2;

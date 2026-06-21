@@ -1,5 +1,5 @@
-use crate::data::profile::{Profile, NUM_SKIS, NUM_SUITS};
-use crate::gfx::theme::{BG_RED, BLACK, FILL_GRAY, FONT_BODY, FONT_GOLD};
+use crate::data::profile::{NUM_SKIS, NUM_SUITS};
+use crate::gfx::theme::{BLACK, FILL_GRAY, FONT_BODY, FONT_GOLD};
 use crate::route::RouteTarget;
 use crate::store::GameState;
 use crate::text::layout::replace_display_name;

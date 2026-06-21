@@ -23,8 +23,6 @@ pub struct NumericSelector {
 }
 
 impl NumericSelector {
-    
-
     pub fn new(
         x: i32,
         y: i32,

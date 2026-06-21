@@ -11,7 +11,6 @@ pub fn wc_points_for_rank(rank: usize) -> i32 {
     WC_POINTS.points_for_rank(rank)
 }
 
-///
 pub fn award_wc_points(field: &mut CompetitionField) {
     for idx in 0..field.len() {
         let rank = field.get(idx).rank;
@@ -55,7 +54,7 @@ mod tests {
         assert_eq!(field.get(0).wc_points, 100);
         assert_eq!(field.get(1).wc_points, 80);
         assert_eq!(field.get(2).wc_points, 60);
-        assert_eq!(field.get(9).wc_points, 26); 
+        assert_eq!(field.get(9).wc_points, 26);
     }
 
     #[test]
@@ -67,9 +66,9 @@ mod tests {
         field.sort_field(SortBy::EventPoints);
         award_wc_points(&mut field);
 
-        assert_eq!(field.get(29).wc_points, 1); 
-        assert_eq!(field.get(30).wc_points, 0); 
-        assert_eq!(field.get(34).wc_points, 0); 
+        assert_eq!(field.get(29).wc_points, 1);
+        assert_eq!(field.get(30).wc_points, 0);
+        assert_eq!(field.get(34).wc_points, 0);
     }
 
     #[test]

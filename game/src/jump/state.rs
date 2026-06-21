@@ -259,12 +259,10 @@ impl JumpState {
                 self.info_counter += 1;
             }
             JumpPhase::OnBar => {
-                
-                
                 if count_onbar_frames {
                     self.frame += 1;
                 }
-                
+
                 if count_onbar_frames && self.frame > 700 {
                     self.phase = JumpPhase::Disqualified;
                     self.score = 0;

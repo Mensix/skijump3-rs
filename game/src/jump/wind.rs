@@ -102,7 +102,6 @@ impl Wind {
         self.place
     }
 
-
     pub fn position_for_jumper(&self, jumper_screen_x: i32, jumper_screen_y: i32) -> WindPosition {
         let mut x = jumper_screen_x;
         let mut y = jumper_screen_y;

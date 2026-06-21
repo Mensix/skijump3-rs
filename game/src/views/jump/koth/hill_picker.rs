@@ -83,12 +83,12 @@ impl KothHillPickerView {
         } else if sel == self.menu.item_count() {
             state.config.koth_hill = -1;
             let cfg = state.config.clone();
-            let _ = self.save_manager.save_config(&cfg);
+            self.save_manager.save_config(&cfg);
         } else {
             let hill_idx = self.start + sel;
             state.config.koth_hill = hill_idx as i32;
             let cfg = state.config.clone();
-            let _ = self.save_manager.save_config(&cfg);
+            self.save_manager.save_config(&cfg);
         }
     }
 
@@ -149,12 +149,10 @@ impl GameScreen for KothHillPickerView {
             paint.text((140, y), FONT_TEAL, lang.tr(156));
         }
 
-        
         let y = (self.exit_row() - 1) as i32 * 8 + 10;
         paint.right_text((130, y), FONT_BODY, "0.");
         paint.text((140, y), FONT_BODY, lang.tr(155));
 
-        
         let bx = 104;
         let sel = self.menu.selected();
         let sel_row = if sel == self.menu.item_count() {

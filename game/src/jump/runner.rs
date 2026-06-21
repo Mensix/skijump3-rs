@@ -262,7 +262,6 @@ impl JumpRunner {
 
     pub(crate) fn update(&mut self, rng: &mut Random, wind: &mut Wind) {
         if self.computer_input.is_some() && !self.computer_pre_ai_wind_done {
-            
             wind.advance_without_sampling(rng);
             self.computer_pre_ai_wind_done = true;
         }

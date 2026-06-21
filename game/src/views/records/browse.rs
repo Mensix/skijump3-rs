@@ -49,9 +49,9 @@ impl HallOfFameView {
             cx,
             self.page,
             HALL_PAGES,
-            &lang.tr(246),
-            &lang.tr(247),
-            &lang.tr(248),
+            lang.tr(246),
+            lang.tr(247),
+            lang.tr(248),
         );
     }
 
@@ -194,9 +194,9 @@ impl HillRecordsView {
             cx,
             self.page,
             pages,
-            &lang.tr(246),
-            &lang.tr(247),
-            &lang.tr(248),
+            lang.tr(246),
+            lang.tr(247),
+            lang.tr(248),
         );
     }
 

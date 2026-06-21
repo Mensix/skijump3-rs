@@ -343,14 +343,11 @@ mod tests {
         let mut wind = Wind::default();
         wind.initialize(&mut rng, 0);
 
-        
-        
         wind.advance_without_sampling(&mut rng);
         for _ in 0..100 {
             wind.advance_without_sampling(&mut rng);
         }
 
-        
         let value = wind.sample(&mut rng);
         assert!(
             (-50..=50).contains(&value),

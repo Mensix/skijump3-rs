@@ -13,7 +13,6 @@ struct LanguageManifest {
 
 #[derive(Debug, Deserialize)]
 struct LanguageEntry {
-    id: String,
     file: String,
 }
 

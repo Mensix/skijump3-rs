@@ -173,7 +173,6 @@ impl BakedSpriteTextures {
         })
     }
 
-    
     pub fn bake_with_png(
         renderer: &mut Renderer,
         base_sprites: &[BaseSprite],
@@ -204,7 +203,7 @@ impl BakedSpriteTextures {
             let Some(base) = base_sprites.iter().find(|b| b.sprite_idx == *sprite_idx) else {
                 continue;
             };
-            
+
             let mut resolved = base.palette;
             for &(source_idx, override_color) in material.overrides() {
                 resolved[source_idx.value() as usize] = override_color;
@@ -234,7 +233,6 @@ impl BakedSpriteTextures {
     }
 }
 
-
 fn indices_to_rgba(indices: &[u8], palette: &[Rgba; 256], out: &mut Vec<u8>) {
     out.clear();
     out.reserve(indices.len() * 4);
@@ -246,7 +244,6 @@ fn indices_to_rgba(indices: &[u8], palette: &[Rgba; 256], out: &mut Vec<u8>) {
         out.push(c.a);
     }
 }
-
 
 #[derive(Debug, Clone)]
 pub struct BaseSprite {

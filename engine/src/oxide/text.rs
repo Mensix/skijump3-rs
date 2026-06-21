@@ -60,8 +60,6 @@ impl Font {
         w
     }
 
-
-
     pub fn render_string_rgba(
         &self,
         text: &str,
@@ -71,7 +69,6 @@ impl Font {
         shadow: Rgba,
         out: &mut Vec<u8>,
     ) -> Option<RgbaBitmap> {
-        
         let mut min_x = i32::MAX;
         let mut min_y = i32::MAX;
         let mut max_x = i32::MIN;
@@ -116,7 +113,6 @@ impl Font {
             return None;
         }
 
-        
         let bitmap_x = min_x.max(0);
         let bitmap_y = min_y.max(0);
         let bitmap_w = (max_x.min(WIDTH as i32) - bitmap_x).max(0) as u32;
@@ -134,18 +130,16 @@ impl Font {
         let bitmap_w_i32 = bitmap_w as i32;
         let bitmap_h_i32 = bitmap_h as i32;
 
-        
         let sr = shadow.r;
         let sg = shadow.g;
         let sb = shadow.b;
         let sa = shadow.a;
-        
+
         let tr = color.r;
         let tg = color.g;
         let tb = color.b;
         let ta = color.a;
 
-        
         for gp in &positions {
             if let Some(ref g) = self.glyphs[gp.idx] {
                 let start_x = gp.screen_px - i32::from(gp.center_x);
@@ -162,7 +156,7 @@ impl Font {
                         }
                         let sx = start_x + xx;
                         let sy = start_y + yy;
-                        
+
                         if sx < bitmap_x
                             || sy < bitmap_y
                             || sx >= bitmap_x + bitmap_w_i32

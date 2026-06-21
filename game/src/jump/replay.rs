@@ -308,7 +308,7 @@ impl ReplayTrace {
             .trim()
             .parse::<i32>()
             .unwrap();
-        parser.next_line(); 
+        parser.next_line();
         let replay_data = parser.skip_to_replay_data();
         let frames = decode_frames(replay_data, max_turns);
         let expected_checksum = replay_checksum(ReplayChecksumInput {

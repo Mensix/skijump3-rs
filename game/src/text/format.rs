@@ -3,7 +3,7 @@ use std::fmt::Write;
 #[must_use]
 pub fn tenths_to_decimal(value: i32) -> f64 {
     let result = f64::from(value) / 10.0;
-    
+
     (result * 10.0).round() / 10.0
 }
 

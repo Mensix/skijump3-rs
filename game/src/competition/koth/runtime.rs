@@ -55,11 +55,9 @@ impl KothRuntime {
             return;
         }
 
-        
         let mut sorted = alive;
         sorted.sort_by(|(_, a), (_, b)| b.total_cmp(a));
 
-        
         let mut i = 0;
         while i + 1 < sorted.len() {
             if (sorted[i].1 - sorted[i + 1].1).abs() < f64::EPSILON && self.rng.random_i32(2) == 0 {
@@ -68,7 +66,6 @@ impl KothRuntime {
             i += 1;
         }
 
-        
         if let Some(&(idx, _)) = sorted.last() {
             self.participants[idx].eliminated_in_round = self.current_elimination_round;
         }
@@ -91,7 +88,6 @@ impl CompetitionRuntime for KothRuntime {
                 }
 
                 KothPhase::Jumping => {
-                    
                     while self.current_participant_pos < self.participants.len() {
                         let p = &self.participants[self.current_participant_pos];
                         if p.is_alive() {
@@ -114,21 +110,18 @@ impl CompetitionRuntime for KothRuntime {
                         self.current_participant_pos += 1;
                     }
 
-                    
                     if self.current_jump_round == 0 && self.jump_rounds_per_elimination > 1 {
                         self.current_jump_round = 1;
                         self.current_participant_pos = 0;
                         continue;
                     }
 
-                    
                     self.eliminate_lowest();
 
                     if self.count_alive() <= 1 {
                         self.phase = KothPhase::Complete;
                     }
 
-                    
                     return CompetitionDecision::ShowResults(KothResultsKind::Results);
                 }
 

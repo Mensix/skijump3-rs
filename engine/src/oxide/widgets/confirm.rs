@@ -27,8 +27,6 @@ pub struct ConfirmDialog {
 }
 
 impl ConfirmDialog {
-    
-
     pub fn new(
         rect: (i32, i32, i32, i32),
         bg: Rgba,
