@@ -66,8 +66,18 @@ impl SaveManager {
         self.save_bytes("hiscores.toml", &data);
     }
 
-    pub fn save_active_cup(&self, active: &ActiveCompetition) -> String {
-        let filename = format!("cup_{}.toml", chrono::Local::now().format("%Y%m%d_%H%M"));
+    /// Save (or overwrite) the active competition cup file.
+    /// When `filename` is `Some`, the existing file is overwritten (with
+    /// updated timestamp).  Otherwise a new timestamped name is created.
+    /// Returns the filename used.
+    pub fn save_active_cup(&self, active: &ActiveCompetition, filename: Option<&str>) -> String {
+        let filename = filename
+            .filter(|n| !n.is_empty())
+            .unwrap_or(&format!(
+                "cup_{}.toml",
+                chrono::Local::now().format("%Y%m%d_%H%M")
+            ))
+            .to_string();
         let saved_at = current_timestamp_string();
         let data = CupSaveData::new(active.clone(), saved_at).to_toml_bytes();
         self.save_bytes(&filename, &data);

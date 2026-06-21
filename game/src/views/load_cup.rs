@@ -46,6 +46,7 @@ impl LoadCupView {
         };
         let data = self.save_manager.load_cup(&filename);
         cx.state.active_competition = Some(data.active);
+        cx.state.active_cup_filename = Some(filename);
         nav.navigate(RouteTarget::CompetitionJump);
     }
 }

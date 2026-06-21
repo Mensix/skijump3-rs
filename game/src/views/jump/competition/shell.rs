@@ -105,7 +105,9 @@ fn shell_event<T: GameScreen>(
         match event {
             UiEvent::Text(c) if is_yes(c, cx) => {
                 if let Some(active) = cx.state.active_competition.as_ref() {
-                    cx.save_manager.save_active_cup(active);
+                    let filename = cx.state.active_cup_filename.as_deref();
+                    let new_name = cx.save_manager.save_active_cup(active, filename);
+                    cx.state.active_cup_filename = Some(new_name);
                 }
                 nav.back();
             }
