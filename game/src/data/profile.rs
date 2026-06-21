@@ -118,6 +118,9 @@ impl ProfileStore {
 
     pub fn remove_from_order(&mut self, profile_index: usize) {
         self.active_order.retain(|&idx| idx != profile_index);
+        if self.active_order.is_empty() {
+            self.active_order.push(0);
+        }
     }
 
     pub fn remove_profile(&mut self, profile_index: usize) {

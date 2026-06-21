@@ -122,6 +122,7 @@ pub struct Participant {
     pub round1_score: f64,
     pub round2_len: f64,
     pub qual_len: f64,
+    pub leg_wins: usize,
 }
 
 impl Participant {
@@ -148,6 +149,7 @@ impl Participant {
             round1_score: 0.0,
             round2_len: 0.0,
             qual_len: 0.0,
+            leg_wins: 0,
         }
     }
 
@@ -173,6 +175,7 @@ impl Participant {
         self.round2_len = 0.0;
         self.qual_len = 0.0;
     }
+
 }
 
 #[cfg(test)]

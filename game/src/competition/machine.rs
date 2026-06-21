@@ -222,6 +222,9 @@ impl Competition {
                 self.enter_phase(CompetitionPhase::EventComplete);
             }
             CompetitionPhase::EventComplete => {
+                if let Some(&winner_idx) = self.field.event_order.first() {
+                    self.field.get_mut(winner_idx).leg_wins += 1;
+                }
                 self.current_event += 1;
                 if self.current_event >= self.hill_order.len() {
                     self.phase = CompetitionPhase::SeasonComplete;

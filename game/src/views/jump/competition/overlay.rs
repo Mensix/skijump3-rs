@@ -310,7 +310,7 @@ impl CompetitionOverlay {
             }
             OverlayKind::Coach => self.coach_elements(cx, ctx),
             OverlayKind::Koth => {
-                if matches!(ctx.scene_phase, JumpPhase::Info | JumpPhase::Result) {
+                if ctx.scene_phase == JumpPhase::Info {
                     let phase = (ctx.frame_counter as usize) % 292;
                     if phase <= 130 {
                         self.koth_info_elements(cx, ctx);

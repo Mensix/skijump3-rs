@@ -91,6 +91,7 @@ fn build_participants(
                 round1_score: 0.0,
                 round2_len: 0.0,
                 qual_len: 0.0,
+                leg_wins: 0,
             });
         } else {
             let name = computer_names

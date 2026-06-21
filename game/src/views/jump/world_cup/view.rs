@@ -241,13 +241,21 @@ impl WorldCupJumpView {
             let participants = c
                 .overall_standings()
                 .into_iter()
-                .map(|p| (p.profile_idx, p.points, p.four_hills_points, p.rank))
+                .map(|p| {
+                    (
+                        p.profile_idx,
+                        p.points,
+                        p.four_hills_points,
+                        p.rank,
+                        p.leg_wins,
+                    )
+                })
                 .collect();
             let event_pts = c.event_standings().into_iter().map(|p| p.points).collect();
             (style, participants, event_pts)
         };
         let profiles = &mut state.profiles;
-        for &(pidx_opt, pts_opt, fh_points, rank) in &participants {
+        for (pos, &(pidx_opt, pts_opt, fh_points, rank, leg_wins)) in participants.iter().enumerate() {
             let Some(pidx) = pidx_opt else { continue };
             let Some(profile) = profiles.profiles.get_mut(pidx) else {
                 continue;
@@ -255,6 +263,10 @@ impl WorldCupJumpView {
             match style {
                 CupStyle::WorldCup => {
                     profile.world_cups += 1;
+                    profile.legs_won += leg_wins;
+                    if pos == 0 {
+                        profile.world_cups_won += 1;
+                    }
                     let Some(my_points) = pts_opt else { continue };
                     let event_rank = 1 + event_pts
                         .iter()
