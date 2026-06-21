@@ -122,8 +122,8 @@ fn paint_quit_confirm(cx: &mut PaintCx<'_>, question: &str, prompt: &str) {
 }
 
 fn is_yes(c: char, layout: &MainLayout) -> bool {
-    let localized = layout
-        .langbase
+    let lang = &layout.langbase;
+    let localized = lang
         .tr(6)
         .chars()
         .next()

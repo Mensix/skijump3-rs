@@ -138,9 +138,8 @@ fn shell_event<T: GameScreen>(
 }
 
 fn is_yes(c: char, cx: &GameCx<'_>) -> bool {
-    let localized = cx
-        .layout
-        .langbase
+    let lang = &cx.layout.langbase;
+    let localized = lang
         .tr(6)
         .chars()
         .next()
@@ -150,9 +149,8 @@ fn is_yes(c: char, cx: &GameCx<'_>) -> bool {
 }
 
 fn is_no(c: char, cx: &GameCx<'_>) -> bool {
-    let localized = cx
-        .layout
-        .langbase
+    let lang = &cx.layout.langbase;
+    let localized = lang
         .tr(7)
         .chars()
         .next()

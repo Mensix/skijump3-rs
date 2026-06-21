@@ -270,8 +270,7 @@ fn render_screen(view: &SetupView, state: &GameState, cx: &mut PaintCx<'_>) {
                     if state.config.training_rounds == 0 {
                         lang.tr(9).to_string()
                     } else {
-                        view.langbase()
-                            .tr(state.config.training_rounds as usize)
+                        lang.tr(state.config.training_rounds as usize)
                             .to_string()
                     }
                 }
@@ -326,8 +325,7 @@ fn render_screen(view: &SetupView, state: &GameState, cx: &mut PaintCx<'_>) {
                 }
                 (2, 8) => {
                     if state.config.visible_computers >= 235 {
-                        view.langbase()
-                            .tr(state.config.visible_computers as usize)
+                        lang.tr(state.config.visible_computers as usize)
                             .to_string()
                     } else {
                         format!("#{}", state.config.visible_computers)
