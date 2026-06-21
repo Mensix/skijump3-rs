@@ -116,7 +116,7 @@ impl JumpMenuView {
         let comp = factory::world_cup(
             &profiles,
             self.resources.player_names(config.name_set_index as usize),
-            self.resources.hills.len(),
+            self.resources.hills.original_count(),
             config.training_rounds as usize,
             config.unique_computer_names != 0,
             config.ko_system != 0,
@@ -131,7 +131,7 @@ impl JumpMenuView {
         let comp = factory::four_hills(
             &profiles,
             self.resources.player_names(config.name_set_index as usize),
-            self.resources.hills.len(),
+            self.resources.hills.original_count(),
             config.training_rounds as usize,
             config.unique_computer_names != 0,
             config.ko_system != 0,
@@ -154,7 +154,7 @@ impl JumpMenuView {
             .namesets
             .teams_for_config(name_set_index as i32)
             .to_vec();
-        let hill_count = self.resources.hills.len();
+        let hill_count = self.resources.hills.original_count();
 
         let comp = {
             factory::team_cup(

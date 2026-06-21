@@ -28,15 +28,27 @@ impl HillInfo {
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct HillCatalog {
     hills: Vec<HillInfo>,
+    /// Number of built-in hills (before any user-created custom hills).
+    original_count: usize,
 }
 
 impl HillCatalog {
-    pub const fn new(hills: Vec<HillInfo>) -> Self {
-        Self { hills }
+    /// `original_count` is the number of built-in hills; hills beyond that
+    /// are user-created custom hills and are excluded from competitions.
+    pub const fn new(hills: Vec<HillInfo>, original_count: usize) -> Self {
+        Self {
+            hills,
+            original_count,
+        }
     }
 
     pub const fn len(&self) -> usize {
         self.hills.len()
+    }
+
+    /// Number of built-in hills (excludes custom hills).
+    pub const fn original_count(&self) -> usize {
+        self.original_count
     }
 
     pub fn hill(&self, idx: usize) -> Option<&HillInfo> {

@@ -434,7 +434,7 @@ impl KothSetupView {
 
     fn start_koth(&self, state: &mut GameState) -> Option<RouteTarget> {
         let profiles = state.profiles.clone();
-        let hill_count = self.resources.hills.len();
+        let hill_count = self.resources.hills.original_count();
         let name_set_index = state.config.name_set_index as usize;
         let rng_clone = state.rng.clone();
         let comp = factory::koth(

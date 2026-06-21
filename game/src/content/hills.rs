@@ -71,6 +71,8 @@ pub(crate) fn load_hills(files: &FileStore, manifest_path: &str) -> HillCatalog 
         append_catalog(&mut all_hills, &cat);
     }
 
+    let original_count = all_hills.len();
+
     let mut custom_names = files.list_save_subdir_by_ext("custom_hills", "toml");
     custom_names.sort();
     for name in custom_names {
@@ -79,7 +81,7 @@ pub(crate) fn load_hills(files: &FileStore, manifest_path: &str) -> HillCatalog 
         append_catalog(&mut all_hills, &cat);
     }
 
-    HillCatalog::new(all_hills)
+    HillCatalog::new(all_hills, original_count)
 }
 
 fn append_catalog(all_hills: &mut Vec<HillInfo>, cat: &HillCatalogToml) {
