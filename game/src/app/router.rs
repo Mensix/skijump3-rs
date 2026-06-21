@@ -118,7 +118,25 @@ impl AppRouter {
 
     pub fn handle_event(&mut self, event: UiEvent) {
         if matches!(event, UiEvent::KeyDown(Key::Escape)) {
-            self.back();
+            if self.current.has_modal() {
+                self.current.dismiss_modal();
+                return;
+            }
+            let mut nav = ScreenEventCx::default();
+            {
+                let mut cx = GameCx {
+                    state: &mut self.state,
+                    save_manager: &self.save_manager,
+                    layout: &self.layout,
+                };
+                self.current.event(&mut cx, &mut nav, event);
+            }
+            match nav.take_action() {
+                NavAction::None => self.back(),
+                NavAction::Navigate(route) => self.navigate(route),
+                NavAction::Back => self.back(),
+                NavAction::Quit => self.navigate(RouteTarget::Quit),
+            }
             return;
         }
 

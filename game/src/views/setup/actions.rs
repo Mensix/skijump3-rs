@@ -66,10 +66,14 @@ fn handle_hill_goals(
 
 fn adjust_hill_goal(view: &SetupView, state: &mut GameState, selected: usize, delta: f64) {
     let hill = view.resources.hills.hill(selected);
-    let Some(key) = hill.map(|h| &h.record_key) else { return };
+    let Some(key) = hill.map(|h| &h.record_key) else {
+        return;
+    };
     let current = state.records.hill_goal(key).copied().unwrap_or(0.0);
     let value = (current + delta).clamp(0.0, 250.0);
-    state.records.set_hill_goal(key, (value * 10.0).round() / 10.0);
+    state
+        .records
+        .set_hill_goal(key, (value * 10.0).round() / 10.0);
 }
 
 fn save_records(view: &SetupView, state: &GameState) {

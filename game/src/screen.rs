@@ -18,4 +18,8 @@ pub trait GameScreen {
     fn background(&self) -> ScreenBackground {
         ScreenBackground::NoneBlack
     }
+    fn has_modal(&self) -> bool {
+        false
+    }
+    fn dismiss_modal(&mut self) {}
 }

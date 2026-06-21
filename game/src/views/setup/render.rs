@@ -122,10 +122,17 @@ fn render_hill_goals(view: &SetupView, state: &GameState, cx: &mut PaintCx<'_>, 
         if let Some(hill) = view.resources.hills.hill(idx) {
             cx.right_text((18, y), FONT_GOLD, format!("{}.", idx + 1));
             cx.text((24, y), FONT_BODY, &hill.name);
-            let goal = state.records.hill_goal(&hill.record_key).copied().unwrap_or(0.0);
+            let goal = state
+                .records
+                .hill_goal(&hill.record_key)
+                .copied()
+                .unwrap_or(0.0);
             cx.right_text((200, y), goal_color, format_distance(goal));
             cx.right_text((250, y), FONT_TEAL, format_distance(hill.kr as f64));
-            let record = state.records.hill_record(&hill.record_key).map_or(0.0, |r| r.len);
+            let record = state
+                .records
+                .hill_record(&hill.record_key)
+                .map_or(0.0, |r| r.len);
             cx.right_text((300, y), FONT_TEAL, format_distance(record));
         }
     }

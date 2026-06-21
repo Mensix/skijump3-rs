@@ -551,8 +551,7 @@ impl CompetitionOverlay {
         let hill_name_k = hill
             .map(|h| format!("{} K{}", h.name, h.kr))
             .unwrap_or_default();
-        let record = hill
-            .and_then(|h| state.records.hill_record(&h.record_key));
+        let record = hill.and_then(|h| state.records.hill_record(&h.record_key));
         hud::push_hill_record_info(cx, &self.resources.langbase, &hill_name_k, record);
     }
 

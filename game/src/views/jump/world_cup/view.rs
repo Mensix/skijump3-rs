@@ -281,18 +281,35 @@ impl WorldCupJumpView {
 
     fn update_hall_of_fame(&self, state: &mut GameState) {
         let (style, wc_top, fh_top) = {
-            let Some(active) = state.active_competition.as_ref() else { return };
+            let Some(active) = state.active_competition.as_ref() else {
+                return;
+            };
             let Some(c) = active.individual() else { return };
             let participants = c.overall_standings();
             let style = c.style();
 
-            let wc_top: Vec<_> = participants.iter().take(20).map(|p| {
-                (p.display_name().to_string(), p.wc_points as f64, p.is_computer)
-            }).collect();
+            let wc_top: Vec<_> = participants
+                .iter()
+                .take(20)
+                .map(|p| {
+                    (
+                        p.display_name().to_string(),
+                        p.wc_points as f64,
+                        p.is_computer,
+                    )
+                })
+                .collect();
 
-            let mut fh: Vec<_> = participants.iter()
+            let mut fh: Vec<_> = participants
+                .iter()
                 .filter(|p| p.four_hills_points > 0.0)
-                .map(|p| (p.display_name().to_string(), p.four_hills_points, p.is_computer))
+                .map(|p| {
+                    (
+                        p.display_name().to_string(),
+                        p.four_hills_points,
+                        p.is_computer,
+                    )
+                })
                 .collect();
             fh.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
 

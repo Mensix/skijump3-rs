@@ -95,25 +95,21 @@ impl HallOfFameView {
         col: [i32; 4],
         sortby_points: bool,
     ) {
-            let name_color = if hi.is_computer {
-                FONT_TEAL
-            } else {
-                FONT_BODY
-            };
-            cx.right_text((24, y), FONT_GOLD, ordinal_dot(place));
-            cx.text(
-                (col[0], y),
-                name_color,
-                shorten_name(&hi.name, &self.resources.font, 110),
-            );
-            cx.right_text((col[1] + 14, y), name_color, ordinal_dot(hi.pos));
-            let score = if sortby_points {
-                format_decimal(hi.score)
-            } else {
-                format!("{:.0}", hi.score)
-            };
-            cx.right_text((col[2] + 24, y), name_color, score);
-            cx.text((col[3], y), FONT_GRAY, &format_time(&hi.time));
+        let name_color = if hi.is_computer { FONT_TEAL } else { FONT_BODY };
+        cx.right_text((24, y), FONT_GOLD, ordinal_dot(place));
+        cx.text(
+            (col[0], y),
+            name_color,
+            shorten_name(&hi.name, &self.resources.font, 110),
+        );
+        cx.right_text((col[1] + 14, y), name_color, ordinal_dot(hi.pos));
+        let score = if sortby_points {
+            format_decimal(hi.score)
+        } else {
+            format!("{:.0}", hi.score)
+        };
+        cx.right_text((col[2] + 24, y), name_color, score);
+        cx.text((col[3], y), FONT_GRAY, &format_time(&hi.time));
     }
 
     fn paint_koth_records(&self, state: &GameState, cx: &mut PaintCx<'_>) {
@@ -226,7 +222,10 @@ impl HillRecordsView {
             let Some(hill) = self.resources.hills.hill(idx) else {
                 continue;
             };
-            let record = records.hill_record(&hill.record_key).cloned().unwrap_or_default();
+            let record = records
+                .hill_record(&hill.record_key)
+                .cloned()
+                .unwrap_or_default();
             let display_len = ahi_len(&record, hill.kr);
             if phase == 0 {
                 ahi_sum += display_len;
@@ -348,11 +347,7 @@ fn paint_page_hints(
     cx.right_text((319, 13), FONT_GRAY, format!("{text}-)"));
 }
 
-fn handle_paged_ui_event(
-    event: UiEvent,
-    page: &mut usize,
-    pages: usize,
-) -> Option<RouteTarget> {
+fn handle_paged_ui_event(event: UiEvent, page: &mut usize, pages: usize) -> Option<RouteTarget> {
     if *page >= pages {
         *page = pages.saturating_sub(1);
     }

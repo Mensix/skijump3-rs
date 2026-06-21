@@ -53,37 +53,6 @@ impl ProfileStore {
 mod tests {
     use super::*;
 
-    fn one_profile_toml() -> Vec<u8> {
-        r#"format_version = 1
-active_order = [0]
-
-[[profiles]]
-name = "X"
-real_name = ""
-suit_color = 0
-ski_color = 0
-replace = 0
-coach_style = 1
-skip_qualification = 0
-total_jumps = 0
-world_cups = 0
-legs_won = 0
-world_cups_won = 0
-best_result = "-"
-best_4h_result = "-"
-best_wc_jump = 0
-best_wc_hill_idx = 0
-best_jump = 0
-besthill_idx = 0
-best_hill_file = ""
-best_points = 0
-best_4h_points = 0
-koth_level = 0
-"#
-        .as_bytes()
-        .to_vec()
-    }
-
     #[test]
     fn roundtrip_preserves_all_fields() {
         let mut store = ProfileStore::new();

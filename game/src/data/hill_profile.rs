@@ -1,7 +1,8 @@
 use crate::files::FileStore;
 use crate::gfx::png::load_png;
-use serde::Deserialize;
 use std::rc::Rc;
+
+const PROFILE_LEN: usize = 1300;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HillTerrain {
@@ -16,26 +17,10 @@ pub struct HillTerrain {
     pub tip_x: i32,
 }
 
-#[derive(Deserialize)]
-
-struct TerrainMetadata {
-    width: u16,
-    height: u16,
-    back_width: u16,
-    back_height: u16,
-    tip_x: i32,
-    line_lengths: Vec<i64>,
-    profile_y: Vec<i64>,
-}
-
 impl HillTerrain {
     pub fn load(files: &FileStore, terrain_id: impl std::fmt::Display) -> Self {
         let terrain_id = terrain_id.to_string();
         let dir = format!("hills/generated/HILL{terrain_id}/");
-
-        let meta_bytes = files.read(&format!("{dir}terrain.toml"));
-        let meta_str = std::str::from_utf8(&meta_bytes).unwrap();
-        let meta: TerrainMetadata = toml::from_str(meta_str).unwrap();
 
         let front_visual_raw = files.read(&format!("{dir}front_visual.png"));
         let front_visual = load_png(&front_visual_raw);
@@ -43,20 +28,69 @@ impl HillTerrain {
         let back_visual_raw = files.read(&format!("{dir}back_visual.png"));
         let back_visual = load_png(&back_visual_raw);
 
-        let line_lengths: Vec<usize> = meta.line_lengths.iter().map(|&v| v as usize).collect();
-        let profile_y: Vec<i32> = meta.profile_y.iter().map(|&v| v as i32).collect();
+        let width = front_visual.width as u16;
+        let height = front_visual.height as u16;
+        let back_width = back_visual.width as u16;
+        let back_height = back_visual.height as u16;
+
+        let (line_lengths, profile_y, tip_x) =
+            Self::compute_terrain_from_front(&front_visual.pixels, width, height);
 
         Self {
             front_visual: front_visual.pixels.into(),
             back_visual: back_visual.pixels.into(),
-            width: meta.width,
-            height: meta.height,
-            back_width: meta.back_width,
-            back_height: meta.back_height,
+            width,
+            height,
+            back_width,
+            back_height,
             line_lengths,
             profile_y,
-            tip_x: meta.tip_x,
+            tip_x,
         }
+    }
+
+    fn compute_terrain_from_front(
+        pixels: &[u8],
+        width: u16,
+        height: u16,
+    ) -> (Vec<usize>, Vec<i32>, i32) {
+        let w = width as usize;
+        let h = height as usize;
+
+        let mut line_lengths = Vec::with_capacity(h);
+        for y in 0..h {
+            let mut last = None;
+            for x in 0..w {
+                let pixel = &pixels[(y * w + x) * 4..(y * w + x) * 4 + 4];
+                if is_profile_pixel(pixel) {
+                    last = Some(x);
+                }
+            }
+            line_lengths.push(last.map_or(0, |x| x + 1));
+        }
+
+        let mut profile_y = Vec::with_capacity(PROFILE_LEN);
+        for x in 0..w {
+            let mut y = 0i32;
+            for (candidate_y, &line_len) in line_lengths.iter().enumerate() {
+                y = candidate_y as i32;
+                if line_len > x {
+                    break;
+                }
+            }
+            profile_y.push(y);
+        }
+        profile_y.resize(PROFILE_LEN, *profile_y.last().unwrap_or(&0));
+
+        let mut tip_x = 0i32;
+        let mut former_y = 0i32;
+        for (x, &y) in profile_y.iter().take(w).enumerate() {
+            if y - former_y > 3 {
+                tip_x = x as i32;
+            }
+            former_y = y;
+        }
+        (line_lengths, profile_y, tip_x - 1)
     }
 
     pub fn viewport_rgba_and_mask(
@@ -172,6 +206,10 @@ impl HillTerrain {
     }
 }
 
+fn is_profile_pixel(pixel: &[u8]) -> bool {
+    pixel[3] != 0 && pixel != [255, 93, 93, 255] && pixel != [93, 93, 255, 255]
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -231,6 +269,19 @@ mod tests {
         let terrain = HillTerrain::load(&test_files(), 1);
         assert_eq!(terrain.width, 1024);
         assert_eq!(terrain.height, 512);
+    }
+
+    #[test]
+    fn computes_takeoff_points_from_front_visuals() {
+        let files = test_files();
+        let expected = [
+            272, 268, 269, 279, 281, 293, 258, 246, 275, 278, 253, 291, 243, 279, 258, 267,
+            264, 268, 232,
+        ];
+        for (hill_id, tip_x) in expected.into_iter().enumerate() {
+            let terrain = HillTerrain::load(&files, hill_id);
+            assert_eq!(terrain.tip_x, tip_x, "HILL{hill_id}");
+        }
     }
 
     #[test]

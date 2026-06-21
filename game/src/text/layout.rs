@@ -49,5 +49,3 @@ pub fn replace_display_name(value: usize, player_names: &[String], font: &Font, 
     let max_w = replace_max_width(value, font, x);
     shorten_name(name, font, max_w)
 }
-
-

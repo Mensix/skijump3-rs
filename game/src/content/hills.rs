@@ -83,9 +83,10 @@ pub(crate) fn load_hills(files: &FileStore, manifest_path: &str) -> HillCatalog 
     for name in custom_names {
         let full_path = format!("custom_hills/{name}");
         let cat: HillCatalogToml = super::read_toml(files, &full_path);
-        let catalog_id = cat.id.as_deref().unwrap_or(
-            name.strip_suffix(".toml").unwrap_or(&name),
-        );
+        let catalog_id = cat
+            .id
+            .as_deref()
+            .unwrap_or(name.strip_suffix(".toml").unwrap_or(&name));
         append_catalog(&mut all_hills, &cat, catalog_id);
     }
 

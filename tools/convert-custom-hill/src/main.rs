@@ -123,15 +123,6 @@ fn convert_one(args: &Args, sjh_path: &Path) -> Result<(), Box<dyn Error>> {
     fs::create_dir_all(&terrain_dir)?;
     write_png(&terrain_dir.join("front_visual.png"), &front)?;
     write_png(&terrain_dir.join("back_visual.png"), &back)?;
-    write_terrain_toml(
-        &terrain_dir.join("terrain.toml"),
-        &front,
-        &back,
-        tip_x,
-        &line_lengths,
-        &profile_y,
-    )?;
-
     let custom_dir = args.root.join("custom_hills");
     fs::create_dir_all(&custom_dir)?;
     write_custom_toml(&custom_dir.join(format!("{}.toml", hill.id)), &hill)?;
@@ -306,30 +297,6 @@ fn write_png(path: &Path, img: &RgbaImage) -> Result<(), Box<dyn Error>> {
     encoder.set_depth(png::BitDepth::Eight);
     let mut writer = encoder.write_header()?;
     writer.write_image_data(&img.data)?;
-    Ok(())
-}
-
-fn write_terrain_toml(
-    path: &Path,
-    front: &RgbaImage,
-    back: &RgbaImage,
-    tip_x: i32,
-    line_lengths: &[usize],
-    profile_y: &[i32],
-) -> Result<(), Box<dyn Error>> {
-    fs::write(
-        path,
-        format!(
-            "format_version = 1\nwidth = {}\nheight = {}\nback_width = {}\nback_height = {}\ntip_x = {}\nline_lengths = [{}]\nprofile_y = [{}]\n",
-            front.width,
-            front.height,
-            back.width,
-            back.height,
-            tip_x,
-            line_lengths.iter().map(|v| v.to_string()).collect::<Vec<_>>().join(", "),
-            profile_y.iter().map(|v| v.to_string()).collect::<Vec<_>>().join(", "),
-        ),
-    )?;
     Ok(())
 }
 

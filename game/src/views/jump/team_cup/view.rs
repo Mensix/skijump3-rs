@@ -153,8 +153,12 @@ impl TeamCupJumpView {
 
     fn save_team_cup_results(&mut self, state: &mut GameState) {
         let teams = {
-            let Some(active) = state.active_competition.as_ref() else { return };
-            let Some(tc) = active.team_cup_runtime() else { return };
+            let Some(active) = state.active_competition.as_ref() else {
+                return;
+            };
+            let Some(tc) = active.team_cup_runtime() else {
+                return;
+            };
             tc.overall_standings()
         };
 

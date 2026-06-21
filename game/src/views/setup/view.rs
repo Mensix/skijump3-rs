@@ -83,6 +83,14 @@ impl GameScreen for SetupView {
     fn paint(&mut self, cx: &mut GameCx<'_>, paint: &mut PaintCx<'_>) {
         super::render::paint_content(self, cx.state, paint);
     }
+
+    fn has_modal(&self) -> bool {
+        self.modal.is_some()
+    }
+
+    fn dismiss_modal(&mut self) {
+        self.modal = None;
+    }
 }
 
 fn input_from_ui(event: UiEvent) -> Option<UiEvent> {
