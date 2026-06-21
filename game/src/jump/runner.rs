@@ -324,7 +324,11 @@ impl JumpRunner {
             langbase,
             jumper_name: self.config.participant.display_name(),
             hill_name_k: &hill_name_k,
-            hill_record: records.hill_record(self.config.hill_idx),
+            hill_record: self
+                .config
+                .hill
+                .as_ref()
+                .and_then(|h| records.hill_record(&h.record_key)),
             wind_position: WindPosition {
                 x: wind_pos.x,
                 y: wind_pos.y,

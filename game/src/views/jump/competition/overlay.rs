@@ -547,18 +547,13 @@ impl CompetitionOverlay {
     }
 
     fn hill_info_elements(&self, cx: &mut PaintCx<'_>, state: &GameState, hill_idx: usize) {
-        let hill_name_k = self
-            .resources
-            .hills
-            .hill(hill_idx)
+        let hill = self.resources.hills.hill(hill_idx);
+        let hill_name_k = hill
             .map(|h| format!("{} K{}", h.name, h.kr))
             .unwrap_or_default();
-        hud::push_hill_record_info(
-            cx,
-            &self.resources.langbase,
-            &hill_name_k,
-            state.records.hill_record(hill_idx),
-        );
+        let record = hill
+            .and_then(|h| state.records.hill_record(&h.record_key));
+        hud::push_hill_record_info(cx, &self.resources.langbase, &hill_name_k, record);
     }
 
     fn koth_info_elements(&self, cx: &mut PaintCx<'_>, ctx: &OverlayContext) {

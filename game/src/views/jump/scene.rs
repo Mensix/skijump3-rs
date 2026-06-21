@@ -1,3 +1,4 @@
+use crate::data::hill::HillCatalog;
 use crate::jump::config::JumpConfig;
 use crate::jump::replay::ReplayTrace;
 use crate::jump::sim;
@@ -126,8 +127,11 @@ impl JumpScene {
 
     pub fn reset_state(&mut self, state: &GameState, start_gate: i32) {
         let hill_idx = self.runner.hill_idx();
-        let record_distance = state.records.hill_record(hill_idx).map_or(0.0, |r| r.len);
-        let goal_distance = goal_distance(state, hill_idx);
+        let key = self.resources.hills.hill(hill_idx).map(|h| &h.record_key);
+        let record_distance = key
+            .and_then(|k| state.records.hill_record(k))
+            .map_or(0.0, |r| r.len);
+        let goal_distance = goal_distance(state, &self.resources.hills, hill_idx);
         self.runner
             .reset_state(start_gate, record_distance, goal_distance);
     }
@@ -284,8 +288,11 @@ impl JumpScene {
     ) -> JumpRunner {
         let hill = resources.hills.hill(hill_idx).cloned();
         let terrain = resources.terrain(hill_idx).as_ref().clone();
-        let record_distance = state.records.hill_record(hill_idx).map_or(0.0, |r| r.len);
-        let goal_distance = goal_distance(state, hill_idx);
+        let key = hill.as_ref().map(|h| &h.record_key);
+        let record_distance = key
+            .and_then(|k| state.records.hill_record(k))
+            .map_or(0.0, |r| r.len);
+        let goal_distance = goal_distance(state, &resources.hills, hill_idx);
         let snow_count = snow.count();
         JumpRunner::new(
             JumpConfig {
@@ -307,14 +314,13 @@ impl JumpScene {
     }
 }
 
-fn goal_distance(state: &GameState, hill_idx: usize) -> f64 {
+fn goal_distance(state: &GameState, hills: &HillCatalog, hill_idx: usize) -> f64 {
     if state.config.goals_enabled == 0 {
         return 0.0;
     }
-    state
-        .records
-        .hill_goals
-        .get(hill_idx)
+    hills
+        .hill(hill_idx)
+        .and_then(|h| state.records.hill_goal(&h.record_key))
         .copied()
         .unwrap_or(0.0)
 }

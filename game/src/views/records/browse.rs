@@ -226,7 +226,7 @@ impl HillRecordsView {
             let Some(hill) = self.resources.hills.hill(idx) else {
                 continue;
             };
-            let record = records.hill_record(idx).cloned().unwrap_or_default();
+            let record = records.hill_record(&hill.record_key).cloned().unwrap_or_default();
             let display_len = ahi_len(&record, hill.kr);
             if phase == 0 {
                 ahi_sum += display_len;

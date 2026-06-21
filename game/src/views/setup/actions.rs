@@ -54,25 +54,22 @@ fn handle_hill_goals(
             view.modal = None;
         }
         UiEvent::KeyDown(Key::Left) | UiEvent::Text('-') => {
-            adjust_hill_goal(state, selected, -0.5, hill_count)
+            adjust_hill_goal(view, state, selected, -0.5)
         }
         UiEvent::KeyDown(Key::Right) | UiEvent::Text('+') => {
-            adjust_hill_goal(state, selected, 0.5, hill_count)
+            adjust_hill_goal(view, state, selected, 0.5)
         }
         _ => {}
     }
     None
 }
 
-fn adjust_hill_goal(state: &mut GameState, selected: usize, delta: f64, hill_count: usize) {
-    if selected >= hill_count {
-        return;
-    }
-    if state.records.hill_goals.len() < hill_count {
-        state.records.hill_goals.resize(hill_count, 0.0);
-    }
-    let value = (state.records.hill_goals[selected] + delta).clamp(0.0, 250.0);
-    state.records.hill_goals[selected] = (value * 10.0).round() / 10.0;
+fn adjust_hill_goal(view: &SetupView, state: &mut GameState, selected: usize, delta: f64) {
+    let hill = view.resources.hills.hill(selected);
+    let Some(key) = hill.map(|h| &h.record_key) else { return };
+    let current = state.records.hill_goal(key).copied().unwrap_or(0.0);
+    let value = (current + delta).clamp(0.0, 250.0);
+    state.records.set_hill_goal(key, (value * 10.0).round() / 10.0);
 }
 
 fn save_records(view: &SetupView, state: &GameState) {

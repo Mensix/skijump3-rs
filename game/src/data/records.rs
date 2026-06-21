@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct Hiscore {
@@ -20,9 +21,9 @@ pub struct RecordStore {
     #[serde(default)]
     pub top: Vec<Hiscore>,
     #[serde(default)]
-    pub hill_records: Vec<HillRecord>,
+    pub hill_records: BTreeMap<String, HillRecord>,
     #[serde(default)]
-    pub hill_goals: Vec<f64>,
+    pub hill_goals: BTreeMap<String, f64>,
 }
 
 impl RecordStore {
@@ -37,8 +38,8 @@ impl RecordStore {
             top.pos = 0;
             top.score = 0.0;
         }
-        for hill in &mut records.hill_records {
-            hill.len = 0.0;
+        for record in records.hill_records.values_mut() {
+            record.len = 0.0;
         }
         records
     }
@@ -47,20 +48,23 @@ impl RecordStore {
         self.top.get(idx)
     }
 
-    pub fn hill_record(&self, idx: usize) -> Option<&HillRecord> {
-        self.hill_records.get(idx)
+    /// Look up a hill record by its stable `record_key`.
+    pub fn hill_record(&self, record_key: &str) -> Option<&HillRecord> {
+        self.hill_records.get(record_key)
     }
 
-    /// Ensure the `hill_records` and `hill_goals` vectors are large enough
-    /// to cover the given hill index (e.g. for custom hills).
-    pub fn ensure_hill_capacity(&mut self, idx: usize) {
-        let needed = idx + 1;
-        if self.hill_records.len() < needed {
-            self.hill_records
-                .resize(needed, HillRecord::default());
-        }
-        if self.hill_goals.len() < needed {
-            self.hill_goals.resize(needed, 0.0);
-        }
+    /// Set a hill record by its stable `record_key`.
+    pub fn set_hill_record(&mut self, record_key: &str, record: HillRecord) {
+        self.hill_records.insert(record_key.to_string(), record);
+    }
+
+    /// Look up a hill goal by its stable `record_key`.
+    pub fn hill_goal(&self, record_key: &str) -> Option<&f64> {
+        self.hill_goals.get(record_key)
+    }
+
+    /// Set a hill goal by its stable `record_key`.
+    pub fn set_hill_goal(&mut self, record_key: &str, goal: f64) {
+        self.hill_goals.insert(record_key.to_string(), goal);
     }
 }

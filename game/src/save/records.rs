@@ -28,7 +28,6 @@ impl RecordStore {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fmt::Write;
 
     fn bundled_store() -> RecordStore {
         let data = include_bytes!("../../assets/hiscores.toml");
@@ -44,17 +43,13 @@ mod tests {
         assert_eq!(store.top.len(), reparsed.top.len());
         assert_eq!(store.hill_records.len(), reparsed.hill_records.len());
 
-        for i in 0..store.top.len() {
-            assert_eq!(store.top[i].name, reparsed.top[i].name);
-            assert_eq!(store.top[i].pos, reparsed.top[i].pos);
-            assert_eq!(store.top[i].score, reparsed.top[i].score);
-            assert_eq!(store.top[i].time, reparsed.top[i].time);
-        }
-
-        for i in 0..store.hill_records.len() {
-            assert_eq!(store.hill_records[i].name, reparsed.hill_records[i].name);
-            assert_eq!(store.hill_records[i].len, reparsed.hill_records[i].len);
-            assert_eq!(store.hill_records[i].time, reparsed.hill_records[i].time);
+        for ((k1, v1), (k2, v2)) in
+            store.hill_records.iter().zip(reparsed.hill_records.iter())
+        {
+            assert_eq!(k1, k2);
+            assert_eq!(v1.name, v2.name);
+            assert_eq!(v1.len, v2.len);
+            assert_eq!(v1.time, v2.time);
         }
     }
 
@@ -64,7 +59,7 @@ mod tests {
         assert!(!store.top.is_empty());
         assert!(store.top.len() <= 41);
         assert!(!store.hill_records.is_empty());
-        assert!(store.hill_records.len() <= 20);
+        assert_eq!(store.hill_records.len(), 20);
 
         let first = store.top(0);
         assert!(first.is_some());

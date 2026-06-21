@@ -11,18 +11,22 @@ struct HillsManifest {
 #[derive(Debug, Deserialize)]
 
 struct CatalogEntry {
+    id: String,
     file: String,
 }
 
 #[derive(Debug, Deserialize)]
 
 struct HillCatalogToml {
+    #[serde(default)]
+    id: Option<String>,
     hills: Vec<HillToml>,
 }
 
 #[derive(Debug, Deserialize)]
-
 struct HillToml {
+    #[serde(default)]
+    id: Option<String>,
     name: String,
     #[serde(default)]
     terrain_index: Option<TerrainIndexToml>,
@@ -68,7 +72,8 @@ pub(crate) fn load_hills(files: &FileStore, manifest_path: &str) -> HillCatalog 
     for entry in &manifest.catalogs {
         let full_path = format!("{base_dir}{}", entry.file);
         let cat: HillCatalogToml = super::read_toml(files, &full_path);
-        append_catalog(&mut all_hills, &cat);
+        let catalog_id = cat.id.as_deref().unwrap_or(&entry.id);
+        append_catalog(&mut all_hills, &cat, catalog_id);
     }
 
     let original_count = all_hills.len();
@@ -78,14 +83,18 @@ pub(crate) fn load_hills(files: &FileStore, manifest_path: &str) -> HillCatalog 
     for name in custom_names {
         let full_path = format!("custom_hills/{name}");
         let cat: HillCatalogToml = super::read_toml(files, &full_path);
-        append_catalog(&mut all_hills, &cat);
+        let catalog_id = cat.id.as_deref().unwrap_or(
+            name.strip_suffix(".toml").unwrap_or(&name),
+        );
+        append_catalog(&mut all_hills, &cat, catalog_id);
     }
 
     HillCatalog::new(all_hills, original_count)
 }
 
-fn append_catalog(all_hills: &mut Vec<HillInfo>, cat: &HillCatalogToml) {
+fn append_catalog(all_hills: &mut Vec<HillInfo>, cat: &HillCatalogToml, catalog_id: &str) {
     for (idx, h) in cat.hills.iter().enumerate() {
+        let hill_id = h.id.clone().unwrap_or_else(|| idx.to_string());
         all_hills.push(HillInfo {
             name: h.name.clone(),
             kr: h.kr,
@@ -104,6 +113,7 @@ fn append_catalog(all_hills: &mut Vec<HillInfo>, cat: &HillCatalogToml) {
                 .clone()
                 .map(TerrainIndexToml::into_terrain_id)
                 .unwrap_or_else(|| idx.to_string()),
+            record_key: format!("{catalog_id}:{hill_id}"),
         });
     }
 }

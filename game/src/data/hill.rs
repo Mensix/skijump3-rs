@@ -13,6 +13,8 @@ pub struct HillInfo {
     pub checksum: i64,
     pub profile_checksum: i64,
     pub terrain_id: String,
+    /// Stable identifier for record lookup: `{catalog_id}:{hill_id}`.
+    pub record_key: String,
 }
 
 impl HillInfo {

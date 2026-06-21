@@ -396,21 +396,20 @@ fn apply_post_jump_side_effects(
         && side_effects.saves_hill_records
         && outcome.fall_type == FallType::None
     {
-        state.records.ensure_hill_capacity(side_effects.hill_idx);
-        if state
-            .records
-            .hill_records
-            .get(side_effects.hill_idx)
-            .is_some_and(|record| outcome.distance > record.len)
-    {
-        if let Some(record) = state.records.hill_records.get_mut(side_effects.hill_idx) {
-            *record = HillRecord {
-                name: side_effects.jumper_name.clone(),
-                len: outcome.distance,
-                time: current_record_time(),
-            };
+        if let Some(hill) = resources.hills.hill(side_effects.hill_idx) {
+            let key = &hill.record_key;
+            let is_new = outcome.distance > state.records.hill_record(key).map_or(0.0, |r| r.len);
+            if is_new {
+                state.records.set_hill_record(
+                    key,
+                    HillRecord {
+                        name: side_effects.jumper_name.clone(),
+                        len: outcome.distance,
+                        time: current_record_time(),
+                    },
+                );
+            }
         }
-    }
     }
 }
 
