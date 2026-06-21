@@ -227,7 +227,6 @@ impl WorldCupJumpView {
 
     fn save_competition_results(&mut self, state: &mut GameState) {
         self.update_hall_of_fame(state);
-        self.controller.save_results(state);
 
         let (style, participants, event_pts): (_, Vec<_>, Vec<_>) = {
             let active = match state.active_competition.as_ref() {
@@ -289,6 +288,7 @@ impl WorldCupJumpView {
                 _ => {}
             }
         }
+        self.controller.save_results(state);
     }
 
     fn update_hall_of_fame(&self, state: &mut GameState) {
