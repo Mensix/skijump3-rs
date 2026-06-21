@@ -158,7 +158,7 @@ impl GameScreen for HallOfFameView {
         if matches!(event, UiEvent::Quit | UiEvent::Tick) {
             return;
         }
-        if let Some(route) = handle_paged_ui_event(event, &mut self.page, HALL_PAGES) {
+        if let Some(route) = handle_paged_ui_event(event, &mut self.page, HALL_PAGES, nav) {
             nav.navigate(route);
         } else {
             nav.consume();
@@ -296,7 +296,7 @@ impl GameScreen for HillRecordsView {
             return;
         }
         let pages = self.pages();
-        if let Some(route) = handle_paged_ui_event(event, &mut self.page, pages) {
+        if let Some(route) = handle_paged_ui_event(event, &mut self.page, pages, nav) {
             nav.navigate(route);
         } else {
             nav.consume();
@@ -313,7 +313,7 @@ fn paint_screen(cx: &mut PaintCx<'_>, style: u8, bg: engine::color::Rgba) {
     match style {
         1 => {
             cx.pattern_fill((0, 0, 320, 19), FILL_GRAY);
-            cx.fill((0, 20, 320, 180), bg);
+            cx.pattern_fill((0, 20, 320, 180), bg);
         }
         4 => {
             cx.pattern_fill((0, 0, 320, 19), FILL_GRAY);
@@ -348,12 +348,20 @@ fn paint_page_hints(
     cx.right_text((319, 13), FONT_GRAY, format!("{text}-)"));
 }
 
-fn handle_paged_ui_event(event: UiEvent, page: &mut usize, pages: usize) -> Option<RouteTarget> {
+fn handle_paged_ui_event(
+    event: UiEvent,
+    page: &mut usize,
+    pages: usize,
+    nav: &mut ScreenEventCx<RouteTarget>,
+) -> Option<RouteTarget> {
     if *page >= pages {
         *page = pages.saturating_sub(1);
     }
     match event {
-        UiEvent::KeyDown(Key::Escape) => Some(RouteTarget::Back),
+        UiEvent::KeyDown(Key::Escape) => {
+            nav.back();
+            return None;
+        }
         UiEvent::KeyDown(Key::Home) => {
             *page = 0;
             None
