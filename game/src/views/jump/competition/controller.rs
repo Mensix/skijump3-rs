@@ -395,7 +395,9 @@ fn apply_post_jump_side_effects(
     if computer_records_enabled
         && side_effects.saves_hill_records
         && outcome.fall_type == FallType::None
-        && state
+    {
+        state.records.ensure_hill_capacity(side_effects.hill_idx);
+        if state
             .records
             .hill_records
             .get(side_effects.hill_idx)
@@ -408,6 +410,7 @@ fn apply_post_jump_side_effects(
                 time: current_record_time(),
             };
         }
+    }
     }
 }
 

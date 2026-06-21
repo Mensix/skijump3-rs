@@ -50,4 +50,17 @@ impl RecordStore {
     pub fn hill_record(&self, idx: usize) -> Option<&HillRecord> {
         self.hill_records.get(idx)
     }
+
+    /// Ensure the `hill_records` and `hill_goals` vectors are large enough
+    /// to cover the given hill index (e.g. for custom hills).
+    pub fn ensure_hill_capacity(&mut self, idx: usize) {
+        let needed = idx + 1;
+        if self.hill_records.len() < needed {
+            self.hill_records
+                .resize(needed, HillRecord::default());
+        }
+        if self.hill_goals.len() < needed {
+            self.hill_goals.resize(needed, 0.0);
+        }
+    }
 }

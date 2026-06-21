@@ -12,25 +12,6 @@ struct RecordsFile {
 impl RecordStore {
     pub fn from_toml_bytes(data: &[u8]) -> Self {
         let file: RecordsFile = parse_toml(data);
-
-        let store = &file.store;
-
-        assert!(
-            store.top.len() <= 41,
-            "hiscores.toml has {} top records (max 41)",
-            store.top.len()
-        );
-        assert!(
-            store.hill_records.len() <= 20,
-            "hiscores.toml has {} hill records (max 20)",
-            store.hill_records.len()
-        );
-        assert!(
-            store.hill_goals.len() <= 20,
-            "hiscores.toml has {} hill goals (max 20)",
-            store.hill_goals.len()
-        );
-
         file.store
     }
 
