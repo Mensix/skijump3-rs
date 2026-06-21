@@ -4,6 +4,7 @@ use crate::route::RouteTarget;
 use crate::save::SaveRef;
 use crate::screen::{GameCx, GameScreen};
 use crate::store::{GameState, ResourcesRef};
+use crate::text::format::current_timestamp;
 use crate::views::jump::competition::controller::CompetitionJumpController;
 use crate::views::jump::competition::flow::{CompetitionFlowCommand, JumpInputResult};
 use crate::views::jump::competition::ui_state::RenderMode;
@@ -112,6 +113,7 @@ impl TeamCupJumpView {
 
     fn handle_input(&mut self, event: UiEvent, state: &mut GameState) -> Option<RouteTarget> {
         if self.phase == ViewPhase::Done {
+            self.save_team_cup_results(state);
             return Some(RouteTarget::Back);
         }
 
@@ -132,7 +134,6 @@ impl TeamCupJumpView {
                 .controller
                 .handle_jump_scene_event(event, false, false, true, state)
             {
-                JumpInputResult::Route(route) => return Some(route),
                 JumpInputResult::Consumed => return None,
                 JumpInputResult::None => {}
             }
@@ -148,6 +149,29 @@ impl TeamCupJumpView {
         }
 
         None
+    }
+
+    fn save_team_cup_results(&mut self, state: &mut GameState) {
+        let teams = {
+            let Some(active) = state.active_competition.as_ref() else { return };
+            let Some(tc) = active.team_cup_runtime() else { return };
+            tc.overall_standings()
+        };
+
+        for (i, team) in teams.iter().enumerate().take(10) {
+            let slot = 20 + i;
+            if let Some(record) = state.records.top.get_mut(slot) {
+                *record = crate::data::records::Hiscore {
+                    name: team.name.clone(),
+                    pos: team.rank,
+                    score: team.primary_score,
+                    time: current_timestamp(),
+                    is_computer: !team.is_human,
+                };
+            }
+        }
+
+        self.controller.save_results(state);
     }
 }
 

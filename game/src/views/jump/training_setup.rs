@@ -5,7 +5,6 @@ use crate::route::RouteTarget;
 use crate::screen::{GameCx, GameScreen};
 use crate::store::{GameState, ResourcesRef};
 use crate::text::format;
-use engine::oxide::input::Key;
 use engine::oxide::widget::EventCx;
 use engine::oxide::widgets::menu::{MenuItem as OxideMenuItem, PixelMenu};
 use engine::oxide::{PaintCx, ScreenEventCx, UiEvent, Widget};
@@ -137,9 +136,6 @@ impl TrainingSetupView {
         state: &mut GameState,
         event: UiEvent,
     ) -> Option<RouteTarget> {
-        if matches!(event, UiEvent::KeyDown(Key::Escape)) {
-            return Some(RouteTarget::Back);
-        }
         if let Some(_idx) = self.menu.event(ecx, event) {
             self.confirm(state)
         } else {

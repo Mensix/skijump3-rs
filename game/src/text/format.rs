@@ -9,6 +9,13 @@ pub fn format_time(timestamp: &str) -> String {
 }
 
 #[must_use]
+pub fn current_timestamp() -> String {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or_else(|_| String::new(), |d| d.as_secs().to_string())
+}
+
+#[must_use]
 pub fn tenths_to_decimal(value: i32) -> f64 {
     let result = f64::from(value) / 10.0;
 

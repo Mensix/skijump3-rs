@@ -9,6 +9,7 @@ use crate::route::RouteTarget;
 use crate::save::SaveRef;
 use crate::screen::{GameCx, GameScreen};
 use crate::store::{GameState, ResourcesRef};
+use crate::text::format::current_timestamp;
 use crate::text::format::format_decimal;
 use crate::views::jump::competition::controller::CompetitionJumpController;
 use crate::views::jump::competition::flow::{CompetitionFlowCommand, JumpInputResult};
@@ -168,7 +169,6 @@ impl WorldCupJumpView {
             .controller
             .handle_jump_scene_event(event, true, !is_dq, false, state)
         {
-            JumpInputResult::Route(route) => return Some(route),
             JumpInputResult::Consumed => return None,
             JumpInputResult::None => {}
         }
@@ -226,6 +226,7 @@ impl WorldCupJumpView {
     }
 
     fn save_competition_results(&mut self, state: &mut GameState) {
+        self.update_hall_of_fame(state);
         self.controller.save_results(state);
 
         let (style, participants, event_pts): (_, Vec<_>, Vec<_>) = {
@@ -275,6 +276,71 @@ impl WorldCupJumpView {
                 }
                 _ => {}
             }
+        }
+    }
+
+    fn update_hall_of_fame(&self, state: &mut GameState) {
+        let (style, wc_top, fh_top) = {
+            let Some(active) = state.active_competition.as_ref() else { return };
+            let Some(c) = active.individual() else { return };
+            let participants = c.overall_standings();
+            let style = c.style();
+
+            let wc_top: Vec<_> = participants.iter().take(20).map(|p| {
+                (p.display_name().to_string(), p.wc_points as f64, p.is_computer)
+            }).collect();
+
+            let mut fh: Vec<_> = participants.iter()
+                .filter(|p| p.four_hills_points > 0.0)
+                .map(|p| (p.display_name().to_string(), p.four_hills_points, p.is_computer))
+                .collect();
+            fh.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
+
+            (style, wc_top, fh)
+        };
+
+        match style {
+            CupStyle::WorldCup => {
+                for (i, (name, score, is_computer)) in wc_top.iter().enumerate() {
+                    let slot = i;
+                    if let Some(record) = state.records.top.get_mut(slot) {
+                        *record = crate::data::records::Hiscore {
+                            name: name.clone(),
+                            pos: i + 1,
+                            score: *score,
+                            time: current_timestamp(),
+                            is_computer: *is_computer,
+                        };
+                    }
+                }
+                for (i, (name, score, is_computer)) in fh_top.iter().enumerate().take(5) {
+                    let slot = 30 + i;
+                    if let Some(record) = state.records.top.get_mut(slot) {
+                        *record = crate::data::records::Hiscore {
+                            name: name.clone(),
+                            pos: i + 1,
+                            score: *score,
+                            time: current_timestamp(),
+                            is_computer: *is_computer,
+                        };
+                    }
+                }
+            }
+            CupStyle::FourHills => {
+                for (i, (name, score, is_computer)) in fh_top.iter().enumerate().take(5) {
+                    let slot = 30 + i;
+                    if let Some(record) = state.records.top.get_mut(slot) {
+                        *record = crate::data::records::Hiscore {
+                            name: name.clone(),
+                            pos: i + 1,
+                            score: *score,
+                            time: current_timestamp(),
+                            is_computer: *is_computer,
+                        };
+                    }
+                }
+            }
+            _ => {}
         }
     }
 
@@ -364,7 +430,7 @@ impl WorldCupJumpView {
                 self.controller.ui_state_mut().prev_page();
                 None
             }
-            UiEvent::KeyDown(Key::Escape | Key::Enter) => {
+            UiEvent::KeyDown(Key::Enter) => {
                 let is_season_complete = state
                     .active_competition
                     .as_ref()

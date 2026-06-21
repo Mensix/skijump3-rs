@@ -5,7 +5,6 @@ use crate::save::SaveRef;
 use crate::screen::{GameCx, GameScreen};
 use crate::store::{GameState, ResourcesRef};
 use crate::text::format;
-use engine::oxide::input::Key;
 use engine::oxide::widget::EventCx;
 use engine::oxide::widgets::menu::{MenuItem as OxideMenuItem, PixelMenu};
 use engine::oxide::{PaintCx, ScreenEventCx, UiEvent, Widget};
@@ -106,10 +105,6 @@ impl GameScreen for KothHillPickerView {
     fn event(&mut self, cx: &mut GameCx<'_>, nav: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
         match event {
             UiEvent::Quit | UiEvent::Tick => return,
-            UiEvent::KeyDown(Key::Escape) => {
-                nav.back();
-                return;
-            }
             _ => {}
         }
         let mut ecx = EventCx::default();

@@ -45,7 +45,7 @@ fn handle_hill_goals(
             view.modal = Some(SetupModal::HillGoals((selected + 1).min(hill_count)));
         }
         UiEvent::KeyDown(Key::Home) => view.modal = Some(SetupModal::HillGoals(0)),
-        UiEvent::KeyDown(Key::End | Key::Escape) => {
+        UiEvent::KeyDown(Key::End) => {
             save_records(view, state);
             view.modal = None;
         }
@@ -107,12 +107,6 @@ fn handle_configure_keys(
 ) -> Option<RouteTarget> {
     if let Some(item) = capture {
         match event {
-            UiEvent::KeyDown(Key::Escape) => {
-                view.modal = Some(SetupModal::ConfigureKeys {
-                    selected,
-                    capture: None,
-                });
-            }
             _ => {
                 if let Some(code) = JumpKeyBindings::code_for(event) {
                     let duplicate =
@@ -156,7 +150,7 @@ fn handle_configure_keys(
                 capture: None,
             })
         }
-        UiEvent::KeyDown(Key::Escape | Key::Tab) => view.modal = None,
+        UiEvent::KeyDown(Key::Tab) => view.modal = None,
         UiEvent::KeyDown(Key::Enter) | UiEvent::Text(' ') => match selected {
             0..=4 => {
                 view.modal = Some(SetupModal::ConfigureKeys {
@@ -229,7 +223,6 @@ fn handle_name_set_input(
                 view.modal = None;
             }
         }
-        UiEvent::KeyDown(Key::Escape) => view.modal = None,
         _ => {}
     }
     None
@@ -257,9 +250,6 @@ fn handle_wind_place(
                 state.config.wind_position = pos as i32;
                 view.save_manager().save_config(&state.config);
             }
-            view.modal = None;
-        }
-        UiEvent::KeyDown(Key::Escape) => {
             view.modal = None;
         }
         _ => {}
@@ -308,7 +298,7 @@ fn handle_see_comps(
             view.save_manager().save_config(&state.config);
             view.modal = None;
         }
-        UiEvent::KeyDown(Key::Escape | Key::Delete) => {
+        UiEvent::KeyDown(Key::Delete) => {
             view.modal = None;
         }
         _ => {}
@@ -370,9 +360,6 @@ fn handle_language_picker(
                 }
             }
         }
-        UiEvent::KeyDown(Key::Escape) => {
-            view.modal = None;
-        }
         _ => {}
     }
     None
@@ -386,7 +373,7 @@ fn handle_screen_event(
     let screen = view.screen;
     let entries = view.menu.item_count();
 
-    if matches!(event, UiEvent::KeyDown(Key::Escape | Key::Tab)) {
+    if matches!(event, UiEvent::KeyDown(Key::Tab)) {
         if screen == 0 {
             return Some(RouteTarget::MainMenu);
         }

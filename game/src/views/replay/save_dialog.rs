@@ -286,10 +286,6 @@ impl SaveReplayDialog {
         let state = self.state.clone();
         match state {
             SaveDialogState::Browse { selected } => match event {
-                UiEvent::KeyDown(Key::Escape) => {
-                    self.state = SaveDialogState::Inactive;
-                    Some(SaveAction::Consumed)
-                }
                 UiEvent::KeyDown(Key::Up) => {
                     let next = cycle_index(selected, 5, -1);
                     self.state = SaveDialogState::Browse { selected: next };
@@ -307,13 +303,6 @@ impl SaveReplayDialog {
                 _ => Some(SaveAction::Consumed),
             },
             SaveDialogState::EditField { field, mut editor } => match event {
-                UiEvent::KeyDown(Key::Escape) => {
-                    self.cursor_blink.reset();
-                    self.state = SaveDialogState::Browse {
-                        selected: field.idx(),
-                    };
-                    Some(SaveAction::Consumed)
-                }
                 UiEvent::KeyDown(Key::Enter) => {
                     self.cursor_blink.reset();
                     let buf = editor.buffer().to_string();
@@ -344,10 +333,6 @@ impl SaveReplayDialog {
                 _ => Some(SaveAction::Consumed),
             },
             SaveDialogState::ConfirmOverwrite { .. } => match event {
-                UiEvent::KeyDown(Key::Escape) => {
-                    self.state = SaveDialogState::Browse { selected: 2 };
-                    Some(SaveAction::Consumed)
-                }
                 UiEvent::Text(c) if *c == 'y' || *c == 'Y' => Some(SaveAction::SaveReplay),
                 UiEvent::Text(c) if *c == 'n' || *c == 'N' => {
                     self.state = SaveDialogState::Browse { selected: 2 };

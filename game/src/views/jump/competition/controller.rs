@@ -10,6 +10,7 @@ use crate::jump::types::{FallType, JumpOutcome};
 use crate::jump::{JumpParticipant, JumpPolicy, JumperControl};
 use crate::save::SaveRef;
 use crate::store::{GameState, ResourcesRef};
+use crate::text::format::current_timestamp;
 use crate::views::jump::competition::flow::{
     handle_human_jump, handle_jump_scene_event, render_jump_scene_with_overlay,
     CompetitionFlowCommand, JumpInputResult,
@@ -405,7 +406,7 @@ fn apply_post_jump_side_effects(
                     HillRecord {
                         name: side_effects.jumper_name.clone(),
                         len: outcome.distance,
-                        time: current_record_time(),
+                        time: current_timestamp(),
                         is_computer: side_effects.is_computer,
                     },
                 );
@@ -426,12 +427,6 @@ fn hill_display_name(resources: &ResourcesRef, hill_idx: usize) -> String {
         .hills
         .hill(hill_idx)
         .map_or_else(String::new, |hill| hill.name.clone())
-}
-
-fn current_record_time() -> String {
-    std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map_or_else(|_| String::new(), |duration| duration.as_secs().to_string())
 }
 
 pub(crate) trait RuntimeAccess: CompetitionRuntime {

@@ -70,7 +70,7 @@ impl GameScreen for ReplayBrowserView {
         if self.confirm_delete {
             match event {
                 UiEvent::Text('y' | 'Y') => self.delete_selected(),
-                UiEvent::Text('n' | 'N') | UiEvent::KeyDown(Key::Escape) => {
+                UiEvent::Text('n' | 'N') => {
                     self.confirm_delete = false;
                 }
                 _ => {}
@@ -80,10 +80,6 @@ impl GameScreen for ReplayBrowserView {
         }
 
         match event {
-            UiEvent::KeyDown(Key::Escape) => {
-                cx.state.selected_main_menu = 5;
-                nav.back();
-            }
             UiEvent::KeyDown(Key::Right | Key::Down) | UiEvent::Text(' ' | '+') => {
                 self.move_next();
                 nav.consume();

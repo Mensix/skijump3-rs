@@ -1,6 +1,5 @@
 use crate::jump::config::JumpParticipant;
 use crate::jump::JumpPolicy;
-use crate::route::RouteTarget;
 use crate::store::{GameState, ResourcesRef};
 use crate::views::jump::competition::overlay::{CompetitionOverlay, OverlayKind};
 use crate::views::jump::competition::ui_state::CompetitionUiState;
@@ -131,7 +130,7 @@ pub(crate) fn acknowledge_finished_jump(
         return false;
     }
     let accepted = if accepts_only_enter_escape {
-        matches!(event, UiEvent::KeyDown(Key::Enter | Key::Escape))
+        matches!(event, UiEvent::KeyDown(Key::Enter))
     } else {
         matches!(event, UiEvent::KeyDown(_) | UiEvent::Text(_))
     };
@@ -152,7 +151,6 @@ pub(crate) fn handle_save_dialog(scene: &mut JumpScene, event: &UiEvent) -> bool
 pub(crate) enum JumpInputResult {
     None,
     Consumed,
-    Route(RouteTarget),
 }
 
 pub(crate) fn handle_competition_jump_input(
@@ -167,7 +165,6 @@ pub(crate) fn handle_competition_jump_input(
             scene.open_save_dialog(state);
             JumpInputResult::Consumed
         }
-        JumpInputAction::RouteBack => JumpInputResult::Route(RouteTarget::Back),
         JumpInputAction::None => JumpInputResult::None,
         _ if consume_other_actions => JumpInputResult::Consumed,
         _ => JumpInputResult::None,

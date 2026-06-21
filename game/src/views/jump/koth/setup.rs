@@ -231,7 +231,6 @@ impl GameScreen for KothSetupView {
 impl KothSetupView {
     fn handle_main(&mut self, event: UiEvent, state: &mut GameState) -> Option<RouteTarget> {
         match &event {
-            UiEvent::KeyDown(Key::Escape) => Some(RouteTarget::MainMenu),
             UiEvent::KeyDown(Key::Up | Key::Left) => {
                 self.selected = if self.selected == 0 {
                     6
@@ -262,10 +261,6 @@ impl KothSetupView {
 
     fn handle_packs(&mut self, event: UiEvent, state: &mut GameState) -> Option<RouteTarget> {
         match &event {
-            UiEvent::KeyDown(Key::Escape) => {
-                self.mode = KothMode::Main;
-                None
-            }
             UiEvent::KeyDown(Key::Up | Key::Left) => {
                 self.pack_cursor = if self.pack_cursor == 0 {
                     6
@@ -307,15 +302,6 @@ impl KothSetupView {
             .player_names(state.config.name_set_index as usize)
             .len();
         match event {
-            UiEvent::KeyDown(Key::Escape) => {
-                self.update_config(&mut state.config, |cfg| {
-                    cfg.koth_opponent_ids =
-                        self.selected_opponents.iter().map(|&v| v as i32).collect();
-                    cfg.koth_opponent_count = self.selected_opponents.len() as i32;
-                });
-                self.mode = KothMode::Main;
-                None
-            }
             UiEvent::KeyDown(Key::Down) | UiEvent::KeyDown(Key::Enter) | UiEvent::Text(' ') => {
                 let prev_id = self.preview_opponent + 1;
                 if self.selected_opponents.len() < 20 && !self.selected_opponents.contains(&prev_id)

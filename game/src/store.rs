@@ -76,10 +76,8 @@ pub struct GameState {
     pub active_competition: Option<ActiveCompetition>,
     pub profiles: ProfileStore,
     pub records: RecordStore,
-    pub selected_main_menu: usize,
-    pub nav_edit_hill: Option<String>,
-    /// Filename of the currently loaded cup save (for overwrite on re-save).
     pub active_cup_filename: Option<String>,
+    pub nav_edit_hill: Option<String>,
 }
 
 impl GameState {
@@ -100,9 +98,8 @@ impl GameState {
             active_competition: None,
             profiles,
             records,
-            selected_main_menu: 0,
-            nav_edit_hill: None,
             active_cup_filename: None,
+            nav_edit_hill: None,
         }
     }
 

@@ -9,7 +9,7 @@ use crate::views::{
     HillRecordsView, JumpMenuView, KothHillPickerView, KothSetupView, LoadCupView, MainMenuView,
     ProfilesView, ReplayBrowserView, ReplayView, SetupView, TrainingSetupView, WelcomeScreenView,
 };
-use engine::oxide::{NavAction, PaintCx, ScreenBackground, ScreenEventCx, UiEvent};
+use engine::oxide::{Key, NavAction, PaintCx, ScreenBackground, ScreenEventCx, UiEvent};
 use std::rc::Rc;
 
 const VERSION: &str = "3.14";
@@ -117,6 +117,11 @@ impl AppRouter {
     }
 
     pub fn handle_event(&mut self, event: UiEvent) {
+        if matches!(event, UiEvent::KeyDown(Key::Escape)) {
+            self.back();
+            return;
+        }
+
         let mut nav = ScreenEventCx::default();
         {
             let mut cx = GameCx {

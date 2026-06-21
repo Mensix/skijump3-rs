@@ -31,7 +31,6 @@ impl TrainingJumpView {
         let action = self.scene.handle_jump_input(state, event);
         match action {
             JumpInputAction::None => None,
-            JumpInputAction::RouteBack => Some(RouteTarget::Back),
             JumpInputAction::SaveReplay => {
                 self.scene.open_save_dialog(state);
                 None

@@ -164,14 +164,14 @@ mod tests {
     }
 
     #[test]
-    fn escape_returns_zero() {
+    fn escape_is_ignored_by_menu() {
         let mut menu = menu_with_trailing();
         let mut cx = EventCx::default();
 
         let msg = menu.event(&mut cx, UiEvent::KeyDown(Key::Escape));
 
-        assert_eq!(msg, Some(0));
-        assert!(cx.is_consumed());
+        assert_eq!(msg, None);
+        assert!(!cx.is_consumed());
     }
 
     #[test]
@@ -553,7 +553,7 @@ impl Widget for PixelMenu {
                     None
                 }
             }
-            UiEvent::KeyDown(Key::Escape) => Some(0),
+            UiEvent::KeyDown(Key::Escape) => None,
             _ => None,
         };
         if msg.is_some()

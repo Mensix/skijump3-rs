@@ -3,6 +3,7 @@ use crate::route::RouteTarget;
 use crate::save::SaveRef;
 use crate::screen::{GameCx, GameScreen};
 use crate::store::{GameState, ResourcesRef};
+use crate::text::format::current_timestamp;
 use crate::views::jump::competition::controller::CompetitionJumpController;
 use crate::views::jump::competition::flow::{CompetitionFlowCommand, JumpInputResult};
 use crate::views::jump::competition::ui_state::RenderMode;
@@ -73,10 +74,10 @@ impl KothJumpView {
             return;
         };
 
-        if let Some(record) = state.records.top.get_mut(35 + pack as usize) {
+        if let Some(record) = state.records.top.get_mut(34 + pack as usize) {
             record.score += 1.0;
             record.name = winner_name;
-            record.time = current_record_time();
+            record.time = current_timestamp();
             record.is_computer = false;
         }
 
@@ -129,7 +130,7 @@ impl KothJumpView {
         if self.is_result_display_state() {
             if matches!(
                 event,
-                UiEvent::KeyDown(Key::Right | Key::Enter | Key::Escape) | UiEvent::Text(' ')
+                UiEvent::KeyDown(Key::Right | Key::Enter) | UiEvent::Text(' ')
             ) {
                 if let Some(route) = self.dismiss_results_and_advance(state) {
                     return Some(route);
@@ -142,7 +143,6 @@ impl KothJumpView {
             .controller
             .handle_jump_scene_event(event, false, false, true, state)
         {
-            JumpInputResult::Route(route) => return Some(route),
             JumpInputResult::Consumed => return None,
             JumpInputResult::None => {}
         }
@@ -162,12 +162,6 @@ fn koth_winner(runtime: &KothRuntime) -> Option<(String, usize)> {
     }
     let profile_idx = winner.competitor.profile_idx?;
     Some((winner.competitor.name.clone(), profile_idx))
-}
-
-fn current_record_time() -> String {
-    std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map_or_else(|_| String::new(), |duration| duration.as_secs().to_string())
 }
 
 impl GameScreen for KothJumpView {

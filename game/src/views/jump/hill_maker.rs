@@ -144,10 +144,6 @@ impl GameScreen for HillMakerView {
             return;
         }
 
-        if matches!(event, UiEvent::KeyDown(Key::Escape)) {
-            nav.back();
-            return;
-        }
         if matches!(event, UiEvent::KeyDown(Key::Delete | Key::Backspace)) {
             let selected = self.menu.selected();
             let (visible, _, _, _) = self.item_roles();

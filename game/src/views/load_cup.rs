@@ -69,7 +69,6 @@ impl GameScreen for LoadCupView {
         }
 
         match event {
-            UiEvent::KeyDown(Key::Escape) => nav.back(),
             UiEvent::KeyDown(Key::Right | Key::Down) | UiEvent::Text(' ' | '+') => {
                 self.move_next();
                 nav.consume();

@@ -277,7 +277,7 @@ impl GameScreen for ReplayView {
             return;
         }
         match event {
-            UiEvent::KeyDown(Key::Escape | Key::Delete) => nav.back(),
+            UiEvent::KeyDown(Key::Delete) => nav.back(),
             UiEvent::KeyDown(Key::Up) | UiEvent::Text('+') => {
                 if let Some(s) = self.playback.speed().next_up() {
                     self.playback.set_speed(s);

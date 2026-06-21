@@ -5,7 +5,6 @@ use engine::oxide::input::{Key, UiEvent};
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum JumpInputAction {
     None,
-    RouteBack,
     ResetWind,
     ResetJump,
     PersistStartGate(i32),
@@ -132,7 +131,6 @@ impl JumpInputController {
         keys: JumpKeyBindings,
     ) -> JumpInputAction {
         match event {
-            UiEvent::KeyDown(Key::Escape) => JumpInputAction::RouteBack,
             UiEvent::KeyDown(Key::F5) => {
                 if runner.policy().allow_wind_reset {
                     JumpInputAction::ResetWind

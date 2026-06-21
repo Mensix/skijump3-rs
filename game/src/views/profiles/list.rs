@@ -250,7 +250,7 @@ impl ProfilesView {
                     self.mode = Mode::List;
                     save_players(self, state);
                 }
-                UiEvent::Text('n' | 'N') | UiEvent::KeyDown(Key::Escape) => {
+                UiEvent::Text('n' | 'N') => {
                     self.confirm_delete = None;
                 }
                 _ => {}
@@ -273,7 +273,7 @@ impl ProfilesView {
                     };
                     save_players(self, state);
                 }
-                UiEvent::Text('n' | 'N') | UiEvent::KeyDown(Key::Escape) => {
+                UiEvent::Text('n' | 'N') => {
                     let profile = self.confirm_reset.take().unwrap();
                     self.mode = Mode::Edit {
                         profile,
@@ -303,7 +303,6 @@ impl ProfilesView {
                 UiEvent::KeyDown(Key::Delete | Key::Backspace) => {
                     handle_list_delete(self, state);
                 }
-                UiEvent::KeyDown(Key::Escape) => return Some(RouteTarget::Back),
                 UiEvent::KeyDown(_) | UiEvent::Text(_) | UiEvent::Quit | UiEvent::Tick => {}
             }
             return None;
@@ -327,7 +326,6 @@ impl ProfilesView {
                         self.mode = Mode::List;
                     }
                 }
-                UiEvent::KeyDown(Key::Escape) => *selected = EDIT_MENU_ITEMS - 1,
                 UiEvent::KeyDown(_) | UiEvent::Text(_) | UiEvent::Quit | UiEvent::Tick => {}
             },
             Mode::TextInput {

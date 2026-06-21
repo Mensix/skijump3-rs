@@ -179,7 +179,6 @@ impl CustomCupSetupView {
         }
 
         match event {
-            UiEvent::KeyDown(Key::Escape) => Some(RouteTarget::Back),
             UiEvent::KeyDown(Key::Enter) => self.start_custom_cup(state),
             UiEvent::KeyDown(Key::Left) => {
                 if self.preview > 0 {
@@ -257,7 +256,6 @@ impl CustomCupSetupView {
 
     fn handle_save_input(&mut self, state: &mut GameState, event: UiEvent) -> Option<RouteTarget> {
         match event {
-            UiEvent::KeyDown(Key::Escape) => self.mode = CustomCupMode::Browse,
             UiEvent::KeyDown(Key::Enter) => {
                 self.filename_input = normalize_set_name(&self.filename_input);
                 if self.filename_input.is_empty() {
@@ -290,7 +288,7 @@ impl CustomCupSetupView {
     ) -> Option<RouteTarget> {
         match event {
             UiEvent::Text('y' | 'Y') => self.save_current_set(state),
-            UiEvent::Text('n' | 'N') | UiEvent::KeyDown(Key::Escape) => {
+            UiEvent::Text('n' | 'N') => {
                 self.mode = CustomCupMode::Browse;
             }
             _ => {}
@@ -300,7 +298,6 @@ impl CustomCupSetupView {
 
     fn handle_load_input(&mut self, state: &mut GameState, event: UiEvent) -> Option<RouteTarget> {
         match event {
-            UiEvent::KeyDown(Key::Escape) => self.mode = CustomCupMode::Browse,
             UiEvent::KeyDown(Key::Enter) => self.load_selected_set(state),
             UiEvent::KeyDown(Key::Delete) => self.mode = CustomCupMode::ConfirmDelete,
             UiEvent::KeyDown(Key::Left | Key::Up) | UiEvent::Text('-') => {
@@ -328,7 +325,7 @@ impl CustomCupSetupView {
                     self.open_load();
                 }
             }
-            UiEvent::Text('n' | 'N') | UiEvent::KeyDown(Key::Escape) => {
+            UiEvent::Text('n' | 'N') => {
                 self.mode = CustomCupMode::Load;
             }
             _ => {}

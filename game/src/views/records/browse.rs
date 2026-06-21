@@ -60,11 +60,11 @@ impl HallOfFameView {
         let mut yy = 6;
         let col = [30, 146, 173, 215];
         let (title, entries, start, sortby) = match phase {
-            0 => (lang.tr(163), 20, 1, false),
-            1 => (lang.tr(164), 10, 21, false),
+            0 => (lang.tr(163), 20, 0, false),
+            1 => (lang.tr(164), 10, 20, false),
             _ => {
                 yy = 126;
-                (lang.tr(165), 5, 31, true)
+                (lang.tr(165), 5, 30, true)
             }
         };
 
@@ -133,7 +133,7 @@ impl HallOfFameView {
             yy += 10;
 
             let name = lang.tr(161);
-            let Some(hi) = records.top(idx + 36) else {
+            let Some(hi) = records.top(idx + 35) else {
                 cx.text((col[1], yy), FONT_GRAY, name);
                 continue;
             };
@@ -158,7 +158,7 @@ impl GameScreen for HallOfFameView {
         if matches!(event, UiEvent::Quit | UiEvent::Tick) {
             return;
         }
-        if let Some(route) = handle_paged_ui_event(event, &mut self.page, HALL_PAGES, nav) {
+        if let Some(route) = handle_paged_ui_event(event, &mut self.page, HALL_PAGES) {
             nav.navigate(route);
         } else {
             nav.consume();
@@ -296,7 +296,7 @@ impl GameScreen for HillRecordsView {
             return;
         }
         let pages = self.pages();
-        if let Some(route) = handle_paged_ui_event(event, &mut self.page, pages, nav) {
+        if let Some(route) = handle_paged_ui_event(event, &mut self.page, pages) {
             nav.navigate(route);
         } else {
             nav.consume();
@@ -317,9 +317,9 @@ fn paint_screen(cx: &mut PaintCx<'_>, style: u8, bg: engine::color::Rgba) {
         }
         4 => {
             cx.pattern_fill((0, 0, 320, 19), FILL_GRAY);
-            cx.fill((0, 20, 320, 99), bg);
+            cx.pattern_fill((0, 20, 320, 99), bg);
             cx.pattern_fill((0, 120, 320, 19), FILL_GRAY);
-            cx.fill((0, 140, 320, 60), bg);
+            cx.pattern_fill((0, 140, 320, 60), bg);
         }
         _ => {}
     }
@@ -352,16 +352,11 @@ fn handle_paged_ui_event(
     event: UiEvent,
     page: &mut usize,
     pages: usize,
-    nav: &mut ScreenEventCx<RouteTarget>,
 ) -> Option<RouteTarget> {
     if *page >= pages {
         *page = pages.saturating_sub(1);
     }
     match event {
-        UiEvent::KeyDown(Key::Escape) => {
-            nav.back();
-            return None;
-        }
         UiEvent::KeyDown(Key::Home) => {
             *page = 0;
             None
