@@ -1,5 +1,6 @@
 use crate::components::detail_panel::paint_detail_panel;
 use crate::components::layout::MainLayout;
+use crate::components::modal::alert_prompt;
 use crate::components::page_nav::cycle_index;
 use crate::gfx::theme::{BG_DARK, FONT_BODY, FONT_GOLD};
 use crate::route::RouteTarget;
@@ -13,6 +14,7 @@ pub struct LoadCupView {
     save_manager: SaveRef,
     entries: Vec<CupSaveEntry>,
     selected: usize,
+    confirm_delete: Option<usize>,
 }
 
 impl LoadCupView {
@@ -22,6 +24,7 @@ impl LoadCupView {
             save_manager,
             entries,
             selected: 0,
+            confirm_delete: None,
         }
     }
 
@@ -49,6 +52,21 @@ impl LoadCupView {
 
 impl GameScreen for LoadCupView {
     fn event(&mut self, cx: &mut GameCx<'_>, nav: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
+        if let Some(idx) = self.confirm_delete {
+            if matches!(event, UiEvent::KeyDown(_) | UiEvent::Text(_)) {
+                if matches!(event, UiEvent::Text('Y' | 'y')) {
+                    if let Some(entry) = self.entries.get(idx) {
+                        self.save_manager.files.delete_save(&entry.filename);
+                    }
+                    self.entries = self.save_manager.list_cup_saves();
+                    self.selected = self.selected.min(self.entries.len().saturating_sub(1));
+                }
+                self.confirm_delete = None;
+                nav.consume();
+            }
+            return;
+        }
+
         match event {
             UiEvent::KeyDown(Key::Escape) => nav.back(),
             UiEvent::KeyDown(Key::Right | Key::Down) | UiEvent::Text(' ' | '+') => {
@@ -60,6 +78,12 @@ impl GameScreen for LoadCupView {
                 nav.consume();
             }
             UiEvent::KeyDown(Key::Enter) => self.load_selected(cx, nav),
+            UiEvent::KeyDown(Key::Delete | Key::Backspace) => {
+                if !self.entries.is_empty() {
+                    self.confirm_delete = Some(self.selected);
+                }
+                nav.consume();
+            }
             UiEvent::KeyDown(_) | UiEvent::Text(_) | UiEvent::Quit | UiEvent::Tick => {}
         }
     }
@@ -92,6 +116,13 @@ impl GameScreen for LoadCupView {
             lang.tr(523),
             self.entries.is_empty(),
         );
+
+        if let Some(idx) = self.confirm_delete {
+            if let Some(entry) = self.entries.get(idx) {
+                let message = format!("Delete {}?", entry.filename);
+                alert_prompt(paint, &message, lang.tr(193), true);
+            }
+        }
     }
 
     fn background(&self) -> ScreenBackground {
