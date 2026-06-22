@@ -129,8 +129,19 @@ where
                         apply_post_jump_side_effects(state, &self.resources, &side_effects, outcome);
                     if is_new_record && state.config.auto_hill_record_replay != 0 {
                         if let Some(scene) = self.scene.as_ref() {
-                            if let Some(trace) = scene.replay_trace() {
-                                let filename = format!("HR_{}.SJR", trace.meta.name);
+                            if let Some(mut trace) = scene.replay_trace() {
+                                trace.meta.author.clone_from(&side_effects.jumper_name);
+                                trace.meta.saved_at = chrono::Local::now()
+                                    .format("%a %d %b %Y, %H:%M")
+                                    .to_string()
+                                    .to_uppercase();
+                                let hill_name = self
+                                    .resources
+                                    .hills
+                                    .hill(trace.meta.hill_idx)
+                                    .map(|h| h.name.as_str())
+                                    .unwrap_or("?");
+                                let filename = format!("HR_{hill_name}.SJR");
                                 self.save_manager.files.write(
                                     &filename,
                                     &trace.to_sjr_bytes(),

@@ -109,7 +109,7 @@ impl HallOfFameView {
             format!("{:.0}", hi.score)
         };
         cx.right_text((col[2] + 24, y), name_color, score);
-        cx.text((col[3], y), FONT_GRAY, &format_time(&hi.time));
+        cx.text((col[3], y), FONT_GRAY, format_time(&hi.time));
     }
 
     fn paint_koth_records(&self, state: &GameState, cx: &mut PaintCx<'_>) {
@@ -134,7 +134,7 @@ impl HallOfFameView {
                 continue;
             };
             if hi.score > 0.0 {
-                cx.text((col[2], yy), FONT_GRAY, &format_time(&hi.time));
+                cx.text((col[2], yy), FONT_GRAY, format_time(&hi.time));
                 cx.text((col[3], yy), FONT_BODY, format!("{:.0} X", hi.score));
                 cx.text((col[1], yy), FONT_BODY, &hi.name);
             } else {
@@ -253,7 +253,7 @@ impl HillRecordsView {
             };
             cx.right_text((col[2], y), length_color, format_decimal(record.len));
             cx.right_text((col[3] + 11, y), length_color, format!("({})", hill.kr));
-            cx.text((col[4], y), FONT_GRAY, &format_time(&record.time));
+            cx.text((col[4], y), FONT_GRAY, format_time(&record.time));
         }
 
         if phase == 0 {

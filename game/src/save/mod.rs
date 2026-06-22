@@ -89,7 +89,7 @@ impl SaveManager {
     }
 
     pub fn load_cup(&self, filename: &str) -> CupSaveData {
-        let data = self.files.read(filename);
+        let data = self.files.read_save(filename);
         CupSaveData::from_toml_bytes(&data)
     }
 

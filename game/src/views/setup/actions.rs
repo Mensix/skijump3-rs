@@ -110,20 +110,16 @@ fn handle_configure_keys(
     capture: Option<usize>,
 ) -> Option<RouteTarget> {
     if let Some(item) = capture {
-        match event {
-            _ => {
-                if let Some(code) = JumpKeyBindings::code_for(event) {
-                    let duplicate =
-                        (0..5).any(|idx| idx != item && config_key(&state.config, idx) == code);
-                    if !duplicate {
-                        set_config_key(&mut state.config, item, code);
-                        view.save_manager().save_config(&state.config);
-                        view.modal = Some(SetupModal::ConfigureKeys {
-                            selected,
-                            capture: None,
-                        });
-                    }
-                }
+        if let Some(code) = JumpKeyBindings::code_for(event) {
+            let duplicate =
+                (0..5).any(|idx| idx != item && config_key(&state.config, idx) == code);
+            if !duplicate {
+                set_config_key(&mut state.config, item, code);
+                view.save_manager().save_config(&state.config);
+                view.modal = Some(SetupModal::ConfigureKeys {
+                    selected,
+                    capture: None,
+                });
             }
         }
         return None;
@@ -209,25 +205,22 @@ fn handle_name_set_input(
     state: &mut GameState,
     event: UiEvent,
 ) -> Option<RouteTarget> {
-    match event {
-        UiEvent::Text(c) => {
-            let ns_len = view.resources.namesets.len();
-            let idx = if c.is_ascii_digit() {
-                (c as u8 - b'0') as usize
-            } else if c.is_ascii_uppercase() {
-                (c as u8 - b'A') as usize + 10
-            } else if c.is_ascii_lowercase() {
-                (c.to_ascii_uppercase() as u8 - b'A') as usize + 10
-            } else {
-                return None;
-            };
-            if idx < ns_len {
-                state.config.name_set_index = idx as i32;
-                view.save_manager().save_config(&state.config);
-                view.modal = None;
-            }
+    if let UiEvent::Text(c) = event {
+        let ns_len = view.resources.namesets.len();
+        let idx = if c.is_ascii_digit() {
+            (c as u8 - b'0') as usize
+        } else if c.is_ascii_uppercase() {
+            (c as u8 - b'A') as usize + 10
+        } else if c.is_ascii_lowercase() {
+            (c.to_ascii_uppercase() as u8 - b'A') as usize + 10
+        } else {
+            return None;
+        };
+        if idx < ns_len {
+            state.config.name_set_index = idx as i32;
+            view.save_manager().save_config(&state.config);
+            view.modal = None;
         }
-        _ => {}
     }
     None
 }

@@ -72,8 +72,13 @@ impl GameScreen for TrainingJumpView {
     }
 
     fn event(&mut self, cx: &mut GameCx<'_>, nav: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
+        use engine::oxide::Key;
         match event {
             UiEvent::Quit | UiEvent::Tick => return,
+            UiEvent::KeyDown(Key::Escape) if !self.scene.is_save_dialog_active() => {
+                nav.back();
+                return;
+            }
             _ => {}
         }
         if let Some(route) = self.handle_input(cx.state, event) {

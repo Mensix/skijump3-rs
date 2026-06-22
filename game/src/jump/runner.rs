@@ -122,8 +122,8 @@ impl JumpRunner {
         let computer_input = (config.participant.control == JumperControl::Computer)
             .then(|| ComputerInputProvider::new(config.participant.ai_id));
         let state = Self::new_state(&config);
-        let replay = LiveReplayRecorder::new(&config, state.as_ref());
         let record_marker = Self::record_marker(&config, state.as_ref());
+        let replay = LiveReplayRecorder::new(&config, state.as_ref(), record_marker);
         let goal_marker = Self::goal_marker(&config, state.as_ref());
         let render_runtime = JumpRenderRuntime::new(snow, state.as_ref());
         Self {
@@ -237,7 +237,8 @@ impl JumpRunner {
             self.state = Self::new_state(&self.config);
             self.record_marker = Self::record_marker(&self.config, self.state.as_ref());
             self.goal_marker = Self::goal_marker(&self.config, self.state.as_ref());
-            self.replay.reset(&self.config, self.state.as_ref());
+            self.replay
+                .reset(&self.config, self.state.as_ref(), self.record_marker);
         }
         self.computer_input = (self.config.participant.control == JumperControl::Computer)
             .then(|| ComputerInputProvider::new(self.config.participant.ai_id));

@@ -180,7 +180,12 @@ fn load_replays(files: &FileStore) -> Vec<ReplayEntry> {
                 .unwrap_or(&filename)
                 .to_string();
             let intro = stem.eq_ignore_ascii_case("INTRO");
-            let data = files.read(&filename);
+            let data = files.read_save(&filename);
+            let data = if data.is_empty() {
+                files.read(&filename)
+            } else {
+                data
+            };
             let trace = ReplayTrace::from_sjr_bytes(&data, intro);
             ReplayEntry {
                 filename: stem,

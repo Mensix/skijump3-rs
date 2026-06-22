@@ -127,17 +127,27 @@ pub(crate) struct LiveReplayRecorder {
 }
 
 impl LiveReplayRecorder {
-    pub(crate) fn new(config: &JumpConfig, state: Option<&JumpState>) -> Self {
+    pub(crate) fn new(
+        config: &JumpConfig,
+        state: Option<&JumpState>,
+        hill_record_marker: Option<(i32, i32)>,
+    ) -> Self {
         let mut tracker = Self::default();
-        tracker.reset(config, state);
+        tracker.reset(config, state, hill_record_marker);
         tracker
     }
 
-    pub(crate) fn reset(&mut self, config: &JumpConfig, state: Option<&JumpState>) {
+    pub(crate) fn reset(
+        &mut self,
+        config: &JumpConfig,
+        state: Option<&JumpState>,
+        hill_record_marker: Option<(i32, i32)>,
+    ) {
         self.recorder = ReplayRecorder::default();
         self.previous_pos = state.map(|state| (state.x, state.y));
         if let Some(state) = state {
-            self.recorder.start(Self::meta(config, state));
+            self.recorder
+                .start(Self::meta(config, state, hill_record_marker));
         }
     }
 
@@ -185,7 +195,11 @@ impl LiveReplayRecorder {
         self.recorder.finish()
     }
 
-    fn meta(config: &JumpConfig, state: &JumpState) -> ReplayMeta {
+    fn meta(
+        config: &JumpConfig,
+        state: &JumpState,
+        hill_record_marker: Option<(i32, i32)>,
+    ) -> ReplayMeta {
         ReplayMeta {
             start_x: state.x,
             start_y: state.y,
@@ -194,7 +208,7 @@ impl LiveReplayRecorder {
             distance: 0,
             flight_start: 0,
             flight_stop: 0,
-            hill_record_marker: None,
+            hill_record_marker,
             hill_filename: "HILLBASE".to_string(),
             hill_profile: config
                 .hill
