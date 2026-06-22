@@ -1,65 +1,24 @@
 use crate::components::modal::alert_prompt;
 use crate::components::page_nav::cycle_index;
 use crate::data::profile::Profile;
-use crate::gfx::jumper_colors::{ski_color, suit_color_shade};
-use crate::gfx::theme::{BG_RED, BLACK, FILL_GRAY, FONT_BODY};
 use crate::route::RouteTarget;
 use crate::save::SaveRef;
 use crate::screen::{GameCx, GameScreen};
 use crate::store::{GameState, ResourcesRef};
-use crate::text::layout::replace_display_name;
 use engine::oxide::input::Key;
-use engine::oxide::widget::EventCx;
-use engine::oxide::widgets::selector::{NumericSelector, SelectorMessage};
-use engine::oxide::widgets::text_input::{TextInput as OxideTextInput, TextInputMessage};
 use engine::oxide::{PaintCx, ScreenEventCx, UiEvent, Widget};
 
 use super::actions::{
-    commit_text_input, handle_edit_enter, handle_list_delete, handle_list_enter, save_players,
+    commit_text_input, handle_edit_enter, handle_event_color_select, handle_event_replace_select,
+    handle_event_text_input, handle_list_delete, handle_list_enter, save_players,
 };
-use super::render::{draw_empty_edit, draw_help, draw_list, draw_profile, draw_screen_base};
+use super::render::{
+    draw_color_select, draw_empty_edit, draw_help, draw_list, draw_profile, draw_replace_select,
+    draw_screen_base,
+};
+use super::state::{ColorField, Mode, Pending, TextField};
 
-const EDIT_MENU_ITEMS: usize = 9;
-pub(super) const REPLACE_MAX: usize = 65;
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(super) enum TextField {
-    Name,
-    RealName,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(super) enum ColorField {
-    Suit,
-    Ski,
-}
-
-#[derive(Debug)]
-pub(super) enum Mode {
-    List,
-    Edit {
-        profile: usize,
-        selected: usize,
-    },
-    TextInput {
-        profile: usize,
-        field: TextField,
-        input: OxideTextInput,
-    },
-    ColorSelect {
-        profile: usize,
-        field: ColorField,
-        selector: NumericSelector,
-        color_x: i32,
-        color_y: i32,
-        color_max: usize,
-        color_suit: bool,
-    },
-    ReplaceSelect {
-        profile: usize,
-        selector: NumericSelector,
-    },
-}
+pub(super) const EDIT_MENU_ITEMS: usize = 9;
 
 pub struct ProfilesView {
     pub(super) resources: ResourcesRef,
@@ -68,16 +27,6 @@ pub struct ProfilesView {
     pub(super) mode: Mode,
     pub(super) confirm_delete: Option<usize>,
     pub(super) confirm_reset: Option<usize>,
-}
-
-pub(super) enum Pending {
-    EditEnter(usize, usize),
-    TextCommit(usize, TextField, String),
-    TextCancel(usize, TextField),
-    ColorCommit(usize, ColorField),
-    ColorCancel(usize, ColorField),
-    ReplaceCommit(usize),
-    ReplaceCancel(usize),
 }
 
 impl ProfilesView {
@@ -171,60 +120,9 @@ impl ProfilesView {
                 color_max,
                 color_suit,
                 ..
-            } => {
-                let value = selector.value();
-                let width = 31i32;
-                cx.fill(
-                    (*color_x, *color_y, width, 5 + ((*color_max + 1) as i32 * 8)),
-                    BLACK,
-                );
-                cx.stroke(
-                    (*color_x, *color_y, width, 5 + ((*color_max + 1) as i32 * 8)),
-                    BG_RED,
-                );
-                for v in 0..=*color_max {
-                    let by = *color_y + 4 + v as i32 * 8;
-                    let fill = if *color_suit {
-                        suit_color_shade(v, 0)
-                    } else {
-                        ski_color(v)
-                    };
-                    cx.fill((*color_x + 6, by, 19, 5), fill);
-                    if *color_suit {
-                        cx.stroke((*color_x + 6, by, 19, 5), suit_color_shade(v, 2));
-                    }
-                }
-                cx.stroke(
-                    (*color_x + 3, *color_y + 2 + value as i32 * 8, 25, 9),
-                    FONT_BODY,
-                );
-            }
+            } => draw_color_select(cx, selector, *color_x, *color_y, *color_max, *color_suit),
             Mode::ReplaceSelect { selector, .. } => {
-                let value = selector.value();
-                let x = self.resources.font.string_width("Replace:") as i32 + 170;
-                cx.fill((x - 2, 43, 320 - x, 8), FILL_GRAY);
-                if value > 0 {
-                    if value
-                        <= self
-                            .resources
-                            .player_names(state.config.name_set_index as usize)
-                            .len()
-                    {
-                        let n = replace_display_name(
-                            value,
-                            self.resources
-                                .player_names(state.config.name_set_index as usize),
-                            &self.resources.font,
-                            x,
-                        );
-                        cx.text((x, 44), FONT_BODY, n);
-                        cx.right_text((316, 44), FONT_BODY, format!("#{value}"));
-                    } else {
-                        cx.text((x, 44), FONT_BODY, format!("#{value}"));
-                    }
-                } else {
-                    cx.text((x, 44), FONT_BODY, lang.tr(9));
-                }
+                draw_replace_select(self, state, cx, selector)
             }
             _ => {}
         }
@@ -287,6 +185,7 @@ impl ProfilesView {
 
         if matches!(self.mode, Mode::List) {
             match event {
+                UiEvent::KeyDown(Key::Escape) => return Some(RouteTarget::Back),
                 UiEvent::KeyDown(Key::Up) => {
                     let total = self.entries(state);
                     self.selected = cycle_index(self.selected, total, -1);
@@ -311,6 +210,7 @@ impl ProfilesView {
         let mut pending = None;
         match &mut self.mode {
             Mode::Edit { profile, selected } => match event {
+                UiEvent::KeyDown(Key::Escape) => self.mode = Mode::List,
                 UiEvent::KeyDown(Key::Up) => {
                     *selected = if *selected == 0 {
                         EDIT_MENU_ITEMS - 1
@@ -328,60 +228,14 @@ impl ProfilesView {
                 }
                 UiEvent::KeyDown(_) | UiEvent::Text(_) | UiEvent::Quit | UiEvent::Tick => {}
             },
-            Mode::TextInput {
-                profile,
-                field,
-                input,
-            } => {
-                let mut ecx = EventCx::default();
-                if let Some(action) = input.event(&mut ecx, event) {
-                    pending = Some(match action {
-                        TextInputMessage::Commit(value) => {
-                            Pending::TextCommit(*profile, *field, value)
-                        }
-                        TextInputMessage::Cancel => Pending::TextCancel(*profile, *field),
-                    });
-                }
+            Mode::TextInput { .. } => {
+                pending = handle_event_text_input(&mut self.mode, event);
             }
-            Mode::ColorSelect {
-                profile,
-                field,
-                selector,
-                ..
-            } => {
-                let mut ecx = EventCx::default();
-                if let Some(action) = selector.event(&mut ecx, event) {
-                    pending = Some(match action {
-                        SelectorMessage::Commit(value) => {
-                            match field {
-                                ColorField::Suit => {
-                                    state.profiles.profiles[*profile].suit_color =
-                                        crate::gfx::jumper_colors::suit_palette_rgb(value)
-                                }
-                                ColorField::Ski => {
-                                    state.profiles.profiles[*profile].ski_color =
-                                        crate::gfx::jumper_colors::ski_palette_rgb(value)
-                                }
-                            }
-                            Pending::ColorCommit(*profile, *field)
-                        }
-                        SelectorMessage::Cancel => Pending::ColorCancel(*profile, *field),
-                    });
-                }
+            Mode::ColorSelect { .. } => {
+                pending = handle_event_color_select(&mut self.mode, state, event);
             }
-            Mode::ReplaceSelect { profile, selector } => {
-                let mut ecx = EventCx::default();
-                if let Some(action) = selector.event(&mut ecx, event) {
-                    match action {
-                        SelectorMessage::Commit(value) => {
-                            state.profiles.profiles[*profile].replace = value;
-                            pending = Some(Pending::ReplaceCommit(*profile));
-                        }
-                        SelectorMessage::Cancel => {
-                            pending = Some(Pending::ReplaceCancel(*profile));
-                        }
-                    }
-                }
+            Mode::ReplaceSelect { .. } => {
+                pending = handle_event_replace_select(&mut self.mode, state, event);
             }
             Mode::List => {}
         }

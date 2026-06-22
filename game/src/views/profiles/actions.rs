@@ -3,11 +3,14 @@ use crate::gfx::theme::{BLACK, FILL_GRAY, FONT_BODY, FONT_GOLD};
 use crate::route::RouteTarget;
 use crate::store::GameState;
 use crate::text::layout::replace_display_name;
-use engine::oxide::widgets::selector::NumericSelector;
-use engine::oxide::widgets::text_input::TextInput as OxideTextInput;
+use engine::oxide::widget::EventCx;
+use engine::oxide::widgets::selector::{NumericSelector, SelectorMessage};
+use engine::oxide::widgets::text_input::{TextInput as OxideTextInput, TextInputMessage};
+use engine::oxide::{UiEvent, Widget};
 
-use super::list::{ColorField, Mode, ProfilesView, TextField, REPLACE_MAX};
+use super::list::ProfilesView;
 use super::render::profile_label;
+use super::state::{ColorField, Mode, Pending, TextField, REPLACE_MAX};
 
 pub(super) fn save_players(view: &ProfilesView, state: &GameState) {
     view.save_manager.save_players(&state.profiles);
@@ -275,4 +278,74 @@ pub(super) fn commit_text_input(
             TextField::RealName => 1,
         },
     };
+}
+
+pub(super) fn handle_event_text_input(mode: &mut Mode, event: UiEvent) -> Option<Pending> {
+    let Mode::TextInput {
+        profile,
+        field,
+        input,
+    } = mode
+    else {
+        return None;
+    };
+    let mut ecx = EventCx::default();
+    input.event(&mut ecx, event).map(|action| match action {
+        TextInputMessage::Commit(value) => Pending::TextCommit(*profile, *field, value),
+        TextInputMessage::Cancel => Pending::TextCancel(*profile, *field),
+    })
+}
+
+pub(super) fn handle_event_color_select(
+    mode: &mut Mode,
+    state: &mut GameState,
+    event: UiEvent,
+) -> Option<Pending> {
+    let Mode::ColorSelect {
+        profile,
+        field,
+        selector,
+        ..
+    } = mode
+    else {
+        return None;
+    };
+    let mut ecx = EventCx::default();
+    selector.event(&mut ecx, event).map(|action| match action {
+        SelectorMessage::Commit(value) => {
+            match field {
+                ColorField::Suit => {
+                    state.profiles.profiles[*profile].suit_color =
+                        crate::gfx::jumper_colors::suit_palette_rgb(value)
+                }
+                ColorField::Ski => {
+                    state.profiles.profiles[*profile].ski_color =
+                        crate::gfx::jumper_colors::ski_palette_rgb(value)
+                }
+            }
+            Pending::ColorCommit(*profile, *field)
+        }
+        SelectorMessage::Cancel => Pending::ColorCancel(*profile, *field),
+    })
+}
+
+pub(super) fn handle_event_replace_select(
+    mode: &mut Mode,
+    state: &mut GameState,
+    event: UiEvent,
+) -> Option<Pending> {
+    let Mode::ReplaceSelect {
+        profile, selector, ..
+    } = mode
+    else {
+        return None;
+    };
+    let mut ecx = EventCx::default();
+    selector.event(&mut ecx, event).map(|action| match action {
+        SelectorMessage::Commit(value) => {
+            state.profiles.profiles[*profile].replace = value;
+            Pending::ReplaceCommit(*profile)
+        }
+        SelectorMessage::Cancel => Pending::ReplaceCancel(*profile),
+    })
 }

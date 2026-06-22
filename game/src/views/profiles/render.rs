@@ -1,11 +1,12 @@
-
-
-use crate::gfx::theme::{BG_PURPLE, BG_RED, BLACK, FONT_BODY, FONT_GOLD, FONT_GRAY};
+use crate::gfx::jumper_colors::{self, ski_color, suit_color_shade};
+use crate::gfx::theme::{BG_PURPLE, BG_RED, BLACK, FILL_GRAY, FONT_BODY, FONT_GOLD, FONT_GRAY};
 use crate::store::GameState;
+use crate::text::layout::replace_display_name;
 use crate::views::profiles::format::format_profile_value;
 use engine::oxide::PaintCx;
 
-use super::list::{Mode, ProfilesView};
+use super::list::ProfilesView;
+use super::state::Mode;
 
 pub(super) fn draw_screen_base(view: &ProfilesView, cx: &mut PaintCx<'_>) {
     let lang = &view.resources.langbase;
@@ -94,15 +95,15 @@ pub(super) fn draw_suit_ski(
 
     cx.fill(
         (x, 28, xl - x + 1, 5),
-        crate::gfx::jumper_colors::suit_color_shade_rgb(suit_rgb, 1),
+        jumper_colors::suit_color_shade_rgb(suit_rgb, 1),
     );
     cx.stroke(
         (x, 28, xl - x + 1, 5),
-        crate::gfx::jumper_colors::suit_color_shade_rgb(suit_rgb, 3),
+        jumper_colors::suit_color_shade_rgb(suit_rgb, 3),
     );
     cx.fill(
         (x + 1, 37, xl - x - 1, 3),
-        crate::gfx::jumper_colors::ski_color_rgb(ski_rgb),
+        jumper_colors::ski_color_rgb(ski_rgb),
     );
 }
 
@@ -111,6 +112,76 @@ pub(super) fn profile_label(view: &ProfilesView, field: usize) -> String {
     match field {
         1..=18 => lang.tr(303 + field).to_string(),
         _ => String::new(),
+    }
+}
+
+pub(super) fn draw_color_select(
+    cx: &mut PaintCx<'_>,
+    selector: &engine::oxide::widgets::selector::NumericSelector,
+    color_x: i32,
+    color_y: i32,
+    color_max: usize,
+    color_suit: bool,
+) {
+    let value = selector.value();
+    let width = 31i32;
+    cx.fill(
+        (color_x, color_y, width, 5 + ((color_max + 1) as i32 * 8)),
+        BLACK,
+    );
+    cx.stroke(
+        (color_x, color_y, width, 5 + ((color_max + 1) as i32 * 8)),
+        BG_RED,
+    );
+    for v in 0..=color_max {
+        let by = color_y + 4 + v as i32 * 8;
+        let fill = if color_suit {
+            suit_color_shade(v, 0)
+        } else {
+            ski_color(v)
+        };
+        cx.fill((color_x + 6, by, 19, 5), fill);
+        if color_suit {
+            cx.stroke((color_x + 6, by, 19, 5), suit_color_shade(v, 2));
+        }
+    }
+    cx.stroke(
+        (color_x + 3, color_y + 2 + value as i32 * 8, 25, 9),
+        FONT_BODY,
+    );
+}
+
+pub(super) fn draw_replace_select(
+    view: &ProfilesView,
+    state: &GameState,
+    cx: &mut PaintCx<'_>,
+    selector: &engine::oxide::widgets::selector::NumericSelector,
+) {
+    let value = selector.value();
+    let x = view.resources.font.string_width("Replace:") as i32 + 170;
+    cx.fill((x - 2, 43, 320 - x, 8), FILL_GRAY);
+    if value > 0 {
+        if value
+            <= view
+                .resources
+                .player_names(state.config.name_set_index as usize)
+                .len()
+        {
+            let n = replace_display_name(
+                value,
+                view.resources
+                    .player_names(state.config.name_set_index as usize),
+                &view.resources.font,
+                x,
+            );
+            cx.text((x, 44), FONT_BODY, n);
+            cx.right_text((316, 44), FONT_BODY, format!("#{value}"));
+        } else {
+            cx.text((x, 44), FONT_BODY, format!("#{value}"));
+        }
+    } else {
+        let lang = &view.resources.langbase;
+        cx.text((x, 44), FONT_BODY, lang.tr(9));
     }
 }
 
