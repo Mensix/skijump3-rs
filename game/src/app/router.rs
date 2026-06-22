@@ -132,6 +132,7 @@ impl AppRouter {
                 self.current.event(&mut cx, &mut nav, event);
             }
             match nav.take_action() {
+                NavAction::None if nav.is_consumed() => {}
                 NavAction::None => self.back(),
                 NavAction::Navigate(route) => self.navigate(route),
                 NavAction::Back => self.back(),
