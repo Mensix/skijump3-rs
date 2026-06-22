@@ -332,8 +332,7 @@ mod tests {
             272, 268, 269, 279, 281, 293, 258, 246, 275, 278, 253, 291, 243, 279, 258, 267,
             264, 268, 232, 278,
         ];
-        for (offset, tip_x) in expected.into_iter().enumerate() {
-            let hill_id = offset + 1;
+        for (hill_id, tip_x) in expected.into_iter().enumerate() {
             let terrain = HillTerrain::load(&files, hill_id);
             assert_eq!(terrain.tip_x, tip_x, "HILL{hill_id}");
         }

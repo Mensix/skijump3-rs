@@ -253,7 +253,7 @@ impl ReplayTrace {
             .trim()
             .parse::<usize>()
             .unwrap();
-        let hill_idx = hill_idx_raw;
+        let hill_idx = hill_idx_raw.saturating_sub(1);
         let hill_filename = str::from_utf8(parser.next_line()).unwrap().to_string();
         let hill_filename_raw = parser.previous_raw_line().to_vec();
         let hill_profile = str::from_utf8(parser.next_line())
@@ -372,7 +372,7 @@ impl ReplayTrace {
     pub fn to_sjr_bytes(&self) -> Vec<u8> {
         let max_turns = self.meta.frame_count.min(REPLAY_FRAME_CAPACITY - 1);
         let hill_record = self.meta.hill_record_marker.unwrap_or((0, 0));
-        let file_hill_idx = self.meta.hill_idx;
+        let file_hill_idx = self.meta.hill_idx.wrapping_add(1);
         let checksum = replay_checksum(ReplayChecksumInput {
             start_x: self.meta.start_x,
             start_y: self.meta.start_y,

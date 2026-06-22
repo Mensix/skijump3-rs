@@ -137,7 +137,7 @@ mod tests {
         let kuopio = catalog.hill(0).unwrap();
         assert_eq!(kuopio.name, "kuopio");
         assert_eq!(kuopio.kr, 120);
-        assert_eq!(kuopio.front_index, "1");
+        assert_eq!(kuopio.front_index, "0");
         assert_eq!(kuopio.back_index, "0");
         assert_eq!(kuopio.back_brightness, 90);
         assert_eq!(kuopio.back_mirror, 0);

@@ -203,7 +203,7 @@ mod tests {
 
     #[test]
     fn computer_simulation_gets_past_table_fall_distance() {
-        let terrain = hill_loader(1);
+        let terrain = hill_loader(0);
         let mut state = JumpState::new(&terrain, 148.0, 0.89, 120, 0.3217, 15);
         let mut provider = ComputerInputProvider::new(1);
         let mut rng = Random::new(1);
@@ -234,7 +234,7 @@ mod tests {
 
     #[test]
     fn silent_computer_jump_starts_like_pascal_non_view_path() {
-        let terrain = hill_loader(2);
+        let terrain = hill_loader(1);
         let mut state = JumpState::new(&terrain, 131.0, 0.84, 90, 0.3222, 15);
 
         state.prepare_silent_computer_jump(&terrain);
@@ -247,7 +247,7 @@ mod tests {
 
     #[test]
     fn silent_computer_jump_keeps_pascal_maxspeed_on_first_tick() {
-        let terrain = hill_loader(2);
+        let terrain = hill_loader(1);
         let mut state = JumpState::new(&terrain, 131.0, 0.84, 90, 0.3222, 15);
         let mut rng = Random::new(1);
         let wind = FlightWind {
@@ -269,7 +269,7 @@ mod tests {
     fn silent_lahti_k90_computer_distance_stays_plausible() {
         use crate::jump::wind::Wind;
 
-        let terrain = hill_loader(2);
+        let terrain = hill_loader(1);
         let mut state = JumpState::new(&terrain, 131.0, 0.84, 90, 0.3222, 15);
         state.prepare_silent_computer_jump(&terrain);
         let mut provider = ComputerInputProvider::new(0);
@@ -304,7 +304,7 @@ mod tests {
 
     #[test]
     fn silent_computer_skips_landing_phase() {
-        let terrain = hill_loader(2);
+        let terrain = hill_loader(1);
         let mut state = JumpState::new(&terrain, 131.0, 0.84, 90, 0.3222, 15);
         let mut rng = Random::new(1);
         let wind = FlightWind {
