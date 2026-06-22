@@ -74,7 +74,14 @@ pub(super) fn handle_edit_enter(
         0 => start_text_input(view, state, profile, TextField::Name),
         1 => start_text_input(view, state, profile, TextField::RealName),
         2 => {
-            let value = state.profiles.profiles[profile].suit_color;
+            let value = crate::gfx::jumper_colors::SUIT_COLORS
+                .iter()
+                .position(|s| {
+                    s[1] == state.profiles.profiles[profile].suit_color[0]
+                        && s[2] == state.profiles.profiles[profile].suit_color[1]
+                        && s[3] == state.profiles.profiles[profile].suit_color[2]
+                })
+                .unwrap_or(0);
             let x = (172
                 + view
                     .resources
@@ -103,7 +110,14 @@ pub(super) fn handle_edit_enter(
             };
         }
         3 => {
-            let value = state.profiles.profiles[profile].ski_color;
+            let value = crate::gfx::jumper_colors::SKI_COLORS
+                .iter()
+                .position(|c| {
+                    c.0 == state.profiles.profiles[profile].ski_color[0]
+                        && c.1 == state.profiles.profiles[profile].ski_color[1]
+                        && c.2 == state.profiles.profiles[profile].ski_color[2]
+                })
+                .unwrap_or(0);
             let x = (172
                 + view
                     .resources

@@ -153,8 +153,9 @@ impl HillTerrain {
                         let rgba_src_offset = (sy * back_w + sx) * 4;
                         mask[out_idx] = 128;
                         let rgba_dst = &mut rgba[out_idx * 4..out_idx * 4 + 4];
-                        rgba_dst
-                            .copy_from_slice(&self.back_visual[rgba_src_offset..rgba_src_offset + 4]);
+                        rgba_dst.copy_from_slice(
+                            &self.back_visual[rgba_src_offset..rgba_src_offset + 4],
+                        );
                         rgba_dst[3] = 255;
                     }
                 }
@@ -218,7 +219,11 @@ impl HillTerrain {
             if hp < ((2.0 / 3.0) * self.kr as f64 * 10.0) as i64 || hp > self.kr * 12 {
                 continue;
             }
-            let color = if hp < self.kr * 10 { MARKER_RED } else { MARKER_BLUE };
+            let color = if hp < self.kr * 10 {
+                MARKER_RED
+            } else {
+                MARKER_BLUE
+            };
             let sx = x as i32 - scroll_x;
             if sx < 0 || sx as usize >= wu {
                 continue;
@@ -329,8 +334,8 @@ mod tests {
     fn computes_takeoff_points_from_front_visuals() {
         let files = test_files();
         let expected = [
-            272, 268, 269, 279, 281, 293, 258, 246, 275, 278, 253, 291, 243, 279, 258, 267,
-            264, 268, 232, 278,
+            272, 268, 269, 279, 281, 293, 258, 246, 275, 278, 253, 291, 243, 279, 258, 267, 264,
+            268, 232, 278,
         ];
         for (hill_id, tip_x) in expected.into_iter().enumerate() {
             let terrain = HillTerrain::load(&files, hill_id);

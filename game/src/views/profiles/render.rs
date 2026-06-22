@@ -1,4 +1,5 @@
-use crate::gfx::jumper_colors::{ski_color, suit_color_shade};
+
+
 use crate::gfx::theme::{BG_PURPLE, BG_RED, BLACK, FONT_BODY, FONT_GOLD, FONT_GRAY};
 use crate::store::GameState;
 use crate::views::profiles::format::format_profile_value;
@@ -81,8 +82,8 @@ pub(super) fn draw_empty_edit(cx: &mut PaintCx<'_>) {
 pub(super) fn draw_suit_ski(
     view: &ProfilesView,
     cx: &mut PaintCx<'_>,
-    suit_idx: usize,
-    ski_idx: usize,
+    suit_rgb: [u8; 3],
+    ski_rgb: [u8; 3],
 ) {
     let suit_label = profile_label(view, 3);
     let ski_label = profile_label(view, 4);
@@ -91,9 +92,18 @@ pub(super) fn draw_suit_ski(
     let x = 178 + suit_w.max(ski_w);
     let xl = (x + 18).min(318);
 
-    cx.fill((x, 28, xl - x + 1, 5), suit_color_shade(suit_idx, 1));
-    cx.stroke((x, 28, xl - x + 1, 5), suit_color_shade(suit_idx, 3));
-    cx.fill((x + 1, 37, xl - x - 1, 3), ski_color(ski_idx));
+    cx.fill(
+        (x, 28, xl - x + 1, 5),
+        crate::gfx::jumper_colors::suit_color_shade_rgb(suit_rgb, 1),
+    );
+    cx.stroke(
+        (x, 28, xl - x + 1, 5),
+        crate::gfx::jumper_colors::suit_color_shade_rgb(suit_rgb, 3),
+    );
+    cx.fill(
+        (x + 1, 37, xl - x - 1, 3),
+        crate::gfx::jumper_colors::ski_color_rgb(ski_rgb),
+    );
 }
 
 pub(super) fn profile_label(view: &ProfilesView, field: usize) -> String {

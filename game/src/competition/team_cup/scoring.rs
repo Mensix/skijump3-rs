@@ -5,12 +5,10 @@ use crate::competition::team_cup::types::TeamCupTeam;
 pub const TEAM_LEG_POINTS: PointsTable<8> =
     PointsTable::new([400, 350, 300, 250, 200, 150, 100, 50]);
 
-#[must_use]
 pub fn team_points_for_rank(rank: usize) -> i32 {
     TEAM_LEG_POINTS.points_for_rank(rank)
 }
 
-#[must_use]
 pub fn calculate_team_leg_score(team: &TeamCupTeam, leg_idx: usize) -> f64 {
     team.members
         .iter()

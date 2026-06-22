@@ -8,8 +8,8 @@ pub struct JumpParticipant {
     pub(crate) ai_id: usize,
     pub(crate) name: String,
     pub(crate) real_name: String,
-    pub(crate) suit_color: u8,
-    pub(crate) ski_color: u8,
+    pub(crate) suit_color: [u8; 3],
+    pub(crate) ski_color: [u8; 3],
     pub(crate) team: Option<usize>,
     pub(crate) control: JumperControl,
 }
@@ -21,8 +21,8 @@ impl JumpParticipant {
             ai_id: 0,
             name: "TRAINEE".to_string(),
             real_name: String::new(),
-            suit_color: 0,
-            ski_color: 0,
+            suit_color: [0, 0, 0],
+            ski_color: [0, 0, 0],
             team: None,
             control: JumperControl::Human,
         }

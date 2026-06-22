@@ -1,11 +1,9 @@
 use crate::rng::Random;
 
-#[must_use]
 pub fn sequential_schedule(hill_count: usize, max_count: usize) -> Vec<usize> {
     (0..hill_count.min(max_count)).collect()
 }
 
-#[must_use]
 pub fn fixed_schedule<const N: usize>(hills: [usize; N]) -> Vec<usize> {
     hills.to_vec()
 }

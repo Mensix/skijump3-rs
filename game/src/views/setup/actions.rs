@@ -111,8 +111,7 @@ fn handle_configure_keys(
 ) -> Option<RouteTarget> {
     if let Some(item) = capture {
         if let Some(code) = JumpKeyBindings::code_for(event) {
-            let duplicate =
-                (0..5).any(|idx| idx != item && config_key(&state.config, idx) == code);
+            let duplicate = (0..5).any(|idx| idx != item && config_key(&state.config, idx) == code);
             if !duplicate {
                 set_config_key(&mut state.config, item, code);
                 view.save_manager().save_config(&state.config);

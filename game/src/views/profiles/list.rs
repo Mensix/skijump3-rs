@@ -355,10 +355,12 @@ impl ProfilesView {
                         SelectorMessage::Commit(value) => {
                             match field {
                                 ColorField::Suit => {
-                                    state.profiles.profiles[*profile].suit_color = value
+                                    state.profiles.profiles[*profile].suit_color =
+                                        crate::gfx::jumper_colors::suit_palette_rgb(value)
                                 }
                                 ColorField::Ski => {
-                                    state.profiles.profiles[*profile].ski_color = value
+                                    state.profiles.profiles[*profile].ski_color =
+                                        crate::gfx::jumper_colors::ski_palette_rgb(value)
                                 }
                             }
                             Pending::ColorCommit(*profile, *field)

@@ -5,7 +5,6 @@ pub struct Ranked<T> {
     pub score: f64,
 }
 
-#[must_use]
 pub fn ranked_order<T>(
     items: impl IntoIterator<Item = T>,
     score: impl Fn(T) -> f64,

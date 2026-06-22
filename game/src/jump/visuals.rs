@@ -48,8 +48,8 @@ pub(crate) struct JumperSpriteSpec {
     pub(crate) body_y: i32,
     pub(crate) ski_x: i32,
     pub(crate) ski_y: i32,
-    pub(crate) suit_color: usize,
-    pub(crate) ski_color: usize,
+    pub(crate) suit_color: [u8; 3],
+    pub(crate) ski_color: [u8; 3],
     pub(crate) has_bib: bool,
 }
 
@@ -75,28 +75,29 @@ mod tests {
 
     use super::*;
 
+    const SUIT_0: [u8; 3] = [53, 17, 53];
+    const SKI_0: [u8; 3] = [63, 63, 32];
+
     #[test]
     fn standard_jumper_material_pairs() {
-        let suit_color = 0usize;
-        let ski_color = 0usize;
-        let body_material = materials::jumper_body_material(suit_color, false);
-        let ski_material = materials::jumper_ski_material(ski_color);
+        let body_material = materials::jumper_body_material(SUIT_0, false);
+        let ski_material = materials::jumper_ski_material(SKI_0);
 
         assert_eq!(
             body_material.get(JUMPER_SUIT_SOURCE_SHADE_1),
-            Some(jumper_colors::suit_color_shade(0, 1))
+            Some(jumper_colors::suit_color_shade_rgb(SUIT_0, 1))
         );
         assert_eq!(
             body_material.get(JUMPER_SUIT_SOURCE_SHADE_3),
-            Some(jumper_colors::suit_color_shade(0, 3))
+            Some(jumper_colors::suit_color_shade_rgb(SUIT_0, 3))
         );
         assert_eq!(
             body_material.get(JUMPER_BIB_SOURCE_SHADE_1),
-            Some(jumper_colors::suit_color_shade(0, 1))
+            Some(jumper_colors::suit_color_shade_rgb(SUIT_0, 1))
         );
         assert_eq!(
             body_material.get(JUMPER_BIB_SOURCE_SHADE_3),
-            Some(jumper_colors::suit_color_shade(0, 3))
+            Some(jumper_colors::suit_color_shade_rgb(SUIT_0, 3))
         );
         assert_eq!(
             body_material.get(0),
@@ -111,7 +112,7 @@ mod tests {
 
         assert_eq!(
             ski_material.get(JUMPER_SKI_SOURCE),
-            Some(jumper_colors::ski_color(ski_color))
+            Some(jumper_colors::ski_color_rgb(SKI_0))
         );
         assert_eq!(
             ski_material.get(JUMPER_SUIT_SOURCE_SHADE_1),
@@ -122,7 +123,7 @@ mod tests {
 
     #[test]
     fn leader_bib_material_uses_pascal_bib_palette_entries() {
-        let body_material = materials::jumper_body_material(0, true);
+        let body_material = materials::jumper_body_material(SUIT_0, true);
 
         assert_eq!(
             body_material.get(JUMPER_BIB_SOURCE_SHADE_1),
@@ -134,7 +135,7 @@ mod tests {
         );
         assert_ne!(
             body_material.get(JUMPER_BIB_SOURCE_SHADE_1),
-            Some(jumper_colors::suit_color_shade(0, 1))
+            Some(jumper_colors::suit_color_shade_rgb(SUIT_0, 1))
         );
     }
 }

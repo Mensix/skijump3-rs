@@ -7,7 +7,6 @@ use crate::content::names::TeamDef;
 use crate::data::profile::ProfileStore;
 use crate::rng::Random;
 
-#[must_use]
 pub fn build_team_cup(
     names: &[String],
     teams_def: &[TeamDef],

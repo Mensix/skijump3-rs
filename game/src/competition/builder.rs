@@ -6,7 +6,6 @@ use crate::competition::machine::Competition;
 use crate::competition::types::{CupStyle, Participant, QualificationStatus};
 use crate::data::profile::ProfileStore;
 
-#[must_use]
 pub fn build_competition(
     style: CupStyle,
     profiles: &ProfileStore,
@@ -24,7 +23,6 @@ pub fn build_competition(
     c
 }
 
-#[must_use]
 pub fn build_custom_competition(
     profiles: &ProfileStore,
     computer_names: &[String],

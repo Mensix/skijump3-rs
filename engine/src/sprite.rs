@@ -1,5 +1,6 @@
 use crate::color::Rgba;
 use crate::video::{Renderer, TextureId};
+use std::cell::RefCell;
 use std::collections::{hash_map::DefaultHasher, HashMap};
 use std::hash::{Hash, Hasher};
 
@@ -123,14 +124,16 @@ pub struct BakedSpriteTexture {
 #[derive(Debug, Default)]
 pub struct BakedSpriteTextures {
     defaults: Vec<Option<BakedSpriteTexture>>,
-    materials: HashMap<BakedSpriteTextureKey, BakedSpriteTexture>,
+    materials: RefCell<HashMap<BakedSpriteTextureKey, BakedSpriteTexture>>,
+    base_sprites: Vec<BaseSprite>,
 }
 
 impl BakedSpriteTextures {
     pub fn new() -> Self {
         Self {
             defaults: Vec::new(),
-            materials: HashMap::new(),
+            materials: RefCell::new(HashMap::new()),
+            base_sprites: Vec::new(),
         }
     }
 
@@ -141,19 +144,44 @@ impl BakedSpriteTextures {
         self.defaults[idx as usize] = Some(texture);
     }
 
-    pub fn add_material(
-        &mut self,
+    pub fn ensure_material(
+        &self,
         sprite_idx: u16,
-        material: SpriteMaterial,
-        texture: BakedSpriteTexture,
+        material: &SpriteMaterial,
+        renderer: &mut Renderer,
     ) {
-        self.materials.insert(
-            BakedSpriteTextureKey {
-                sprite_idx,
-                material,
-            },
-            texture,
-        );
+        let key = BakedSpriteTextureKey {
+            sprite_idx,
+            material: material.clone(),
+        };
+        if self.materials.borrow().contains_key(&key) {
+            return;
+        }
+        let Some(base) = self
+            .base_sprites
+            .iter()
+            .find(|b| b.sprite_idx == sprite_idx)
+        else {
+            return;
+        };
+        let mut resolved = base.palette;
+        for &(source_idx, override_color) in material.overrides() {
+            resolved[source_idx.value() as usize] = override_color;
+        }
+        let mut scratch = Vec::new();
+        indices_to_rgba(&base.indices, &resolved, &mut scratch);
+        if let Ok(texture_id) = renderer.create_rgba_texture(&scratch, base.width, base.height) {
+            self.materials.borrow_mut().insert(
+                key,
+                BakedSpriteTexture {
+                    texture_id,
+                    center_x: base.center_x,
+                    center_y: base.center_y,
+                    width: base.width as u16,
+                    height: base.height as u16,
+                },
+            );
+        }
     }
 
     pub fn default_sprite(&self, sprite_idx: u16) -> Option<&BakedSpriteTexture> {
@@ -166,11 +194,14 @@ impl BakedSpriteTextures {
         &self,
         sprite_idx: u16,
         material: &SpriteMaterial,
-    ) -> Option<&BakedSpriteTexture> {
-        self.materials.get(&BakedSpriteTextureKey {
-            sprite_idx,
-            material: material.clone(),
-        })
+    ) -> Option<BakedSpriteTexture> {
+        self.materials
+            .borrow()
+            .get(&BakedSpriteTextureKey {
+                sprite_idx,
+                material: material.clone(),
+            })
+            .cloned()
     }
 
     pub fn bake_with_png(
@@ -228,7 +259,8 @@ impl BakedSpriteTextures {
 
         Ok(Self {
             defaults,
-            materials,
+            materials: RefCell::new(materials),
+            base_sprites: base_sprites.to_vec(),
         })
     }
 }

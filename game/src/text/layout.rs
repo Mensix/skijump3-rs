@@ -2,7 +2,6 @@ use engine::oxide::Font;
 
 const RIGHT_EDGE: i32 = 316;
 
-#[must_use]
 pub fn shorten_name(s: &str, font: &Font, max_width: i32) -> String {
     if max_width <= 0 {
         return String::new();
@@ -40,7 +39,6 @@ fn replace_max_width(value: usize, font: &Font, x: i32) -> i32 {
         .max(0)
 }
 
-#[must_use]
 pub fn replace_display_name(value: usize, player_names: &[String], font: &Font, x: i32) -> String {
     if value == 0 || value > player_names.len() {
         return String::new();

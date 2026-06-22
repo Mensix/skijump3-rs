@@ -9,8 +9,8 @@ use serde::{Deserialize, Serialize};
 pub struct Profile {
     pub name: String,
     pub real_name: String,
-    pub suit_color: usize,
-    pub ski_color: usize,
+    pub suit_color: [u8; 3],
+    pub ski_color: [u8; 3],
     pub replace: usize,
     pub coach_style: usize,
     pub skip_qualification: usize,
@@ -46,8 +46,8 @@ impl Default for Profile {
         Self {
             name: "SKI JUMPER".to_string(),
             real_name: String::new(),
-            suit_color: 0,
-            ski_color: 0,
+            suit_color: [53, 17, 53],
+            ski_color: [63, 63, 32],
             replace: 0,
             coach_style: 1,
             skip_qualification: 0,

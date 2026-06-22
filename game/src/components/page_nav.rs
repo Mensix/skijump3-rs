@@ -1,4 +1,3 @@
-#[must_use]
 pub fn cycle_index(current: usize, len: usize, dir: i32) -> usize {
     if len == 0 {
         return 0;

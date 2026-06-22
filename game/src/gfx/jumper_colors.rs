@@ -1,7 +1,7 @@
 use engine::color::Rgba;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct Rgb6(u8, u8, u8);
+pub(crate) struct Rgb6(pub u8, pub u8, pub u8);
 
 impl Rgb6 {
     const fn rgba(self) -> Rgba {
@@ -18,7 +18,7 @@ pub const JUMPER_SKI_SOURCE: u8 = 231;
 const JUMPER_BIB_SHADE_1: Rgb6 = Rgb6(49, 45, 0);
 const JUMPER_BIB_SHADE_3: Rgb6 = Rgb6(34, 31, 0);
 
-const SUIT_COLORS: [[u8; 4]; 8] = [
+pub(crate) const SUIT_COLORS: [[u8; 4]; 8] = [
     [0, 53, 17, 53],
     [0, 55, 33, 11],
     [0, 11, 48, 18],
@@ -29,7 +29,7 @@ const SUIT_COLORS: [[u8; 4]; 8] = [
     [0, 45, 17, 63],
 ];
 
-const SKI_COLORS: [Rgb6; 4] = [
+pub(crate) const SKI_COLORS: [Rgb6; 4] = [
     Rgb6(63, 63, 32),
     Rgb6(60, 60, 60),
     Rgb6(33, 60, 33),
@@ -58,13 +58,11 @@ pub fn suit_shade_rgba(col: usize) -> [[u8; 3]; 4] {
     colors
 }
 
-#[must_use]
 pub fn suit_color_shade(col: usize, shade: usize) -> Rgba {
     let rgb = suit_shade_rgba(col)[shade];
     Rgba::from_rgb6(rgb[0], rgb[1], rgb[2])
 }
 
-#[must_use]
 pub fn jumper_bib_color_shade(shade: usize) -> Rgba {
     match shade {
         1 => JUMPER_BIB_SHADE_1.rgba(),
@@ -73,8 +71,30 @@ pub fn jumper_bib_color_shade(shade: usize) -> Rgba {
     }
 }
 
-#[must_use]
 pub fn ski_color(col: usize) -> Rgba {
     let col = col.min(SKI_COLORS.len() - 1);
     SKI_COLORS[col].rgba()
+}
+
+pub fn suit_color_shade_rgb(rgb: [u8; 3], shade: usize) -> Rgba {
+    let fd = SUIT_FADE_DOWN[shade.min(3)];
+    Rgba::from_rgb6(
+        (fd * f32::from(rgb[0])).round().min(63.0) as u8,
+        (fd * f32::from(rgb[1])).round().min(63.0) as u8,
+        (fd * f32::from(rgb[2])).round().min(63.0) as u8,
+    )
+}
+
+pub fn ski_color_rgb(rgb: [u8; 3]) -> Rgba {
+    Rgba::from_rgb6(rgb[0].min(63), rgb[1].min(63), rgb[2].min(63))
+}
+
+pub fn suit_palette_rgb(idx: usize) -> [u8; 3] {
+    let s = SUIT_COLORS[idx.min(SUIT_COLORS.len() - 1)];
+    [s[1], s[2], s[3]]
+}
+
+pub fn ski_palette_rgb(idx: usize) -> [u8; 3] {
+    let c = SKI_COLORS[idx.min(SKI_COLORS.len() - 1)];
+    [c.0, c.1, c.2]
 }

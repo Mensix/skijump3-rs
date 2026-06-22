@@ -254,7 +254,9 @@ impl WorldCupJumpView {
             (style, participants, event_pts)
         };
         let profiles = &mut state.profiles;
-        for (pos, &(pidx_opt, pts_opt, fh_points, rank, leg_wins)) in participants.iter().enumerate() {
+        for (pos, &(pidx_opt, pts_opt, fh_points, rank, leg_wins)) in
+            participants.iter().enumerate()
+        {
             let Some(pidx) = pidx_opt else { continue };
             let Some(profile) = profiles.profiles.get_mut(pidx) else {
                 continue;

@@ -10,42 +10,40 @@ use crate::gfx::sprites::Sprite;
 use crate::gfx::theme::THEME;
 use crate::views::replay::PlaybackMode;
 
-const BODY_SPRITE_MIN: u16 = 100;
-const BODY_SPRITE_MAX: u16 = 167;
-const SKI_SPRITE_MIN: u16 = 70;
-const SKI_SPRITE_MAX: u16 = 89;
-
 const MATERIAL_JUMPER_BODY: u64 = 0x1000;
 const MATERIAL_JUMPER_SKI: u64 = 0x2000;
 const MATERIAL_START_LIGHT: u64 = 0x3000;
 const MATERIAL_REPLAY_SPEED: u64 = 0x4000;
 
-#[must_use]
-pub fn jumper_body_material(suit_color: usize, has_bib: bool) -> SpriteMaterial {
+pub fn jumper_body_material(suit_color: [u8; 3], has_bib: bool) -> SpriteMaterial {
     let bib_shade_1 = if has_bib {
         jumper_colors::jumper_bib_color_shade(1)
     } else {
-        jumper_colors::suit_color_shade(suit_color, 1)
+        jumper_colors::suit_color_shade_rgb(suit_color, 1)
     };
     let bib_shade_3 = if has_bib {
         jumper_colors::jumper_bib_color_shade(3)
     } else {
-        jumper_colors::suit_color_shade(suit_color, 3)
+        jumper_colors::suit_color_shade_rgb(suit_color, 3)
     };
 
-    let suit_color = suit_color.min(7);
-    let id =
-        SpriteMaterialId::new(MATERIAL_JUMPER_BODY | suit_color as u64 | ((has_bib as u64) << 8));
+    let id = SpriteMaterialId::new(
+        MATERIAL_JUMPER_BODY
+            | suit_color[0] as u64
+            | (suit_color[1] as u64) << 8
+            | (suit_color[2] as u64) << 16
+            | ((has_bib as u64) << 24),
+    );
     SpriteMaterial::with_id(
         id,
         &[
             (
                 JUMPER_SUIT_SOURCE_SHADE_1,
-                jumper_colors::suit_color_shade(suit_color, 1),
+                jumper_colors::suit_color_shade_rgb(suit_color, 1),
             ),
             (
                 JUMPER_SUIT_SOURCE_SHADE_3,
-                jumper_colors::suit_color_shade(suit_color, 3),
+                jumper_colors::suit_color_shade_rgb(suit_color, 3),
             ),
             (JUMPER_BIB_SOURCE_SHADE_1, bib_shade_1),
             (JUMPER_BIB_SOURCE_SHADE_3, bib_shade_3),
@@ -53,17 +51,19 @@ pub fn jumper_body_material(suit_color: usize, has_bib: bool) -> SpriteMaterial 
     )
 }
 
-#[must_use]
-pub fn jumper_ski_material(ski_color: usize) -> SpriteMaterial {
-    let ski_color = ski_color.min(3);
-    let id = SpriteMaterialId::new(MATERIAL_JUMPER_SKI | ski_color as u64);
+pub fn jumper_ski_material(ski_color: [u8; 3]) -> SpriteMaterial {
+    let id = SpriteMaterialId::new(
+        MATERIAL_JUMPER_SKI
+            | ski_color[0] as u64
+            | (ski_color[1] as u64) << 8
+            | (ski_color[2] as u64) << 16,
+    );
     SpriteMaterial::with_id(
         id,
-        &[(JUMPER_SKI_SOURCE, jumper_colors::ski_color(ski_color))],
+        &[(JUMPER_SKI_SOURCE, jumper_colors::ski_color_rgb(ski_color))],
     )
 }
 
-#[must_use]
 pub fn start_light_material(is_dq: bool) -> SpriteMaterial {
     if is_dq {
         SpriteMaterial::with_id(
@@ -84,7 +84,6 @@ pub fn start_light_material(is_dq: bool) -> SpriteMaterial {
     }
 }
 
-#[must_use]
 pub fn replay_speed_material(mode: PlaybackMode) -> SpriteMaterial {
     let active: u8 = match mode {
         PlaybackMode::Forward => 250,
@@ -109,23 +108,10 @@ pub fn replay_speed_material(mode: PlaybackMode) -> SpriteMaterial {
     )
 }
 
-#[must_use]
 pub fn prebaked_sprite_materials() -> Vec<(u16, SpriteMaterial)> {
     let mut materials = Vec::new();
 
-    for sprite_idx in BODY_SPRITE_MIN..=BODY_SPRITE_MAX {
-        for suit_color in 0..8 {
-            materials.push((sprite_idx, jumper_body_material(suit_color, false)));
-            materials.push((sprite_idx, jumper_body_material(suit_color, true)));
-        }
-    }
-
-    for sprite_idx in SKI_SPRITE_MIN..=SKI_SPRITE_MAX {
-        for ski_color in 0..4 {
-            materials.push((sprite_idx, jumper_ski_material(ski_color)));
-        }
-    }
-
+    // body and ski materials are created on-demand via ensure_material
     for is_dq in [false, true] {
         materials.push((Sprite::StartLight as u16, start_light_material(is_dq)));
     }

@@ -1,6 +1,5 @@
 use std::fmt::Write;
 
-#[must_use]
 pub fn format_time(timestamp: &str) -> String {
     let secs: u64 = timestamp.parse().unwrap_or(0);
     chrono::DateTime::from_timestamp(secs as i64, 0)
@@ -8,26 +7,22 @@ pub fn format_time(timestamp: &str) -> String {
         .unwrap_or_default()
 }
 
-#[must_use]
 pub fn current_timestamp() -> String {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map_or_else(|_| String::new(), |d| d.as_secs().to_string())
 }
 
-#[must_use]
 pub fn tenths_to_decimal(value: i32) -> f64 {
     let result = f64::from(value) / 10.0;
 
     (result * 10.0).round() / 10.0
 }
 
-#[must_use]
 pub fn format_decimal(value: f64) -> String {
     format!("{value:.1}")
 }
 
-#[must_use]
 pub fn format_tenths(value: i32) -> String {
     if value == 0 {
         return "0.0".to_string();
@@ -41,7 +36,6 @@ pub fn format_tenths(value: i32) -> String {
     buf
 }
 
-#[must_use]
 pub fn ordinal_dot(n: usize) -> String {
     format!("{n}.")
 }

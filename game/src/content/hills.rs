@@ -86,8 +86,7 @@ pub(crate) fn load_hills(files: &FileStore, manifest_path: &str) -> HillCatalog 
         if data.is_empty() {
             continue;
         }
-        let cat: HillCatalogToml =
-            toml::from_str(std::str::from_utf8(&data).unwrap()).unwrap();
+        let cat: HillCatalogToml = toml::from_str(std::str::from_utf8(&data).unwrap()).unwrap();
         let catalog_id = cat
             .id
             .as_deref()

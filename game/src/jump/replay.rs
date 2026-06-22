@@ -215,8 +215,8 @@ impl LiveReplayRecorder {
                 .as_ref()
                 .and_then(|hill| i32::try_from(hill.profile_checksum).ok())
                 .unwrap_or_default(),
-            suit_color: config.participant.suit_color,
-            ski_color: config.participant.ski_color,
+            suit_color: config.participant.suit_color[0],
+            ski_color: config.participant.ski_color[0],
             saved_at: String::new(),
             has_bib: false,
             author: String::new(),

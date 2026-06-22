@@ -339,8 +339,8 @@ impl JumpRunner {
             allow_gate_adjust: self.config.policy.allow_start_gate_adjust,
             suppress_info_panel: self.suppress_info_panel,
             has_bib: self.has_bib,
-            suit_color: self.config.participant.suit_color as usize,
-            ski_color: self.config.participant.ski_color as usize,
+            suit_color: self.config.participant.suit_color,
+            ski_color: self.config.participant.ski_color,
             show_keymap,
         };
         presentation::render(cx, &frame, &ctx);

@@ -155,8 +155,12 @@ impl ReplayView {
                 body_y: y - sy - 2,
                 ski_x: x - sx,
                 ski_y: y - sy - 1,
-                suit_color: session.trace().meta.suit_color as usize,
-                ski_color: session.trace().meta.ski_color as usize,
+                suit_color: crate::gfx::jumper_colors::suit_palette_rgb(
+                    session.trace().meta.suit_color as usize,
+                ),
+                ski_color: crate::gfx::jumper_colors::ski_palette_rgb(
+                    session.trace().meta.ski_color as usize,
+                ),
                 has_bib: false,
             },
         );

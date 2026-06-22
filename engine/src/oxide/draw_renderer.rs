@@ -234,10 +234,13 @@ impl DrawCommandRenderer {
                 }
             }
             DrawCommand::SpriteWithMaterial { sprite, material } => {
+                assets
+                    .baked_sprites
+                    .ensure_material(sprite.idx, material, renderer);
                 if let Some(texture) = assets.baked_sprites.material_sprite(sprite.idx, material) {
                     return draw_baked_sprite_texture(
                         renderer,
-                        texture,
+                        &texture,
                         sprite.position.x,
                         sprite.position.y,
                     );

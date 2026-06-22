@@ -6,7 +6,6 @@ pub const WC_POINTS: PointsTable<30> = PointsTable::new([
     6, 5, 4, 3, 2, 1,
 ]);
 
-#[must_use]
 pub fn wc_points_for_rank(rank: usize) -> i32 {
     WC_POINTS.points_for_rank(rank)
 }

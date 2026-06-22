@@ -40,7 +40,7 @@ pub fn format_profile_value(
         13 => profile.world_cups_won.to_string(),
         14 => profile.best_result.clone(),
         15 => profile.best_4h_result.clone(),
-         16 => {
+        16 => {
             if profile.best_wc_jump == 0.0 {
                 "-".to_string()
             } else {

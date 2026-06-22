@@ -103,8 +103,8 @@ pub struct Participant {
     pub ai_id: usize,
     pub name: String,
     pub real_name: String,
-    pub suit_color: u8,
-    pub ski_color: u8,
+    pub suit_color: [u8; 3],
+    pub ski_color: [u8; 3],
     pub team: Option<usize>,
     pub is_computer: bool,
     pub skip_qualification: u8,
@@ -175,7 +175,6 @@ impl Participant {
         self.round2_len = 0.0;
         self.qual_len = 0.0;
     }
-
 }
 
 #[cfg(test)]

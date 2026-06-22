@@ -8,7 +8,6 @@ use crate::save::config::Config;
 use crate::save::SaveRef;
 use crate::store::GameState;
 
-#[must_use]
 pub fn build_koth(
     config: &Config,
     profiles: &ProfileStore,
