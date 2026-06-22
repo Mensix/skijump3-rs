@@ -125,7 +125,19 @@ where
                 .unwrap_or(false);
             if recorded {
                 if let Some(side_effects) = side_effects {
-                    apply_post_jump_side_effects(state, &self.resources, &side_effects, outcome);
+                    let is_new_record =
+                        apply_post_jump_side_effects(state, &self.resources, &side_effects, outcome);
+                    if is_new_record && state.config.auto_hill_record_replay != 0 {
+                        if let Some(scene) = self.scene.as_ref() {
+                            if let Some(trace) = scene.replay_trace() {
+                                let filename = format!("HR_{}.SJR", trace.meta.name);
+                                self.save_manager.files.write(
+                                    &filename,
+                                    &trace.to_sjr_bytes(),
+                                );
+                            }
+                        }
+                    }
                 }
             }
             recorded
@@ -372,7 +384,7 @@ fn apply_post_jump_side_effects(
     resources: &ResourcesRef,
     side_effects: &PostJumpSideEffects,
     outcome: JumpOutcome,
-) {
+) -> bool {
     let distance = outcome.distance.max(0.0);
     if let Some(profile_idx) = side_effects.profile_idx {
         if let Some(profile) = state.profiles.profiles.get_mut(profile_idx) {
@@ -410,9 +422,11 @@ fn apply_post_jump_side_effects(
                         is_computer: side_effects.is_computer,
                     },
                 );
+                return true;
             }
         }
     }
+    false
 }
 
 fn hill_file_name(resources: &ResourcesRef, hill_idx: usize) -> String {
