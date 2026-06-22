@@ -32,8 +32,12 @@ pub struct SaveManager {
 }
 
 pub fn load_initial_config(files: &FileStore, langbase: &Rc<LangBase>) -> Config {
-    let bytes = files.read("config.toml");
-    let config = Config::from_toml_bytes(&bytes);
+    let bytes = files.read_save("config.toml");
+    let config = if bytes.is_empty() {
+        Config::default()
+    } else {
+        Config::from_toml_bytes(&bytes)
+    };
 
     langbase.apply_saved_language(config.language);
     config
@@ -78,7 +82,7 @@ impl SaveManager {
                 chrono::Local::now().format("%Y%m%d_%H%M")
             ))
             .to_string();
-        let saved_at = current_timestamp_string();
+        let saved_at = human_timestamp_string();
         let data = CupSaveData::new(active.clone(), saved_at).to_toml_bytes();
         self.save_bytes(&filename, &data);
         filename
@@ -106,12 +110,16 @@ impl SaveManager {
 
     pub fn load_players(&self) -> ProfileStore {
         *self.profiles_loaded.borrow_mut() = true;
-        let data = self.files.read("players.toml");
-        ProfileStore::from_toml_bytes(&data)
+        let data = self.files.read_save("players.toml");
+        if !data.is_empty() {
+            return ProfileStore::from_toml_bytes(&data);
+        }
+        let bundled = self.files.read("players.toml");
+        ProfileStore::from_toml_bytes(&bundled)
     }
 }
 
-fn current_timestamp_string() -> String {
+fn human_timestamp_string() -> String {
     chrono::Local::now()
         .format("%a %d %b %Y, %H:%M")
         .to_string()

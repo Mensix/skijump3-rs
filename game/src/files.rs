@@ -21,17 +21,18 @@ impl FileStore {
     }
 
     pub fn read(&self, name: &str) -> Vec<u8> {
-        let save_path = self.save_dir.join(name);
-        match std::fs::read(&save_path) {
-            Ok(data) => data,
-            Err(_) => {
-                if let Some(embedded) = Assets::get(name) {
-                    return embedded.data.to_vec();
-                }
-                let asset_path = self.asset_dir.join(name);
-                std::fs::read(&asset_path).unwrap_or_default()
-            }
+        let asset_path = self.asset_dir.join(name);
+        if let Ok(data) = std::fs::read(&asset_path) {
+            return data;
         }
+        if let Some(embedded) = Assets::get(name) {
+            return embedded.data.to_vec();
+        }
+        Vec::new()
+    }
+
+    pub fn read_save(&self, name: &str) -> Vec<u8> {
+        std::fs::read(self.save_dir.join(name)).unwrap_or_default()
     }
 
     pub fn write(&self, name: &str, data: &[u8]) {

@@ -34,6 +34,10 @@ pub(super) fn load_app(files: Rc<FileStore>, font: Font, content_store: ContentS
 }
 
 fn load_records(files: &FileStore) -> RecordStore {
-    let records_data = files.read("hiscores.toml");
-    RecordStore::from_toml_bytes(&records_data)
+    let records_data = files.read_save("hiscores.toml");
+    if !records_data.is_empty() {
+        return RecordStore::from_toml_bytes(&records_data);
+    }
+    let bundled = files.read("hiscores.toml");
+    RecordStore::from_toml_bytes(&bundled)
 }
