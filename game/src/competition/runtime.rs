@@ -90,7 +90,6 @@ impl CompetitionRuntime for Competition {
                     is_human,
                 } => {
                     let phase = self.phase();
-                    let is_training = matches!(phase, CompetitionPhase::Training(_));
                     return CompetitionDecision::Jump {
                         participant: participant_to_jump(self.participant(idx)),
                         hill_idx,
@@ -100,7 +99,7 @@ impl CompetitionRuntime for Competition {
                             participant_idx: idx,
                             start_order_pos: self.current_start_order_pos(),
                         },
-                        is_human: is_human && !is_training,
+                        is_human,
                         is_new_event: false,
                     };
                 }
@@ -158,5 +157,37 @@ impl CompetitionRuntime for Competition {
 
     fn event_idx(&self) -> usize {
         self.current_event
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use crate::competition::types::{CupStyle, Participant};
+
+    #[test]
+    fn human_training_jump_is_not_hidden() {
+        let computer = Participant::computer(0, 0, "CPU".into());
+        let mut human = Participant::computer(1, 1, "HUMAN".into());
+        human.is_computer = false;
+        let mut competition = Competition::new(CupStyle::WorldCup, vec![computer, human], vec![0]);
+        competition.training_rounds = 1;
+
+        let decision = competition.decide_next_runtime();
+
+        match decision {
+            CompetitionDecision::Jump {
+                context,
+                is_human,
+                participant,
+                ..
+            } => {
+                assert_eq!(context.phase, CompetitionPhase::Training(1));
+                assert_eq!(participant.name, "HUMAN");
+                assert!(is_human);
+            }
+            _ => panic!("expected visible human training jump, got {decision:?}"),
+        }
     }
 }
