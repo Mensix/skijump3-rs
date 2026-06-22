@@ -82,7 +82,12 @@ pub(crate) fn load_hills(files: &FileStore, manifest_path: &str) -> HillCatalog 
     custom_names.sort();
     for name in custom_names {
         let full_path = format!("custom_hills/{name}");
-        let cat: HillCatalogToml = super::read_toml(files, &full_path);
+        let data = files.read_save(&full_path);
+        if data.is_empty() {
+            continue;
+        }
+        let cat: HillCatalogToml =
+            toml::from_str(std::str::from_utf8(&data).unwrap()).unwrap();
         let catalog_id = cat
             .id
             .as_deref()
