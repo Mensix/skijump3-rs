@@ -373,17 +373,17 @@ fn apply_post_jump_side_effects(
     side_effects: &PostJumpSideEffects,
     outcome: JumpOutcome,
 ) {
-    let distance_tenths = (outcome.distance * 10.0).round().max(0.0) as usize;
+    let distance = outcome.distance.max(0.0);
     if let Some(profile_idx) = side_effects.profile_idx {
         if let Some(profile) = state.profiles.profiles.get_mut(profile_idx) {
             profile.total_jumps += 1;
-            if side_effects.is_real_world_cup && distance_tenths > profile.best_wc_jump {
-                profile.best_wc_jump = distance_tenths;
+            if side_effects.is_real_world_cup && distance > profile.best_wc_jump {
+                profile.best_wc_jump = distance;
                 profile.best_wc_hill_idx = side_effects.hill_idx;
                 profile.best_wc_hill_display = hill_display_name(resources, side_effects.hill_idx);
             }
-            if distance_tenths > profile.best_jump {
-                profile.best_jump = distance_tenths;
+            if distance > profile.best_jump {
+                profile.best_jump = distance;
                 profile.besthill_idx = side_effects.hill_idx;
                 profile.best_hill_file = hill_file_name(resources, side_effects.hill_idx);
                 profile.best_hill_display = hill_display_name(resources, side_effects.hill_idx);

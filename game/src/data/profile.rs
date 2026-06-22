@@ -22,11 +22,9 @@ pub struct Profile {
     pub best_result: String,
     pub best_4h_result: String,
 
-    pub best_wc_jump: usize,
-
+    pub best_wc_jump: f64,
     pub best_wc_hill_idx: usize,
-
-    pub best_jump: usize,
+    pub best_jump: f64,
 
     pub besthill_idx: usize,
 
@@ -59,9 +57,9 @@ impl Default for Profile {
             world_cups_won: 0,
             best_result: "-".to_string(),
             best_4h_result: "-".to_string(),
-            best_wc_jump: 0,
+            best_wc_jump: 0.0,
             best_wc_hill_idx: 0,
-            best_jump: 0,
+            best_jump: 0.0,
             besthill_idx: 0,
             best_hill_file: String::new(),
             best_points: 0,

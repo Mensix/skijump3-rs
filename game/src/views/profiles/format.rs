@@ -1,4 +1,5 @@
 use crate::data::profile::Profile;
+use crate::text::format::format_decimal;
 use crate::text::lang::LangBase;
 use crate::text::layout::shorten_name;
 use engine::oxide::Font;
@@ -39,18 +40,26 @@ pub fn format_profile_value(
         13 => profile.world_cups_won.to_string(),
         14 => profile.best_result.clone(),
         15 => profile.best_4h_result.clone(),
-        16 => {
-            if profile.best_wc_jump == 0 {
+         16 => {
+            if profile.best_wc_jump == 0.0 {
                 "-".to_string()
             } else {
-                format!("{}x {}", profile.best_wc_jump, profile.best_wc_hill_display)
+                format!(
+                    "{}x {}",
+                    format_decimal(profile.best_wc_jump),
+                    profile.best_wc_hill_display
+                )
             }
         }
         17 => {
-            if profile.best_jump == 0 {
+            if profile.best_jump == 0.0 {
                 "-".to_string()
             } else {
-                format!("{}x {}", profile.best_jump, profile.best_hill_display)
+                format!(
+                    "{}x {}",
+                    format_decimal(profile.best_jump),
+                    profile.best_hill_display
+                )
             }
         }
         18 => {

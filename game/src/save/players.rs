@@ -70,9 +70,9 @@ mod tests {
         p.world_cups_won = 1;
         p.best_result = "1 (1.)".to_string();
         p.best_4h_result = "3 (-)".to_string();
-        p.best_wc_jump = 1200;
+        p.best_wc_jump = 120.0;
         p.best_wc_hill_idx = 2;
-        p.best_jump = 1250;
+        p.best_jump = 125.0;
         p.besthill_idx = 3;
         p.best_hill_file = "TESTHILL".to_string();
         p.best_points = 2500;
@@ -99,9 +99,9 @@ mod tests {
         assert_eq!(pp.world_cups_won, 1);
         assert_eq!(pp.best_result, "1 (1.)");
         assert_eq!(pp.best_4h_result, "3 (-)");
-        assert_eq!(pp.best_wc_jump, 1200);
+        assert_eq!(pp.best_wc_jump, 120.0);
         assert_eq!(pp.best_wc_hill_idx, 2);
-        assert_eq!(pp.best_jump, 1250);
+        assert_eq!(pp.best_jump, 125.0);
         assert_eq!(pp.besthill_idx, 3);
         assert_eq!(pp.best_hill_file, "TESTHILL");
         assert_eq!(pp.best_points, 2500);
