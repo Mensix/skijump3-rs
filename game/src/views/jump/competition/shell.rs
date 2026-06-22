@@ -56,22 +56,30 @@ impl CompetitionJumpView {
     }
 }
 
+impl<T: GameScreen> CompetitionShell<T> {
+    fn paused_update(&mut self, cx: &mut GameCx<'_>) {
+        if !self.save_prompt {
+            self.inner.update(cx);
+        }
+    }
+}
+
 impl GameScreen for CompetitionJumpView {
     fn update(&mut self, cx: &mut GameCx<'_>) {
         match self {
-            Self::Training(view) => view.inner.update(cx),
-            Self::Individual(view) => view.inner.update(cx),
-            Self::TeamCup(view) => view.inner.update(cx),
-            Self::Koth(view) => view.inner.update(cx),
+            Self::Training(view) => view.paused_update(cx),
+            Self::Individual(view) => view.paused_update(cx),
+            Self::TeamCup(view) => view.paused_update(cx),
+            Self::Koth(view) => view.paused_update(cx),
         }
     }
 
     fn event(&mut self, cx: &mut GameCx<'_>, nav: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
         match self {
-            Self::Training(view) => shell_event(view, cx, nav, event),
-            Self::Individual(view) => shell_event(view, cx, nav, event),
-            Self::TeamCup(view) => shell_event(view, cx, nav, event),
-            Self::Koth(view) => shell_event(view, cx, nav, event),
+            Self::Training(view) => shell_event(view, false, cx, nav, event),
+            Self::Individual(view) => shell_event(view, true, cx, nav, event),
+            Self::TeamCup(view) => shell_event(view, true, cx, nav, event),
+            Self::Koth(view) => shell_event(view, true, cx, nav, event),
         }
     }
 
@@ -96,6 +104,7 @@ impl GameScreen for CompetitionJumpView {
 
 fn shell_event<T: GameScreen>(
     shell: &mut CompetitionShell<T>,
+    has_cup: bool,
     cx: &mut GameCx<'_>,
     nav: &mut ScreenEventCx<RouteTarget>,
     event: UiEvent,
@@ -121,7 +130,7 @@ fn shell_event<T: GameScreen>(
         return;
     }
 
-    if matches!(event, UiEvent::KeyDown(Key::Escape)) {
+    if has_cup && matches!(event, UiEvent::KeyDown(Key::Escape)) {
         shell.save_prompt = true;
         nav.consume();
         return;
