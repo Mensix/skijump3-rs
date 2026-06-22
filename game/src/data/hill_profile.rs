@@ -3,8 +3,10 @@ use crate::gfx::png::load_png;
 use std::rc::Rc;
 
 const PROFILE_LEN: usize = 1300;
+const MARKER_RED: [u8; 4] = [255, 93, 93, 255];
+const MARKER_BLUE: [u8; 4] = [93, 93, 255, 255];
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct HillTerrain {
     front_visual: Rc<[u8]>,
     back_visual: Rc<[u8]>,
@@ -15,17 +17,28 @@ pub struct HillTerrain {
     line_lengths: Vec<usize>,
     profile_y: Vec<i32>,
     pub tip_x: i32,
+    kr: i64,
+    pk: f64,
 }
 
 impl HillTerrain {
     pub fn load(files: &FileStore, terrain_id: impl std::fmt::Display) -> Self {
+        Self::load_with_markers(files, terrain_id, 0, 0.0)
+    }
+
+    pub fn load_with_markers(
+        files: &FileStore,
+        terrain_id: impl std::fmt::Display,
+        kr: i64,
+        pk: f64,
+    ) -> Self {
         let terrain_id = terrain_id.to_string();
         let dir = format!("hills/generated/HILL{terrain_id}/");
 
-        let front_visual_raw = files.read(&format!("{dir}front_visual.png"));
+        let front_visual_raw = files.read(&format!("{dir}front.png"));
         let front_visual = load_png(&front_visual_raw);
 
-        let back_visual_raw = files.read(&format!("{dir}back_visual.png"));
+        let back_visual_raw = files.read(&format!("{dir}back.png"));
         let back_visual = load_png(&back_visual_raw);
 
         let width = front_visual.width as u16;
@@ -46,6 +59,8 @@ impl HillTerrain {
             line_lengths,
             profile_y,
             tip_x,
+            kr,
+            pk,
         }
     }
 
@@ -57,12 +72,13 @@ impl HillTerrain {
         let w = width as usize;
         let h = height as usize;
 
+        let background = &pixels[0..3];
         let mut line_lengths = Vec::with_capacity(h);
         for y in 0..h {
             let mut last = None;
             for x in 0..w {
                 let pixel = &pixels[(y * w + x) * 4..(y * w + x) * 4 + 4];
-                if is_profile_pixel(pixel) {
+                if is_profile_pixel(pixel, background) {
                     last = Some(x);
                 }
             }
@@ -135,15 +151,11 @@ impl HillTerrain {
                     let sy = back_y as usize;
                     if sx < back_w && sy < self.back_height as usize {
                         let rgba_src_offset = (sy * back_w + sx) * 4;
-                        let pixel = self.back_visual[rgba_src_offset + 3];
-                        if pixel != 0 {
-                            mask[out_idx] = pixel;
-                            let rgba_dst = &mut rgba[out_idx * 4..out_idx * 4 + 4];
-                            rgba_dst.copy_from_slice(
-                                &self.back_visual[rgba_src_offset..rgba_src_offset + 4],
-                            );
-                            rgba_dst[3] = 255;
-                        }
+                        mask[out_idx] = 128;
+                        let rgba_dst = &mut rgba[out_idx * 4..out_idx * 4 + 4];
+                        rgba_dst
+                            .copy_from_slice(&self.back_visual[rgba_src_offset..rgba_src_offset + 4]);
+                        rgba_dst[3] = 255;
                     }
                 }
 
@@ -166,19 +178,61 @@ impl HillTerrain {
                     let sy = front_y as usize;
                     let sx = front_x as usize;
                     let rgba_src_offset = (sy * width_u + sx) * 4;
-                    let pixel = self.front_visual[rgba_src_offset + 3];
-                    if pixel != 0 {
-                        mask[out_idx] = pixel;
-                        let rgba_dst = &mut rgba[out_idx * 4..out_idx * 4 + 4];
-                        rgba_dst.copy_from_slice(
-                            &self.front_visual[rgba_src_offset..rgba_src_offset + 4],
-                        );
-                        rgba_dst[3] = 255;
-                    }
+                    mask[out_idx] = 255;
+                    let rgba_dst = &mut rgba[out_idx * 4..out_idx * 4 + 4];
+                    rgba_dst
+                        .copy_from_slice(&self.front_visual[rgba_src_offset..rgba_src_offset + 4]);
+                    rgba_dst[3] = 255;
                 }
             }
         }
+        self.draw_distance_markers(&mut rgba, &mut mask, scroll_x, scroll_y, w, h);
         (rgba, mask)
+    }
+
+    fn draw_distance_markers(
+        &self,
+        rgba: &mut [u8],
+        mask: &mut [u8],
+        scroll_x: i32,
+        scroll_y: i32,
+        w: u32,
+        h: u32,
+    ) {
+        if self.kr <= 0 || self.pk <= 0.0 || self.tip_x < 0 {
+            return;
+        }
+        let wu = w as usize;
+        let hu = h as usize;
+        let tip_x = self.tip_x as usize;
+        let Some(&tip_y) = self.profile_y.get(tip_x) else {
+            return;
+        };
+        for x in tip_x..(self.width as usize).saturating_sub(10) {
+            let Some(&ground_y) = self.profile_y.get(x) else {
+                continue;
+            };
+            let dx = x as i32 - self.tip_x;
+            let dy = ground_y - tip_y;
+            let hp = ((f64::from(dx * dx + dy * dy).sqrt() * self.pk * 0.5).round() as i64) * 5;
+            if hp < ((2.0 / 3.0) * self.kr as f64 * 10.0) as i64 || hp > self.kr * 12 {
+                continue;
+            }
+            let color = if hp < self.kr * 10 { MARKER_RED } else { MARKER_BLUE };
+            let sx = x as i32 - scroll_x;
+            if sx < 0 || sx as usize >= wu {
+                continue;
+            }
+            for marker_dy in 0..3 {
+                let sy = ground_y + 1 + marker_dy - scroll_y;
+                if sy < 0 || sy as usize >= hu {
+                    continue;
+                }
+                let out_idx = sy as usize * wu + sx as usize;
+                mask[out_idx] = 255;
+                rgba[out_idx * 4..out_idx * 4 + 4].copy_from_slice(&color);
+            }
+        }
     }
 
     pub fn height_at(&self, x: i32) -> i32 {
@@ -206,8 +260,8 @@ impl HillTerrain {
     }
 }
 
-fn is_profile_pixel(pixel: &[u8]) -> bool {
-    pixel[3] != 0 && pixel != [255, 93, 93, 255] && pixel != [93, 93, 255, 255]
+fn is_profile_pixel(pixel: &[u8], background: &[u8]) -> bool {
+    &pixel[0..3] != background && pixel != MARKER_RED && pixel != MARKER_BLUE
 }
 
 #[cfg(test)]
@@ -222,7 +276,7 @@ mod tests {
 
     #[test]
     fn back_mask_loads_nonzero_pixels() {
-        let terrain = HillTerrain::load(&test_files(), 0);
+        let terrain = HillTerrain::load(&test_files(), 1);
         let (rgba, mask) = terrain.viewport_rgba_and_mask(0, 0, 320, 200);
         assert_eq!(rgba.len(), 320 * 200 * 4);
         assert_eq!(mask.len(), 320 * 200);
@@ -232,7 +286,7 @@ mod tests {
 
     #[test]
     fn extracts_front_profile_and_takeoff_point() {
-        let terrain = HillTerrain::load(&test_files(), 0);
+        let terrain = HillTerrain::load(&test_files(), 1);
         assert!(terrain.tip_x > 0, "expected positive tip_x");
         let max_profile = terrain.profile_y.iter().max().copied().unwrap_or(0);
         assert!(max_profile > 0, "expected non-zero profile");
@@ -240,7 +294,7 @@ mod tests {
 
     #[test]
     fn viewport_produces_correct_dimensions() {
-        let terrain = HillTerrain::load(&test_files(), 0);
+        let terrain = HillTerrain::load(&test_files(), 1);
         let (rgba, mask) = terrain.viewport_rgba_and_mask(50, 30, 100, 80);
         assert_eq!(rgba.len(), 100 * 80 * 4);
         assert_eq!(mask.len(), 100 * 80);
@@ -248,20 +302,13 @@ mod tests {
 
     #[test]
     fn height_at_and_hill_angle() {
-        let terrain = HillTerrain::load(&test_files(), 0);
+        let terrain = HillTerrain::load(&test_files(), 1);
         let h = terrain.height_at(terrain.tip_x);
         assert!(h >= 0, "height at tip should be non-negative");
         let angle = terrain.hill_angle(terrain.tip_x + 10);
         if terrain.tip_x + 10 > terrain.tip_x - 15 && terrain.tip_x + 10 <= terrain.tip_x {
             assert_eq!(angle, 0);
         }
-    }
-
-    #[test]
-    fn load_hill0_has_correct_dimensions() {
-        let terrain = HillTerrain::load(&test_files(), 0);
-        assert_eq!(terrain.width, 1024);
-        assert_eq!(terrain.height, 512);
     }
 
     #[test]
@@ -272,23 +319,35 @@ mod tests {
     }
 
     #[test]
+    fn load_hill2_has_correct_dimensions() {
+        let terrain = HillTerrain::load(&test_files(), 2);
+        assert_eq!(terrain.width, 1024);
+        assert_eq!(terrain.height, 512);
+    }
+
+    #[test]
     fn computes_takeoff_points_from_front_visuals() {
         let files = test_files();
         let expected = [
             272, 268, 269, 279, 281, 293, 258, 246, 275, 278, 253, 291, 243, 279, 258, 267,
-            264, 268, 232,
+            264, 268, 232, 278,
         ];
-        for (hill_id, tip_x) in expected.into_iter().enumerate() {
+        for (offset, tip_x) in expected.into_iter().enumerate() {
+            let hill_id = offset + 1;
             let terrain = HillTerrain::load(&files, hill_id);
             assert_eq!(terrain.tip_x, tip_x, "HILL{hill_id}");
         }
     }
 
     #[test]
-    fn planica_overlay_marker_239_is_baked_into_visual() {
-        let terrain = HillTerrain::load(&test_files(), 18);
+    fn planica_distance_marker_is_rendered_runtime() {
+        let terrain = HillTerrain::load_with_markers(&test_files(), 19, 185, 1.06);
         let (rgba, mask) = terrain.viewport_rgba_and_mask(704, 312, 320, 200);
-        let pos = mask.iter().position(|&p| p == 239).expect("index 239 fill");
+        let pos = rgba
+            .chunks_exact(4)
+            .position(|p| p == [255, 93, 93, 255])
+            .expect("runtime red marker");
+        assert_eq!(mask[pos], 255);
         assert_eq!(&rgba[pos * 4..pos * 4 + 4], &[255, 93, 93, 255]);
     }
 }

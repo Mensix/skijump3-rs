@@ -4,13 +4,12 @@ use std::fs;
 use std::io::BufWriter;
 use std::path::{Path, PathBuf};
 
-const PROFILE_LEN: usize = 1300;
-
 #[derive(Debug)]
 struct Args {
     root: PathBuf,
     source_dir: PathBuf,
     sjh_files: Vec<PathBuf>,
+    write_custom: bool,
 }
 
 #[derive(Debug)]
@@ -37,16 +36,6 @@ struct RgbaImage {
     data: Vec<u8>,
 }
 
-impl RgbaImage {
-    fn pixel_mut(&mut self, x: usize, y: usize) -> Option<&mut [u8]> {
-        if x >= self.width || y >= self.height {
-            return None;
-        }
-        let i = (y * self.width + x) * 4;
-        Some(&mut self.data[i..i + 4])
-    }
-}
-
 fn main() -> Result<(), Box<dyn Error>> {
     let args = parse_args()?;
     for sjh in &args.sjh_files {
@@ -59,6 +48,7 @@ fn parse_args() -> Result<Args, Box<dyn Error>> {
     let mut root = env::current_dir()?;
     let mut source_dir = root.clone();
     let mut sjh_files = Vec::new();
+    let mut write_custom = true;
     let mut raw = env::args().skip(1);
     while let Some(arg) = raw.next() {
         match arg.as_str() {
@@ -66,6 +56,7 @@ fn parse_args() -> Result<Args, Box<dyn Error>> {
             "--source-dir" => {
                 source_dir = PathBuf::from(raw.next().ok_or("--source-dir requires a path")?)
             }
+            "--assets-only" => write_custom = false,
             "-h" | "--help" => {
                 print_usage();
                 std::process::exit(0);
@@ -82,12 +73,13 @@ fn parse_args() -> Result<Args, Box<dyn Error>> {
         root: root.canonicalize().unwrap_or(root),
         source_dir: source_dir.canonicalize().unwrap_or(source_dir),
         sjh_files,
+        write_custom,
     })
 }
 
 fn print_usage() {
     eprintln!(
-        "Usage: cargo run -p convert-custom-hill -- [--root PATH] [--source-dir PATH] FILE.SJH..."
+        "Usage: cargo run -p convert-custom-hill -- [--root PATH] [--source-dir PATH] [--assets-only] FILE.SJH..."
     );
 }
 
@@ -105,15 +97,9 @@ fn convert_one(args: &Args, sjh_path: &Path) -> Result<(), Box<dyn Error>> {
     let front_path = find_source_file(&format!("FRONT{}.PCX", hill.front_index), &search_dirs)?;
     let back_path = find_source_file(&format!("BACK{}.PCX", hill.back_index), &search_dirs)?;
     let mut front = read_pcx_rgba(&front_path, true)?;
-    let back = read_pcx_rgba(&back_path, false)?;
-    let (line_lengths, profile_y, tip_x) = terrain_from_front(&front);
-    bake_markers(
-        &mut front,
-        &profile_y,
-        tip_x,
-        hill.kr,
-        hill.pk_hundred as f64 / 100.0,
-    );
+    let mut back = read_pcx_rgba(&back_path, false)?;
+    make_opaque(&mut front);
+    make_opaque(&mut back);
 
     let terrain_dir = args
         .root
@@ -121,11 +107,13 @@ fn convert_one(args: &Args, sjh_path: &Path) -> Result<(), Box<dyn Error>> {
         .join("generated")
         .join(format!("HILL{}", hill.front_index));
     fs::create_dir_all(&terrain_dir)?;
-    write_png(&terrain_dir.join("front_visual.png"), &front)?;
-    write_png(&terrain_dir.join("back_visual.png"), &back)?;
-    let custom_dir = args.root.join("custom_hills");
-    fs::create_dir_all(&custom_dir)?;
-    write_custom_toml(&custom_dir.join(format!("{}.toml", hill.id)), &hill)?;
+    write_png(&terrain_dir.join("front.png"), &front)?;
+    write_png(&terrain_dir.join("back.png"), &back)?;
+    if args.write_custom {
+        let custom_dir = args.root.join("custom_hills");
+        fs::create_dir_all(&custom_dir)?;
+        write_custom_toml(&custom_dir.join(format!("{}.toml", hill.id)), &hill)?;
+    }
     println!(
         "converted {} -> custom_hills/{}.toml, HILL{}",
         sjh_path.display(),
@@ -206,7 +194,7 @@ fn read_pcx_rgba(path: &Path, transparent_zero: bool) -> Result<RgbaImage, Box<d
             let count = (byte & 0x3f) as usize;
             let value = data[pos];
             pos += 1;
-            decoded.extend(std::iter::repeat(value).take(count));
+            decoded.extend(std::iter::repeat_n(value, count));
         } else {
             decoded.push(byte);
         }
@@ -232,60 +220,9 @@ fn read_pcx_rgba(path: &Path, transparent_zero: bool) -> Result<RgbaImage, Box<d
     })
 }
 
-fn terrain_from_front(front: &RgbaImage) -> (Vec<usize>, Vec<i32>, i32) {
-    let mut line_lengths = Vec::with_capacity(front.height);
-    for y in 0..front.height {
-        let mut last = None;
-        for x in 0..front.width {
-            if front.data[(y * front.width + x) * 4 + 3] != 0 {
-                last = Some(x);
-            }
-        }
-        line_lengths.push(last.map_or(0, |x| x + 1));
-    }
-
-    let mut profile_y = Vec::with_capacity(PROFILE_LEN);
-    for x in 0..front.width {
-        let mut y = 0;
-        for (candidate_y, &line_len) in line_lengths.iter().enumerate() {
-            y = candidate_y as i32;
-            if line_len > x {
-                break;
-            }
-        }
-        profile_y.push(y);
-    }
-    profile_y.resize(PROFILE_LEN, *profile_y.last().unwrap_or(&0));
-
-    let mut tip_x = 0;
-    let mut former_y = 0;
-    for (x, &y) in profile_y.iter().take(front.width).enumerate() {
-        if y - former_y > 3 {
-            tip_x = x as i32;
-        }
-        former_y = y;
-    }
-    (line_lengths, profile_y, tip_x - 1)
-}
-
-fn bake_markers(front: &mut RgbaImage, profile_y: &[i32], tip_x: i32, kr: i64, pk: f64) {
-    for x in tip_x.max(0) as usize..front.width.saturating_sub(10) {
-        let x2 = x as i32 - tip_x;
-        let y2 = profile_y[x] - profile_y[tip_x as usize];
-        let hp = (((x2 * x2 + y2 * y2) as f64).sqrt() * pk * 0.5).round() as i64 * 5;
-        if hp >= ((2.0 / 3.0) * kr as f64 * 10.0) as i64 && hp <= kr * 12 {
-            let color = if hp < kr * 10 {
-                [255, 93, 93, 255]
-            } else {
-                [93, 93, 255, 255]
-            };
-            for dy in 0..3 {
-                let y = profile_y[x] + 1 + dy;
-                if let Some(px) = front.pixel_mut(x, y as usize) {
-                    px.copy_from_slice(&color);
-                }
-            }
-        }
+fn make_opaque(img: &mut RgbaImage) {
+    for px in img.data.chunks_exact_mut(4) {
+        px[3] = 255;
     }
 }
 

@@ -55,7 +55,7 @@ impl Resources {
         if let Some(terrain) = cache.get(terrain_id) {
             return terrain.clone();
         }
-        let terrain = HillTerrain::load(&self.files, terrain_id);
+        let terrain = HillTerrain::load_with_markers(&self.files, terrain_id, hill.kr, hill.pk());
         let terrain = Rc::new(terrain);
         cache.insert(terrain_id.clone(), terrain.clone());
         terrain
