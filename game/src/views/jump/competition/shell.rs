@@ -8,7 +8,7 @@ use crate::views::jump::koth::KothJumpView;
 use crate::views::jump::team_cup::TeamCupJumpView;
 use crate::views::jump::training_jump::TrainingJumpView;
 use crate::views::jump::world_cup::WorldCupJumpView;
-use engine::oxide::{PaintCx, ScreenBackground, ScreenEventCx, UiEvent};
+use engine::oxide::{Key, PaintCx, ScreenBackground, ScreenEventCx, UiEvent};
 
 pub(crate) enum CompetitionJumpView {
     Training(CompetitionShell<TrainingJumpView>),
@@ -111,9 +111,19 @@ fn shell_event<T: GameScreen>(
                 nav.back();
             }
             UiEvent::Text(c) if is_no(c, cx) => nav.back(),
+            UiEvent::KeyDown(Key::Escape) => {
+                shell.save_prompt = false;
+                nav.consume();
+            }
             UiEvent::KeyDown(_) | UiEvent::Text(_) => nav.consume(),
             _ => {}
         }
+        return;
+    }
+
+    if matches!(event, UiEvent::KeyDown(Key::Escape)) {
+        shell.save_prompt = true;
+        nav.consume();
         return;
     }
 
