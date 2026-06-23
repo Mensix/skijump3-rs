@@ -19,5 +19,7 @@ pub enum RouteTarget {
     KothHillPicker,
     HillMakerSetup,
     EditHill,
+    MultiplayerMenu,
+    MultiplayerLobby,
     Back,
 }

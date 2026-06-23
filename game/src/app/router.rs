@@ -7,7 +7,8 @@ use crate::store::{GameState, ResourcesRef};
 use crate::views::{
     CompetitionJumpView, CustomCupSetupView, EditHillView, HallOfFameView, HillMakerView,
     HillRecordsView, JumpMenuView, KothHillPickerView, KothSetupView, LoadCupView, MainMenuView,
-    ProfilesView, ReplayBrowserView, ReplayView, SetupView, TrainingSetupView, WelcomeScreenView,
+    MultiplayerLobbyView, MultiplayerMenuView, ProfilesView, ReplayBrowserView, ReplayView,
+    SetupView, TrainingSetupView, WelcomeScreenView,
 };
 use engine::oxide::{Key, NavAction, PaintCx, ScreenBackground, ScreenEventCx, UiEvent};
 use std::rc::Rc;
@@ -46,13 +47,11 @@ fn make_screen(
             resources.clone(),
             state.selected_replay.clone(),
         )),
-        RouteTarget::ProfilesList => {
-            Box::new(ProfilesView::new(
-                resources.clone(),
-                save_manager.clone(),
-                state,
-            ))
-        }
+        RouteTarget::ProfilesList => Box::new(ProfilesView::new(
+            resources.clone(),
+            save_manager.clone(),
+            state,
+        )),
         RouteTarget::LoadCup => Box::new(LoadCupView::new(save_manager.clone())),
         RouteTarget::HallOfFame => Box::new(HallOfFameView::new(resources.clone())),
         RouteTarget::HillRecords => Box::new(HillRecordsView::new(resources.clone())),
@@ -72,6 +71,14 @@ fn make_screen(
             Box::new(EditHillView::new(resources.clone(), filename))
         }
         RouteTarget::Welcome => Box::new(WelcomeScreenView::new(resources.clone())),
+        RouteTarget::MultiplayerMenu => Box::new(MultiplayerMenuView::new()),
+        RouteTarget::MultiplayerLobby => {
+            let lobby = state
+                .pending_lobby
+                .take()
+                .expect("pending_lobby not set for MultiplayerLobby");
+            Box::new(MultiplayerLobbyView::new(lobby))
+        }
         RouteTarget::Quit => Box::new(MainMenuView::new()),
         _ => unreachable!(),
     }

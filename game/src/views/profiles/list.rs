@@ -68,7 +68,12 @@ impl ProfilesView {
         self.selected = self.menu.selected();
     }
 
-    pub(super) fn enter_edit_mode(&mut self, _state: &GameState, profile: usize, initial_selection: usize) {
+    pub(super) fn enter_edit_mode(
+        &mut self,
+        _state: &GameState,
+        profile: usize,
+        initial_selection: usize,
+    ) {
         self.edit_menu.set_index_items(8);
         self.edit_menu.set_selected(initial_selection);
         self.mode = Mode::Edit { profile };
@@ -154,9 +159,7 @@ impl ProfilesView {
                 color_suit,
                 ..
             } => draw_color_select(cx, selector, *color_x, *color_y, *color_max, *color_suit),
-            Mode::ReplaceSelect { selector, .. } => {
-                draw_replace_select(self, state, cx, selector)
-            }
+            Mode::ReplaceSelect { selector, .. } => draw_replace_select(self, state, cx, selector),
             _ => {}
         }
 
@@ -249,18 +252,16 @@ impl ProfilesView {
                     self.rebuild_list_menu(state);
                     ecx.consume();
                 }
-                _ => {
-                    match self.edit_menu.event_action(ecx, event) {
-                        Some(MenuAction::Item(action)) => {
-                            pending = Some(Pending::EditEnter(*profile, action));
-                        }
-                        Some(MenuAction::Trailing) => {
-                            self.mode = Mode::List;
-                            self.rebuild_list_menu(state);
-                        }
-                        None => {}
+                _ => match self.edit_menu.event_action(ecx, event) {
+                    Some(MenuAction::Item(action)) => {
+                        pending = Some(Pending::EditEnter(*profile, action));
                     }
-                }
+                    Some(MenuAction::Trailing) => {
+                        self.mode = Mode::List;
+                        self.rebuild_list_menu(state);
+                    }
+                    None => {}
+                },
             },
             Mode::TextInput { .. } => {
                 pending = handle_event_text_input(&mut self.mode, event);
@@ -283,23 +284,35 @@ impl ProfilesView {
                 save_players(self, state);
             }
             Some(Pending::TextCancel(profile, field)) => {
-                self.enter_edit_mode(state, profile, match field {
-                    TextField::Name => 0,
-                    TextField::RealName => 1,
-                });
+                self.enter_edit_mode(
+                    state,
+                    profile,
+                    match field {
+                        TextField::Name => 0,
+                        TextField::RealName => 1,
+                    },
+                );
             }
             Some(Pending::ColorCommit(profile, field)) => {
                 save_players(self, state);
-                self.enter_edit_mode(state, profile, match field {
-                    ColorField::Suit => 2,
-                    ColorField::Ski => 3,
-                });
+                self.enter_edit_mode(
+                    state,
+                    profile,
+                    match field {
+                        ColorField::Suit => 2,
+                        ColorField::Ski => 3,
+                    },
+                );
             }
             Some(Pending::ColorCancel(profile, field)) => {
-                self.enter_edit_mode(state, profile, match field {
-                    ColorField::Suit => 2,
-                    ColorField::Ski => 3,
-                });
+                self.enter_edit_mode(
+                    state,
+                    profile,
+                    match field {
+                        ColorField::Suit => 2,
+                        ColorField::Ski => 3,
+                    },
+                );
             }
             Some(Pending::ReplaceCommit(profile)) => {
                 save_players(self, state);

@@ -242,10 +242,14 @@ pub(super) fn commit_text_input(
 ) {
     let value = buf.trim().to_ascii_uppercase();
     if value.is_empty() {
-        view.enter_edit_mode(state, profile, match field {
-            TextField::Name => 0,
-            TextField::RealName => 1,
-        });
+        view.enter_edit_mode(
+            state,
+            profile,
+            match field {
+                TextField::Name => 0,
+                TextField::RealName => 1,
+            },
+        );
         return;
     }
 
@@ -266,10 +270,14 @@ pub(super) fn commit_text_input(
         TextField::Name => state.profiles.profiles[profile].name = value,
         TextField::RealName => state.profiles.profiles[profile].real_name = value,
     }
-    view.enter_edit_mode(state, profile, match field {
-        TextField::Name => 0,
-        TextField::RealName => 1,
-    });
+    view.enter_edit_mode(
+        state,
+        profile,
+        match field {
+            TextField::Name => 0,
+            TextField::RealName => 1,
+        },
+    );
 }
 
 pub(super) fn handle_event_text_input(mode: &mut Mode, event: UiEvent) -> Option<Pending> {
@@ -335,11 +343,8 @@ pub(super) fn handle_event_replace_select(
     let mut ecx = EventCx::default();
     selector.event(&mut ecx, event).map(|action| match action {
         SelectorMessage::Commit(value) => {
-            state.profiles.profiles[*profile].replace = if value == 0 {
-                None
-            } else {
-                Some(value - 1)
-            };
+            state.profiles.profiles[*profile].replace =
+                if value == 0 { None } else { Some(value - 1) };
             Pending::ReplaceCommit(*profile)
         }
         SelectorMessage::Cancel => Pending::ReplaceCancel(*profile),

@@ -11,6 +11,7 @@ use crate::jump::wind::Wind;
 use crate::rng::Random;
 use crate::save::config::Config;
 use crate::text::lang::LangBase;
+use crate::views::multiplayer::state::LobbyState;
 use engine::oxide::Font;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -78,6 +79,7 @@ pub struct GameState {
     pub records: RecordStore,
     pub active_cup_filename: Option<String>,
     pub nav_edit_hill: Option<String>,
+    pub pending_lobby: Option<LobbyState>,
 }
 
 impl GameState {
@@ -100,6 +102,7 @@ impl GameState {
             records,
             active_cup_filename: None,
             nav_edit_hill: None,
+            pending_lobby: None,
         }
     }
 

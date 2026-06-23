@@ -19,6 +19,7 @@ const MENU_ACTIONS: &[Option<RouteTarget>] = &[
     Some(RouteTarget::OptionsMenu),
     Some(RouteTarget::HallOfFame),
     Some(RouteTarget::HillRecords),
+    Some(RouteTarget::MultiplayerMenu),
     Some(RouteTarget::Replays),
     Some(RouteTarget::Quit),
 ];
@@ -34,7 +35,8 @@ impl MainMenuView {
             OxideMenuItem::new(3, ""),
             OxideMenuItem::new(4, ""),
             OxideMenuItem::new(5, ""),
-            OxideMenuItem::new(6, "").with_y(12),
+            OxideMenuItem::new(6, ""),
+            OxideMenuItem::new(7, "").with_y(12),
         ];
         let menu = PixelMenu::new(11, 97, 108, 12, items, FONT_BODY, FONT_BODY)
             .with_labels(false)
@@ -105,9 +107,9 @@ impl GameScreen for MainMenuView {
 
 fn paint_main_menu(cx: &mut PaintCx<'_>, menu: &PixelMenu, layout: &MainLayout) {
     let lang = &layout.langbase;
-    let y_offsets = [0, 0, 0, 0, 0, 0, 12];
-    for (i, label) in [20, 21, 22, 23, 24, 25, 26].iter().enumerate() {
-        let num = if i == 6 { 0 } else { i + 1 };
+    let y_offsets = [0, 0, 0, 0, 0, 0, 0, 12];
+    for (i, label) in [20, 21, 22, 23, 24, 524, 25, 26].iter().enumerate() {
+        let num = if i == 7 { 0 } else { i + 1 };
         let y = 98 + (i as i32) * 12 + y_offsets[i];
         cx.text((11, y), FONT_BODY, format!("{} - {}", num, lang.tr(*label)));
     }
