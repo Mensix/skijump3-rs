@@ -88,7 +88,7 @@ pub fn computer_names_without_replacements(
             let replace = *idx;
             !active_profiles
                 .iter()
-                .any(|(_, profile)| profile.replace == replace)
+                .any(|(_, profile)| profile.replace == Some(replace))
         })
         .map(|(_, name)| name.clone())
         .collect()

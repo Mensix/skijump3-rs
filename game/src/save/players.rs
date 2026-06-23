@@ -61,7 +61,7 @@ mod tests {
         p.real_name = "Test".to_string();
         p.suit_color = [24, 28, 63];
         p.ski_color = [33, 60, 33];
-        p.replace = 1;
+        p.replace = Some(0);
         p.coach_style = 2;
         p.skip_qualification = 1;
         p.total_jumps = 100;
@@ -90,7 +90,7 @@ mod tests {
         assert_eq!(pp.real_name, "Test");
         assert_eq!(pp.suit_color, [24, 28, 63]);
         assert_eq!(pp.ski_color, [33, 60, 33]);
-        assert_eq!(pp.replace, 1);
+        assert_eq!(pp.replace, Some(0));
         assert_eq!(pp.coach_style, 2);
         assert_eq!(pp.skip_qualification, 1);
         assert_eq!(pp.total_jumps, 100);

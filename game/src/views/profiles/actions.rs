@@ -143,25 +143,29 @@ pub(super) fn handle_edit_enter(
             };
         }
         4 => {
-            let value = state.profiles.profiles[profile].replace.min(REPLACE_MAX);
+            let slider_val = state.profiles.profiles[profile]
+                .replace
+                .map_or(0, |v| v + 1)
+                .min(REPLACE_MAX);
             let x = view.resources.font.string_width("Replace:") as i32 + 170;
-            let display = if value > 0 {
-                replace_display_name(
-                    value,
-                    view.resources
-                        .player_names(state.config.name_set_index as usize),
-                    &view.resources.font,
-                    x,
-                )
+            let replace = if slider_val > 0 {
+                Some(slider_val - 1)
             } else {
-                String::new()
+                None
             };
+            let display = replace_display_name(
+                replace,
+                view.resources
+                    .player_names(state.config.name_set_index as usize),
+                &view.resources.font,
+                x,
+            );
             let mut selector = NumericSelector::new(
                 x,
                 44,
                 320 - x,
                 REPLACE_MAX,
-                value,
+                slider_val,
                 FILL_GRAY,
                 FONT_BODY,
                 display,
@@ -331,7 +335,11 @@ pub(super) fn handle_event_replace_select(
     let mut ecx = EventCx::default();
     selector.event(&mut ecx, event).map(|action| match action {
         SelectorMessage::Commit(value) => {
-            state.profiles.profiles[*profile].replace = value;
+            state.profiles.profiles[*profile].replace = if value == 0 {
+                None
+            } else {
+                Some(value - 1)
+            };
             Pending::ReplaceCommit(*profile)
         }
         SelectorMessage::Cancel => Pending::ReplaceCancel(*profile),

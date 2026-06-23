@@ -148,9 +148,23 @@ mod tests {
     }
 
     #[test]
-    fn active_profile_replace_removes_computer_name() {
+    fn active_profile_replace_none_keeps_all_computers() {
         let mut profiles = ProfileStore::new();
-        profiles.profiles[0].replace = 0;
+        profiles.profiles[0].replace = None;
+        let names = vec!["ROAR".into(), "ADAM".into(), "JANNE".into()];
+
+        let comp = build_competition(CupStyle::WorldCup, &profiles, &names, 20, 0, true, false);
+
+        assert_eq!(comp.field.get(0).name, "ROAR");
+        assert_eq!(comp.field.get(0).ai_id, 0);
+        assert_eq!(comp.field.get(1).name, "ADAM");
+        assert_eq!(comp.field.get(1).ai_id, 1);
+    }
+
+    #[test]
+    fn active_profile_replace_some_removes_computer_name() {
+        let mut profiles = ProfileStore::new();
+        profiles.profiles[0].replace = Some(0);
         let names = vec!["ROAR".into(), "ADAM".into(), "JANNE".into()];
 
         let comp = build_competition(CupStyle::WorldCup, &profiles, &names, 20, 0, true, false);

@@ -39,11 +39,12 @@ fn replace_max_width(value: usize, font: &Font, x: i32) -> i32 {
         .max(0)
 }
 
-pub fn replace_display_name(value: usize, player_names: &[String], font: &Font, x: i32) -> String {
-    if value == 0 || value > player_names.len() {
+pub fn replace_display_name(value: Option<usize>, player_names: &[String], font: &Font, x: i32) -> String {
+    let Some(n) = value else { return String::new() };
+    if n >= player_names.len() {
         return String::new();
     }
-    let name = &player_names[value - 1];
-    let max_w = replace_max_width(value, font, x);
+    let name = &player_names[n];
+    let max_w = replace_max_width(n + 1, font, x);
     shorten_name(name, font, max_w)
 }

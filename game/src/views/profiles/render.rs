@@ -160,6 +160,7 @@ pub(super) fn draw_replace_select(
     let value = selector.value();
     let x = view.resources.font.string_width("Replace:") as i32 + 170;
     cx.fill((x - 2, 43, 320 - x, 8), FILL_GRAY);
+    let replace_val = if value > 0 { Some(value - 1) } else { None };
     if value > 0 {
         if value
             <= view
@@ -168,7 +169,7 @@ pub(super) fn draw_replace_select(
                 .len()
         {
             let n = replace_display_name(
-                value,
+                replace_val,
                 view.resources
                     .player_names(state.config.name_set_index as usize),
                 &view.resources.font,

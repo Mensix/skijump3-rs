@@ -14,18 +14,15 @@ pub fn format_profile_value(
     match field {
         1 => profile.name.clone(),
         2 => profile.real_name.clone(),
-        5 => {
-            if profile.replace == 0 {
-                "-".to_string()
-            } else if profile.replace <= player_names.len() {
+        5 => match profile.replace {
+            None => "-".to_string(),
+            Some(n) if n < player_names.len() => {
                 let x = 170 + font.string_width("Replace:") as i32;
                 let max_w = 316i32.saturating_sub(x).max(0);
-                let name = &player_names[profile.replace - 1];
-                shorten_name(name, font, max_w)
-            } else {
-                format!("#{}", profile.replace)
+                shorten_name(&player_names[n], font, max_w)
             }
-        }
+            Some(n) => format!("#{}", n + 1),
+        },
         6 => {
             if profile.coach_style == 0 {
                 lang.tr(9).to_string()
