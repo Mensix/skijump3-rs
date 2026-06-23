@@ -4,7 +4,7 @@ use crate::route::RouteTarget;
 use crate::save::SaveRef;
 use crate::screen::{GameCx, GameScreen};
 use crate::store::ResourcesRef;
-use engine::oxide::widgets::menu::{MenuItem as OxideMenuItem, PixelMenu};
+use engine::oxide::widgets::menu::PixelMenu;
 use engine::oxide::{Blinker, PaintCx, ScreenEventCx, UiEvent};
 
 pub struct SetupView {
@@ -19,8 +19,12 @@ pub struct SetupView {
 
 impl SetupView {
     pub fn new(resources: ResourcesRef, save_manager: SaveRef) -> Self {
-        let menu = Self::make_menu(0, 0);
-        Self {
+        let menu = PixelMenu::new(35, 40, 221, 10, vec![], FONT_BODY, FONT_BODY)
+            .with_labels(false)
+            .with_box(false)
+            .trailing("", 0)
+            .with_return_index(true);
+        let mut view = Self {
             resources,
             save_manager,
             screen: 0,
@@ -28,25 +32,24 @@ impl SetupView {
             menu,
             modal: None,
             cursor_blink: Blinker::new(),
-        }
+        };
+        view.set_screen_items(0, 0);
+        view
     }
-
-    pub(crate) fn make_menu(screen: usize, selected: usize) -> PixelMenu {
-        let entries = match screen {
+    fn entries_for_screen(screen: usize) -> usize {
+        match screen {
             0 => 6,
             1 => 4,
             2 => 11,
             3 => 5,
             _ => 0,
-        };
-        let items = (0..entries).map(|_| OxideMenuItem::new(0, "")).collect();
-        let mut m = PixelMenu::new(35, 40, 221, 10, items, FONT_BODY, FONT_BODY)
-            .with_labels(false)
-            .with_box(false)
-            .trailing("", 0)
-            .with_return_index(true);
-        m.set_selected(selected.min(entries));
-        m
+        }
+    }
+
+    fn set_screen_items(&mut self, new_screen: usize, selected: usize) {
+        let entries = Self::entries_for_screen(new_screen);
+        self.menu.set_index_items(entries);
+        self.menu.set_selected(selected.min(entries));
     }
 
     pub(crate) fn switch_screen(&mut self, new_screen: usize) {
@@ -60,7 +63,7 @@ impl SetupView {
             .copied()
             .unwrap_or_default();
         self.screen = new_screen;
-        self.menu = Self::make_menu(new_screen, selected);
+        self.set_screen_items(new_screen, selected);
     }
 
     pub(crate) fn save_manager(&self) -> &SaveRef {

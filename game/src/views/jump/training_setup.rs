@@ -6,8 +6,8 @@ use crate::screen::{GameCx, GameScreen};
 use crate::store::{GameState, ResourcesRef};
 use crate::text::format;
 use engine::oxide::widget::EventCx;
-use engine::oxide::widgets::menu::{MenuItem as OxideMenuItem, PixelMenu};
-use engine::oxide::{PaintCx, ScreenEventCx, UiEvent, Widget};
+use engine::oxide::widgets::menu::{MenuAction, MenuItem as OxideMenuItem, PixelMenu};
+use engine::oxide::{PaintCx, ScreenEventCx, UiEvent};
 
 pub struct TrainingSetupView {
     resources: ResourcesRef,
@@ -55,35 +55,32 @@ impl TrainingSetupView {
         }
     }
 
-    fn rebuild_menu(&self) -> PixelMenu {
+    fn set_page(&mut self) {
         let page_n = self.page_items();
         let n = page_n + usize::from(self.has_more());
-        let items = (0..n).map(|_| OxideMenuItem::new(0, "")).collect();
-        PixelMenu::new(110, 11, 170, 8, items, FONT_BODY, FONT_BODY)
-            .with_labels(false)
-            .with_box(false)
-            .trailing("", 16)
-            .with_return_index(true)
+        let items: Vec<OxideMenuItem> = (0..n).map(|_| OxideMenuItem::new(0, "")).collect();
+        self.menu.set_items(items);
     }
 
     fn confirm(&mut self, state: &mut GameState) -> Option<RouteTarget> {
-        let sel = self.menu.selected();
-        if self.menu.has_trailing() && sel == self.menu.item_count() {
-            return Some(RouteTarget::MainMenu);
-        }
-        if self.has_more() && sel == self.page_items() {
-            self.start = if self.start + 20 >= self.total {
-                0
-            } else {
-                self.start + 20
-            };
-            self.menu = self.rebuild_menu();
-            None
-        } else {
-            let hill_idx = self.start + sel;
-            state.practice_hill = hill_idx;
-            state.start_active(factory::training());
-            Some(RouteTarget::Jump)
+        match self.menu.selected_action() {
+            MenuAction::Trailing => return Some(RouteTarget::MainMenu),
+            MenuAction::Item(idx) => {
+                if self.has_more() && idx == self.page_items() {
+                    self.start = if self.start + 20 >= self.total {
+                        0
+                    } else {
+                        self.start + 20
+                    };
+                    self.set_page();
+                    None
+                } else {
+                    let hill_idx = self.start + idx;
+                    state.practice_hill = hill_idx;
+                    state.start_active(factory::training());
+                    Some(RouteTarget::Jump)
+                }
+            }
         }
     }
 
@@ -136,7 +133,7 @@ impl TrainingSetupView {
         state: &mut GameState,
         event: UiEvent,
     ) -> Option<RouteTarget> {
-        if let Some(_idx) = self.menu.event(ecx, event) {
+        if self.menu.event_action(ecx, event).is_some() {
             self.confirm(state)
         } else {
             None

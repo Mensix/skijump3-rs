@@ -5,7 +5,7 @@ use crate::screen::{GameCx, GameScreen};
 use crate::store::ResourcesRef;
 
 use engine::oxide::input::Key;
-use engine::oxide::widgets::menu::{MenuItem, PixelMenu};
+use engine::oxide::widgets::menu::{MenuAction, MenuItem, PixelMenu};
 use engine::oxide::Widget;
 use engine::oxide::{PaintCx, ScreenBackground, ScreenEventCx, UiEvent};
 use serde::Deserialize;
@@ -65,11 +65,12 @@ impl HillMakerView {
         if page_start > 0 {
             count += 1;
         }
-        let items = (1..=count).map(|n| MenuItem::new(n as u8, "")).collect();
+        let items = (0..count).map(|n| MenuItem::new(n as u8, "")).collect();
         let exit_gap = 14;
         PixelMenu::new(99, 14, 221, 8, items, FONT_BODY, FONT_BODY)
             .trailing("", exit_gap)
             .with_labels(false)
+            .with_return_index(true)
     }
 
     fn visible_count(total_hills: usize, page_start: usize) -> usize {
@@ -77,7 +78,16 @@ impl HillMakerView {
     }
 
     fn rebuild_menu(&mut self) {
-        self.menu = Self::make_menu(self.custom_hills.len(), self.page_start);
+        let total = self.custom_hills.len();
+        let visible = Self::visible_count(total, self.page_start);
+        let mut count = visible + 1;
+        if self.page_start + visible < total {
+            count += 1;
+        }
+        if self.page_start > 0 {
+            count += 1;
+        }
+        self.menu.set_index_items(count);
     }
 
     fn page_count(&self) -> usize {
@@ -90,16 +100,15 @@ impl HillMakerView {
 
     fn item_roles(&self) -> (usize, usize, Option<usize>, Option<usize>) {
         let visible = Self::visible_count(self.custom_hills.len(), self.page_start);
-        let add = visible + 1;
+        let add = visible;
+        let mut item = add + 1;
         let mut next = None;
         let mut prev = None;
-        let mut item = add;
         if self.page_start + visible < self.custom_hills.len() {
-            item += 1;
             next = Some(item);
+            item += 1;
         }
         if self.page_start > 0 {
-            item += 1;
             prev = Some(item);
         }
         (visible, add, next, prev)
@@ -157,11 +166,11 @@ impl GameScreen for HillMakerView {
             return;
         }
         let mut ecx = engine::oxide::widget::EventCx::default();
-        match self.menu.event(&mut ecx, event) {
-            Some(n) if n > 0 => {
+        match self.menu.event_action(&mut ecx, event) {
+            Some(MenuAction::Item(n)) => {
                 let (visible, add, next, prev) = self.item_roles();
-                if n <= visible {
-                    let filename = self.custom_hills[self.page_start + n - 1].filename.clone();
+                if n < visible {
+                    let filename = self.custom_hills[self.page_start + n].filename.clone();
                     cx.state.nav_edit_hill = Some(filename);
                     nav.navigate(RouteTarget::EditHill);
                 } else if n == add {
@@ -177,7 +186,7 @@ impl GameScreen for HillMakerView {
                     nav.consume();
                 }
             }
-            Some(0) => nav.back(),
+            Some(MenuAction::Trailing) => nav.back(),
             _ => {}
         }
         if ecx.is_consumed() {

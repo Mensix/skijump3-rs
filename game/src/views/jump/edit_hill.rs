@@ -4,7 +4,7 @@ use crate::route::RouteTarget;
 use crate::screen::{GameCx, GameScreen};
 use crate::store::ResourcesRef;
 use engine::oxide::input::Key;
-use engine::oxide::widgets::menu::{MenuItem, PixelMenu};
+use engine::oxide::widgets::menu::{MenuAction, MenuItem, PixelMenu};
 use engine::oxide::widgets::text_input::{TextInput, TextInputMessage};
 use engine::oxide::Widget;
 use engine::oxide::{PaintCx, ScreenBackground, ScreenEventCx, UiEvent};
@@ -63,9 +63,10 @@ pub struct EditHillView {
 
 impl EditHillView {
     pub fn new(resources: ResourcesRef, initial_filename: Option<String>) -> Self {
-        let items = (1..=12).map(|n| MenuItem::new(n, "")).collect();
+        let items = (0..12).map(|n| MenuItem::new(n, "")).collect();
         let menu = PixelMenu::new(10, 8, 110, 13, items, FONT_BODY, FONT_BODY)
             .with_labels(false)
+            .with_return_index(true)
             .trailing("", 13);
         let default_values = [
             "Default".into(),
@@ -154,13 +155,13 @@ impl EditHillView {
     }
 
     fn start_edit(&mut self, field: usize) {
-        let yy = 10 + ((field - 1) * 13) as i32;
-        let value = self.values[field - 1].clone();
+        let yy = 10 + (field * 13) as i32;
+        let value = self.values[field].clone();
         let (max_width, max_chars) = match field {
-            1 | 10 => (150, 130),
-            3 | 4 => (20, 3),
-            2 | 5 | 6 | 7 | 8 | 9 => (30, 10),
-            11 => (62, 8),
+            0 | 9 => (150, 130),
+            2 | 3 => (20, 3),
+            1 | 4 | 5 | 6 | 7 | 8 => (30, 10),
+            10 => (62, 8),
             _ => (150, 130),
         };
         let input = TextInput::new(
@@ -183,16 +184,16 @@ impl EditHillView {
             _ => return,
         };
         match field {
-            2 => self.validate_or_keep(field, &mut value, 40, 300),
-            3 | 4 => {
+            1 => self.validate_or_keep(field, &mut value, 40, 300),
+            2 | 3 => {
                 if value.is_empty() || !value.chars().all(|c| c.is_ascii_alphanumeric()) {
                     return;
                 }
-                let prefix = if field == 3 { "front" } else { "back" };
+                let prefix = if field == 2 { "front" } else { "back" };
                 let path = format!("hills/generated/HILL{value}/{prefix}_visual.png");
                 if self.resources.files.read(&path).is_empty() {
-                    let label = if field == 3 { "FRONT" } else { "BACK" };
-                    let old = self.values[field - 1].clone();
+                    let label = if field == 2 { "FRONT" } else { "BACK" };
+                    let old = self.values[field].clone();
                     self.mode = EditMode::Alert {
                         field,
                         old_value: old,
@@ -202,21 +203,21 @@ impl EditHillView {
                     return;
                 }
             }
-            5 => self.validate_or_keep(field, &mut value, 0, 255),
-            6 => self.validate_or_keep(field, &mut value, 0, 1),
-            7 => self.validate_or_keep(field, &mut value, 60, 145),
-            8 => self.validate_or_keep(field, &mut value, 50, 150),
-            9 => self.validate_or_keep(field, &mut value, 0, 30),
-            11 => value.truncate(8),
+            4 => self.validate_or_keep(field, &mut value, 0, 255),
+            5 => self.validate_or_keep(field, &mut value, 0, 1),
+            6 => self.validate_or_keep(field, &mut value, 60, 145),
+            7 => self.validate_or_keep(field, &mut value, 50, 150),
+            8 => self.validate_or_keep(field, &mut value, 0, 30),
+            10 => value.truncate(8),
             _ => {}
         }
-        self.values[field - 1] = value;
+        self.values[field] = value;
         self.mode = EditMode::Viewing;
     }
 
     fn validate_or_keep(&self, field: usize, value: &mut String, low: i32, high: i32) {
         if !Self::validate_int(value, low, high) {
-            *value = self.values[field - 1].clone();
+            *value = self.values[field].clone();
         }
     }
 
@@ -234,7 +235,7 @@ impl EditHillView {
     }
 
     fn is_numeric_field(field: usize) -> bool {
-        matches!(field, 2 | 5 | 6 | 7 | 8 | 9)
+        matches!(field, 1 | 4 | 5 | 6 | 7 | 8)
     }
 
     fn is_valid_filename(s: &str) -> bool {
@@ -265,7 +266,7 @@ impl GameScreen for EditHillView {
                 field, old_value, ..
             } => {
                 if matches!(event, UiEvent::KeyDown(_) | UiEvent::Text(_)) {
-                    self.values[*field - 1] = old_value.clone();
+                    self.values[*field] = old_value.clone();
                     self.mode = EditMode::Viewing;
                 }
                 nav.consume();
@@ -299,15 +300,15 @@ impl GameScreen for EditHillView {
         }
 
         let mut ecx = engine::oxide::widget::EventCx::default();
-        match self.menu.event(&mut ecx, event) {
-            Some(0) => {
+        match self.menu.event_action(&mut ecx, event) {
+            Some(MenuAction::Trailing) => {
                 if !self.has_changes() {
                     nav.back();
                 } else {
                     let filename = &self.values[10];
                     if !Self::is_valid_filename(filename) {
                         self.mode = EditMode::Alert {
-                            field: 11,
+                            field: 10,
                             old_value: self.values[10].clone(),
                             message: "INVALID FILENAME.".to_string(),
                             subtitle: "ENTER 1-8 ALPHANUMERIC CHARACTERS.".to_string(),
@@ -325,12 +326,12 @@ impl GameScreen for EditHillView {
                     }
                 }
             }
-            Some(12) => {
+            Some(MenuAction::Item(11)) => {
                 self.values = self.initial_values.clone();
                 cx.state.nav_edit_hill = None;
                 nav.back();
             }
-            Some(n @ 1..=11) => {
+            Some(MenuAction::Item(n @ 0..=10)) => {
                 if matches!(event, UiEvent::KeyDown(Key::Enter) | UiEvent::Text(' ')) {
                     self.start_edit(n);
                 }

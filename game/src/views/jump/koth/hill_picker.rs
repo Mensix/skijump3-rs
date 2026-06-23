@@ -6,8 +6,8 @@ use crate::screen::{GameCx, GameScreen};
 use crate::store::{GameState, ResourcesRef};
 use crate::text::format;
 use engine::oxide::widget::EventCx;
-use engine::oxide::widgets::menu::{MenuItem as OxideMenuItem, PixelMenu};
-use engine::oxide::{PaintCx, ScreenEventCx, UiEvent, Widget};
+use engine::oxide::widgets::menu::{MenuAction, MenuItem as OxideMenuItem, PixelMenu};
+use engine::oxide::{PaintCx, ScreenEventCx, UiEvent};
 
 pub struct KothHillPickerView {
     resources: ResourcesRef,
@@ -59,40 +59,39 @@ impl KothHillPickerView {
         self.page_items() + if self.has_more() { 4 } else { 3 }
     }
 
-    fn rebuild_menu(&self) -> PixelMenu {
+    fn set_page(&mut self) {
         let page_n = self.page_items();
         let n = page_n + usize::from(self.has_more());
-        let items = (0..n).map(|_| OxideMenuItem::new(0, "")).collect();
-        PixelMenu::new(110, 11, 170, 8, items, FONT_BODY, FONT_BODY)
-            .with_labels(false)
-            .with_box(false)
-            .trailing("", 16)
-            .with_return_index(true)
+        let items: Vec<OxideMenuItem> = (0..n).map(|_| OxideMenuItem::new(0, "")).collect();
+        self.menu.set_items(items);
     }
 
     fn select_hill(&mut self, state: &mut GameState) {
-        let sel = self.menu.selected();
-        if self.has_more() && sel == self.page_items() {
-            self.start = if self.start + 20 >= self.total {
-                0
-            } else {
-                self.start + 20
-            };
-            self.menu = self.rebuild_menu();
-        } else if sel == self.menu.item_count() {
-            state.config.koth_hill = -1;
-            let cfg = state.config.clone();
-            self.save_manager.save_config(&cfg);
-        } else {
-            let hill_idx = self.start + sel;
-            state.config.koth_hill = hill_idx as i32;
-            let cfg = state.config.clone();
-            self.save_manager.save_config(&cfg);
+        match self.menu.selected_action() {
+            MenuAction::Item(idx) if self.has_more() && idx == self.page_items() => {
+                self.start = if self.start + 20 >= self.total {
+                    0
+                } else {
+                    self.start + 20
+                };
+                self.set_page();
+            }
+            MenuAction::Trailing => {
+                state.config.koth_hill = -1;
+                let cfg = state.config.clone();
+                self.save_manager.save_config(&cfg);
+            }
+            MenuAction::Item(idx) => {
+                let hill_idx = self.start + idx;
+                state.config.koth_hill = hill_idx as i32;
+                let cfg = state.config.clone();
+                self.save_manager.save_config(&cfg);
+            }
         }
     }
 
     fn confirm_event(&mut self, ecx: &mut EventCx, event: UiEvent, state: &mut GameState) -> bool {
-        if let Some(_idx) = self.menu.event(ecx, event) {
+        if self.menu.event_action(ecx, event).is_some() {
             self.select_hill(state);
             true
         } else {

@@ -4,8 +4,7 @@ use crate::gfx::theme::{BG_DARK, BG_RED, BLACK, FONT_BODY, FONT_GOLD};
 use crate::route::RouteTarget;
 use crate::screen::{GameCx, GameScreen};
 use crate::store::{GameState, ResourcesRef};
-use engine::oxide::widgets::menu::PixelMenu;
-use engine::oxide::Widget;
+use engine::oxide::widgets::menu::{MenuAction, PixelMenu};
 use engine::oxide::{PaintCx, ScreenBackground, ScreenEventCx, UiEvent};
 
 pub struct JumpMenuView {
@@ -62,11 +61,11 @@ impl GameScreen for JumpMenuView {
             return;
         }
 
-        match self.menu.event(&mut ecx, event) {
-            Some(0) => nav.navigate(self.start_world_cup(cx.state)),
-            Some(1) => nav.navigate(RouteTarget::CustomCupSetup),
-            Some(2) => nav.navigate(self.start_four_hills(cx.state)),
-            Some(3) => {
+        match self.menu.event_action(&mut ecx, event) {
+            Some(MenuAction::Item(0)) => nav.navigate(self.start_world_cup(cx.state)),
+            Some(MenuAction::Item(1)) => nav.navigate(RouteTarget::CustomCupSetup),
+            Some(MenuAction::Item(2)) => nav.navigate(self.start_four_hills(cx.state)),
+            Some(MenuAction::Item(3)) => {
                 let num_players = cx.state.profiles.active_order.len();
                 if num_players == 4 || num_players == 8 {
                     nav.navigate(self.start_team_cup(cx.state));
@@ -76,9 +75,9 @@ impl GameScreen for JumpMenuView {
                     nav.consume();
                 }
             }
-            Some(6) => nav.navigate(RouteTarget::LoadCup),
-            Some(7) => nav.navigate(RouteTarget::MainMenu),
-            Some(n) => {
+            Some(MenuAction::Item(6)) => nav.navigate(RouteTarget::LoadCup),
+            Some(MenuAction::Item(7)) => nav.navigate(RouteTarget::MainMenu),
+            Some(MenuAction::Item(n)) => {
                 if let Some(route) = JUMP_MENU_ACTIONS.get(n).and_then(|&a| a) {
                     nav.navigate(route);
                 }

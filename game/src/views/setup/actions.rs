@@ -6,7 +6,7 @@ use crate::store::GameState;
 use crate::views::jump::input::JumpKeyBindings;
 use engine::oxide::input::{Key, UiEvent};
 use engine::oxide::widget::EventCx;
-use engine::oxide::Widget;
+use engine::oxide::widgets::menu::MenuAction;
 
 use super::state::SetupModal;
 use super::view::SetupView;
@@ -367,7 +367,6 @@ fn handle_screen_event(
     event: UiEvent,
 ) -> Option<RouteTarget> {
     let screen = view.screen;
-    let entries = view.menu.item_count();
 
     if matches!(event, UiEvent::KeyDown(Key::Tab)) {
         if screen == 0 {
@@ -378,21 +377,23 @@ fn handle_screen_event(
     }
 
     let mut ecx = EventCx::default();
-    let msg = view.menu.event(&mut ecx, event);
+    let msg = view.menu.event_action(&mut ecx, event);
 
     if ecx.is_consumed() && screen < view.selected_by_screen.len() {
         view.selected_by_screen[screen] = view.menu.selected();
     }
 
-    if let Some(action) = msg {
-        if action >= entries {
+    match msg {
+        Some(MenuAction::Trailing) => {
             if screen == 0 {
                 return Some(RouteTarget::MainMenu);
             }
             view.switch_screen(0);
-        } else {
+        }
+        Some(MenuAction::Item(action)) => {
             return activate_item(view, state, screen, action);
         }
+        None => {}
     }
 
     None

@@ -3,8 +3,7 @@ use crate::components::modal::alert_prompt;
 use crate::gfx::theme::{FONT_BODY, FONT_GOLD};
 use crate::route::RouteTarget;
 use crate::screen::{GameCx, GameScreen};
-use engine::oxide::widgets::menu::PixelMenu;
-use engine::oxide::Widget;
+use engine::oxide::widgets::menu::{MenuAction, PixelMenu};
 use engine::oxide::{PaintCx, ScreenBackground, ScreenEventCx, UiEvent};
 
 pub struct MainMenuView {
@@ -65,8 +64,8 @@ impl GameScreen for MainMenuView {
         }
 
         let mut ecx = engine::oxide::widget::EventCx::default();
-        match self.menu.event(&mut ecx, event) {
-            Some(6) => {
+        match self.menu.event_action(&mut ecx, event) {
+            Some(MenuAction::Item(6)) => {
                 self.confirming_quit = true;
                 let qi = 251 + (cx.state.rng.random_i32(3) as usize).min(2);
                 let pi = 256 + (cx.state.rng.random_i32(3) as usize).min(2);
@@ -74,7 +73,7 @@ impl GameScreen for MainMenuView {
                 self.quit_prompt = lang.tr(pi).to_string();
                 nav.consume();
             }
-            Some(n) => {
+            Some(MenuAction::Item(n)) => {
                 if let Some(route) = MENU_ACTIONS.get(n).and_then(|&a| a) {
                     nav.navigate(route);
                 }

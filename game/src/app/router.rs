@@ -47,7 +47,11 @@ fn make_screen(
             state.selected_replay.clone(),
         )),
         RouteTarget::ProfilesList => {
-            Box::new(ProfilesView::new(resources.clone(), save_manager.clone()))
+            Box::new(ProfilesView::new(
+                resources.clone(),
+                save_manager.clone(),
+                state,
+            ))
         }
         RouteTarget::LoadCup => Box::new(LoadCupView::new(save_manager.clone())),
         RouteTarget::HallOfFame => Box::new(HallOfFameView::new(resources.clone())),

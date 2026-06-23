@@ -10,6 +10,12 @@ pub struct MenuItem {
     pub y_offset: i32,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MenuAction {
+    Item(usize),
+    Trailing,
+}
+
 #[cfg(test)]
 mod tests {
     use super::{MenuItem, PixelMenu};
@@ -380,10 +386,6 @@ impl PixelMenu {
         self.selected
     }
 
-    pub fn selected_action(&self) -> usize {
-        self.submit_selected()
-    }
-
     pub fn is_trailing_selected(&self) -> bool {
         self.trailing.is_some() && self.selected == self.items.len()
     }
@@ -394,6 +396,29 @@ impl PixelMenu {
 
     pub fn set_selected(&mut self, selected: usize) {
         self.selected = selected.min(self.total_items().saturating_sub(1));
+    }
+
+    pub fn set_items(&mut self, items: Vec<MenuItem>) {
+        self.items = items;
+        self.selected = self.selected.min(self.total_items().saturating_sub(1));
+    }
+
+    pub fn set_index_items(&mut self, count: usize) {
+        let items: Vec<MenuItem> = (0..count).map(|i| MenuItem::new(i as u8, "")).collect();
+        self.set_items(items);
+    }
+
+    pub fn selected_action(&self) -> MenuAction {
+        if self.is_trailing_selected() {
+            MenuAction::Trailing
+        } else {
+            MenuAction::Item(self.submit_selected())
+        }
+    }
+
+    pub fn event_action(&mut self, cx: &mut EventCx, event: UiEvent) -> Option<MenuAction> {
+        self.event(cx, event)?;
+        Some(self.selected_action())
     }
 
     pub fn set_show_box(&mut self, show: bool) {

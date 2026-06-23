@@ -3,9 +3,10 @@ use crate::gfx::theme::{BG_PURPLE, BLACK, FILL_GRAY, FONT_BODY, FONT_GOLD, FONT_
 use crate::route::RouteTarget;
 use crate::screen::{GameCx, GameScreen};
 use crate::store::ResourcesRef;
+use engine::oxide::widgets::menu::MenuAction;
 use engine::oxide::widgets::menu::MenuItem as OxideMenuItem;
 use engine::oxide::widgets::menu::PixelMenu;
-use engine::oxide::{PaintCx, ScreenEventCx, UiEvent, Widget};
+use engine::oxide::{PaintCx, ScreenEventCx, UiEvent};
 
 pub struct WelcomeScreenView {
     menu: PixelMenu,
@@ -16,7 +17,7 @@ impl WelcomeScreenView {
     pub fn new(resources: ResourcesRef) -> Self {
         let count = resources.langbase.language_count();
         let items: Vec<OxideMenuItem> = (0..count)
-            .map(|i| OxideMenuItem::new((i + 1) as u8, format!("{}", i)))
+            .map(|i| OxideMenuItem::new(i as u8, format!("{}", i)))
             .collect();
         Self {
             menu: PixelMenu::new(112, 64, 100, 8, items, FONT_BODY, FONT_BODY)
@@ -51,10 +52,9 @@ impl WelcomeScreenView {
 impl GameScreen for WelcomeScreenView {
     fn event(&mut self, cx: &mut GameCx<'_>, nav: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
         let mut ecx = engine::oxide::widget::EventCx::default();
-        match self.menu.event(&mut ecx, event) {
-            Some(0) => nav.navigate(RouteTarget::MainMenu),
-            Some(n) => {
-                self.resources.langbase.select(n - 1);
+        match self.menu.event_action(&mut ecx, event) {
+            Some(MenuAction::Item(n)) => {
+                self.resources.langbase.select(n);
                 cx.state.config.language = self.resources.langbase.saved_language();
                 cx.save_manager.save_config(&cx.state.config);
                 nav.navigate(RouteTarget::MainMenu);

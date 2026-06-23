@@ -32,19 +32,13 @@ pub(super) fn handle_list_enter(
         let profile_index = state.profiles.num_profiles() - 1;
         save_players(view, state);
         view.selected = profile_index;
-        view.mode = Mode::Edit {
-            profile: profile_index,
-            selected: 0,
-        };
+        view.enter_edit_mode(state, profile_index, 0);
         return None;
     }
 
     let in_order = state.profiles.order_pos(view.selected).is_some();
     if in_order {
-        view.mode = Mode::Edit {
-            profile: view.selected,
-            selected: 0,
-        };
+        view.enter_edit_mode(state, view.selected, 0);
     } else {
         state.profiles.add_to_order(view.selected);
         save_players(view, state);
@@ -244,13 +238,10 @@ pub(super) fn commit_text_input(
 ) {
     let value = buf.trim().to_ascii_uppercase();
     if value.is_empty() {
-        view.mode = Mode::Edit {
-            profile,
-            selected: match field {
-                TextField::Name => 0,
-                TextField::RealName => 1,
-            },
-        };
+        view.enter_edit_mode(state, profile, match field {
+            TextField::Name => 0,
+            TextField::RealName => 1,
+        });
         return;
     }
 
@@ -271,13 +262,10 @@ pub(super) fn commit_text_input(
         TextField::Name => state.profiles.profiles[profile].name = value,
         TextField::RealName => state.profiles.profiles[profile].real_name = value,
     }
-    view.mode = Mode::Edit {
-        profile,
-        selected: match field {
-            TextField::Name => 0,
-            TextField::RealName => 1,
-        },
-    };
+    view.enter_edit_mode(state, profile, match field {
+        TextField::Name => 0,
+        TextField::RealName => 1,
+    });
 }
 
 pub(super) fn handle_event_text_input(mode: &mut Mode, event: UiEvent) -> Option<Pending> {

@@ -20,7 +20,6 @@ pub(super) enum Mode {
     List,
     Edit {
         profile: usize,
-        selected: usize,
     },
     TextInput {
         profile: usize,
