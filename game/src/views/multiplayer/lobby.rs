@@ -10,25 +10,22 @@ use net::discovery;
 use net::host::HostHandle;
 use net::protocol::{self, ClientMsg, Hello, PlayerInfo, LobbySnapshot, NetEvent, ServerMsg};
 
+use crate::gfx::sprites;
 use crate::gfx::theme::{BG_PURPLE, BLACK, FILL_GRAY, FONT_BODY, FONT_GOLD, FONT_GRAY, FONT_TEAL};
 use crate::route::RouteTarget;
 use crate::screen::{GameCx, GameScreen};
 use crate::views::multiplayer::state::{LobbyPlayer, LobbyState};
 
-enum DiscoveryResult {
-    Join(SocketAddr),
-    Host,
-}
-
 pub struct MultiplayerLobbyView {
     phase: LobbyPhase,
-    discovery_handle: Option<JoinHandle<DiscoveryResult>>,
+    discovery_handle: Option<JoinHandle<Option<SocketAddr>>>,
     init_done: bool,
 }
 
 enum LobbyPhase {
     Discovering,
     Connected,
+    Retry,
 }
 
 impl MultiplayerLobbyView {
@@ -45,55 +42,28 @@ impl GameScreen for MultiplayerLobbyView {
     fn update(&mut self, cx: &mut GameCx<'_>) {
         if !self.init_done {
             self.init_done = true;
-            let handle = std::thread::spawn(|| {
-                match discovery::discover(Duration::from_secs(2)) {
-                    Ok(Some(addr)) => DiscoveryResult::Join(addr),
-                    _ => DiscoveryResult::Host,
-                }
-            });
-            self.discovery_handle = Some(handle);
-        }
-
-        if let LobbyPhase::Discovering = self.phase {
-            if let Some(handle) = self.discovery_handle.take() {
-                if handle.is_finished() {
-                    match handle.join().unwrap_or(DiscoveryResult::Host) {
-                    DiscoveryResult::Host => {
-                        if let Ok(host) = HostHandle::start() {
-                                cx.state.net_host = Some(host);
-                                let p = &cx.state.profiles.profiles[0];
-                                let local = LobbyPlayer::from_profile(0, p, true);
-                                let lobby = LobbyState::new(true, local);
-                                cx.state.pending_lobby = Some(lobby);
-                            }
-                        }
-                        DiscoveryResult::Join(addr) => {
-                            let p = &cx.state.profiles.profiles[0];
-                            let hello = Hello {
-                                name: p.name.clone(),
-                                suit: p.suit_color,
-                                ski: p.ski_color,
-                            };
-                            if let Ok(client) = ClientHandle::connect(addr, hello) {
-                                cx.state.net_client = Some(client);
-                                let local = LobbyPlayer::from_profile(0, p, false);
-                                let lobby = LobbyState::new(false, local);
-                                cx.state.pending_lobby = Some(lobby);
-                            }
-                        }
-                    }
+            match HostHandle::start() {
+                Ok(host) => {
+                    cx.state.net_host = Some(host);
+                    let p = &cx.state.profiles.profiles[0];
+                    let local = LobbyPlayer::from_profile(0, p, true);
+                    cx.state.pending_lobby = Some(LobbyState::new(true, local));
                     self.phase = LobbyPhase::Connected;
-                } else {
-                    self.discovery_handle = Some(handle);
+                    return;
+                }
+                Err(_) => {
+                    self.phase = LobbyPhase::Retry;
+                    self.start_discovery();
                 }
             }
         }
-
+        if let LobbyPhase::Retry = self.phase {
+            self.tick_discovery(cx);
+        }
         if let LobbyPhase::Connected = self.phase {
             self.poll_events(cx);
         }
     }
-
     fn event(&mut self, cx: &mut GameCx<'_>, nav: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
         match event {
             UiEvent::KeyDown(Key::Escape) => {
@@ -127,9 +97,10 @@ impl GameScreen for MultiplayerLobbyView {
         paint.fill((0, 0, 320, 200), BLACK);
         paint.pattern_fill((0, 0, 320, 19), FILL_GRAY);
         paint.pattern_fill((0, 20, 320, 180), BG_PURPLE);
+        paint.sprite(sprites::Sprite::Logo as u16, (5, 2));
 
         match self.phase {
-            LobbyPhase::Discovering => {
+            LobbyPhase::Discovering | LobbyPhase::Retry => {
                 paint.center_text((160, 90), FONT_GOLD, "Scanning WiFi...");
                 paint.center_text((160, 102), FONT_GRAY, "looking for existing rooms");
             }
@@ -141,12 +112,9 @@ impl GameScreen for MultiplayerLobbyView {
                 } else {
                     "OFFLINE"
                 };
-                paint.text((4, 6), FONT_GOLD, format!("MULTIPLAYER {mode}"));
-                paint.right_text(
-                    (316, 6),
-                    FONT_GRAY,
-                    "F1 ready  F2 start  Esc leave",
-                );
+                paint.text((30, 6), FONT_BODY, format!("MULTIPLAYER {mode}"));
+                paint.right_text((316, 5), FONT_GRAY, "F1 ready  F2 start)");
+                paint.right_text((316, 13), FONT_GRAY, "Esc leave)");
 
                 if let Some(ref lobby) = cx.state.pending_lobby {
                     for (i, p) in lobby.players.iter().enumerate() {
@@ -182,6 +150,40 @@ impl GameScreen for MultiplayerLobbyView {
 }
 
 impl MultiplayerLobbyView {
+    fn start_discovery(&mut self) {
+        let h = std::thread::spawn(|| {
+            match discovery::discover(Duration::from_secs(2)) {
+                Ok(Some(addr)) => Some(addr),
+                _ => None,
+            }
+        });
+        self.discovery_handle = Some(h);
+    }
+
+    fn tick_discovery(&mut self, cx: &mut GameCx<'_>) {
+        let Some(handle) = self.discovery_handle.take() else { return };
+        if !handle.is_finished() {
+            self.discovery_handle = Some(handle);
+            return;
+        }
+        if let Ok(Some(addr)) = handle.join() {
+            let p = &cx.state.profiles.profiles[0];
+            let hello = Hello {
+                name: p.name.clone(),
+                suit: p.suit_color,
+                ski: p.ski_color,
+            };
+            if let Ok(client) = ClientHandle::connect(addr, hello) {
+                cx.state.net_client = Some(client);
+                let local = LobbyPlayer::from_profile(0, p, false);
+                cx.state.pending_lobby = Some(LobbyState::new(false, local));
+                self.phase = LobbyPhase::Connected;
+                return;
+            }
+        }
+        self.discovery_handle = None;
+    }
+
     fn poll_events(&mut self, cx: &mut GameCx<'_>) {
         let host_events: Vec<NetEvent> = cx
             .state

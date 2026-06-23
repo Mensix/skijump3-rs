@@ -19,14 +19,22 @@ pub fn announce(host_port: u16) -> std::io::Result<UdpSocket> {
     }
 }
 
+fn send_probes(sock: &UdpSocket, port: u16) {
+    let magic = DISCOVERY_MAGIC.as_bytes();
+    let targets = [
+        SocketAddr::from((Ipv4Addr::BROADCAST, port)),
+        SocketAddr::from(([127, 0, 0, 1], port)),
+    ];
+    for t in &targets {
+        let _ = sock.send_to(magic, t);
+    }
+}
+
 pub fn discover(timeout: Duration) -> std::io::Result<Option<SocketAddr>> {
     let sock = UdpSocket::bind(SocketAddr::from((Ipv4Addr::UNSPECIFIED, 0)))?;
     sock.set_broadcast(true)?;
     sock.set_read_timeout(Some(timeout))?;
-    sock.send_to(
-        DISCOVERY_MAGIC.as_bytes(),
-        SocketAddr::from((Ipv4Addr::BROADCAST, DISCOVERY_PORT)),
-    )?;
+    send_probes(&sock, DISCOVERY_PORT);
     let mut buf = [0u8; 128];
     let deadline = std::time::Instant::now() + timeout;
     while std::time::Instant::now() < deadline {
