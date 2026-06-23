@@ -72,13 +72,7 @@ fn make_screen(
         }
         RouteTarget::Welcome => Box::new(WelcomeScreenView::new(resources.clone())),
         RouteTarget::MultiplayerMenu => Box::new(MultiplayerMenuView::new()),
-        RouteTarget::MultiplayerLobby => {
-            let lobby = state
-                .pending_lobby
-                .take()
-                .expect("pending_lobby not set for MultiplayerLobby");
-            Box::new(MultiplayerLobbyView::new(lobby))
-        }
+        RouteTarget::MultiplayerLobby => Box::new(MultiplayerLobbyView::new()),
         RouteTarget::Quit => Box::new(MainMenuView::new()),
         _ => unreachable!(),
     }

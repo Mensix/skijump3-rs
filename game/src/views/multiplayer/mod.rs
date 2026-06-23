@@ -1,4 +1,3 @@
-pub mod chat;
 pub mod lobby;
 pub mod menu;
 pub mod state;

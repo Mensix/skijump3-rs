@@ -19,7 +19,7 @@ const MENU_ACTIONS: &[Option<RouteTarget>] = &[
     Some(RouteTarget::OptionsMenu),
     Some(RouteTarget::HallOfFame),
     Some(RouteTarget::HillRecords),
-    Some(RouteTarget::MultiplayerMenu),
+    Some(RouteTarget::MultiplayerLobby),
     Some(RouteTarget::Replays),
     Some(RouteTarget::Quit),
 ];
