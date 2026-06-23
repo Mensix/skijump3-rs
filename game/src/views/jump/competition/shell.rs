@@ -43,7 +43,7 @@ impl CompetitionJumpView {
                 TrainingJumpView::new(resources, state, save_manager),
             )),
             ActiveCompetitionKind::Individual => Self::Individual(CompetitionShell::new(
-                WorldCupJumpView::new(resources, save_manager),
+                WorldCupJumpView::new(resources, save_manager, state),
             )),
             ActiveCompetitionKind::TeamCup => Self::TeamCup(CompetitionShell::new(
                 TeamCupJumpView::new(resources, save_manager),

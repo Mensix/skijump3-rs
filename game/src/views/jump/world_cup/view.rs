@@ -26,9 +26,14 @@ pub struct WorldCupJumpView {
 }
 
 impl WorldCupJumpView {
-    pub(crate) fn new(resources: ResourcesRef, save_manager: SaveRef) -> Self {
+    pub(crate) fn new(resources: ResourcesRef, save_manager: SaveRef, state: &GameState) -> Self {
         Self {
-            controller: CompetitionJumpController::new(resources, save_manager, false, None),
+            controller: CompetitionJumpController::new(
+                resources,
+                save_manager,
+                state.config.compact_results != 0,
+                None,
+            ),
             blinker: Blinker::new(),
         }
     }
