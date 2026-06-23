@@ -42,7 +42,7 @@ pub fn format_profile_value(
                 "-".to_string()
             } else {
                 format!(
-                    "{}x {}",
+                    "{}µ {}",
                     format_decimal(profile.best_wc_jump),
                     profile.best_wc_hill_display
                 )
@@ -53,7 +53,7 @@ pub fn format_profile_value(
                 "-".to_string()
             } else {
                 format!(
-                    "{}x {}",
+                    "{}µ {}",
                     format_decimal(profile.best_jump),
                     profile.best_hill_display
                 )
