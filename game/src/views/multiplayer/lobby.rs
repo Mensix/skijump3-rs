@@ -25,7 +25,6 @@ pub struct MultiplayerLobbyView {
 enum LobbyPhase {
     Discovering,
     Connected,
-    Retry,
 }
 
 impl MultiplayerLobbyView {
@@ -51,13 +50,10 @@ impl GameScreen for MultiplayerLobbyView {
                     self.phase = LobbyPhase::Connected;
                     return;
                 }
-                Err(_) => {
-                    self.phase = LobbyPhase::Retry;
-                    self.start_discovery();
-                }
+                Err(_) => self.start_discovery(),
             }
         }
-        if let LobbyPhase::Retry = self.phase {
+        if let LobbyPhase::Discovering = self.phase {
             self.tick_discovery(cx);
         }
         if let LobbyPhase::Connected = self.phase {
@@ -100,7 +96,7 @@ impl GameScreen for MultiplayerLobbyView {
         paint.sprite(sprites::Sprite::Logo as u16, (5, 2));
 
         match self.phase {
-            LobbyPhase::Discovering | LobbyPhase::Retry => {
+            LobbyPhase::Discovering => {
                 paint.center_text((160, 90), FONT_GOLD, "Scanning WiFi...");
                 paint.center_text((160, 102), FONT_GRAY, "looking for existing rooms");
             }
