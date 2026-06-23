@@ -8,6 +8,8 @@ use crate::files::FileStore;
 use crate::jump::replay::ReplayTrace;
 use crate::jump::types::DEFAULT_START_GATE;
 use crate::jump::wind::Wind;
+use sjn3_net::client::ClientHandle;
+use sjn3_net::host::HostHandle;
 use crate::rng::Random;
 use crate::save::config::Config;
 use crate::text::lang::LangBase;
@@ -15,6 +17,7 @@ use crate::views::multiplayer::state::LobbyState;
 use engine::oxide::Font;
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::fmt;
 use std::rc::Rc;
 
 #[derive(Debug, Clone)]
@@ -65,7 +68,6 @@ impl Resources {
 
 pub type ResourcesRef = Rc<Resources>;
 
-#[derive(Debug, Clone)]
 pub struct GameState {
     pub config: Config,
     pub rng: Random,
@@ -80,6 +82,30 @@ pub struct GameState {
     pub active_cup_filename: Option<String>,
     pub nav_edit_hill: Option<String>,
     pub pending_lobby: Option<LobbyState>,
+    pub net_host: Option<HostHandle>,
+    pub net_client: Option<ClientHandle>,
+}
+
+impl fmt::Debug for GameState {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("GameState")
+            .field("config", &self.config)
+            .field("rng", &self.rng)
+            .field("wind", &self.wind)
+            .field("first_event", &self.first_event)
+            .field("practice_hill", &self.practice_hill)
+            .field("practice_start_gate", &self.practice_start_gate)
+            .field("selected_replay", &self.selected_replay)
+            .field("active_competition", &self.active_competition)
+            .field("profiles", &self.profiles)
+            .field("records", &self.records)
+            .field("active_cup_filename", &self.active_cup_filename)
+            .field("nav_edit_hill", &self.nav_edit_hill)
+            .field("pending_lobby", &self.pending_lobby)
+            .field("net_host", &self.net_host.is_some())
+            .field("net_client", &self.net_client.is_some())
+            .finish()
+    }
 }
 
 impl GameState {
@@ -103,6 +129,8 @@ impl GameState {
             active_cup_filename: None,
             nav_edit_hill: None,
             pending_lobby: None,
+            net_host: None,
+            net_client: None,
         }
     }
 

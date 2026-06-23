@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["engine", "game", "tools/convert-custom-hill"]
+members = ["engine", "game", "net", "tools/convert-custom-hill"]
 
 [workspace.package]
 version = "0.1.0"
