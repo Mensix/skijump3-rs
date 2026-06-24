@@ -1,5 +1,4 @@
 use std::net::SocketAddr;
-use std::thread::JoinHandle;
 use std::time::Duration;
 
 use engine::oxide::input::{Key, UiEvent};
@@ -8,64 +7,97 @@ use engine::oxide::{ScreenBackground, ScreenEventCx};
 use net::client::ClientHandle;
 use net::discovery;
 use net::host::HostHandle;
-use net::protocol::{self, ClientMsg, Hello, PlayerInfo, LobbySnapshot, NetEvent, ServerMsg};
+use net::protocol::{
+    self, ChatMsg, ClientMsg, Hello, JumpRound, LobbySnapshot, MPStandingEntry, NetEvent,
+    PlayerInfo, ServerMsg,
+};
 
 use crate::gfx::sprites;
 use crate::gfx::theme::{BG_PURPLE, BLACK, FILL_GRAY, FONT_BODY, FONT_GOLD, FONT_GRAY, FONT_TEAL};
 use crate::route::RouteTarget;
 use crate::screen::{GameCx, GameScreen};
+use crate::store::MPJumpState;
+use crate::views::multiplayer::chat::{ChatAction, ChatPanel};
 use crate::views::multiplayer::state::{LobbyPlayer, LobbyState};
 
 pub struct MultiplayerLobbyView {
     phase: LobbyPhase,
-    discovery_handle: Option<JoinHandle<Option<SocketAddr>>>,
-    init_done: bool,
+    status: String,
+    chat: ChatPanel,
+    pending_start: bool,
 }
 
 enum LobbyPhase {
-    Discovering,
     Connected,
+    Failed,
 }
 
 impl MultiplayerLobbyView {
     pub fn new() -> Self {
         Self {
-            phase: LobbyPhase::Discovering,
-            discovery_handle: None,
-            init_done: false,
+            phase: LobbyPhase::Connected,
+            status: String::new(),
+            chat: ChatPanel::default(),
+            pending_start: false,
         }
     }
 }
 
 impl GameScreen for MultiplayerLobbyView {
     fn update(&mut self, cx: &mut GameCx<'_>) {
-        if !self.init_done {
-            self.init_done = true;
-            match HostHandle::start() {
-                Ok(host) => {
-                    cx.state.net_host = Some(host);
-                    let p = &cx.state.profiles.profiles[0];
-                    let local = LobbyPlayer::from_profile(0, p, true);
-                    cx.state.pending_lobby = Some(LobbyState::new(true, local));
-                    self.phase = LobbyPhase::Connected;
-                    return;
-                }
-                Err(_) => self.start_discovery(),
+        if self.status.is_empty() {
+            let discovered = discovery::discover(Duration::ZERO).ok().flatten();
+            let joined = if let Some(addr) = discovered {
+                self.join_host(cx, addr)
+            } else {
+                false
+            };
+            if joined || self.join_localhost(cx) || self.become_host(cx) {
+                self.phase = LobbyPhase::Connected;
+            } else {
+                self.phase = LobbyPhase::Failed;
             }
         }
-        if let LobbyPhase::Discovering = self.phase {
-            self.tick_discovery(cx);
-        }
+
         if let LobbyPhase::Connected = self.phase {
+            self.chat.tick();
             self.poll_events(cx);
         }
     }
+
     fn event(&mut self, cx: &mut GameCx<'_>, nav: &mut ScreenEventCx<RouteTarget>, event: UiEvent) {
-        match event {
-            UiEvent::KeyDown(Key::Escape) => {
+        if let LobbyPhase::Failed = self.phase {
+            if let UiEvent::KeyDown(Key::Escape) = event {
+                if let Some(ref host) = cx.state.net_host {
+                    host.stop();
+                }
                 cx.state.net_host.take();
                 cx.state.net_client.take();
                 nav.back();
+                nav.consume();
+            }
+            return;
+        }
+
+        if self.pending_start {
+            self.pending_start = false;
+            self.do_start_mp(cx, nav);
+        }
+
+        match event {
+            UiEvent::KeyDown(Key::Escape) => {
+                if !self.chat.input.is_empty() {
+                    self.chat.input.clear();
+                } else {
+                    if let Some(ref host) = cx.state.net_host {
+                        host.stop();
+                    }
+                    cx.state.net_host.take();
+                    cx.state.net_client.take();
+                    nav.back();
+                }
+                nav.consume();
+                return;
             }
             UiEvent::KeyDown(Key::F1) => {
                 if let Some(ref mut lobby) = cx.state.pending_lobby {
@@ -80,12 +112,36 @@ impl GameScreen for MultiplayerLobbyView {
                     }
                 }
                 nav.consume();
+                return;
             }
             UiEvent::KeyDown(Key::F2) => {
-                nav.navigate(RouteTarget::CompetitionJump);
+                if cx.state.net_host.is_some() {
+                    if let Some(ref lobby) = cx.state.pending_lobby {
+                        let all_ready = lobby
+                            .players
+                            .iter()
+                            .filter(|p| !p.is_empty())
+                            .all(|p| p.ready);
+                        if all_ready {
+                            self.do_start_mp(cx, nav);
+                            return;
+                        }
+                    }
+                }
                 nav.consume();
             }
             _ => {}
+        }
+
+        match self.chat.event(event) {
+            ChatAction::Send(text) => {
+                self.send_chat(cx, &text);
+                nav.consume();
+            }
+            ChatAction::Consumed => {
+                nav.consume();
+            }
+            ChatAction::None => {}
         }
     }
 
@@ -95,21 +151,20 @@ impl GameScreen for MultiplayerLobbyView {
         paint.pattern_fill((0, 20, 320, 180), BG_PURPLE);
         paint.sprite(sprites::Sprite::Logo as u16, (5, 2));
 
+        paint.text((30, 6), FONT_BODY, "MULTIPLAYER ROOM");
+
         match self.phase {
-            LobbyPhase::Discovering => {
-                paint.center_text((160, 90), FONT_GOLD, "Scanning WiFi...");
-                paint.center_text((160, 102), FONT_GRAY, "looking for existing rooms");
+            LobbyPhase::Failed => {
+                paint.center_text((160, 90), FONT_GOLD, &self.status);
+                paint.center_text((160, 102), FONT_GRAY, "Esc leave");
             }
             LobbyPhase::Connected => {
-                let mode = if cx.state.net_host.is_some() {
-                    "ROOM"
-                } else if cx.state.net_client.is_some() {
-                    "JOINED"
-                } else {
-                    "OFFLINE"
-                };
-                paint.text((30, 6), FONT_BODY, format!("MULTIPLAYER {mode}"));
-                paint.right_text((316, 5), FONT_GRAY, "F1 ready  F2 start)");
+                if self.status.is_empty() {
+                    paint.center_text((160, 90), FONT_GRAY, "Connecting...");
+                    return;
+                }
+
+                paint.right_text((316, 5), FONT_GRAY, "F1 rd  F2 go)");
                 paint.right_text((316, 13), FONT_GRAY, "Esc leave)");
 
                 if let Some(ref lobby) = cx.state.pending_lobby {
@@ -128,14 +183,26 @@ impl GameScreen for MultiplayerLobbyView {
                         paint.right_text(
                             (184, y),
                             if p.ready {
-                                if is_local { FONT_GOLD } else { FONT_TEAL }
+                                if is_local {
+                                    FONT_GOLD
+                                } else {
+                                    FONT_TEAL
+                                }
                             } else {
                                 FONT_GRAY
                             },
-                            if p.ready { "RDY" } else { "WAIT" },
+                            if p.ready { "RDY" } else { "AWAITING" },
                         );
                     }
                 }
+
+                let p = &cx.state.profiles.profiles[0];
+                let display = if p.real_name.is_empty() {
+                    &p.name
+                } else {
+                    &p.real_name
+                };
+                self.chat.paint(paint, 143, display);
             }
         }
     }
@@ -146,38 +213,110 @@ impl GameScreen for MultiplayerLobbyView {
 }
 
 impl MultiplayerLobbyView {
-    fn start_discovery(&mut self) {
-        let h = std::thread::spawn(|| {
-            match discovery::discover(Duration::from_secs(2)) {
-                Ok(Some(addr)) => Some(addr),
-                _ => None,
+    fn become_host(&mut self, cx: &mut GameCx<'_>) -> bool {
+        match HostHandle::start() {
+            Ok(host) => {
+                cx.state.net_host = Some(host);
+                let p = &cx.state.profiles.profiles[0];
+                let local = LobbyPlayer::from_profile(0, p, true);
+                cx.state.pending_lobby = Some(LobbyState::new(true, local));
+                self.status = "hosting room".to_string();
+                true
             }
-        });
-        self.discovery_handle = Some(h);
+            Err(e) => {
+                self.status = format!("host failed: {e}");
+                false
+            }
+        }
     }
 
-    fn tick_discovery(&mut self, cx: &mut GameCx<'_>) {
-        let Some(handle) = self.discovery_handle.take() else { return };
-        if !handle.is_finished() {
-            self.discovery_handle = Some(handle);
-            return;
-        }
-        if let Ok(Some(addr)) = handle.join() {
-            let p = &cx.state.profiles.profiles[0];
-            let hello = Hello {
-                name: p.name.clone(),
-                suit: p.suit_color,
-                ski: p.ski_color,
-            };
-            if let Ok(client) = ClientHandle::connect(addr, hello) {
+    fn join_localhost(&mut self, cx: &mut GameCx<'_>) -> bool {
+        self.join_host(cx, SocketAddr::from(([127, 0, 0, 1], protocol::PORT)))
+    }
+
+    fn join_host(&mut self, cx: &mut GameCx<'_>, addr: SocketAddr) -> bool {
+        let p = &cx.state.profiles.profiles[0];
+        let hello = Hello {
+            name: p.name.clone(),
+            suit: p.suit_color,
+            ski: p.ski_color,
+        };
+        match ClientHandle::connect(addr, hello) {
+            Ok(client) => {
                 cx.state.net_client = Some(client);
                 let local = LobbyPlayer::from_profile(0, p, false);
                 cx.state.pending_lobby = Some(LobbyState::new(false, local));
-                self.phase = LobbyPhase::Connected;
-                return;
+                self.status = format!("joined {addr}");
+                true
+            }
+            Err(e) => {
+                self.status = format!("join {addr} failed: {e}");
+                false
             }
         }
-        self.discovery_handle = None;
+    }
+
+    fn send_chat(&mut self, cx: &mut GameCx<'_>, text: &str) {
+        let my_name = cx.state.profiles.profiles[0].name.clone();
+        if let Some(ref client) = cx.state.net_client {
+            client.send(ClientMsg::Chat(text.to_string()));
+        }
+        if cx.state.net_host.is_some() {
+            self.chat.push_message(my_name.clone(), text.to_string());
+            let msg = ServerMsg::Chat(ChatMsg {
+                from: my_name,
+                text: text.to_string(),
+            });
+            if let Some(ref host) = cx.state.net_host {
+                host.broadcast(msg);
+            }
+        }
+    }
+
+    fn do_start_mp(&mut self, cx: &mut GameCx<'_>, nav: &mut ScreenEventCx<RouteTarget>) {
+        let Some(ref lobby) = cx.state.pending_lobby else {
+            return;
+        };
+        let seed = cx.state.rng.random_i32(i32::MAX) as u32;
+        let pos = cx.state.config.wind_position as u8;
+        cx.state.wind.initialize(&mut cx.state.rng, pos);
+        let mut entries = Vec::new();
+        for (i, p) in lobby.players.iter().enumerate() {
+            if p.is_empty() {
+                continue;
+            }
+            entries.push(MPStandingEntry {
+                player_id: i,
+                name: p.name.clone(),
+                round1_len: 0.0,
+                round1_score: 0.0,
+                round2_len: 0.0,
+                round2_score: 0.0,
+                total_points: 0.0,
+            });
+        }
+        let round = JumpRound {
+            hill_idx: 0,
+            round: 0,
+            wind_seed: seed,
+            wind_position: pos,
+            start_gate: 15,
+        };
+        if let Some(ref host) = cx.state.net_host {
+            host.broadcast(ServerMsg::JumpRound(round.clone()));
+            host.broadcast(ServerMsg::StandingsUpdate {
+                round: 0,
+                entries: entries.clone(),
+            });
+        }
+        cx.state.mp_jump = Some(MPJumpState {
+            round: 0,
+            hill_idx: 0,
+            entries,
+            my_player_id: 0,
+        });
+        cx.state.pending_lobby = None;
+        nav.navigate(RouteTarget::MultiplayerJump);
     }
 
     fn poll_events(&mut self, cx: &mut GameCx<'_>) {
@@ -187,29 +326,28 @@ impl MultiplayerLobbyView {
             .as_ref()
             .map(|h| std::iter::from_fn(|| h.event_rx.try_recv().ok()).collect())
             .unwrap_or_default();
-
         for evt in &host_events {
             self.process_host_event(cx, evt);
         }
-
         let client_events: Vec<NetEvent> = cx
             .state
             .net_client
             .as_ref()
             .map(|c| std::iter::from_fn(|| c.event_rx.try_recv().ok()).collect())
             .unwrap_or_default();
-
         for evt in &client_events {
             self.process_client_event(cx, evt);
         }
     }
 
-    fn process_host_event(&self, cx: &mut GameCx<'_>, evt: &NetEvent) {
+    fn process_host_event(&mut self, cx: &mut GameCx<'_>, evt: &NetEvent) {
         match evt {
-            NetEvent::ClientHello(_id, hello) => {
+            NetEvent::ClientHello(id, hello) => {
+                self.status = format!("client {id} joined");
                 let mut changed = false;
                 if let Some(ref mut lobby) = cx.state.pending_lobby {
-                    if let Some(slot) = lobby.players.iter_mut().find(|p| p.is_empty()) {
+                    let idx = id + 1;
+                    if let Some(slot) = lobby.players.get_mut(idx) {
                         slot.name = hello.name.clone();
                         slot.suit_color = hello.suit;
                         slot.ski_color = hello.ski;
@@ -219,57 +357,93 @@ impl MultiplayerLobbyView {
                     }
                 }
                 if changed {
+                    let sys = format!("{} joined", hello.name);
+                    self.chat.push_system(sys.clone());
+                    let sys_msg = ServerMsg::Chat(ChatMsg {
+                        from: String::new(),
+                        text: sys,
+                    });
+                    if let Some(ref host) = cx.state.net_host {
+                        host.broadcast(sys_msg);
+                    }
                     let (snap, should_start) = if let Some(ref lobby) = cx.state.pending_lobby {
                         let snap = snapshot_from_lobby(lobby);
-                        let should = lobby.players.iter().filter(|p| !p.is_empty()).count() >= 2
-                            && lobby.players.iter().filter(|p| !p.is_empty()).all(|p| p.ready);
-                        (snap, should)
+                        let all_ready = lobby
+                            .players
+                            .iter()
+                            .filter(|p| !p.is_empty())
+                            .all(|p| p.ready);
+                        (snap, all_ready)
                     } else {
                         return;
                     };
                     if let Some(ref host) = cx.state.net_host {
                         host.broadcast(ServerMsg::Lobby(snap));
                         if should_start {
-                            let msg = ServerMsg::Start(protocol::Start {
-                                hill_idx: 0,
-                                seed: 42,
-                            });
-                            host.broadcast(msg);
-                            cx.state.pending_lobby = None;
+                            self.pending_start = true;
                         }
                     }
                 }
             }
-            NetEvent::ClientReady(_id, ready) => {
+            NetEvent::ClientReady(id, ready) => {
+                self.status = format!("client {id} ready {ready}");
                 if let Some(ref mut lobby) = cx.state.pending_lobby {
-                    if let Some(p) = lobby.players.iter_mut().find(|p| !p.is_empty() && !p.is_host) {
+                    let idx = id + 1;
+                    if let Some(p) = lobby.players.get_mut(idx) {
                         p.ready = *ready;
                     }
                 }
                 let (snap, should_start) = if let Some(ref lobby) = cx.state.pending_lobby {
                     let snap = snapshot_from_lobby(lobby);
-                    let should = lobby.players.iter().filter(|p| !p.is_empty()).count() >= 2
-                        && lobby.players.iter().filter(|p| !p.is_empty()).all(|p| p.ready);
-                    (snap, should)
+                    let all_ready = lobby
+                        .players
+                        .iter()
+                        .filter(|p| !p.is_empty())
+                        .all(|p| p.ready);
+                    (snap, all_ready)
                 } else {
                     return;
                 };
                 if let Some(ref host) = cx.state.net_host {
                     host.broadcast(ServerMsg::Lobby(snap));
                     if should_start {
-                        let msg = ServerMsg::Start(protocol::Start {
-                            hill_idx: 0,
-                            seed: 42,
-                        });
-                        host.broadcast(msg);
-                        cx.state.pending_lobby = None;
+                        self.pending_start = true;
                     }
                 }
             }
-            NetEvent::ClientLeft(_id) => {
+            NetEvent::ClientChat(id, text) => {
+                if let Some(ref lobby) = cx.state.pending_lobby {
+                    let idx = id + 1;
+                    let name = &lobby.players[idx].name;
+                    self.chat.push_message(name.clone(), text.clone());
+                    let msg = ServerMsg::Chat(ChatMsg {
+                        from: name.clone(),
+                        text: text.clone(),
+                    });
+                    if let Some(ref host) = cx.state.net_host {
+                        host.broadcast(msg);
+                    }
+                }
+            }
+            NetEvent::ClientLeft(id) => {
+                self.status = format!("client {id} left");
+                let mut name = String::new();
                 if let Some(ref mut lobby) = cx.state.pending_lobby {
-                    if let Some(p) = lobby.players.iter_mut().find(|p| !p.is_empty() && !p.is_host) {
+                    let idx = id + 1;
+                    if let Some(p) = lobby.players.get_mut(idx) {
+                        name = p.name.clone();
                         *p = LobbyPlayer::empty_slot();
+                    }
+                }
+                if !name.is_empty() {
+                    let sys = format!("{name} left");
+                    self.chat.push_system(sys.clone());
+                    let sys_msg = ServerMsg::Chat(ChatMsg {
+                        from: String::new(),
+                        text: sys,
+                    });
+                    if let Some(ref host) = cx.state.net_host {
+                        host.broadcast(sys_msg);
                     }
                 }
                 if let Some(ref lobby) = cx.state.pending_lobby {
@@ -278,17 +452,28 @@ impl MultiplayerLobbyView {
                     }
                 }
             }
-            NetEvent::Error(_e) => {
-                cx.state.pending_lobby = None;
-            }
+            NetEvent::Error(e) => self.status = format!("host error: {e}"),
             _ => {}
         }
     }
 
-    fn process_client_event(&self, cx: &mut GameCx<'_>, evt: &NetEvent) {
+    fn process_client_event(&mut self, cx: &mut GameCx<'_>, evt: &NetEvent) {
         match evt {
+            NetEvent::Connected => self.status = "tcp connected".to_string(),
+            NetEvent::ServerMsg(ServerMsg::Chat(msg)) => {
+                if msg.from.is_empty() {
+                    self.chat.push_system(msg.text.clone());
+                } else {
+                    self.chat.push_message(msg.from.clone(), msg.text.clone());
+                }
+            }
             NetEvent::ServerMsg(ServerMsg::Lobby(snap)) => {
+                self.status = format!("lobby sync: {} players", snap.players.len());
                 if let Some(ref mut lobby) = cx.state.pending_lobby {
+                    let local_name = lobby.players[lobby.local_idx].name.clone();
+                    for player in &mut lobby.players {
+                        *player = LobbyPlayer::empty_slot();
+                    }
                     for (i, player) in snap.players.iter().enumerate() {
                         if i >= lobby.players.len() {
                             break;
@@ -299,14 +484,25 @@ impl MultiplayerLobbyView {
                         lobby.players[i].suit_color = player.suit;
                         lobby.players[i].ski_color = player.ski;
                     }
+                    if let Some((idx, _)) = lobby
+                        .players
+                        .iter()
+                        .enumerate()
+                        .find(|(_, p)| !p.is_host && p.name == local_name)
+                    {
+                        lobby.local_idx = idx;
+                    }
                 }
-            }
-            NetEvent::ServerMsg(ServerMsg::Start(_)) => {
-                cx.state.pending_lobby = None;
             }
             NetEvent::Disconnected => {
                 cx.state.net_client = None;
                 cx.state.pending_lobby = None;
+                self.chat.push_system("server disconnected");
+                self.phase = LobbyPhase::Failed;
+            }
+            NetEvent::Error(e) => {
+                self.status = format!("client error: {e}");
+                self.phase = LobbyPhase::Failed;
             }
             _ => {}
         }

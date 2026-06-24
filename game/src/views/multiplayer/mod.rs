@@ -1,6 +1,8 @@
+pub mod chat;
+pub mod jump;
 pub mod lobby;
-pub mod menu;
+pub mod results;
 pub mod state;
 
+pub(crate) use jump::MultiplayerJumpView;
 pub use lobby::MultiplayerLobbyView;
-pub use menu::MultiplayerMenuView;

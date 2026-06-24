@@ -7,7 +7,7 @@ use crate::store::{GameState, ResourcesRef};
 use crate::views::{
     CompetitionJumpView, CustomCupSetupView, EditHillView, HallOfFameView, HillMakerView,
     HillRecordsView, JumpMenuView, KothHillPickerView, KothSetupView, LoadCupView, MainMenuView,
-    MultiplayerLobbyView, MultiplayerMenuView, ProfilesView, ReplayBrowserView, ReplayView,
+    MultiplayerJumpView, MultiplayerLobbyView, ProfilesView, ReplayBrowserView, ReplayView,
     SetupView, TrainingSetupView, WelcomeScreenView,
 };
 use engine::oxide::{Key, NavAction, PaintCx, ScreenBackground, ScreenEventCx, UiEvent};
@@ -71,8 +71,8 @@ fn make_screen(
             Box::new(EditHillView::new(resources.clone(), filename))
         }
         RouteTarget::Welcome => Box::new(WelcomeScreenView::new(resources.clone())),
-        RouteTarget::MultiplayerMenu => Box::new(MultiplayerMenuView::new()),
         RouteTarget::MultiplayerLobby => Box::new(MultiplayerLobbyView::new()),
+        RouteTarget::MultiplayerJump => Box::new(MultiplayerJumpView::new(resources.clone())),
         RouteTarget::Quit => Box::new(MainMenuView::new()),
         _ => unreachable!(),
     }

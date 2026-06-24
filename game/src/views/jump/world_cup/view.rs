@@ -9,16 +9,14 @@ use crate::route::RouteTarget;
 use crate::save::SaveRef;
 use crate::screen::{GameCx, GameScreen};
 use crate::store::{GameState, ResourcesRef};
-use crate::text::format::current_timestamp;
-use crate::text::format::format_decimal;
+use crate::text::format::{current_timestamp, format_decimal};
 use crate::views::jump::competition::controller::CompetitionJumpController;
 use crate::views::jump::competition::flow::{CompetitionFlowCommand, JumpInputResult};
 use crate::views::jump::competition::results::{
     self as competition_results, CompetitionResultsRequest,
 };
 use crate::views::jump::competition::ui_state::{RenderMode, ResultScreen};
-use engine::oxide::Blinker;
-use engine::oxide::{Key, PaintCx, ScreenEventCx, UiEvent};
+use engine::oxide::{Blinker, Key, PaintCx, ScreenEventCx, UiEvent};
 
 pub struct WorldCupJumpView {
     controller: CompetitionJumpController<Competition>,

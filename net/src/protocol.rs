@@ -18,6 +18,13 @@ pub enum ClientMsg {
     Ready(bool),
     Chat(String),
     Leave,
+    JumpComplete {
+        distance: f64,
+        score: f64,
+        style_points: [f64; 5],
+        landing_style: u8,
+        fall_type: u8,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -43,17 +50,40 @@ pub struct ChatMsg {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Start {
+pub struct JumpRound {
     pub hill_idx: usize,
-    pub seed: u64,
+    pub round: usize,
+    pub wind_seed: u32,
+    pub wind_position: u8,
+    pub start_gate: i32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MPStandingEntry {
+    pub player_id: usize,
+    pub name: String,
+    pub round1_len: f64,
+    pub round1_score: f64,
+    pub round2_len: f64,
+    pub round2_score: f64,
+    pub total_points: f64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ServerMsg {
-    Welcome { id: usize },
+    Welcome {
+        id: usize,
+    },
     Lobby(LobbySnapshot),
     Chat(ChatMsg),
-    Start(Start),
+    JumpRound(JumpRound),
+    StandingsUpdate {
+        round: usize,
+        entries: Vec<MPStandingEntry>,
+    },
+    CompetitionDone {
+        entries: Vec<MPStandingEntry>,
+    },
     Error(String),
 }
 
@@ -63,6 +93,14 @@ pub enum NetEvent {
     ClientReady(usize, bool),
     ClientChat(usize, String),
     ClientLeft(usize),
+    ClientJumpComplete {
+        id: usize,
+        distance: f64,
+        score: f64,
+        style_points: [f64; 5],
+        landing_style: u8,
+        fall_type: u8,
+    },
     Connected,
     ServerMsg(ServerMsg),
     Disconnected,

@@ -20,7 +20,6 @@ pub struct ClientHandle {
 impl ClientHandle {
     pub fn connect(addr: std::net::SocketAddr, hello: Hello) -> std::io::Result<Self> {
         let stream = TcpStream::connect_timeout(&addr, Duration::from_secs(5))?;
-        stream.set_nonblocking(true)?;
 
         let (evt_tx, event_rx) = mpsc::channel();
         let (cmd_tx, cmd_rx) = mpsc::channel::<ClientCmd>();
@@ -48,7 +47,11 @@ impl ClientHandle {
             writer.join().ok();
         });
 
-        Ok(Self { cmd_tx, event_rx, _thread })
+        Ok(Self {
+            cmd_tx,
+            event_rx,
+            _thread,
+        })
     }
 
     pub fn send(&self, msg: ClientMsg) {
