@@ -42,6 +42,7 @@ pub struct LobbyState {
     pub players: Vec<LobbyPlayer>,
     pub local_idx: usize,
     pub hill_idx: usize,
+    pub total_legs: usize,
 }
 
 impl LobbyState {
@@ -54,6 +55,7 @@ impl LobbyState {
             players,
             local_idx: 0,
             hill_idx: 0,
+            total_legs: 20,
         }
     }
 }

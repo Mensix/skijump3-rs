@@ -8,6 +8,7 @@ use crate::files::FileStore;
 use crate::jump::replay::ReplayTrace;
 use crate::jump::types::DEFAULT_START_GATE;
 use crate::jump::wind::Wind;
+use crate::multiplayer::runtime::MultiplayerRuntime;
 use crate::rng::Random;
 use crate::save::config::Config;
 use crate::text::lang::LangBase;
@@ -15,7 +16,6 @@ use crate::views::multiplayer::state::LobbyState;
 use engine::oxide::Font;
 use net::client::ClientHandle;
 use net::host::HostHandle;
-use net::protocol::MPStandingEntry;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt;
@@ -69,14 +69,6 @@ impl Resources {
 
 pub type ResourcesRef = Rc<Resources>;
 
-#[derive(Debug, Clone)]
-pub struct MPJumpState {
-    pub round: usize,
-    pub hill_idx: usize,
-    pub entries: Vec<MPStandingEntry>,
-    pub my_player_id: usize,
-}
-
 pub struct GameState {
     pub config: Config,
     pub rng: Random,
@@ -93,7 +85,7 @@ pub struct GameState {
     pub pending_lobby: Option<LobbyState>,
     pub net_host: Option<HostHandle>,
     pub net_client: Option<ClientHandle>,
-    pub mp_jump: Option<MPJumpState>,
+    pub mp_jump: Option<MultiplayerRuntime>,
 }
 
 impl fmt::Debug for GameState {

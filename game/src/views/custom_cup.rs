@@ -1,4 +1,5 @@
 use crate::competition::factory;
+use crate::data::records::Hiscore;
 use crate::components::modal::{alert_box, alert_prompt};
 use crate::gfx::sprites;
 use crate::gfx::theme::{
@@ -30,6 +31,10 @@ enum CustomCupMode {
 struct CustomCupFile {
     format_version: u32,
     hills: Vec<usize>,
+    #[serde(default)]
+    sort_by_points: bool,
+    #[serde(default)]
+    record: Option<Hiscore>,
 }
 
 pub struct CustomCupSetupView {
@@ -41,8 +46,10 @@ pub struct CustomCupSetupView {
     mode: CustomCupMode,
     filename_input: String,
     load_entries: Vec<String>,
+    load_previews: Vec<CustomCupFile>,
     load_index: usize,
     message: String,
+    sort_by_points: bool,
 }
 
 impl CustomCupSetupView {
@@ -57,8 +64,10 @@ impl CustomCupSetupView {
             mode: CustomCupMode::Browse,
             filename_input: "CUSTOM".to_string(),
             load_entries: Vec::new(),
+            load_previews: Vec::new(),
             load_index: 0,
             message: String::new(),
+            sort_by_points: false,
         }
     }
 
@@ -97,7 +106,7 @@ impl CustomCupSetupView {
         cx.text((68, 8), FONT_BODY, lang.tr(118));
         cx.text((78, 16), FONT_GRAY, lang.tr(119));
         cx.text((78, 23), FONT_GRAY, help_line);
-        cx.text((78, 30), FONT_GRAY, lang.tr(288));
+        cx.text((78, 30), FONT_GRAY, lang.tr(288 + usize::from(self.sort_by_points)));
 
         for (i, &hill_idx) in self.selected.iter().enumerate() {
             self.paint_hill(cx, i, hill_idx, false);
@@ -160,6 +169,21 @@ impl CustomCupSetupView {
             format!("{} / {}", self.load_index + 1, self.load_entries.len()),
         );
         cx.text((85, 130), FONT_GRAY, lang.tr(119));
+        if let Some(record) = self.load_previews.get(self.load_index).and_then(|file| file.record.as_ref()) {
+            let score = if self
+                .load_previews
+                .get(self.load_index)
+                .is_some_and(|file| file.sort_by_points)
+            {
+                format::format_decimal(record.score)
+            } else {
+                format!("{:.0}", record.score)
+            };
+            cx.text((95, 121), FONT_GRAY, lang.tr(115));
+            cx.text((95, 130), FONT_BODY, &record.name);
+            cx.right_text((232, 130), FONT_GOLD, score);
+            cx.text((95, 139), FONT_GRAY, &record.time);
+        }
     }
 
     fn paint_confirm(&self, cx: &mut PaintCx<'_>, line1: &str, line2: &str) {
@@ -232,6 +256,10 @@ impl CustomCupSetupView {
             }
             UiEvent::Text('r' | 'R') => {
                 self.randomize_selection(state);
+                None
+            }
+            UiEvent::Text('t' | 'T') => {
+                self.sort_by_points = !self.sort_by_points;
                 None
             }
             _ => None,
@@ -359,6 +387,22 @@ impl CustomCupSetupView {
             .into_iter()
             .map(|name| name.trim_end_matches(".toml").to_string())
             .collect();
+        self.load_previews = self
+            .load_entries
+            .iter()
+            .map(|name| {
+                let bytes = self.resources.files.read(&set_path(name));
+                String::from_utf8(bytes)
+                    .ok()
+                    .and_then(|text| toml::from_str::<CustomCupFile>(&text).ok())
+                    .unwrap_or_else(|| CustomCupFile {
+                        format_version: 1,
+                        hills: Vec::new(),
+                        sort_by_points: false,
+                        record: None,
+                    })
+            })
+            .collect();
         self.load_index = self
             .load_index
             .min(self.load_entries.len().saturating_sub(1));
@@ -384,6 +428,7 @@ impl CustomCupSetupView {
             self.show_message("Load failed");
             return;
         };
+        let sort_by_points = file.sort_by_points;
         let hills: Vec<usize> = file
             .hills
             .into_iter()
@@ -395,6 +440,7 @@ impl CustomCupSetupView {
             return;
         }
         self.selected = hills;
+        self.sort_by_points = sort_by_points;
         self.preview = self.selected.last().copied().unwrap_or(0);
         self.update_last_custom_cup_file(state, name);
         self.mode = CustomCupMode::Browse;
@@ -406,6 +452,8 @@ impl CustomCupSetupView {
         let file = CustomCupFile {
             format_version: 1,
             hills: self.selected.clone(),
+            sort_by_points: self.sort_by_points,
+            record: state.records.custom_cup_records.first().cloned(),
         };
         let Ok(bytes) = toml::to_string(&file).map(String::into_bytes) else {
             self.show_message("Save failed");

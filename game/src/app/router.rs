@@ -119,6 +119,14 @@ impl AppRouter {
             layout: &self.layout,
         };
         self.current.update(&mut cx);
+        let mp_ready = self
+            .state
+            .mp_jump
+            .as_ref()
+            .is_some_and(|mp| !mp.entries.is_empty());
+        if self.current_route == Some(RouteTarget::MultiplayerLobby) && mp_ready {
+            self.navigate(RouteTarget::MultiplayerJump);
+        }
     }
 
     pub fn handle_event(&mut self, event: UiEvent) {

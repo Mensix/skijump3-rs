@@ -1,9 +1,10 @@
 use super::results;
+use crate::data::records::Hiscore;
 use crate::competition::machine::Competition;
 use crate::competition::runtime::{IndividualJumpContext, IndividualResultsKind};
 use crate::competition::scoring::wc_points_for_rank;
 use crate::competition::types::{CompetitionPhase, CupStyle};
-use crate::gfx::theme::FONT_TEAL;
+use crate::gfx::theme::{BG_PURPLE, FONT_BODY, FONT_GOLD, FONT_GRAY, FONT_TEAL};
 use crate::jump::types::JumpPhase;
 use crate::route::RouteTarget;
 use crate::save::SaveRef;
@@ -21,6 +22,7 @@ use engine::oxide::{Blinker, Key, PaintCx, ScreenEventCx, UiEvent};
 pub struct WorldCupJumpView {
     controller: CompetitionJumpController<Competition>,
     blinker: Blinker,
+    new_custom_record: Option<Hiscore>,
 }
 
 impl WorldCupJumpView {
@@ -33,6 +35,7 @@ impl WorldCupJumpView {
                 None,
             ),
             blinker: Blinker::new(),
+            new_custom_record: None,
         }
     }
 
@@ -158,6 +161,14 @@ impl WorldCupJumpView {
             }
             RenderMode::Results => self.results_page(cx, state),
             RenderMode::Done => {}
+        }
+        if let Some(record) = &self.new_custom_record {
+            cx.fill((59, 79, 203, 53), engine::color::Rgba::rgb(0, 0, 0));
+            cx.pattern_fill((60, 80, 201, 51), BG_PURPLE);
+            cx.text((80, 90), FONT_GOLD, "NEW CUSTOM CUP RECORD");
+            cx.text((80, 104), FONT_BODY, &record.name);
+            cx.right_text((240, 104), FONT_GOLD, format_decimal(record.score));
+            cx.text((80, 118), FONT_GRAY, "Press Enter");
         }
     }
 
@@ -374,6 +385,31 @@ impl WorldCupJumpView {
                     }
                 }
             }
+            CupStyle::CustomCup => {
+                if let Some((name, score, is_computer)) = fh_top.first() {
+                    let record = Hiscore {
+                        name: name.clone(),
+                        pos: 1,
+                        score: *score,
+                        time: current_timestamp(),
+                        is_computer: *is_computer,
+                    };
+                    let is_new = state
+                        .records
+                        .custom_cup_records
+                        .first()
+                        .is_none_or(|old| record.score > old.score);
+                    state.records.custom_cup_records.push(record.clone());
+                    state
+                        .records
+                        .custom_cup_records
+                        .sort_by(|a, b| b.score.total_cmp(&a.score));
+                    state.records.custom_cup_records.truncate(20);
+                    if is_new {
+                        self.new_custom_record = Some(record);
+                    }
+                }
+            }
             _ => {}
         }
     }
@@ -465,6 +501,10 @@ impl WorldCupJumpView {
                 None
             }
             UiEvent::KeyDown(Key::Enter) => {
+                if self.new_custom_record.is_some() {
+                    self.new_custom_record = None;
+                    return Some(RouteTarget::Back);
+                }
                 let is_season_complete = state
                     .active_competition
                     .as_ref()
@@ -476,6 +516,9 @@ impl WorldCupJumpView {
                     .unwrap_or(false);
                 if is_season_complete {
                     self.save_competition_results(state);
+                    if self.new_custom_record.is_some() {
+                        return None;
+                    }
                     return Some(RouteTarget::Back);
                 }
                 self.dismiss_results_and_advance(state);

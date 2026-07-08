@@ -6,6 +6,7 @@ pub(crate) mod data;
 pub(crate) mod files;
 pub(crate) mod gfx;
 pub(crate) mod jump;
+pub(crate) mod multiplayer;
 pub(crate) mod rng;
 pub(crate) mod route;
 pub(crate) mod save;

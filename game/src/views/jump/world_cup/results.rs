@@ -76,6 +76,21 @@ pub struct ResultsEntry {
     pub(crate) use_tenths: bool,
 }
 
+#[derive(Clone, Copy)]
+pub(crate) struct ResultsRenderOptions {
+    pub(crate) show_page_hints: bool,
+    pub(crate) show_single_page_hint: bool,
+}
+
+impl Default for ResultsRenderOptions {
+    fn default() -> Self {
+        Self {
+            show_page_hints: true,
+            show_single_page_hint: true,
+        }
+    }
+}
+
 fn use_decimal_for_phase(phase: CompetitionPhase, style: CupStyle) -> bool {
     matches!(
         phase,
@@ -417,6 +432,15 @@ fn render_results_entry(
 }
 
 pub fn render_results_page(cx: &mut PaintCx<'_>, page: &ResultsPage, resources: &ResourcesRef) {
+    render_results_page_with_options(cx, page, resources, ResultsRenderOptions::default());
+}
+
+pub(crate) fn render_results_page_with_options(
+    cx: &mut PaintCx<'_>,
+    page: &ResultsPage,
+    resources: &ResourcesRef,
+    options: ResultsRenderOptions,
+) {
     let lang = &resources.langbase;
     let bg = list_background(page.phase, page.style);
     cx.fill((0, 0, 320, 200), BLACK);
@@ -424,20 +448,22 @@ pub fn render_results_page(cx: &mut PaintCx<'_>, page: &ResultsPage, resources: 
     cx.pattern_fill((0, 20, 320, 180), bg);
     cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
 
-    let prev = lang.tr(246);
-    let next = lang.tr(247);
-    let end = lang.tr(248);
-    if page.page > 0 {
-        cx.right_text((319, 5), FONT_GRAY, format!("(-{prev}"));
+    if options.show_page_hints {
+        let prev = lang.tr(246);
+        let next = lang.tr(247);
+        let end = lang.tr(248);
+        if page.page > 0 {
+            cx.right_text((319, 5), FONT_GRAY, format!("(-{prev}"));
+        }
+        let hint_text = if page.page + 1 == page.total_pages {
+            end
+        } else {
+            next
+        };
+        cx.right_text((319, 13), FONT_GRAY, format!("{hint_text}-)"));
     }
-    let hint_text = if page.page + 1 == page.total_pages {
-        end
-    } else {
-        next
-    };
-    cx.right_text((319, 13), FONT_GRAY, format!("{hint_text}-)"));
 
-    if page.total_pages == 1 && page.items.len() <= 20 {
+    if options.show_single_page_hint && page.total_pages == 1 && page.items.len() <= 20 {
         cx.text((30, 190), FONT_TEAL, lang.tr(86));
     }
 

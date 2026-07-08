@@ -3,6 +3,7 @@ pub(crate) mod edit_hill;
 pub(crate) mod hill_maker;
 pub(crate) mod input;
 pub(crate) mod koth;
+pub(crate) mod results_header;
 pub(crate) mod scene;
 pub(crate) mod team_cup;
 pub mod training_jump;

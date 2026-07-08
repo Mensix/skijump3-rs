@@ -6,13 +6,12 @@ use crate::store::ResourcesRef;
 use crate::views::jump::scene::JumpScene;
 use crate::views::multiplayer::results as multiplayer_results;
 use engine::oxide::{Blinker, Key, PaintCx, ScreenEventCx, UiEvent};
-use net::protocol::{ClientMsg, MPStandingEntry, NetEvent, ServerMsg};
+use net::protocol::{ClientMsg, NetEvent, ServerMsg};
 
 pub(crate) struct MultiplayerJumpView {
     resources: ResourcesRef,
     blinker: Blinker,
     scene: Option<JumpScene>,
-    round_done: bool,
 }
 
 impl MultiplayerJumpView {
@@ -21,23 +20,6 @@ impl MultiplayerJumpView {
             resources,
             blinker: Blinker::new(),
             scene: None,
-            round_done: false,
-        }
-    }
-
-    fn apply_result(entries: &mut Vec<MPStandingEntry>, outcome: &JumpOutcome, player_id: usize) {
-        if let Some(entry) = entries
-            .iter_mut()
-            .find(|entry| entry.player_id == player_id)
-        {
-            if entry.round1_len == 0.0 && entry.round1_score == 0.0 {
-                entry.round1_len = outcome.distance;
-                entry.round1_score = outcome.score;
-            } else {
-                entry.round2_len = outcome.distance;
-                entry.round2_score = outcome.score;
-            }
-            entry.total_points = entry.round1_score + entry.round2_score;
         }
     }
 
@@ -56,9 +38,13 @@ impl MultiplayerJumpView {
         let Some(mp) = cx.state.mp_jump.as_ref() else {
             return;
         };
+        let hill_idx = mp.hill_idx;
+        let player_id = mp.my_player_id;
+        let round = mp.round;
+        let start_gate = mp.start_gate;
         let p = &cx.state.profiles.profiles[0];
         let participant = crate::jump::config::JumpParticipant {
-            id: mp.my_player_id,
+            id: player_id,
             ai_id: 0,
             name: p.name.clone(),
             real_name: p.real_name.clone(),
@@ -67,14 +53,16 @@ impl MultiplayerJumpView {
             team: Some(0),
             control: crate::jump::policy::JumperControl::Human,
         };
-        self.scene = Some(JumpScene::new(
+        let mut scene = JumpScene::new(
             self.resources.clone(),
             cx.state,
-            mp.hill_idx,
-            15,
+            hill_idx,
+            start_gate,
             participant,
             crate::jump::policy::JumpPolicy::competition(),
-        ));
+        );
+        scene.set_phase_label(format!("R{}", round + 1));
+        self.scene = Some(scene);
     }
 
     fn poll_events(&mut self, cx: &mut GameCx<'_>) {
@@ -90,18 +78,16 @@ impl MultiplayerJumpView {
                 match msg {
                     ServerMsg::JumpRound(round) => {
                         let mp = cx.state.mp_jump.as_mut().unwrap();
-                        mp.round = round.round;
-                        mp.hill_idx = round.hill_idx;
+                        mp.apply_round(round);
                         self.scene = None;
-                        self.round_done = false;
                     }
                     ServerMsg::StandingsUpdate { round, entries } => {
                         let mp = cx.state.mp_jump.as_mut().unwrap();
-                        mp.round = *round;
-                        mp.entries = entries.clone();
+                        mp.sync_standings(*round, entries.clone());
                     }
                     ServerMsg::CompetitionDone { entries } => {
-                        cx.state.mp_jump.as_mut().unwrap().entries = entries.clone();
+                        let mp = cx.state.mp_jump.as_mut().unwrap();
+                        mp.apply_results(mp.round, entries.clone());
                     }
                     _ => {}
                 }
@@ -126,16 +112,7 @@ impl MultiplayerJumpView {
             } = event
             {
                 let mp = cx.state.mp_jump.as_mut().unwrap();
-                if let Some(entry) = mp.entries.iter_mut().find(|entry| entry.player_id == *id) {
-                    if entry.round1_len == 0.0 && entry.round1_score == 0.0 {
-                        entry.round1_len = *distance;
-                        entry.round1_score = *score;
-                    } else {
-                        entry.round2_len = *distance;
-                        entry.round2_score = *score;
-                    }
-                    entry.total_points = entry.round1_score + entry.round2_score;
-                }
+                mp.apply_jump_result(*id, *distance, *score);
 
                 if let Some(ref host) = cx.state.net_host {
                     host.broadcast(ServerMsg::StandingsUpdate {
@@ -158,7 +135,7 @@ impl MultiplayerJumpView {
 
         if cx.state.net_host.is_some() {
             let mp = cx.state.mp_jump.as_mut().unwrap();
-            Self::apply_result(&mut mp.entries, outcome, mp.my_player_id);
+            mp.apply_jump_result(mp.my_player_id, outcome.distance, outcome.score);
             if let Some(ref host) = cx.state.net_host {
                 host.broadcast(ServerMsg::StandingsUpdate {
                     round: mp.round,
@@ -167,47 +144,42 @@ impl MultiplayerJumpView {
             }
         }
         if let Some(ref client) = cx.state.net_client {
+            if let Some(ref mut mp) = cx.state.mp_jump {
+                mp.apply_jump_result(mp.my_player_id, outcome.distance, outcome.score);
+            }
             client.send(jump_complete);
         }
 
         self.scene = None;
-        self.round_done = true;
     }
 
     fn advance_round_if_ready(&mut self, cx: &mut GameCx<'_>) {
         if cx.state.net_host.is_none() {
             return;
         }
+        let seed = cx.state.rng.random_i32(i32::MAX) as u32;
+        let wind_position = cx.state.config.wind_position as u8;
         let mp = cx.state.mp_jump.as_mut().unwrap();
-        let all_done = mp.entries.iter().all(|entry| {
-            if mp.round == 0 {
-                entry.round1_len > 0.0
-            } else {
-                entry.round2_len > 0.0
-            }
-        });
-        if !all_done {
-            return;
-        }
-
-        if mp.round == 0 {
-            mp.round = 1;
-            let seed = cx.state.rng.random_i32(i32::MAX) as u32;
+        if let Some(round) = mp.next_round(seed, wind_position) {
             if let Some(ref host) = cx.state.net_host {
-                host.broadcast(ServerMsg::JumpRound(net::protocol::JumpRound {
-                    hill_idx: mp.hill_idx,
-                    round: 1,
-                    wind_seed: seed,
-                    wind_position: cx.state.config.wind_position as u8,
-                    start_gate: 15,
-                }));
+                host.broadcast(ServerMsg::JumpRound(round));
             }
             self.scene = None;
-            self.round_done = false;
-        } else if let Some(ref host) = cx.state.net_host {
-            host.broadcast(ServerMsg::CompetitionDone {
-                entries: mp.entries.clone(),
-            });
+        } else if let Some(round) = mp.next_leg(seed, wind_position) {
+            if let Some(ref host) = cx.state.net_host {
+                host.broadcast(ServerMsg::JumpRound(round));
+                host.broadcast(ServerMsg::StandingsUpdate {
+                    round: mp.round,
+                    entries: mp.entries.clone(),
+                });
+            }
+            self.scene = None;
+        } else if mp.round_complete() {
+            if let Some(ref host) = cx.state.net_host {
+                host.broadcast(ServerMsg::CompetitionDone {
+                    entries: mp.entries.clone(),
+                });
+            }
         }
     }
 }
@@ -221,7 +193,12 @@ impl GameScreen for MultiplayerJumpView {
             return;
         }
 
-        if self.scene.is_none() && !self.round_done {
+        let should_start_scene = cx
+            .state
+            .mp_jump
+            .as_ref()
+            .is_some_and(|mp| mp.can_local_jump());
+        if self.scene.is_none() && should_start_scene {
             self.start_local_scene(cx);
         }
 
@@ -266,6 +243,8 @@ impl GameScreen for MultiplayerJumpView {
             &self.resources,
             &mp.entries,
             mp.my_player_id,
+            mp.hill_idx,
+            mp.total_legs,
             mp.round,
             cx.state.net_host.is_some(),
         );

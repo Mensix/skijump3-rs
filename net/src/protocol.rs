@@ -41,6 +41,7 @@ pub struct PlayerInfo {
 pub struct LobbySnapshot {
     pub players: Vec<PlayerInfo>,
     pub hill_idx: usize,
+    pub total_legs: usize,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

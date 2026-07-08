@@ -42,6 +42,7 @@ mod tests {
 
         assert_eq!(store.top, reparsed.top);
         assert_eq!(store.hill_records, reparsed.hill_records);
+        assert_eq!(store.custom_cup_records, reparsed.custom_cup_records);
     }
 
     #[test]

@@ -11,11 +11,13 @@ use crate::store::{Resources, ResourcesRef};
 use engine::oxide::input::Key;
 use engine::oxide::{PaintCx, ScreenBackground, ScreenEventCx, UiEvent};
 use std::path::Path;
+use std::panic::{catch_unwind, AssertUnwindSafe};
 
 #[derive(Debug, Clone)]
 struct ReplayEntry {
     filename: String,
     trace: Option<ReplayTrace>,
+    parse_failed: bool,
 }
 
 pub struct ReplayBrowserView {
@@ -89,11 +91,15 @@ impl GameScreen for ReplayBrowserView {
                 nav.consume();
             }
             UiEvent::KeyDown(Key::Enter) => {
-                if let Some(trace) = self.selected_entry().and_then(|entry| entry.trace.clone()) {
+                if let Some(trace) = self
+                    .selected_entry()
+                    .and_then(|entry| playable_trace(entry, &self.resources).cloned())
+                {
                     cx.state.selected_replay = Some(trace);
                     nav.navigate(RouteTarget::ReplayPlayback);
                 }
             }
+            UiEvent::KeyDown(Key::Escape) => nav.back(),
             UiEvent::KeyDown(Key::Delete) => {
                 if !self.entries.is_empty() {
                     self.confirm_delete = true;
@@ -111,7 +117,7 @@ impl GameScreen for ReplayBrowserView {
         paint_replay_menu(paint, cx.layout);
         cx.layout.footer(paint);
         paint_replay_panel(paint, &self.resources, &self.entries, self.selected);
-        if self.confirm_delete {
+        if self.confirm_delete && !self.entries.is_empty() {
             let are_you_sure = lang.tr(193);
             paint_delete_confirm(paint, &self.entries[self.selected].filename, are_you_sure);
         }
@@ -133,8 +139,41 @@ fn paint_replay_panel(
     selected: usize,
 ) {
     let lang = &resources.langbase;
+    if entries.is_empty() {
+        paint_detail_panel(
+            cx,
+            &format!("{}:", lang.tr(25)),
+            "",
+            &[],
+            None,
+            None,
+            lang.tr(146),
+            lang.tr(290),
+            true,
+        );
+        return;
+    }
+
     let entry = &entries[selected];
-    let trace = entry.trace.as_ref().unwrap();
+    let Some(trace) = &entry.trace else {
+        paint_invalid_replay_panel(cx, resources, entry, selected, entries.len(), "File didn't open.");
+        return;
+    };
+
+    if entry.parse_failed {
+        paint_invalid_replay_panel(cx, resources, entry, selected, entries.len(), "Not a valid replay.");
+        return;
+    }
+
+    if resources.hills.hill(trace.meta.hill_idx).is_none() {
+        paint_invalid_replay_panel(cx, resources, entry, selected, entries.len(), "Extra Hill Not Found.");
+        return;
+    }
+
+    if !trace.meta.valid_checksum {
+        paint_invalid_replay_panel(cx, resources, entry, selected, entries.len(), "Checksum mismatch.");
+        return;
+    }
 
     let hill = resources.hills.hill(trace.meta.hill_idx).map_or_else(
         || "?".to_string(),
@@ -157,6 +196,41 @@ fn paint_replay_panel(
         lang.tr(146),
         lang.tr(290),
         entries.is_empty(),
+    );
+}
+
+fn playable_trace<'a>(entry: &'a ReplayEntry, resources: &Resources) -> Option<&'a ReplayTrace> {
+    let trace = entry.trace.as_ref()?;
+    if entry.parse_failed || !trace.meta.valid_checksum || resources.hills.hill(trace.meta.hill_idx).is_none() {
+        return None;
+    }
+    Some(trace)
+}
+
+fn paint_invalid_replay_panel(
+    cx: &mut PaintCx<'_>,
+    resources: &Resources,
+    entry: &ReplayEntry,
+    selected: usize,
+    total: usize,
+    reason: &str,
+) {
+    let lang = &resources.langbase;
+    let field_pairs = vec![
+        (lang.tr(291).to_string(), "Unknown".to_string()),
+        (lang.tr(292).to_string(), "Not a valid replay.".to_string()),
+        (lang.tr(294).to_string(), reason.to_string()),
+    ];
+    paint_detail_panel(
+        cx,
+        &format!("{}:", lang.tr(25)),
+        &entry.filename,
+        &field_pairs,
+        Some("-"),
+        Some((selected + 1, total)),
+        lang.tr(146),
+        lang.tr(290),
+        false,
     );
 }
 
@@ -186,10 +260,11 @@ fn load_replays(files: &FileStore) -> Vec<ReplayEntry> {
             } else {
                 data
             };
-            let trace = ReplayTrace::from_sjr_bytes(&data, intro);
+            let trace = catch_unwind(AssertUnwindSafe(|| ReplayTrace::from_sjr_bytes(&data, intro))).ok();
             ReplayEntry {
                 filename: stem,
-                trace: Some(trace),
+                parse_failed: trace.is_none(),
+                trace,
             }
         })
         .collect()

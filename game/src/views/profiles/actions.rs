@@ -53,6 +53,9 @@ pub(super) fn handle_list_delete(view: &mut ProfilesView, state: &mut GameState)
     }
 
     if state.profiles.order_pos(view.selected).is_some() {
+        if state.profiles.active_order.len() <= 1 {
+            return;
+        }
         state.profiles.remove_from_order(view.selected);
         save_players(view, state);
     } else {

@@ -14,9 +14,9 @@ use net::protocol::{
 
 use crate::gfx::sprites;
 use crate::gfx::theme::{BG_PURPLE, BLACK, FILL_GRAY, FONT_BODY, FONT_GOLD, FONT_GRAY, FONT_TEAL};
+use crate::multiplayer::runtime::MultiplayerRuntime;
 use crate::route::RouteTarget;
 use crate::screen::{GameCx, GameScreen};
-use crate::store::MPJumpState;
 use crate::views::multiplayer::chat::{ChatAction, ChatPanel};
 use crate::views::multiplayer::state::{LobbyPlayer, LobbyState};
 
@@ -62,6 +62,10 @@ impl GameScreen for MultiplayerLobbyView {
         if let LobbyPhase::Connected = self.phase {
             self.chat.tick();
             self.poll_events(cx);
+            if self.pending_start {
+                self.pending_start = false;
+                self.start_mp(cx);
+            }
         }
     }
 
@@ -102,6 +106,7 @@ impl GameScreen for MultiplayerLobbyView {
             UiEvent::KeyDown(Key::F1) => {
                 if let Some(ref mut lobby) = cx.state.pending_lobby {
                     lobby.players[lobby.local_idx].ready = !lobby.players[lobby.local_idx].ready;
+                    let should_start = cx.state.net_host.is_some() && all_ready(lobby);
                     if let Some(ref host) = cx.state.net_host {
                         let snapshot = snapshot_from_lobby(lobby);
                         host.broadcast(ServerMsg::Lobby(snapshot));
@@ -110,6 +115,9 @@ impl GameScreen for MultiplayerLobbyView {
                         let ready = lobby.players[lobby.local_idx].ready;
                         client.send(ClientMsg::Ready(ready));
                     }
+                    if should_start {
+                        self.pending_start = true;
+                    }
                 }
                 nav.consume();
                 return;
@@ -117,11 +125,7 @@ impl GameScreen for MultiplayerLobbyView {
             UiEvent::KeyDown(Key::F2) => {
                 if cx.state.net_host.is_some() {
                     if let Some(ref lobby) = cx.state.pending_lobby {
-                        let all_ready = lobby
-                            .players
-                            .iter()
-                            .filter(|p| !p.is_empty())
-                            .all(|p| p.ready);
+                        let all_ready = all_ready(lobby);
                         if all_ready {
                             self.do_start_mp(cx, nav);
                             return;
@@ -274,8 +278,14 @@ impl MultiplayerLobbyView {
     }
 
     fn do_start_mp(&mut self, cx: &mut GameCx<'_>, nav: &mut ScreenEventCx<RouteTarget>) {
+        if self.start_mp(cx) {
+            nav.navigate(RouteTarget::MultiplayerJump);
+        }
+    }
+
+    fn start_mp(&mut self, cx: &mut GameCx<'_>) -> bool {
         let Some(ref lobby) = cx.state.pending_lobby else {
-            return;
+            return false;
         };
         let seed = cx.state.rng.random_i32(i32::MAX) as u32;
         let pos = cx.state.config.wind_position as u8;
@@ -295,8 +305,9 @@ impl MultiplayerLobbyView {
                 total_points: 0.0,
             });
         }
+        let hill_idx = lobby.hill_idx;
         let round = JumpRound {
-            hill_idx: 0,
+            hill_idx,
             round: 0,
             wind_seed: seed,
             wind_position: pos,
@@ -309,14 +320,15 @@ impl MultiplayerLobbyView {
                 entries: entries.clone(),
             });
         }
-        cx.state.mp_jump = Some(MPJumpState {
-            round: 0,
-            hill_idx: 0,
+        cx.state.mp_jump = Some(MultiplayerRuntime::new(
+            hill_idx,
+            lobby.total_legs,
+            15,
             entries,
-            my_player_id: 0,
-        });
+            0,
+        ));
         cx.state.pending_lobby = None;
-        nav.navigate(RouteTarget::MultiplayerJump);
+        true
     }
 
     fn poll_events(&mut self, cx: &mut GameCx<'_>) {
@@ -368,11 +380,7 @@ impl MultiplayerLobbyView {
                     }
                     let (snap, should_start) = if let Some(ref lobby) = cx.state.pending_lobby {
                         let snap = snapshot_from_lobby(lobby);
-                        let all_ready = lobby
-                            .players
-                            .iter()
-                            .filter(|p| !p.is_empty())
-                            .all(|p| p.ready);
+                        let all_ready = all_ready(lobby);
                         (snap, all_ready)
                     } else {
                         return;
@@ -395,11 +403,7 @@ impl MultiplayerLobbyView {
                 }
                 let (snap, should_start) = if let Some(ref lobby) = cx.state.pending_lobby {
                     let snap = snapshot_from_lobby(lobby);
-                    let all_ready = lobby
-                        .players
-                        .iter()
-                        .filter(|p| !p.is_empty())
-                        .all(|p| p.ready);
+                    let all_ready = all_ready(lobby);
                     (snap, all_ready)
                 } else {
                     return;
@@ -492,7 +496,50 @@ impl MultiplayerLobbyView {
                     {
                         lobby.local_idx = idx;
                     }
+                    lobby.hill_idx = snap.hill_idx;
+                    lobby.total_legs = snap.total_legs;
                 }
+            }
+            NetEvent::ServerMsg(ServerMsg::JumpRound(round)) => {
+                let local_idx = cx
+                    .state
+                    .pending_lobby
+                    .as_ref()
+                    .map_or(0, |lobby| lobby.local_idx);
+                let total_legs = cx
+                    .state
+                    .pending_lobby
+                    .as_ref()
+                    .map_or(20, |lobby| lobby.total_legs);
+                let mut runtime = MultiplayerRuntime::new(
+                    round.hill_idx,
+                    total_legs,
+                    round.start_gate,
+                    Vec::new(),
+                    local_idx,
+                );
+                runtime.apply_round(round);
+                cx.state.mp_jump = Some(runtime);
+            }
+            NetEvent::ServerMsg(ServerMsg::StandingsUpdate { round, entries }) => {
+                if let Some(ref mut mp) = cx.state.mp_jump {
+                    mp.sync_standings(*round, entries.clone());
+                } else {
+                    let (hill_idx, total_legs, local_idx) =
+                        cx.state.pending_lobby.as_ref().map_or((0, 20, 0), |lobby| {
+                            (lobby.hill_idx, lobby.total_legs, lobby.local_idx)
+                        });
+                    let mut runtime = MultiplayerRuntime::new(
+                        hill_idx,
+                        total_legs,
+                        15,
+                        entries.clone(),
+                        local_idx,
+                    );
+                    runtime.sync_standings(*round, entries.clone());
+                    cx.state.mp_jump = Some(runtime);
+                }
+                cx.state.pending_lobby = None;
             }
             NetEvent::Disconnected => {
                 cx.state.net_client = None;
@@ -507,6 +554,14 @@ impl MultiplayerLobbyView {
             _ => {}
         }
     }
+}
+
+fn all_ready(lobby: &LobbyState) -> bool {
+    lobby
+        .players
+        .iter()
+        .filter(|p| !p.is_empty())
+        .all(|p| p.ready)
 }
 
 fn snapshot_from_lobby(lobby: &LobbyState) -> LobbySnapshot {
@@ -527,5 +582,6 @@ fn snapshot_from_lobby(lobby: &LobbyState) -> LobbySnapshot {
     LobbySnapshot {
         players,
         hill_idx: lobby.hill_idx,
+        total_legs: lobby.total_legs,
     }
 }

@@ -64,7 +64,7 @@ impl TrainingSetupView {
 
     fn confirm(&mut self, state: &mut GameState) -> Option<RouteTarget> {
         match self.menu.selected_action() {
-            MenuAction::Trailing => return Some(RouteTarget::MainMenu),
+            MenuAction::Trailing => return Some(RouteTarget::Back),
             MenuAction::Item(idx) => {
                 if self.has_more() && idx == self.page_items() {
                     self.start = if self.start + 20 >= self.total {
@@ -149,7 +149,11 @@ impl GameScreen for TrainingSetupView {
         }
         let mut ecx = EventCx::default();
         if let Some(route) = self.handle_input(&mut ecx, cx.state, event) {
-            nav.navigate(route);
+            if route == RouteTarget::Back {
+                nav.back();
+            } else {
+                nav.navigate(route);
+            }
         }
         if ecx.is_consumed() {
             nav.consume();

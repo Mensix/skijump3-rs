@@ -67,7 +67,7 @@ impl GameScreen for MainMenuView {
 
         let mut ecx = engine::oxide::widget::EventCx::default();
         match self.menu.event_action(&mut ecx, event) {
-            Some(MenuAction::Item(6)) => {
+            Some(MenuAction::Item(7)) => {
                 self.confirming_quit = true;
                 let qi = 251 + (cx.state.rng.random_i32(3) as usize).min(2);
                 let pi = 256 + (cx.state.rng.random_i32(3) as usize).min(2);

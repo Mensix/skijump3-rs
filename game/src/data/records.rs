@@ -28,6 +28,8 @@ pub struct RecordStore {
     pub hill_records: BTreeMap<String, HillRecord>,
     #[serde(default)]
     pub hill_goals: BTreeMap<String, f64>,
+    #[serde(default)]
+    pub custom_cup_records: Vec<Hiscore>,
 }
 
 impl RecordStore {

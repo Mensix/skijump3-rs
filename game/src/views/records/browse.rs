@@ -11,7 +11,7 @@ use crate::text::layout::shorten_name;
 use engine::oxide::input::Key;
 use engine::oxide::{PaintCx, ScreenEventCx, UiEvent};
 
-const HALL_PAGES: usize = 3;
+const HALL_PAGES: usize = 4;
 const PAGE_SIZE: usize = 20;
 
 #[derive(Debug)]
@@ -42,7 +42,8 @@ impl HallOfFameView {
                 self.paint_list(state, cx, 1);
                 self.paint_list(state, cx, 2);
             }
-            _ => self.paint_koth_records(state, cx),
+            2 => self.paint_koth_records(state, cx),
+            _ => self.paint_custom_cup_records(state, cx),
         }
 
         paint_page_hints(
@@ -140,6 +141,21 @@ impl HallOfFameView {
             } else {
                 cx.text((col[1], yy), FONT_GRAY, name);
             }
+        }
+    }
+
+    fn paint_custom_cup_records(&self, state: &GameState, cx: &mut PaintCx<'_>) {
+        let lang = &self.resources.langbase;
+        let col = [30, 146, 173, 215];
+        cx.text((30, 6), FONT_BODY, lang.tr(118));
+        cx.text((col[0], 23), FONT_GOLD, lang.tr(166));
+        cx.text((col[1], 23), FONT_GOLD, lang.tr(167));
+        cx.text((col[2], 23), FONT_GOLD, lang.tr(168));
+        cx.text((col[3], 23), FONT_GOLD, lang.tr(169));
+
+        for (i, hi) in state.records.custom_cup_records.iter().take(PAGE_SIZE).enumerate() {
+            let y = 32 + i as i32 * 8;
+            self.paint_hiscore_row(cx, hi, i + 1, y, col, true);
         }
     }
 }
