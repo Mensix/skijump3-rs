@@ -1,0 +1,303 @@
+id = "original"
+checksum_version = 1
+name = "Original hills"
+
+[[hills]]
+id = "A"
+name = "kuopio"
+kr = 120
+front_index = "0"
+back_index = "0"
+back_brightness = 90
+back_mirror = false
+vx_final = 148
+pk_hundred = 89
+pl_save_ten_thousand = 3217
+author = "SJ v3.00 Original"
+checksum = 932638
+profile_checksum = 1009542
+
+[[hills]]
+id = "B"
+name = "lahti"
+kr = 90
+front_index = "1"
+back_index = "4"
+back_brightness = 90
+back_mirror = false
+vx_final = 131
+pk_hundred = 84
+pl_save_ten_thousand = 3222
+author = "SJ v3.00 Original"
+checksum = 923959
+profile_checksum = 981345
+
+[[hills]]
+id = "C"
+name = "Vikersund"
+kr = 175
+front_index = "2"
+back_index = "1"
+back_brightness = 90
+back_mirror = false
+vx_final = 159
+pk_hundred = 108
+pl_save_ten_thousand = 3211
+author = "SJ v3.00 Original"
+checksum = 916011
+profile_checksum = 1088698
+
+[[hills]]
+id = "D"
+name = "Falun"
+kr = 115
+front_index = "3"
+back_index = "3"
+back_brightness = 90
+back_mirror = false
+vx_final = 147
+pk_hundred = 86
+pl_save_ten_thousand = 3205
+author = "SJ v3.00 Original"
+checksum = 954486
+profile_checksum = 960805
+
+[[hills]]
+id = "E"
+name = "Lillehammer"
+kr = 120
+front_index = "4"
+back_index = "2"
+back_brightness = 90
+back_mirror = false
+vx_final = 155
+pk_hundred = 90
+pl_save_ten_thousand = 3212
+author = "SJ v3.00 Original"
+checksum = 952014
+profile_checksum = 868839
+
+[[hills]]
+id = "F"
+name = "Chamonix"
+kr = 95
+front_index = "5"
+back_index = "1"
+back_brightness = 95
+back_mirror = false
+vx_final = 128
+pk_hundred = 87
+pl_save_ten_thousand = 3211
+author = "SJ v3.00 Original"
+checksum = 956482
+profile_checksum = 985955
+
+[[hills]]
+id = "G"
+name = "Engelberg"
+kr = 120
+front_index = "6"
+back_index = "3"
+back_brightness = 90
+back_mirror = false
+vx_final = 150
+pk_hundred = 90
+pl_save_ten_thousand = 3219
+author = "SJ v3.00 Original"
+checksum = 936772
+profile_checksum = 999462
+
+[[hills]]
+id = "H"
+name = "Ramsau"
+kr = 90
+front_index = "7"
+back_index = "0"
+back_brightness = 85
+back_mirror = false
+vx_final = 128
+pk_hundred = 83
+pl_save_ten_thousand = 3214
+author = "SJ v3.00 Original"
+checksum = 918497
+profile_checksum = 1159969
+
+[[hills]]
+id = "I"
+name = "Oberstdorf"
+kr = 115
+front_index = "8"
+back_index = "2"
+back_brightness = 90
+back_mirror = false
+vx_final = 146
+pk_hundred = 89
+pl_save_ten_thousand = 3216
+author = "SJ v3.00 Original"
+checksum = 955456
+profile_checksum = 1018993
+
+[[hills]]
+id = "J"
+name = "Garmich-Partenkirchen"
+kr = 115
+front_index = "9"
+back_index = "3"
+back_brightness = 95
+back_mirror = false
+vx_final = 147
+pk_hundred = 86
+pl_save_ten_thousand = 3209
+author = "SJ v3.00 Original"
+checksum = 960369
+profile_checksum = 969036
+
+[[hills]]
+id = "K"
+name = "Innsbruck"
+kr = 110
+front_index = "10"
+back_index = "4"
+back_brightness = 85
+back_mirror = false
+vx_final = 140
+pk_hundred = 90
+pl_save_ten_thousand = 3221
+author = "SJ v3.00 Original"
+checksum = 937490
+profile_checksum = 955666
+
+[[hills]]
+id = "L"
+name = "Bischofshofen"
+kr = 120
+front_index = "11"
+back_index = "0"
+back_brightness = 85
+back_mirror = false
+vx_final = 145
+pk_hundred = 91
+pl_save_ten_thousand = 3209
+author = "SJ v3.00 Original"
+checksum = 946238
+profile_checksum = 951013
+
+[[hills]]
+id = "M"
+name = "Harrachov"
+kr = 180
+front_index = "12"
+back_index = "3"
+back_brightness = 90
+back_mirror = false
+vx_final = 166
+pk_hundred = 106
+pl_save_ten_thousand = 3221
+author = "SJ v3.00 Original"
+checksum = 982550
+profile_checksum = 929040
+
+[[hills]]
+id = "N"
+name = "Holmenkollen"
+kr = 112
+front_index = "13"
+back_index = "1"
+back_brightness = 85
+back_mirror = false
+vx_final = 146
+pk_hundred = 85
+pl_save_ten_thousand = 3221
+author = "SJ v3.00 Original"
+checksum = 962922
+profile_checksum = 973389
+
+[[hills]]
+id = "O"
+name = "otepää"
+kr = 70
+front_index = "14"
+back_index = "0"
+back_brightness = 90
+back_mirror = false
+vx_final = 122
+pk_hundred = 74
+pl_save_ten_thousand = 3229
+author = "SJ v3.00 Original"
+checksum = 928219
+profile_checksum = 946709
+
+[[hills]]
+id = "P"
+name = "Sapporo"
+kr = 120
+front_index = "15"
+back_index = "4"
+back_brightness = 95
+back_mirror = true
+vx_final = 151
+pk_hundred = 88
+pl_save_ten_thousand = 3220
+author = "SJ v3.00 Original"
+checksum = 980863
+profile_checksum = 968691
+
+[[hills]]
+id = "Q"
+name = "Hakuba"
+kr = 90
+front_index = "16"
+back_index = "3"
+back_brightness = 90
+back_mirror = false
+vx_final = 133
+pk_hundred = 85
+pl_save_ten_thousand = 3223
+author = "SJ v3.00 Original"
+checksum = 955450
+profile_checksum = 984193
+
+[[hills]]
+id = "R"
+name = "Pine Mountain"
+kr = 120
+front_index = "17"
+back_index = "4"
+back_brightness = 85
+back_mirror = false
+vx_final = 159
+pk_hundred = 87
+pl_save_ten_thousand = 3218
+author = "SJ v3.00 Original"
+checksum = 899495
+profile_checksum = 837382
+
+[[hills]]
+id = "S"
+name = "Planica"
+kr = 185
+front_index = "18"
+back_index = "2"
+back_brightness = 90
+back_mirror = false
+vx_final = 169
+pk_hundred = 106
+pl_save_ten_thousand = 3208
+author = "SJ v3.00 Original"
+checksum = 965494
+profile_checksum = 981362
+
+[[hills]]
+id = "T"
+name = "Zakopane"
+kr = 116
+front_index = "19"
+back_index = "4"
+back_brightness = 90
+back_mirror = false
+vx_final = 149
+pk_hundred = 85
+pl_save_ten_thousand = 3210
+author = "SJ v3.00 Original"
+checksum = 968864
+profile_checksum = 973440

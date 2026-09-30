@@ -1,0 +1,144 @@
+pub const MAX_PROFILES: usize = 20;
+pub const MAX_ACTIVE_PROFILES: usize = 10;
+pub const NUM_SUITS: usize = 8;
+pub const NUM_SKIS: usize = 4;
+
+use serde::{Deserialize, Serialize};
+
+use crate::gfx::color::Rgb6;
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Profile {
+    pub name: String,
+    pub real_name: String,
+    pub suit_color: Rgb6,
+    pub ski_color: Rgb6,
+    pub replace: Option<usize>,
+    pub coach_style: usize,
+    pub skip_qualification: usize,
+    pub total_jumps: usize,
+    pub world_cups: usize,
+    pub legs_won: usize,
+    pub world_cups_won: usize,
+
+    pub best_result: String,
+    pub best_4h_result: String,
+
+    pub best_wc_jump: f64,
+    pub best_wc_hill_idx: usize,
+    pub best_jump: f64,
+
+    pub besthill_idx: usize,
+
+    pub best_hill_file: String,
+
+    pub best_points: usize,
+    pub best_4h_points: f64,
+
+    pub koth_level: usize,
+
+    pub best_wc_hill_display: String,
+    pub best_hill_display: String,
+}
+
+impl Default for Profile {
+    fn default() -> Self {
+        Self {
+            name: "SKI JUMPER".to_string(),
+            real_name: String::new(),
+            suit_color: Rgb6([53, 17, 53]),
+            ski_color: Rgb6([63, 63, 32]),
+            replace: None,
+            coach_style: 1,
+            skip_qualification: 0,
+            total_jumps: 0,
+            world_cups: 0,
+            legs_won: 0,
+            world_cups_won: 0,
+            best_result: "-".to_string(),
+            best_4h_result: "-".to_string(),
+            best_wc_jump: 0.0,
+            best_wc_hill_idx: 0,
+            best_jump: 0.0,
+            besthill_idx: 0,
+            best_hill_file: String::new(),
+            best_points: 0,
+            best_4h_points: 0.0,
+            koth_level: 0,
+            best_wc_hill_display: String::new(),
+            best_hill_display: String::new(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProfileStore {
+    pub profiles: Vec<Profile>,
+    pub active_order: Vec<usize>,
+}
+
+impl Default for ProfileStore {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl ProfileStore {
+    pub fn new() -> Self {
+        Self {
+            profiles: vec![Profile::default()],
+            active_order: vec![0],
+        }
+    }
+
+    pub const fn num_profiles(&self) -> usize {
+        self.profiles.len()
+    }
+
+    pub const fn has_slot(&self) -> bool {
+        self.num_profiles() < MAX_PROFILES
+    }
+
+    pub fn order_pos(&self, profile_index: usize) -> Option<usize> {
+        self.active_order
+            .iter()
+            .position(|&idx| idx == profile_index)
+    }
+
+    pub fn add_to_order(&mut self, profile_index: usize) {
+        if self.order_pos(profile_index).is_none() && self.active_order.len() < MAX_ACTIVE_PROFILES
+        {
+            self.active_order.push(profile_index);
+        }
+    }
+
+    pub fn remove_from_order(&mut self, profile_index: usize) {
+        self.active_order.retain(|&idx| idx != profile_index);
+        if self.active_order.is_empty() {
+            self.active_order.push(0);
+        }
+    }
+
+    pub fn remove_profile(&mut self, profile_index: usize) {
+        if self.profiles.len() <= 1 {
+            self.profiles[0] = Profile::default();
+            self.active_order = vec![0];
+            return;
+        }
+
+        if profile_index >= self.profiles.len() {
+            return;
+        }
+
+        self.profiles.remove(profile_index);
+        self.active_order.retain(|&idx| idx != profile_index);
+        for idx in &mut self.active_order {
+            if *idx > profile_index {
+                *idx -= 1;
+            }
+        }
+        if self.active_order.is_empty() {
+            self.active_order.push(0);
+        }
+    }
+}

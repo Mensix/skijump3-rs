@@ -1,0 +1,329 @@
+use crate::competition::koth::types::KothRuntime;
+use crate::components::page_nav::{render_page_hints, PageHintLayout};
+use crate::gfx::sprites;
+use crate::gfx::theme::{BG_GREEN, BLACK, FILL_GRAY, FONT_BODY, FONT_GOLD, FONT_GRAY};
+use crate::store::{GameState, ResourcesRef};
+use crate::text::format::format_decimal;
+use crate::text::lang::LangBase;
+use crate::text::layout::shorten_name;
+use crate::ui::UiCanvas;
+use engine::color::Rgba;
+
+const COL_RANK: i32 = 24;
+const COL_NAME: i32 = 32;
+const COL_POINTS: i32 = 184;
+const COL_DIST: i32 = 199;
+const COL_EXTRA: i32 = 275;
+const START_Y: i32 = 23;
+const ROW_STEP: i32 = 8;
+const ITEMS_PER_PAGE: usize = 22;
+
+const KOTH_BG: Rgba = BG_GREEN;
+
+fn separator_label(lang: &LangBase, round: u8) -> String {
+    let idx = 101 + (round as usize % 5);
+    lang.tr(idx).to_string()
+}
+
+pub struct KothEntry {
+    pub rank: usize,
+    pub name: String,
+    pub points: f64,
+    pub dist1: f64,
+    pub dist2: f64,
+    pub is_human: bool,
+    pub is_king: bool,
+    pub is_last_eliminated: bool,
+    pub separator_before: bool,
+}
+
+pub struct KothPage {
+    pub items: Vec<KothEntry>,
+    pub title: String,
+    pub page: usize,
+    pub total_pages: usize,
+}
+
+fn build_entries(c: &KothRuntime) -> (Vec<KothEntry>, usize, bool) {
+    let mut idx_sorted: Vec<usize> = (0..c.participants.len()).collect();
+
+    idx_sorted.sort_by(|&a, &b| {
+        let pa = &c.participants[a];
+        let pb = &c.participants[b];
+        match (pa.is_alive(), pb.is_alive()) {
+            (true, true) => pb
+                .total_points
+                .total_cmp(&pa.total_points)
+                .then_with(|| a.cmp(&b)),
+            (true, false) => std::cmp::Ordering::Less,
+            (false, true) => std::cmp::Ordering::Greater,
+            (false, false) => pb
+                .eliminated_in_round
+                .cmp(&pa.eliminated_in_round)
+                .then_with(|| a.cmp(&b)),
+        }
+    });
+
+    let remaining = c.participants.iter().filter(|p| p.is_alive()).count();
+    let is_final = remaining <= 1;
+
+    let last_eliminated_pos = idx_sorted.iter().position(|&idx| {
+        let p = &c.participants[idx];
+        !p.is_alive() && p.eliminated_in_round == c.current_elimination_round
+    });
+
+    let entries: Vec<KothEntry> = idx_sorted
+        .iter()
+        .enumerate()
+        .map(|(pos, &idx)| {
+            let p = &c.participants[idx];
+            let is_human = c.human_indices.contains(&idx);
+
+            let (d1, d2) = if p.jumps.is_empty() {
+                (0.0, 0.0)
+            } else {
+                let target_round = if p.is_alive() {
+                    c.current_elimination_round
+                } else {
+                    p.eliminated_in_round
+                };
+                let round_jumps: Vec<f64> = p
+                    .jumps
+                    .iter()
+                    .filter(|j| j.elimination_round == target_round)
+                    .map(|j| j.distance)
+                    .collect();
+                match round_jumps.len() {
+                    0 => (0.0, 0.0),
+                    1 => (round_jumps[0], 0.0),
+                    _ => (round_jumps[0], round_jumps[1]),
+                }
+            };
+
+            let is_king = is_final && pos == 0;
+            let is_last_eliminated = Some(pos) == last_eliminated_pos;
+
+            let cname = if p.competitor.real_name.is_empty() {
+                &p.competitor.name
+            } else {
+                &p.competitor.real_name
+            };
+
+            KothEntry {
+                rank: pos + 1,
+                name: cname.to_string(),
+                points: p.total_points,
+                dist1: d1,
+                dist2: d2,
+                is_human,
+                is_king,
+                is_last_eliminated,
+                separator_before: is_last_eliminated,
+            }
+        })
+        .collect();
+
+    (entries, remaining, is_final)
+}
+
+fn page_ranges(entries: &[KothEntry]) -> Vec<(usize, usize)> {
+    if entries.is_empty() {
+        return vec![(0, 0)];
+    }
+
+    let mut ranges = Vec::new();
+    let mut start = 0;
+    while start < entries.len() {
+        let mut end = start;
+        let mut rows = 0;
+        while end < entries.len() {
+            let entry_rows = if entries[end].separator_before { 3 } else { 1 };
+            if end > start && rows + entry_rows > ITEMS_PER_PAGE {
+                break;
+            }
+            rows += entry_rows;
+            end += 1;
+        }
+        ranges.push((start, end));
+        start = end;
+    }
+    ranges
+}
+
+fn build_results_page(c: &KothRuntime, page: usize, title: String) -> KothPage {
+    let (entries, _, _) = build_entries(c);
+    let ranges = page_ranges(&entries);
+    let total_pages = ranges.len();
+    let page = page.min(total_pages.saturating_sub(1));
+    let (start, end) = ranges[page];
+
+    KothPage {
+        items: entries.into_iter().skip(start).take(end - start).collect(),
+        title,
+        page,
+        total_pages,
+    }
+}
+
+pub fn total_pages(c: &KothRuntime) -> usize {
+    let (entries, _, _) = build_entries(c);
+    page_ranges(&entries).len()
+}
+
+pub fn render(
+    cx: &mut dyn UiCanvas,
+    resources: &ResourcesRef,
+    state: &GameState,
+    page: usize,
+    hill_background: bool,
+) {
+    let lang = &resources.langbase;
+    state.active_competition.as_ref().and_then(|active| {
+        let c = active.koth_runtime()?;
+        let (_, remaining, _) = build_entries(c);
+
+        let title = if remaining <= 1 {
+            format!("{}!", lang.tr(31))
+        } else {
+            format!("{} {}", lang.tr(31), lang.tr(95))
+        };
+
+        let kp = build_results_page(c, page, title);
+
+        if !hill_background {
+            cx.fill((0, 0, 320, 200), BLACK);
+            cx.pattern_fill((0, 20, 320, 180), KOTH_BG);
+        }
+        cx.pattern_fill((0, 0, 320, 19), FILL_GRAY);
+        cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
+
+        render_page_hints(cx, kp.page, kp.total_pages, lang, PageHintLayout::Top);
+
+        cx.text((30, 6), FONT_BODY, &kp.title);
+
+        let mut y = START_Y;
+        let mut last_rank = 0usize;
+        for entry in &kp.items {
+            if y > 191 {
+                break;
+            }
+
+            if entry.separator_before {
+                let label = separator_label(&resources.langbase, c.current_elimination_round);
+                y += ROW_STEP / 2;
+                if y > 191 {
+                    break;
+                }
+                cx.text((COL_NAME, y), FONT_GOLD, &label);
+                y += ROW_STEP;
+                if y > 191 {
+                    break;
+                }
+                y += ROW_STEP / 2;
+            }
+
+            let (col_name, col_rank, col_extra) = if entry.is_human {
+                (FONT_BODY, FONT_GOLD, FONT_GOLD)
+            } else {
+                (FONT_GRAY, FONT_GOLD, FONT_GRAY)
+            };
+
+            if entry.rank != last_rank {
+                cx.right_text((COL_RANK, y), col_rank, &format!("{}.", entry.rank));
+            }
+            last_rank = entry.rank;
+
+            let name = shorten_name(&entry.name, &resources.font, COL_POINTS - COL_NAME - 5);
+            cx.text((COL_NAME, y), col_name, &name);
+
+            let pts = format_decimal(entry.points);
+            cx.right_text((COL_POINTS, y), col_name, &pts);
+
+            if entry.dist1 > 0.0 {
+                let dist_str = if entry.dist2 > 0.0 {
+                    format!(
+                        "({}-{}µ)",
+                        format_decimal(entry.dist1),
+                        format_decimal(entry.dist2),
+                    )
+                } else {
+                    format!("({}µ)", format_decimal(entry.dist1))
+                };
+                cx.text((COL_DIST, y), col_extra, &dist_str);
+            }
+
+            if entry.is_king {
+                cx.text((COL_EXTRA, y), col_rank, lang.tr(143));
+            } else if entry.is_last_eliminated {
+                cx.text((COL_EXTRA, y), col_rank, "L");
+            }
+
+            y += ROW_STEP;
+        }
+
+        Some(())
+    });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::competition::core::competitor::Competitor;
+    use crate::competition::koth::types::{KothParticipant, KothPhase};
+    use crate::rng::Random;
+
+    fn runtime_with_entries(count: usize) -> KothRuntime {
+        KothRuntime {
+            participants: (0..count)
+                .map(|idx| KothParticipant {
+                    competitor: Competitor::computer(idx, idx, format!("Jumper {idx:02}"), None),
+                    total_points: (count - idx) as f64,
+                    eliminated_in_round: u8::MAX,
+                    jumps: Vec::new(),
+                })
+                .collect(),
+            human_indices: Vec::new(),
+            hill_idx: 0,
+            jump_rounds_per_elimination: 1,
+            phase: KothPhase::Jumping,
+            current_elimination_round: 0,
+            current_jump_round: 0,
+            current_participant_pos: 0,
+            rng: Random::default(),
+        }
+    }
+
+    #[test]
+    fn thirty_entry_results_are_complete_across_two_pages() {
+        let runtime = runtime_with_entries(30);
+
+        assert_eq!(total_pages(&runtime), 2);
+        let first = build_results_page(&runtime, 0, String::new());
+        let second = build_results_page(&runtime, 1, String::new());
+
+        assert_eq!(first.items.len(), 22);
+        assert_eq!(second.items.len(), 8);
+        assert_eq!(first.items.first().map(|entry| entry.rank), Some(1));
+        assert_eq!(first.items.last().map(|entry| entry.rank), Some(22));
+        assert_eq!(second.items.first().map(|entry| entry.rank), Some(23));
+        assert_eq!(second.items.last().map(|entry| entry.rank), Some(30));
+    }
+
+    #[test]
+    fn final_results_mark_last_eliminated_and_keep_separator_and_king() {
+        let mut runtime = runtime_with_entries(3);
+        runtime.participants[1].eliminated_in_round = 0;
+        runtime.participants[2].eliminated_in_round = 1;
+        runtime.current_elimination_round = 1;
+
+        let page = build_results_page(&runtime, 0, String::new());
+
+        assert_eq!(page.items[0].rank, 1);
+        assert!(page.items[0].is_king);
+        assert!(!page.items[0].is_last_eliminated);
+        assert_eq!(page.items[1].rank, 2);
+        assert!(page.items[1].is_last_eliminated);
+        assert!(page.items[1].separator_before);
+        assert!(!page.items[1].is_king);
+    }
+}

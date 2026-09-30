@@ -1,0 +1,10 @@
+format_version = 1
+
+[languages]
+manifest = "languages/manifest.toml"
+
+[namesets]
+manifest = "namesets/manifest.toml"
+
+[hills]
+manifest = "hills/manifest.toml"

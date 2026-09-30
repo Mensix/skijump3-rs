@@ -1,0 +1,19 @@
+format_version = 1
+default = "original"
+
+[[namesets]]
+id = "original"
+file = "original.toml"
+
+[[namesets]]
+id = "cool_dudes"
+file = "cool_dudes.toml"
+
+[[namesets]]
+id = "generated_999"
+file = "generated_999.toml"
+
+[[namesets]]
+id = "season_1987_1988"
+file = "season_1987_1988.toml"
+

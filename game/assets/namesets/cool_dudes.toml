@@ -1,0 +1,126 @@
+id = "cool_dudes"
+name = "The Cool Dudes List"
+source = "NAMES1.SKI"
+title = "THE-COOL-DUDES-LIST :)"
+
+names = [
+  "Matti Nykänen",
+  "Mika Häkkinen",
+  "Dennis Rodman",
+  "Kofi Annan",
+  "Teemu Selänne",
+  "Haile Gebreselassie",
+  "Kimi Räikkönen",
+  "Jasser Arafat",
+  "Bootsy Collins",
+  "Noam Chomsky",
+  "David Hasselhoff",
+  "Marcus Garvey",
+  "Simon Bolivar",
+  "Jari Litmanen",
+  "Alexander Karelin",
+  "Tommi Mäkinen",
+  "Mika Salo",
+  "Saku Koivu",
+  "Hanno Möttölä",
+  "Pete Sampras",
+  "Keke Rosberg",
+  "Jari Kurri",
+  "Tiger Woods",
+  "Wayne Gretzky",
+  "Desmond Tutu",
+  "Nelson Mandela",
+  "Ralph Nader",
+  "Leonard Peltier",
+  "Sergei Bubka",
+  "Muammar Gaddafi",
+  "Isaac Newton",
+  "Abraham Simpson",
+  "Paavo Nurmi",
+  "Subcomandante Marcos",
+  "Jello Biafra",
+  "Muhammad Ali",
+  "Carlton Ridenhour",
+  "Alfred E. Neuman",
+  "Marcus Allen",
+  "M.A. Numminen",
+  "Mahatma Gandhi",
+  "Matt Lukin",
+  "Peter Tosh",
+  "Henry Rollins",
+  "George Clinton",
+  "Fidel Castro",
+  "Linus Torvalds",
+  "Orson Welles",
+  "Daniel Quinn",
+  "George Orwell",
+  "Salvador Allende",
+  "Eddie Murphy",
+  "Conan O'Brien",
+  "Jim Osterberg",
+  "Susan Sontag",
+  "Edwin Moses",
+  "Michael Moore",
+  "Burt Bacharach",
+  "Greg Graffin",
+  "Reggie Dunlop",
+  "Tom Morello",
+  "Ricardo Tubbs",
+  "Pope John Paul XIV",
+  "Richard Dean Anderson",
+  "Elvis Costello",
+  "Busta Rhymes",
+  "Mumia Abu-Jamal",
+  "Dennis Banks",
+  "Russell Means",
+  "Jan Palach",
+  "Rudi Dutschke",
+  "Tommie Smith",
+  "John Carlos",
+  "Adam Yauch",
+  "Naomi Klein",
+  "Young Soldier",
+]
+
+[[teams]]
+  name = "Puijo Ski Team"
+  members = [1, 2, 3, 4]
+[[teams]]
+  name = "Oslo Ice Fishers"
+  members = [5, 6, 7, 8]
+[[teams]]
+  name = "North Canada Eskimos"
+  members = [9, 10, 11, 12]
+[[teams]]
+  name = "Cairo Camel Riders"
+  members = [13, 14, 15, 16]
+[[teams]]
+  name = "Santa Monica Ski Club"
+  members = [17, 18, 19, 20]
+[[teams]]
+  name = "Kamikaze, Japan"
+  members = [21, 22, 23, 24]
+[[teams]]
+  name = "Dallas Skiboys"
+  members = [25, 26, 27, 28]
+[[teams]]
+  name = "The New York Homeless"
+  members = [29, 30, 31, 32]
+[[teams]]
+  name = "Michael Knights"
+  members = [33, 34, 35, 36]
+[[teams]]
+  name = "Moscow Millionares"
+  members = [37, 38, 39, 40]
+[[teams]]
+  name = "Haiti Voodoos"
+  members = [41, 42, 43, 44]
+[[teams]]
+  name = "Rastafarians, Jamaica"
+  members = [45, 46, 47, 48]
+[[teams]]
+  name = "The Kingston Selassiemen"
+  members = [49, 50, 51, 52]
+[[teams]]
+  name = "Stockholm Gravediggers"
+  members = [53, 54, 55, 56]

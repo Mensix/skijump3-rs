@@ -1,0 +1,387 @@
+use crate::gfx::sprites;
+use crate::gfx::theme::{BG_TEAM, BLACK, FILL_GRAY, FONT_BODY, FONT_GOLD, FONT_GRAY};
+use crate::store::{GameState, ResourcesRef};
+use crate::text::layout::shorten_name;
+use crate::ui::Font;
+use crate::ui::UiCanvas;
+
+use crate::ui::{Key, UiEvent};
+
+const TEAM_NAME_FIELD_WIDTH: i32 = 120;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Phase {
+    NamingTeam(usize),
+    Ready,
+    ShowTeams,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum SetupAction {
+    None,
+    StartJumping,
+}
+
+pub(crate) struct TeamCupSetup {
+    phase: Phase,
+    team_names: Vec<String>,
+    name_buffer: String,
+}
+
+impl TeamCupSetup {
+    pub(crate) fn new_with_dummy() -> Self {
+        Self {
+            phase: Phase::NamingTeam(0),
+            team_names: Vec::new(),
+            name_buffer: String::new(),
+        }
+    }
+
+    pub(crate) fn has_teams(&self) -> bool {
+        !self.team_names.is_empty()
+    }
+
+    pub(crate) fn new(state: &GameState) -> Self {
+        let team_names = team_names(state);
+        let name_buffer = team_names.first().cloned().unwrap_or_default();
+        Self {
+            phase: Phase::NamingTeam(0),
+            team_names,
+            name_buffer,
+        }
+    }
+
+    pub(crate) fn paint(
+        &self,
+        cx: &mut dyn UiCanvas,
+        resources: &ResourcesRef,
+        state: &GameState,
+        cursor_visible: bool,
+    ) {
+        match self.phase {
+            Phase::NamingTeam(idx) => naming_elements(
+                cx,
+                resources,
+                state,
+                &self.team_names,
+                idx,
+                &self.name_buffer,
+                cursor_visible,
+            ),
+            Phase::Ready => ready_elements(cx, resources, state, &self.team_names, cursor_visible),
+            Phase::ShowTeams => showteams_elements(cx, resources, state, cursor_visible),
+        }
+    }
+
+    pub(crate) fn handle_event(
+        &mut self,
+        resources: &ResourcesRef,
+        state: &mut GameState,
+        event: UiEvent,
+    ) -> SetupAction {
+        match self.phase {
+            Phase::NamingTeam(_) => self.handle_naming(resources, state, event),
+            Phase::Ready => {
+                if matches!(event, UiEvent::KeyDown(_) | UiEvent::Text(_)) {
+                    self.phase = Phase::ShowTeams;
+                }
+                SetupAction::None
+            }
+            Phase::ShowTeams => {
+                if matches!(event, UiEvent::KeyDown(_) | UiEvent::Text(_)) {
+                    SetupAction::StartJumping
+                } else {
+                    SetupAction::None
+                }
+            }
+        }
+    }
+
+    fn handle_naming(
+        &mut self,
+        resources: &ResourcesRef,
+        state: &mut GameState,
+        event: UiEvent,
+    ) -> SetupAction {
+        match event {
+            UiEvent::Text(c) if c.is_ascii_graphic() || c == ' ' => {
+                let mut candidate = self.name_buffer.clone();
+                candidate.push(c);
+                if team_name_fits(&resources.font, &candidate) {
+                    self.name_buffer.push(c);
+                }
+            }
+            UiEvent::KeyDown(Key::Backspace) => {
+                self.name_buffer.pop();
+            }
+            UiEvent::KeyDown(Key::Enter) => {
+                self.finalize_current_name(state);
+            }
+            _ => {}
+        }
+        SetupAction::None
+    }
+
+    fn finalize_current_name(&mut self, state: &mut GameState) {
+        let name = self.name_buffer.trim().to_string();
+        let n = match self.phase {
+            Phase::NamingTeam(idx) => idx,
+            _ => return,
+        };
+
+        if !name.is_empty() {
+            if let Some(active) = state.active_competition.as_mut() {
+                if let Some(tc) = active.team_cup_runtime_mut() {
+                    let human_indices: Vec<usize> = tc
+                        .teams
+                        .iter()
+                        .enumerate()
+                        .filter(|(_, t)| t.is_human_team)
+                        .map(|(i, _)| i)
+                        .rev()
+                        .collect();
+                    if let Some(&team_idx) = human_indices.get(n) {
+                        tc.teams[team_idx].name = name.clone();
+                    }
+                }
+            }
+            self.team_names[n] = name;
+        }
+
+        self.name_buffer.clear();
+
+        if n + 1 < self.team_names.len() {
+            self.phase = Phase::NamingTeam(n + 1);
+            self.name_buffer = self.team_names[n + 1].clone();
+        } else {
+            self.phase = Phase::Ready;
+        }
+    }
+}
+
+fn team_name_fits(font: &Font, name: &str) -> bool {
+    font.string_width(name) as i32 <= TEAM_NAME_FIELD_WIDTH
+}
+
+fn team_names(state: &GameState) -> Vec<String> {
+    state
+        .active_competition
+        .as_ref()
+        .and_then(|active| {
+            let tc = active.team_cup_runtime()?;
+            Some(
+                tc.teams
+                    .iter()
+                    .filter(|t| t.is_human_team)
+                    .map(|t| t.name.clone())
+                    .collect(),
+            )
+        })
+        .unwrap_or_default()
+}
+
+fn team_x(team_idx: usize) -> i32 {
+    if team_idx == 0 {
+        30
+    } else {
+        160
+    }
+}
+
+fn naming_elements(
+    cx: &mut dyn UiCanvas,
+    resources: &ResourcesRef,
+    state: &GameState,
+    team_names: &[String],
+    current_team: usize,
+    name_buffer: &str,
+    cursor_visible: bool,
+) {
+    let lang = &resources.langbase;
+    cx.fill((0, 0, 320, 200), BLACK);
+    cx.pattern_fill((0, 0, 320, 19), FILL_GRAY);
+    cx.pattern_fill((0, 20, 320, 180), BG_TEAM);
+
+    cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
+    push_team_cup_header(cx, resources, state);
+
+    for n in 0..team_names.len() {
+        let xx = team_x(n);
+        let is_current = current_team == n;
+        push_jumper_names(cx, state, n, xx);
+
+        if is_current {
+            cx.text((xx, 30), FONT_BODY, &format!("{} {}:", lang.tr(113), n + 1));
+            cx.fill((xx - 2, 40, 125, 10), BLACK);
+            cx.text((xx, 42), FONT_BODY, name_buffer);
+            if cursor_visible {
+                let cw = resources.font.string_width(name_buffer) as i32;
+                cx.fill((xx + cw, 48, 5, 1), FONT_BODY);
+            }
+        } else {
+            push_named_team(cx, resources, team_names, n, xx);
+        }
+    }
+}
+
+fn ready_elements(
+    cx: &mut dyn UiCanvas,
+    resources: &ResourcesRef,
+    state: &GameState,
+    team_names: &[String],
+    cursor_visible: bool,
+) {
+    let lang = &resources.langbase;
+    cx.fill((0, 0, 320, 200), BLACK);
+    cx.pattern_fill((0, 0, 320, 19), FILL_GRAY);
+    cx.pattern_fill((0, 20, 320, 180), BG_TEAM);
+
+    cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
+    push_team_cup_header(cx, resources, state);
+
+    for n in 0..team_names.len() {
+        let xx = team_x(n);
+        push_jumper_names(cx, state, n, xx);
+        push_named_team(cx, resources, team_names, n, xx);
+    }
+
+    cx.right_text((305, 180), FONT_BODY, lang.tr(15));
+    cx.fill((305 - 1, 180 - 2, 9, 11), BG_TEAM);
+    if cursor_visible {
+        cx.fill((305 + 1, 180 + 6, 5, 1), FONT_BODY);
+    }
+}
+
+fn showteams_elements(
+    cx: &mut dyn UiCanvas,
+    resources: &ResourcesRef,
+    state: &GameState,
+    cursor_visible: bool,
+) {
+    let lang = &resources.langbase;
+    cx.fill((0, 0, 320, 200), BLACK);
+    cx.pattern_fill((0, 0, 320, 19), FILL_GRAY);
+    cx.pattern_fill((0, 20, 320, 180), BG_TEAM);
+
+    cx.sprite(sprites::Sprite::Logo as u16, (5, 2));
+    cx.text((30, 6), FONT_BODY, lang.tr(111));
+
+    let mut x = 5i32;
+    let mut y = 24i32;
+    if let Some(active) = state.active_competition.as_ref() {
+        let Some(tc) = active.team_cup_runtime() else {
+            return;
+        };
+        for &team_idx in tc.team_order.iter().rev() {
+            let team = &tc.teams[team_idx];
+            let is_human = team.is_human_team;
+
+            cx.text(
+                (x, y),
+                FONT_BODY,
+                &shorten_name(&team.name, &resources.font, 95),
+            );
+
+            let jcolor = if is_human { FONT_GOLD } else { FONT_GRAY };
+            for (j, member) in team.members.iter().enumerate() {
+                cx.text(
+                    (x + 4, y + 7 + j as i32 * 6),
+                    jcolor,
+                    &shorten_name(&member.competitor.name, &resources.font, 90),
+                );
+            }
+
+            x += 102;
+            if x > 240 {
+                x = 5;
+                y += 35;
+            }
+        }
+    }
+
+    cx.right_text((305, 6), FONT_BODY, lang.tr(15));
+    cx.fill((305 - 1, 6 - 2, 9, 11), BG_TEAM);
+    if cursor_visible {
+        cx.fill((305 + 1, 6 + 6, 5, 1), FONT_BODY);
+    }
+}
+
+fn push_named_team(
+    cx: &mut dyn UiCanvas,
+    resources: &ResourcesRef,
+    team_names: &[String],
+    n: usize,
+    xx: i32,
+) {
+    let lang = &resources.langbase;
+    cx.pattern_fill((xx - 10, 30, 135, 25), BG_TEAM);
+
+    cx.text((xx, 30), FONT_GRAY, &format!("{} {}:", lang.tr(114), n + 1));
+    cx.text((xx, 42), FONT_BODY, &team_names[n].clone());
+}
+
+fn push_team_cup_header(cx: &mut dyn UiCanvas, resources: &ResourcesRef, state: &GameState) {
+    let lang = &resources.langbase;
+    cx.text((30, 6), FONT_BODY, lang.tr(111));
+    cx.text((30, 110), FONT_BODY, lang.tr(112));
+
+    if let Some(schedule) = state
+        .active_competition
+        .as_ref()
+        .and_then(|active| active.team_cup_runtime())
+        .map(|tc| tc.schedule.clone())
+    {
+        for (i, &hill_idx) in schedule.iter().enumerate() {
+            let hill_name = resources
+                .hills
+                .hill(hill_idx)
+                .map(|h| format!("{}. {} K{}", i + 1, h.name, h.kr))
+                .unwrap_or_else(|| format!("{}. Hill {}", i + 1, hill_idx));
+            cx.text((30, 124 + i as i32 * 10), FONT_GOLD, &hill_name);
+        }
+    }
+}
+
+fn push_jumper_names(cx: &mut dyn UiCanvas, state: &GameState, team_n: usize, xx: i32) {
+    let jumpers: Vec<String> = state
+        .active_competition
+        .as_ref()
+        .and_then(|active| {
+            let tc = active.team_cup_runtime()?;
+            Some(
+                tc.teams
+                    .iter()
+                    .filter(|t| t.is_human_team)
+                    .nth(team_n)
+                    .map(|t| {
+                        t.members
+                            .iter()
+                            .map(|m| m.competitor.name.clone())
+                            .collect()
+                    })
+                    .unwrap_or_default(),
+            )
+        })
+        .unwrap_or_default();
+    for (j, jname) in jumpers.iter().enumerate() {
+        cx.text((xx + 13, 56 + j as i32 * 10), FONT_GOLD, &jname.clone());
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{team_name_fits, TEAM_NAME_FIELD_WIDTH};
+    use crate::ui::Font;
+
+    #[test]
+    fn team_name_limit_is_based_on_rendered_width() {
+        let font = Font::default();
+        let short_name = " ".repeat(21);
+        let long_name = " ".repeat(31);
+
+        assert!(team_name_fits(&font, &short_name));
+        assert!(!team_name_fits(&font, &long_name));
+        assert!(font.string_width(&short_name) as i32 <= TEAM_NAME_FIELD_WIDTH);
+        assert!(font.string_width(&long_name) as i32 > TEAM_NAME_FIELD_WIDTH);
+    }
+}

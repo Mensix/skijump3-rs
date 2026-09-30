@@ -1,0 +1,46 @@
+[workspace]
+resolver = "2"
+members = ["engine", "game", "tools/convert-custom-hill", "tools/hill-profile"]
+
+[workspace.package]
+version = "3.14.0"
+edition = "2021"
+authors = ["Ville Kononen", "Grzegorz Perun"]
+license = "GPL-3.0-only"
+rust-version = "1.88"
+publish = false
+
+[workspace.dependencies]
+sdl3 = { version = "0.18", features = ["build-from-source-static", "unsafe_textures"] }
+
+[workspace.lints.clippy]
+ptr_arg = "warn"
+clone_on_copy = "warn"
+redundant_clone = "warn"
+
+[package]
+name = "skijump3"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "skijump3"
+path = "src/main.rs"
+
+[target.'cfg(windows)'.build-dependencies]
+winres = "0.1"
+
+[lints]
+workspace = true
+
+[dependencies]
+engine = { path = "engine" }
+game = { path = "game" }
+
+[profile.release]
+lto = "thin"
+strip = "symbols"

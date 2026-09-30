@@ -1,0 +1,18 @@
+/target
+.opencode/
+node_modules/
+.agents
+skills-lock.json.opencode/
+/skijump3-sdl/
+
+# Pascal artifacts
+TEMP.SJR
+TEMP2.SJR
+CONFIG.SKI
+config.toml
+PLAYERS.SKI
+HISCORE.SKI
+hiscores.toml
+players.toml
+cup_*.toml
+repomix-output.xml

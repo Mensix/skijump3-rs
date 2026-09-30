@@ -1,0 +1,122 @@
+name: Release binaries
+
+# Runs on tags created by release-please (e.g. v0.2.0), which in turn
+# creates the GitHub Release these archives are attached to.
+# NOTE: this is the only workflow publishing on `v*` tags;
+# windows-exe.yml was removed to avoid double-publishing.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    env:
+      MACOSX_DEPLOYMENT_TARGET: "11.0"
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: windows-x86_64
+            os: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: release-${{ matrix.name }}
+      # SDL3 is built from source statically; only Linux needs system deps.
+      # macOS/Windows need nothing extra (same as ci.yml).
+      - name: Install Linux SDL build dependencies
+        if: runner.os == 'Linux'
+        run: >-
+          sudo apt-get update && sudo apt-get install -y
+          cmake ninja-build pkg-config
+          libasound2-dev libpulse-dev libx11-dev libxext-dev libxrandr-dev
+          libxcursor-dev libxfixes-dev libxi-dev libxss-dev libxtst-dev libwayland-dev
+          libxkbcommon-dev libdrm-dev libgbm-dev libgl1-mesa-dev
+          libegl1-mesa-dev libdbus-1-dev libudev-dev
+      - name: Build release
+        run: cargo build --release --locked
+      - name: Smoke test binary (unix)
+        if: runner.os != 'Windows'
+        run: |
+          ./target/release/skijump3 --version
+          test -f game/assets/content.toml
+      - name: Smoke test binary (windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          .\target\release\skijump3.exe --version
+          if (-not (Test-Path game/assets/content.toml)) { throw "missing game/assets/content.toml" }
+      # Stage layout: <name>/skijump3[.exe] + data files flat next to it.
+      # Sprites and MAIN.png are baked into the exe (game/src/app/embedded.rs),
+      # so they are removed from the stage. find_asset_dir() resolves to the
+      # exe dir, with fallback to `assets/` for old installs.
+      - name: Stage binary + assets (unix)
+        if: runner.os != 'Windows'
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          STAGE="stage/skijump3-${VERSION}-${{ matrix.name }}"
+          mkdir -p "$STAGE" dist
+          cp target/release/skijump3 "$STAGE/"
+          cp -r game/assets/* "$STAGE/"
+          rm -rf "$STAGE/sprites" "$STAGE/MAIN.png"
+      - name: Stage binary + assets (windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $version = $env:GITHUB_REF_NAME -replace '^v', ''
+          $stage = "stage/skijump3-$version-${{ matrix.name }}"
+          New-Item -ItemType Directory -Force -Path $stage, dist | Out-Null
+          Copy-Item target/release/skijump3.exe "$stage/"
+          Copy-Item -Recurse game/assets/* "$stage/"
+          Remove-Item -Recurse "$stage/sprites"
+          Remove-Item "$stage/MAIN.png"
+      - name: Pack archive (unix)
+        if: runner.os != 'Windows'
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          DIR="skijump3-${VERSION}-${{ matrix.name }}"
+          tar -czf "dist/${DIR}.tar.gz" -C stage "$DIR"
+          (cd dist && sha256sum "${DIR}.tar.gz" > "${DIR}.tar.gz.sha256")
+      - name: Pack archive (windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $version = $env:GITHUB_REF_NAME -replace '^v', ''
+          $dir = "skijump3-$version-${{ matrix.name }}"
+          Compress-Archive -Path "stage/$dir" -DestinationPath "dist/$dir.zip"
+          $h = (Get-FileHash "dist/$dir.zip" -Algorithm SHA256).Hash.ToLower()
+          [System.IO.File]::WriteAllText("dist/$dir.zip.sha256", "$h  $dir.zip`n")
+      - name: Upload archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ matrix.name }}
+          path: dist/
+          if-no-files-found: error
+
+  publish:
+    name: attach archives to GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download archives
+        uses: actions/download-artifact@v4
+        with:
+          pattern: dist-*
+          merge-multiple: true
+          path: dist
+      - name: Publish release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*

@@ -1,0 +1,26 @@
+format_version = 1
+active_order = [0]
+
+[[profiles]]
+name = "SKI JUMPER"
+real_name = ""
+suit_color = [53, 17, 53]
+ski_color = [63, 63, 32]
+coach_style = 1
+skip_qualification = 2
+total_jumps = 1
+world_cups = 0
+legs_won = 0
+world_cups_won = 0
+best_result = "0 (-)"
+best_4h_result = "-"
+best_wc_jump = 93.0
+best_wc_hill_idx = 1
+best_jump = 93.0
+besthill_idx = 1
+best_hill_file = "HILLBASE"
+best_wc_hill_display = "lahti"
+best_hill_display = "lahti"
+best_points = 0
+best_4h_points = 0.0
+koth_level = 0
